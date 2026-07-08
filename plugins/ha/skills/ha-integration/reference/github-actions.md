@@ -4,7 +4,7 @@ The **file bodies** live in the skill's `templates/` dir (mirrors the target rep
 
 #### create-dev-pr.yml template (canonical — copy this, no external repo)
 
-Self-contained; embodies every rule above (title from commits, grouped `$BODY` sub-heads, `xargs` title trim, no label step, concurrency guard, skip when 0 ahead). Pin actions to current majors and let Dependabot bump them.
+Self-contained; embodies every rule above (title from commits, grouped `$BODY` sub-heads, quote-safe `sed` title trim (not `xargs` — apostrophes break it), no label step, concurrency guard, skip when 0 ahead). Pin actions to current majors and let Dependabot bump them.
 
 #### Remaining workflow + config templates (canonical — copy these, no external repo)
 

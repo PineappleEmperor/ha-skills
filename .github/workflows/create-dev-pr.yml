@@ -93,7 +93,8 @@ jobs:
           if [ -z "$TITLE" ]; then
             TITLE=$(echo "$SUBJECTS" | tail -1)
           fi
-          TITLE=$(echo "$TITLE" | xargs)
+          # Trim surrounding whitespace (quote-safe; xargs chokes on apostrophes in subjects).
+          TITLE=$(printf '%s' "$TITLE" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')
           echo "title=$TITLE" >> $GITHUB_OUTPUT
 
       - name: Create or update draft PR
