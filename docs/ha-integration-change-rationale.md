@@ -359,3 +359,35 @@ No config change needed: the Dependabot `replacers` already strip
 `<details>…</details>`. Convention is now documented in `versioning.md` — a short
 summary at the top of the PR body, everything else wrapped in `<details>`.
 Verified on the live draft.
+
+## R13. `pr-title-check` raced the autolabeler — FIXED
+
+Caught on its own first live run (PR #13): the title was `docs:`, which the
+autolabeler maps to `chore` — and it still got flagged.
+
+`pr-title-check` was written to re-evaluate on the `labeled` event, on the
+assumption that the autolabeler applying a label would re-trigger it. **It does
+not.** `pr-labeler.yml` labels with the default `GITHUB_TOKEN`, and GitHub's
+anti-recursion rule suppresses events caused by that token — the same suppression
+R9 removed from the PR-open path, reappearing one layer down. So only the
+`opened` run fired, five seconds before the label existed, and it commented on a
+perfectly good title.
+
+Fixed by **polling** for a resolvable label (6 × 10s) rather than waiting to be
+re-triggered by an event that cannot arrive. The `labeled`/`unlabeled` triggers
+are kept, since a *human* editing labels does fire them.
+
+The general lesson, now stated in `versioning.md`: the `GITHUB_TOKEN`
+suppression is not only about PR creation. **Any** workflow that expects to be
+woken by another workflow's action is relying on an event that will not fire.
+Poll, or do the work in the same job.
+
+## Known gap, not yet addressed
+
+`pr-labeler.yml` triggers on `pull_request`, which gives a **read-only** token for
+PRs raised from forks — so fork PRs cannot be labelled at all, and therefore get
+no release category. The same limitation `create-dev-pr` had, in the labeller.
+`pr-commit-summary` and `pr-title-check` already use `pull_request_target` for
+this reason; `pr-labeler` should probably follow (the autolabeler checks out no
+code, so the usual `pull_request_target` hazard does not apply). Untested against
+a real fork PR — verify before changing it.
