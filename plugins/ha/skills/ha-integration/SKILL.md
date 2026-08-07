@@ -351,4 +351,18 @@ Collapse each logger cluster to one row. Then read **one representative line** p
 
 Ranked table: **severity · cluster · root cause · fix · evidence (`timestamp` / `file:line`)**. State explicitly which clusters are *known noise* (so the user stops worrying about a scary count) and which are *actionable*. Resolve every opaque token through the device map so the report reads in plain device names ("Kitchen wall tablet", not `192.168.1.42`). If a fix is config-side (scripts/automations/integration settings) and you only have the log, say so and offer to apply it once given the config path.
 
+### Companion-app notification images (off-network delivery)
+
+Recurring config-side fix: a `notify.mobile_app_*` image "works on Wi-Fi, fails on cellular". Root cause is always that the **phone** downloads the attachment over the internet through Nabu Casa — so anything only reachable on the LAN, or served stale, breaks off-network. Three causes:
+
+1. **Hardcoded LAN / internal URL** (`http://192.168.x.x…`, an `internal_url`-based absolute) — unreachable off-network. Use a **relative** path; the companion app prepends the *active* base URL (cloud when remote) and adds auth.
+2. **Legacy `attachment: { url, content-type }`** or a bad MIME (`content-type: jpeg` → must be `image/jpeg`). Prefer the modern **`image:`** key — most robust internal↔external resolution + auth.
+3. **Stale CDN cache** — the killer. A snapshot written to a **fixed** `/config/www/…` filename and served via `/local/…` gets cached by Nabu Casa's CDN: off-network you receive the *previous* image (or a pre-first-write 404). Compounded by a **write→push race** (the push beats the file flush).
+
+Fixes, best first:
+- **`image: /api/camera_proxy/camera.<name>`** — no file, no race, no static cache, authenticated, resolves via cloud. Frame at fetch time (~live). Best for camera alerts; lets you delete the whole `camera.snapshot` step.
+- **Point at a public URL directly** when the image is already internet-hosted (e.g. a YouTube thumbnail `https://i1.ytimg.com/vi/<id>/hqdefault.jpg`) — skip HA entirely; drop any `downloader.download_file` + `delay` steps.
+- **Keep a frozen local snapshot** only if you must: switch `attachment`→`image:`, add a cache-buster `?v={{ now().timestamp() | int }}`, and a ~1 s `delay` after `camera.snapshot` so the write flushes.
+- iOS attachment cap is **10 MB**. Give each alert source a **distinct `tag:`** — a reused tag means a new alert *replaces* the previous one on the lock screen.
+
 > **Scope note:** most HA log errors are **config / automation / external-device** issues, *not* custom-integration code — Mode 5 triages and routes them, but the editing patterns in this skill apply only to the `custom_components.<your_domain>` cluster. Don't add a home's specific errors to this skill; add only a **new reusable noise/actionable *pattern*** here when one recurs across triages.
