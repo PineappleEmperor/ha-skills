@@ -68,7 +68,22 @@ exit 0
 
 > ✅ **Canonical release-notes pattern (Dependabot + `$BODY` + `replacers` scrub) — the standard for every repo.** Keep `$BODY` in `change-template` so **human** PRs surface their grouped mini-changelog (`pr-commit-summary` builds it — see below), and scrub Dependabot's noise with release-drafter **`replacers`** (native regex find/replace over the *rendered* notes). This **supersedes the older "drop `$BODY` when Dependabot is on" advice** — that worked but threw away the human per-commit detail. release-drafter has **no per-category `change-template`** (verified), so `$BODY` is global (all PRs or none); `replacers` is the only way to keep human detail *and* strip bot fluff.
 >
-> - **Group the PR body by commit type** in `pr-commit-summary.yml`: classify each subject in the PR (`breaking`/`feat`/`fix`/`maint`/`other`), emit bold emoji sub-heads (`  **🚀 Features**`, `  **🐛 Fixes**`, `  **🧰 Maintenance**`…) with the descriptions under each, written to `$GITHUB_OUTPUT` via a heredoc. release-drafter inlines `$BODY` verbatim under the PR's one category and does **no** intra-body sorting, so the grouping must happen at body-generation time.
+> - **Group the PR body by commit type** in `pr-commit-summary.yml`: classify each subject in the PR (`breaking`/`feat`/`fix`/`maint`/`other`), emit bold emoji sub-heads (`  **🚀 Features**`, `  **🐛 Fixes**`, `  **🧰 Maintenance**`…) with the descriptions under each, into a marked block spliced into the PR body. release-drafter inlines `$BODY` verbatim under the PR's one category and does **no** intra-body sorting, so the grouping must happen at body-generation time.
+> - ⚠️ **Put long rationale in `<details>`, or it lands in the release notes verbatim.** `$BODY` is the **whole** PR description, not just the generated block. While a bot owned the body this didn't matter — the body *was* the grouped list. Now that humans write PR descriptions and `pr-commit-summary` only appends a block, every paragraph of design discussion is inlined under the category. One verbose PR turns a four-line release note into forty.
+>
+>   No config change is needed: the Dependabot `replacers` already strip `<details>…</details>` globally, so the convention is free. Keep two or three sentences of summary at the top of the PR body, and wrap everything else:
+>
+>   ```markdown
+>   One-paragraph summary — this is what appears in the release notes.
+>
+>   <details><summary>Full rationale, design notes and verification</summary>
+>
+>   …everything else…
+>
+>   </details>
+>   ```
+>
+>   Verified on a live draft: a ~40-line PR body collapsed to its summary paragraph, with the generated commit block still present. If you only notice after merging, edit the merged PR's body and re-run the Release Drafter workflow — it regenerates the draft from the current bodies.
 > - **`change-template`** keeps the two-line `$BODY` form:
 >   ```yaml
 >   change-template: |-

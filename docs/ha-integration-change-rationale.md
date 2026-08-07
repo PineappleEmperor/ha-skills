@@ -270,3 +270,92 @@ Lowest priority of the eight, and the largest. Worth scoping before committing
 to it: even two scenarios (*scaffold CI with `templates/` unreachable*, *audit a
 repo whose workflows were paraphrased*) would have caught the `ha-lego` failure
 before it happened.
+
+---
+
+# Round 3 — RESOLVED 2026-08-07 (shipped in v4.0.0)
+
+Not from a sweep. Raised in review: `create-dev-pr.yml` looked like the wrong
+model for a repo with more than one contributor.
+
+## R9. `create-dev-pr.yml` cannot serve fork-based contributions — REMOVED
+
+The decisive problem is not ergonomics. A workflow triggered on `push` **never
+fires** for a contributor pushing to their own fork, and a `pull_request` from a
+fork gets a **read-only** `GITHUB_TOKEN`, so it could not open the PR even if it
+ran. The convention only ever worked for people with write access to the repo.
+
+Three further frictions, any one of which would justify the change on its own:
+an auto-PR for every work-in-progress branch; a human-edited PR title clobbered
+on the next push; and the `GITHUB_TOKEN` `opened`-suppression rule swallowing the
+first-open checks.
+
+**PRs are now opened by humans.** The one genuinely valuable thing the workflow
+did — the type-grouped commit list feeding release-drafter's `$BODY` — moved to
+`pr-commit-summary.yml`, triggered by a PR being opened.
+
+`pr-commit-summary.yml`:
+
+- `pull_request_target` so it can write to fork PRs. **Never checks out the PR
+  head** — that trigger runs in the base repo's context with a writable token, so
+  running PR-authored code there would hand the token over. Commit subjects come
+  from the API into a file; nothing from the PR reaches a shell command.
+- Skips bot authors; rewrites only the `<!-- commit-summary -->` block so a
+  human description survives; no-op when already current; never touches the title.
+
+**The suppression footgun is gone with it** — a human-opened PR is not a
+token-caused event, so every `pull_request` workflow runs on `opened`. Kept as a
+historical note in `versioning.md` because the old advice still circulates.
+Proof: PR #9 (auto-opened) reached `main` with **no labels at all** and no release
+category; PR #12 (opened by hand) had all five checks green and `xfeat` applied
+on first open.
+
+Four mechanical checks added, each verified firing: `create-dev-pr.yml`
+reinstated · any workflow calling `gh pr create` · a checkout added under
+`pull_request_target` · a missing bot skip.
+
+## R10. Unlabellable PR titles now get a suggestion, not an edit — ADDED
+
+With a human writing the title, a title the autolabeler can't map means no label
+→ no release category → nothing for the version gate to resolve a bump from.
+
+`pr-title-check.yml` comments with a suggested type derived from the PR's
+commits, and **deletes its own comment** once the title is fixed. It does not
+edit the title: a workflow rewriting human titles is precisely what got
+`create-dev-pr` removed.
+
+It decides by reading the PR's **actual labels**, not by re-implementing the
+autolabeler's regexes — a copy of that vocabulary would drift from
+`.github/release-drafter.yml`, and a checker that disagrees with the thing it
+checks is worse than none. Triggering on `labeled`/`unlabeled` as well means it
+re-evaluates after the autolabeler acts, so it cannot race `pr-labeler.yml`.
+
+## R11. The documented autolabeler vocabulary was wrong — CORRECTED
+
+`versioning.md` claimed the autolabeler "maps only `feat|fix|chore|docs`" and
+that `ci:`, `refactor:`, `build:`, `perf:`, `style:` and `revert:` "match
+nothing". Checked against the config it describes
+(`templates/.github/release-drafter.yml`), that is false: the `chore` rule is
+`/^(chore|docs|refactor|perf|test|build|ci|style)(\(.+\))?:/i`, so all of those
+**are** labelled, as `chore` → 🧰 Maintenance → patch.
+
+The real gap is a single type: **`revert:`**, which `lint_pr` accepts and the
+autolabeler maps to nothing — along with any title that isn't Conventional
+Commits at all. Corrected in `SKILL.md`, `versioning.md`, the
+`release-drafter.yml` header comment and the reminder hook.
+
+Worth noting how it survived: the claim was pre-existing prose, plausible, and
+never checked against the file two directories away that contradicted it. The
+same failure mode as the templates the skill now insists on diffing.
+
+## R12. `$BODY` inlines the entire PR body — CONVENTION ADDED
+
+A regression introduced by R9 and caught only by reading the generated v4.0.0
+draft. `$BODY` is the **whole** PR description. While the bot owned the body that
+was harmless — the body *was* the grouped list. With humans writing descriptions,
+one verbose PR turned a four-line release note into forty.
+
+No config change needed: the Dependabot `replacers` already strip
+`<details>…</details>`. Convention is now documented in `versioning.md` — a short
+summary at the top of the PR body, everything else wrapped in `<details>`.
+Verified on the live draft.
