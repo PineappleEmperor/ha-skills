@@ -296,6 +296,29 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 ---
 
+### Testing — prerequisites before any of the rules below apply
+
+`pytest-homeassistant-custom-component` does not work out of the box. Two requirements, each of which fails the *whole* suite rather than one test. Both verified by ablation against HA 2026.8.0 / p-h-c-c 0.13.354 — remove either and a real setup-entry test stops passing.
+
+**1. A `conftest.py` at the repo root** — not in `tests/`. Copy `templates/conftest.py`. It does two jobs:
+
+- **Claims the name `custom_components` for this repo.** p-h-c-c bundles its *own* `custom_components` package under `testing_config/` and binds the bare name to it as its plugin loads. HA discovers custom integrations with a plain `import custom_components` (`homeassistant.loader._get_custom_components`), so whichever binding won decides whether HA can see your integration. A root conftest is imported before the plugin, so `import custom_components` there claims the name first. **Without it every setup test fails with `Setup failed for '<domain>': Integration not found`** — which reads as a broken test, not missing wiring, and sends you debugging the integration instead of the harness. A `custom_components/__init__.py` does *not* fix this (tested); neither does `pythonpath`.
+- **Pulls in `enable_custom_integrations`** autouse (required >= 2021.6.0b0). Fixtures that must initialise *before* it — `recorder_mock` is the known one — have to be requested ahead of it in the same signature.
+
+**2. `asyncio_mode = "auto"`** in `pyproject.toml`, or pytest-asyncio never runs the async tests (they error at collection).
+
+```toml
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+```
+
+No `pythonpath` entry is needed: a root conftest already puts the repo root on `sys.path`, so `pytest` works from any directory (verified with `pytest`, `python -m pytest`, and from inside `tests/`).
+
+⚠️ **Don't reuse a domain that exists in HA core.** A custom `demo`, `sun`, `light`… is shadowed by the built-in, and the failure surfaces as core's dependencies failing to import (`No module named 'hassil'` for `demo`), which looks nothing like a naming clash. Check `homeassistant/components/` before fixing the domain — it can't change later.
+
+The pinned `pytest-homeassistant-custom-component` in `requirements.test.txt` hard-pins `homeassistant==<matching release>`, so **that pin decides which HA the suite runs against** — a mismatch fails at import, not at test time. Keep it in lockstep with the `python_validate.yml` matrix.
+
 ### Testing — mock at the boundary, not your own code
 
 The most dangerous test is the one that passes while the integration is broken. It happens when a test **patches the integration's own functions** instead of the external dependency.
