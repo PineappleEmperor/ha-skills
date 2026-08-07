@@ -13,7 +13,7 @@ jobs:
         python-version: ["3.14"]
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install
@@ -25,3 +25,13 @@ jobs:
         run: ruff check custom_components/
       - name: Pyright
         run: python -m pyright custom_components/
+      - name: Pytest
+        run: |
+          if [ ! -d tests ]; then
+            echo "::warning::no tests/ directory - quality_scale rules marked 'done' are unproven"
+          elif [ ! -f requirements.test.txt ]; then
+            echo "::error::tests/ exists but requirements.test.txt is missing"
+            exit 1
+          else
+            pytest tests/ -q
+          fi
