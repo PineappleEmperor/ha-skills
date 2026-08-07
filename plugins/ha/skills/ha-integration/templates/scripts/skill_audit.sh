@@ -13,13 +13,32 @@ WARN() { echo "⚠️  WARN: $*"; }
 # release.yml: absent -> HACS install fails with "Could not download" on a
 # zip_release repo. quality_audit.yml: absent -> THIS script never runs in CI,
 # and that is the one absence it can never report on a PR.
-for w in create-dev-pr pr-labeler release_drafter semantic_release lint_pr \
+for w in pr-commit-summary pr-labeler release_drafter semantic_release lint_pr \
          hacs_validate hassfest_validate python_validate check-manifest-version \
          release quality_audit; do
   [ -f ".github/workflows/$w.yml" ] || FAIL "missing .github/workflows/$w.yml"
 done
 [ -f .github/release-drafter.yml ] || FAIL "missing .github/release-drafter.yml"
 [ -f .github/dependabot.yml ]      || FAIL "missing .github/dependabot.yml"
+
+# No workflow may open PRs. create-dev-pr.yml is the superseded auto-opener: it cannot
+# serve fork contributions (push never fires on a fork; a fork's pull_request token is
+# read-only) and it overwrote human PR titles. PRs are opened by humans.
+[ -f .github/workflows/create-dev-pr.yml ] \
+  && FAIL "create-dev-pr.yml is superseded (PRs are opened manually; use pr-commit-summary.yml)"
+grep -rln 'gh pr create' .github/workflows/ 2>/dev/null \
+  && FAIL "a workflow opens PRs with 'gh pr create' (PRs are opened manually)"
+
+# pr-commit-summary runs on pull_request_target with a writable token: checking out the
+# PR head there would execute untrusted code with that token.
+if [ -f .github/workflows/pr-commit-summary.yml ]; then
+  grep -q 'pull_request_target' .github/workflows/pr-commit-summary.yml \
+    || FAIL "pr-commit-summary.yml must use pull_request_target (fork PRs need a writable token)"
+  grep -qE 'actions/checkout' .github/workflows/pr-commit-summary.yml \
+    && FAIL "pr-commit-summary.yml checks out code under pull_request_target (never run PR-authored code there)"
+  grep -q "user.type != 'Bot'" .github/workflows/pr-commit-summary.yml \
+    || FAIL "pr-commit-summary.yml does not skip bot-authored PRs"
+fi
 
 # --- Canonical scripts present (check-manifest-version.yml shells out to the
 # gate; a missing script fails that workflow at runtime on every PR) ---

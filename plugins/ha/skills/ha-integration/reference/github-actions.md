@@ -4,9 +4,20 @@ The **file bodies** live in the skill's `templates/` dir (mirrors the target rep
 
 ⚠️ **This file does not substitute for the templates.** It describes required behaviour so you can *review* a workflow; a workflow written from these descriptions is a paraphrase, and paraphrases drift silently. Locate `templates/` per **Where `templates/` lives** in `SKILL.md` (Mode 1) and copy byte-for-byte; if you cannot locate it, stop and say so rather than authoring from prose. Only sanctioned adaptation: `<domain>` in `release.yml`.
 
-#### create-dev-pr.yml template (canonical — copy this, no external repo)
+#### pr-commit-summary.yml template (canonical — copy this, no external repo)
 
-Self-contained; embodies every rule above (title from commits, grouped `$BODY` sub-heads, quote-safe `sed` title trim (not `xargs` — apostrophes break it), no label step, concurrency guard, skip when 0 ahead). Pin actions to current majors and let Dependabot bump them.
+**PRs are opened by humans.** No workflow opens one. This maintains a generated, type-grouped commit list inside a marked block in the PR body, so release-drafter's `$BODY` still renders a per-PR mini-changelog.
+
+Must-preserve behaviours:
+
+- **`pull_request_target`, and no checkout — ever.** Fork PRs need a writable token to have their body edited, and only `pull_request_target` provides one. That trigger runs in the *base* repo's context, so checking out the PR head there would execute a contributor's code with a write-scoped token. The workflow reads commit subjects from the API into a file instead, and interpolates nothing from the PR into a shell command.
+- **Skips bot authors** (`user.type != 'Bot'`). Dependabot writes its own body and `replacers` scrub it; rewriting adds nothing.
+- **Rewrites only the marked block** (`<!-- commit-summary:start -->…<!-- commit-summary:end -->`), so a human-written description survives every push, and it's a no-op when already current.
+- **No title handling and no label step.** The human owns the title, `lint_pr` gates its format, and the autolabeler is the sole labeler.
+
+> **Superseded — do not reinstate `create-dev-pr.yml`.** It opened a draft PR on every push to a non-main branch and derived the title from the commits. Four problems, the first fatal: it **cannot serve fork-based contributions** (a `push` workflow never fires for a contributor pushing to their own fork, and a fork's `pull_request` token is read-only, so it could not open the PR anyway) — so the convention only ever worked for people with write access. It also auto-opened a PR for every WIP branch, clobbered a human-edited PR title on the next push, and tripped the `GITHUB_TOKEN` `opened`-suppression rule so no checks ran on first open.
+>
+> **The `GITHUB_TOKEN` `opened`-suppression footgun is gone with it.** A human-opened PR is not a token-caused event, so `lint_pr`, `pr-labeler`, the autolabeler and `check-manifest-version` all run on the first open, as they always should have.
 
 #### Remaining workflow + config templates (canonical — copy these, no external repo)
 
@@ -42,7 +53,7 @@ The workflow just gathers inputs and shells out:
 
 #### Optional: per-turn reminder hooks (personal `~/.claude`)
 
-The repo `CLAUDE.md` rule is the **canonical, shareable** enforcement (it ships with the repo, applies to everyone). These two personal hooks are a *convenience* layer on top — they live in your own `~/.claude/` and re-arm the rules every session/turn so they don't drift down-context in a long session. **Marker-file gated** so each only fires where it applies: the skill anchor on an integration repo (`custom_components/*/manifest.json`), the CI-convention anchor on any repo using this workflow stack (`.github/workflows/create-dev-pr.yml`) — which includes this skill's own repo, not just scaffolded integrations.
+The repo `CLAUDE.md` rule is the **canonical, shareable** enforcement (it ships with the repo, applies to everyone). These two personal hooks are a *convenience* layer on top — they live in your own `~/.claude/` and re-arm the rules every session/turn so they don't drift down-context in a long session. **Marker-file gated** so each only fires where it applies: the skill anchor on an integration repo (`custom_components/*/manifest.json`), the CI-convention anchor on any repo using this workflow stack (`.github/workflows/pr-commit-summary.yml`) — which includes this skill's own repo, not just scaffolded integrations.
 
 `~/.claude/settings.json` (merge into existing `hooks`):
 
