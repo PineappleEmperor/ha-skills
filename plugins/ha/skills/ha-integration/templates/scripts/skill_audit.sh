@@ -13,7 +13,7 @@ WARN() { echo "⚠️  WARN: $*"; }
 # release.yml: absent -> HACS install fails with "Could not download" on a
 # zip_release repo. quality_audit.yml: absent -> THIS script never runs in CI,
 # and that is the one absence it can never report on a PR.
-for w in pr-commit-summary pr-labeler release_drafter semantic_release lint_pr \
+for w in pr-commit-summary pr-title-check pr-labeler release_drafter semantic_release lint_pr \
          hacs_validate hassfest_validate python_validate check-manifest-version \
          release quality_audit; do
   [ -f ".github/workflows/$w.yml" ] || FAIL "missing .github/workflows/$w.yml"
@@ -38,6 +38,15 @@ if [ -f .github/workflows/pr-commit-summary.yml ]; then
     && FAIL "pr-commit-summary.yml checks out code under pull_request_target (never run PR-authored code there)"
   grep -q "user.type != 'Bot'" .github/workflows/pr-commit-summary.yml \
     || FAIL "pr-commit-summary.yml does not skip bot-authored PRs"
+fi
+
+# pr-title-check must read the PR's real labels, not re-implement the autolabeler's
+# regexes — a checker that drifts from .github/release-drafter.yml is worse than none.
+if [ -f .github/workflows/pr-title-check.yml ]; then
+  grep -q 'gh pr view .* --json labels' .github/workflows/pr-title-check.yml \
+    || FAIL "pr-title-check.yml does not read the PR's actual labels (don't duplicate the autolabeler regexes)"
+  grep -qE 'gh pr edit .*--title|--title ' .github/workflows/pr-title-check.yml \
+    && FAIL "pr-title-check.yml edits the PR title (it must only suggest)"
 fi
 
 # --- Canonical scripts present (check-manifest-version.yml shells out to the

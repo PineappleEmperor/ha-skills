@@ -5,7 +5,8 @@ integration — `templates/` is what ships; this directory is maintenance.
 
 ## Why
 
-Every defect in `TODO.md` was found the expensive way: a real build (`ha-lego`)
+Every defect in `docs/ha-integration-change-rationale.md` (repo root, deliberately
+outside the plugin) was found the expensive way: a real build (`ha-lego`)
 went wrong, or a manual sweep found it months later. Nothing catches the next
 drift until it ships. `superpowers:writing-skills` treats skill authoring as
 TDD — write the failing scenario, watch an agent fail it, write the guidance,
