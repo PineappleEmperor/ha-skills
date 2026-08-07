@@ -10,9 +10,14 @@ name: PR Title Check
 #
 # Ground truth is the PR's ACTUAL labels, not a copy of the autolabeler's regexes.
 # Duplicating that vocabulary here would drift from .github/release-drafter.yml, and a
-# checker that disagrees with the thing it checks is worse than none. Running on
-# labeled/unlabeled as well means this re-evaluates after the autolabeler acts, so
-# there's no race with pr-labeler.yml.
+# checker that disagrees with the thing it checks is worse than none.
+#
+# It POLLS for the label instead of waiting to be re-triggered by one. pr-labeler.yml
+# applies labels with the default GITHUB_TOKEN, and GitHub's anti-recursion rule
+# suppresses events caused by that token — so the `labeled` event never arrives and a
+# run that fires on `opened` would race the autolabeler and comment on a perfectly good
+# title. (Observed: PR #13, title `docs:`, labelled `chore` 5s after this commented.)
+# The labeled/unlabeled triggers are kept for HUMAN label edits, which do fire.
 on:
   pull_request_target:
     types: [opened, reopened, edited, synchronize, labeled, unlabeled]
@@ -39,10 +44,17 @@ jobs:
         run: |
           # Keep in sync with version-resolver in .github/release-drafter.yml.
           KNOWN="xfeat xfeature major feat feature minor fix bugfix bug patch chore"
-          gh pr view "$PR" --json labels --jq '.labels[].name' > labels.txt || true
+          # Poll: the autolabeler runs concurrently and its `labeled` event is suppressed
+          # (GITHUB_TOKEN anti-recursion), so a single immediate read races it and would
+          # flag a title that is about to be labelled fine. Give it up to ~60s.
           FOUND=""
-          for l in $KNOWN; do
-            grep -qx "$l" labels.txt && { FOUND="$l"; break; }
+          for attempt in 1 2 3 4 5 6; do
+            gh pr view "$PR" --json labels --jq '.labels[].name' > labels.txt || true
+            for l in $KNOWN; do
+              grep -qx "$l" labels.txt && { FOUND="$l"; break; }
+            done
+            [ -n "$FOUND" ] && break
+            [ "$attempt" -lt 6 ] && { echo "no resolvable label yet (attempt $attempt); waiting"; sleep 10; }
           done
           if [ -n "$FOUND" ]; then
             echo "ok=true" >> $GITHUB_OUTPUT
