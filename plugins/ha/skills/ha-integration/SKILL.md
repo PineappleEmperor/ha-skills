@@ -16,6 +16,20 @@ Help create, modify, and lint Home Assistant custom integrations targeting **pla
 - Quality scale: https://developers.home-assistant.io/docs/integration_quality_scale_index/
 - Real examples: https://github.com/home-assistant/core/tree/dev/homeassistant/components
 
+### Freshness — cached facts and when to re-derive them
+
+Several load-bearing values in this skill are **snapshots**. They were right when captured and go wrong silently: nothing in CI notices, and the check written to catch staleness goes stale in the same place (an "is the pin below v6?" rule keeps passing a v6 pin long after v7 ships — which is exactly what happened to `setup-python`). **Re-derive any row older than ~3 months, and update every listed consumer in the same pass** — a value fixed in one place and not the others is worse than one that's uniformly old.
+
+| Cached fact | Value | Captured | Re-derive with | Consumers to update together |
+|---|---|---|---|---|
+| HA minimum Python | `3.14` (HA dev needs 3.14.2+) | 2026-06 | developers.home-assistant.io/docs/development_environment | `python_validate.yml` matrix · `pyproject.toml` ruff `target-version` + pylint `py-version` · `pyrightconfig.json` |
+| Quality-scale canonical rule set | see *Quality scale* below | 2026-06 | developers.home-assistant.io/docs/core/integration-quality-scale/ | the rule lists below · every `quality_scale.yaml` |
+| GitHub action majors | checkout `v7` · setup-python `v7` · action-gh-release `v3` · semantic-pull-request `v6` · release-drafter `v7` | 2026-08-07 | `gh api repos/<owner>/<repo>/releases/latest --jq .tag_name` | `templates/.github/workflows/*.yml` pins · the stale-pin patterns in `skill_audit.sh` |
+| `pytest-homeassistant-custom-component` → HA | `0.13.354` → HA `2026.8.0`, requires-python `>=3.14` | 2026-08-07 | pypi.org/project/pytest-homeassistant-custom-component | `templates/requirements.test.txt` pin · the HA-minimum-Python row above |
+| Brand assets served from inline `brand/` | since HA `2026.3.0`; HACS dashboard still reads the legacy CDN | 2026-06 | hacs/integration #5171, #5223 | the brand-assets note in Mode 1 |
+
+`hacs/action@main` and `home-assistant/actions/hassfest@master` are **deliberately** on mutable refs — that's the ref each project documents, and a tag pin stops tracking their validation rules. They're exempt from the pin rules above; the trade-off is capped with read-only permissions and `persist-credentials: false` in both workflows.
+
 ## When to use this skill
 
 Use it when the task touches any of: a `custom_components/<domain>/` package, a `manifest.json` with a `domain`, a config/options/reauth/reconfigure flow, a `DataUpdateCoordinator` or entity platform (`sensor.py`, `notify.py`, …), `services.yaml`/`quality_scale.yaml`, the integration's GitHub CI (the `create-dev-pr`/release-drafter/hassfest/HACS stack), or a Home Assistant log to triage. Symptoms that should pull you here: "add a sensor/platform", "config flow won't validate", "hassfest/HACS check failing", "what `state_class` for this `device_class`", "Dependabot keeps bumping actions", "this PR's version gate is red", "what's spamming my HA log".
@@ -75,6 +89,9 @@ Check the current working directory:
 - `hacs.json` — `name` is the only strict requirement, but the canonical setup ships a **zip release**: `{"name": "My Integration", "content_in_root": false, "zip_release": true, "filename": "<domain>.zip"}` (add `"homeassistant": "2024.1.0"` for a minimum HA version). `zip_release` makes HACS download a release **asset** named `<filename>` instead of the tag source archive — so it **requires** the `release.yml` *Create Release ZIP* workflow (`templates/.github/workflows/release.yml`) to build and attach that asset on every published release. **Without that workflow, HACS install fails with `Could not download`** (the symptom of a `zip_release` repo whose release has no attached zip). Drop `zip_release`/`filename` only if you deliberately want HACS to pull the whole tagged repo archive instead.
 - `pyproject.toml`
 - `pyrightconfig.json`
+- `requirements.test.txt` — **required**; `python_validate.yml` installs from it and runs `pytest`, so an integration without it has no test job. Copy `templates/requirements.test.txt`. Pin `pytest-homeassistant-custom-component` to the release matching the HA version in the CI matrix (it tracks HA releases 1:1 — a mismatched pin fails at import, not at test time).
+- `conftest.py` — **required, at the repo root, not in `tests/`**; copy `templates/conftest.py`. Its first import claims the name `custom_components` for this repo before `pytest-homeassistant-custom-component` binds it to the package it bundles; without that, HA cannot see the integration and every setup test fails with `Integration not found`. It also pulls in `enable_custom_integrations` autouse. `pyproject.toml` additionally needs `asyncio_mode = "auto"`. Both verified by ablation — full explanation in `reference/patterns.md`, read it before writing the first test.
+- `tests/` — one file per module under test, plus `test_manifest_gate.py` (below). See the testing rules in `reference/patterns.md`.
 - `README.md` — **include the AI-assistance disclaimer** as a GitHub `> [!NOTE]` admonition box. Link the skill name to its public repo. Template:
   ```markdown
   > [!NOTE]
@@ -123,17 +140,46 @@ The `description`, `issues`, and `topics` checks fail silently until the first `
 - `.github/workflows/lint_pr.yml`
 - `.github/workflows/hacs_validate.yml`
 - `.github/workflows/hassfest_validate.yml`
-- `.github/workflows/python_validate.yml` — **pin the matrix to HA's current minimum Python** (as of 2026-06, `["3.14"]` — HA dev requires 3.14.2+; `pip install homeassistant` refuses older). Test the *floor* HA supports, and re-check it at developers.home-assistant.io/docs/development_environment when HA bumps. Keep this in lockstep with `pyproject.toml` ruff `target-version = "py314"` and pylint `py-version = "3.14"`, and `pyrightconfig.json`.
+- `.github/workflows/python_validate.yml` — ruff, pyright **and pytest**. Tests run in CI, not just locally: the quality scale requires a test for every rule marked `done`, and a suite nothing runs is a suite that rots. The pytest step needs `requirements.test.txt` (see repo-root file list) and fails the build on a red test; it emits a workflow **warning** if `tests/` is absent, so a freshly scaffolded repo is loud rather than silently green. **Pin the matrix to HA's current minimum Python** (snapshot `["3.14"]` — HA dev requires 3.14.2+; `pip install homeassistant` refuses older; see the **Freshness** table to re-derive). Test the *floor* HA supports. Keep this in lockstep with `pyproject.toml` ruff `target-version = "py314"` and pylint `py-version = "3.14"`, and `pyrightconfig.json`.
 - `.github/workflows/check-manifest-version.yml`
 - `.github/workflows/quality_audit.yml` — runs `scripts/skill_audit.sh` on every PR to mechanically enforce skill conformance (workflows present, action pins current, antipatterns absent). See **Mode 4 — Audit**.
 - `scripts/skill_audit.sh` — the mechanical conformance check (run locally before claiming done; CI runs it too).
-- `.github/pr-labeler.yml`
+- `scripts/manifest_gate.py` — the version-gate decision logic `check-manifest-version.yml` shells out to. **Not optional:** the workflow fails at runtime on every PR if the script isn't there. Kept as a separate, unit-tested script precisely because inline bash gate logic shipped a real bug — see `reference/github-actions.md`.
+- `tests/test_manifest_gate.py` — its unit tests, including the regression that shipped. Copy alongside the script; they travel together.
 - `.github/release-drafter.yml` — autolabeler rules are **title-only** (no `branch:` rules). The release-drafter autolabeler can only match title/body/branch/files (never commit subjects), so label off the **title** — which `create-dev-pr` already derives from the commits. Keep it the one-and-only labeler; don't also label in `create-dev-pr.yml`.
 - `.github/dependabot.yml` — see `reference/versioning.md` (Dependabot).
 
 #### GitHub CI templates
 
 The full, self-contained CI stack ships in the skill's **`templates/`** dir (mirrors the target repo layout — `templates/.github/workflows/*.yml`, `templates/.github/*.yml`, `templates/scripts/*`, `templates/tests/*`, `templates/hooks/*`). Copy as-is; no external repo. One file per workflow/config/script.
+
+##### Where `templates/` lives, and what to do if you can't find it
+
+`templates/` sits **next to the `SKILL.md` you are reading**, in this skill's own directory. Resolve it in this order:
+
+1. **The base directory announced when this skill loaded.** Invoking a skill prints `Base directory for this skill: <path>` — `templates/` is `<path>/templates/`. Use this first; it is always correct.
+2. **Installed as a plugin:** `~/.claude/plugins/cache/*/ha/*/skills/ha-integration/templates/`
+3. **Personal or repo skill:** `~/.claude/skills/ha-integration/templates/`, or `plugins/ha/skills/ha-integration/templates/` inside a checkout of the skill repo.
+4. **Last resort — search:** `find ~/.claude ~/.agents . -type d -path '*ha-integration/templates' 2>/dev/null`
+
+**If none of those find it, stop and say so.** Report which paths you checked and ask for the skill's location. Do **not** author the workflows, `skill_audit.sh`, `manifest_gate.py`, `dependabot.yml`, `release-drafter.yml` or `pr-labeler.yml` from this document — the prose *describes* the templates, it does not *replace* them. A hand-written CI stack passes a hand-written audit, and every divergence stays invisible until something breaks in production.
+
+##### Copying the templates
+
+For each canonical file: read the template, write it to the target path byte-for-byte, then apply **only** the substitutions listed below. Do not reformat, reorder keys, rename jobs, add comments, or "improve" a copied file.
+
+**Sanctioned adaptations — the complete list. Any other difference is drift:**
+
+| File | Allowed change |
+|---|---|
+| `.github/workflows/release.yml` | `<domain>` → the integration's domain (3 occurrences) |
+| `.github/workflows/python_validate.yml` | `python-version` matrix, **only** when HA's minimum Python has moved and the template is stale — fix the template too |
+| lint/format config (`pyproject.toml`, ruff) | exclusions needed to leave copied files unformatted |
+
+**Traps this section exists to close** (both have happened, with the reminder hook active and the agent believing it was complying):
+
+- **Writing a faithful-sounding paraphrase instead of copying the artefact.** Producing a workflow that does what the prose says is *not* copying the template. Fifteen files drifted this way and passed the audit clean.
+- **Multi-line docstrings.** The code style below says *short single-line* docstrings on all public functions and classes. Single line means single line.
 
 **Read `reference/github-actions.md` before changing any workflow** — it holds the must-preserve behaviours: the sole title-only labeler + removal-only superseded-label step, `$BODY` + bounded Dependabot `replacers`, the last-published-release version gate (with `dependabot[bot]` exempt and the unit-tested `manifest_gate.py`), the `create-dev-pr` title/concurrency/0-ahead rules, the `GITHUB_TOKEN` `opened`-suppression footgun, and the optional personal reminder-hook recipe.
 
@@ -198,7 +244,7 @@ Valid statuses: `done`, `todo`, `exempt` (exempt requires a `comment`).
 
 ⚠️ **Prove the rule, don't just claim it — hassfest checks structure, not behaviour.** A green hassfest + a `done` in `quality_scale.yaml` only proves the file is well-formed and the manifest tier is a valid enum; hassfest **never runs the integration**, so it cannot tell you `diagnostics.py` actually redacts, the reconfigure flow works, `async_remove_config_entry_device` returns correctly, or that a `translation_key` used in code resolves in `strings.json`. (For HA core those rules are enforced by human reviewers; for a custom integration nothing enforces them.) So **every rule you mark `done` must have a test that exercises it** — marking `done` off code-presence alone is "claiming compliance" without showing it. Concretely, each of these needs its own test, not just the code: `reconfiguration-flow` (a reconfigure-success + reconfigure-error flow test), `diagnostics` (asserts the payload shape **and** that secrets are `**REDACTED**`), `stale-devices` (`async_remove_config_entry_device` → `False` while the device is live, `True` once it's gone), `exception-translations`/`entity-translations`/`icon-translations` (a test that scrapes the `translation_key`s used in code and asserts each exists in `strings.json` — catches a typo'd key that hassfest passes). If a rule is genuinely untestable, it should be `exempt` with a comment, not an unproven `done`.
 
-**Canonical rule set (cached 2026-06; re-verify at developers.home-assistant.io/docs/core/integration-quality-scale/ — rules change).** All must appear in `quality_scale.yaml`:
+**Canonical rule set — a snapshot; rules change. Re-verify per the *Freshness* table at the top of this skill.** All must appear in `quality_scale.yaml`:
 - **Bronze:** `action-setup`, `appropriate-polling`, `brands`, `common-modules`, `config-flow-test-coverage`, `config-flow`, `dependency-transparency`, `docs-actions`, `docs-high-level-description`, `docs-installation-instructions`, `docs-removal-instructions`, `entity-event-setup`, `entity-unique-id`, `has-entity-name`, `runtime-data`, `test-before-configure`, `test-before-setup`, `unique-config-entry`
 - **Silver:** `config-entry-unloading`, `log-when-unavailable`, `entity-unavailable`, `action-exceptions`, `reauthentication-flow`, `parallel-updates`, `test-coverage`, `integration-owner`, `docs-installation-parameters`, `docs-configuration-parameters`
 - **Gold:** `entity-translations`, `entity-device-class`, `devices`, `entity-category`, `entity-disabled-by-default`, `discovery`, `stale-devices`, `diagnostics`, `exception-translations`, `icon-translations`, `reconfiguration-flow`, `dynamic-devices`, `discovery-update-info`, `repair-issues`, `docs-use-cases`, `docs-supported-devices`, `docs-supported-functions`, `docs-data-update`, `docs-known-limitations`, `docs-troubleshooting`, `docs-examples`
@@ -269,7 +315,9 @@ Apply the same patterns and code style as Mode 1.
 
 ### Mechanical gate — `scripts/skill_audit.sh`
 
-The full script is **`templates/scripts/skill_audit.sh`** (copy to `scripts/`, `chmod +x`). It fails (exit 1) on: a missing canonical workflow; a stale action pin (checkout < v7, setup-python < v6, action-gh-release < v3, semantic-pull-request < v6); an antipattern in `custom_components/` (`discovery.async_load_platform`, `BaseNotificationService`, `update_before_add=True`, `OptionsFlowHandler`, `PlatformNotReady`, f-string logging, bare `# type: ignore`); or a missing `quality_scale.yaml` / `integration_type` / `issue_tracker`. Keep its rules in lockstep with this skill — when you add an antipattern or canonical workflow here, add the check there.
+The full script is **`templates/scripts/skill_audit.sh`** (copy to `scripts/`, `chmod +x`). It fails (exit 1) on: a missing canonical workflow; a stale action pin (checkout < v7, setup-python < v6, action-gh-release < v3, semantic-pull-request < v6); an antipattern in `custom_components/` (`discovery.async_load_platform`, `BaseNotificationService`, `update_before_add=True`, `OptionsFlowHandler`, `PlatformNotReady`, f-string logging, bare `# type: ignore`); a missing `quality_scale.yaml` / `integration_type` / `issue_tracker`; or a `tests/` dir with no `requirements.test.txt` or no pytest step in `python_validate.yml` (a suite CI can't install is a suite CI doesn't run). It **warns** on an absent `tests/` dir and on an unpinned `pytest-homeassistant-custom-component`. Keep its rules in lockstep with this skill — when you add an antipattern or canonical workflow here, add the check there.
+
+⚠️ **The gate checks each canonical workflow *exists*, not that it *matches* the template** — a consuming repo has no copy of `templates/` to diff against. Content fidelity is the first item of the judgement checklist below, where the agent *does* have the skill on disk. Green CI is not evidence the templates were copied.
 
 Enforce it in CI with **`templates/.github/workflows/quality_audit.yml`** — runs `scripts/skill_audit.sh` on every PR, so conformance can't be silently skipped.
 
@@ -277,11 +325,20 @@ Add `"scripts/*" = ["T20", "INP001"]` to ruff `per-file-ignores` if any audit he
 
 ### Judgement checklist (read the code — a grep can't decide these)
 
+- **Templates copied, not paraphrased.** Diff `.github/` and `scripts/` against this skill's `templates/` (locate it per *Where `templates/` lives* in Mode 1). Every difference must appear in the sanctioned-adaptations table there. Files that merely *look* equivalent are not equivalent — `skill_audit.sh` checks each canonical workflow **exists**, never that it **matches**, so fifteen hand-written files once passed it clean. Run:
+  ```bash
+  T=<skill>/templates   # from the skill's announced base directory
+  diff -ru "$T/.github" .github
+  diff -ru "$T/scripts" scripts
+  diff -u  "$T/tests/test_manifest_gate.py" tests/test_manifest_gate.py
+  ```
+  Expected output is the `release.yml` `<domain>` substitution and nothing else. Any other hunk is a finding — report it with the file and hunk, and restore from the template unless the diff is a deliberate, listed adaptation. If `templates/` can't be located, report the audit item as **not checked**; do not mark it passed.
 - **Workflows behave, not just exist:** `create-dev-pr` trims the title with a quote-safe `sed` (never `xargs` — apostrophes break it), has `concurrency` + 0-ahead skip, and no label step; `release_drafter` is push-only with no second autolabeler; `check-manifest-version` compares to the **last published release** and exempts `dependabot[bot]` on the *failing steps*.
 - **Patterns applied:** `runtime_data` (not `hass.data[DOMAIN][entry_id]`) for entry state; coordinator `async_shutdown()` on unload; `async_remove_config_entry_device` present if the integration creates a device; `DeviceInfo` TypedDict; `_attr_has_entity_name = True`; typed `ConfigEntry` alias; modern `NotifyEntity` (or a directly-registered service for custom `data`).
 - **`quality_scale.yaml` honest:** every canonical rule listed; every `exempt` carries a real `comment`; no optimistic `exempt` masking a gap (e.g. `stale-devices` exempt while a device *is* created); the `manifest.json` tier claimed only when every rule at/below it is `done`/`exempt`.
 - **Tests mock the boundary:** a real setup-entry `LOADED` test exists (not just `async_setup_component`); the transport is mocked, not the integration's own functions; a two-entry parallel `LOADED` test exists if multiple devices are allowed; parsers have unit tests.
 - **Commit/PR discipline:** subjects are single tight imperatives; the PR was opened by `create-dev-pr`, not hand-created; the version bumped once vs the last release per the type label.
+- **Cached facts still true.** Re-derive any row in the **Freshness** table (top of this skill) captured more than ~3 months ago, using the command in its *Re-derive with* column. Report each as still-current or stale-with-the-new-value, and update every consumer listed on that row in one pass. The stale-pin patterns in `skill_audit.sh` are themselves a cached fact — check them against the action majors, not just the templates against the patterns.
 
 **Report:** per-item pass/fail with `file:line` evidence · what the mechanical gate caught · remaining manual work. Fix findings before claiming the tier.
 
