@@ -10,6 +10,6 @@ fi
 
 # Any repo on this workflow stack (the skill repo AND scaffolded integrations):
 # the commit/PR conventions that drift down-context mid-session.
-if [ -f .github/workflows/create-dev-pr.yml ]; then
-  echo "[ci-conventions] commit & PR subject = ONE tight imperative (lowercase after the colon, no trailing period, no comma-joined dual subject). create-dev-pr.yml OWNS the PR — never hand-create it with gh pr create; push the branch and let the action open/update it (PR title mirrors the winning commit subject). Branch off main; bump the manifest/plugin version once, as the last commit before merge."
+if [ -f .github/workflows/pr-commit-summary.yml ]; then
+  echo "[ci-conventions] commit & PR subject = ONE tight imperative (lowercase after the colon, no trailing period, no comma-joined dual subject). YOU open the PR (gh pr create) — no workflow opens one; pr-commit-summary.yml only maintains the commit-list block in the body, so don't hand-edit inside the <!-- commit-summary --> markers. PR TITLE must use a labellable type: feat|feature, fix, or chore|docs|refactor|perf|test|build|ci|style (all label as chore), or type! for breaking. revert: passes lint_pr but maps to NO label and NO release category. Branch off main; bump the manifest/plugin version once, as the last commit before merge."
 fi

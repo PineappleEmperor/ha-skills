@@ -1,0 +1,132 @@
+name: PR Title Check
+
+# A PR whose title the autolabeler cannot map gets no label -> no release-drafter
+# category -> nothing for the version gate to resolve a bump from. lint_pr.yml won't
+# catch it: it accepts the whole Conventional Commits set, including `revert:`, which
+# the autolabeler maps to nothing.
+#
+# This SUGGESTS a title in a comment. It never edits the title — that's the author's
+# call, and a workflow rewriting human titles is exactly what got create-dev-pr removed.
+#
+# Ground truth is the PR's ACTUAL labels, not a copy of the autolabeler's regexes.
+# Duplicating that vocabulary here would drift from .github/release-drafter.yml, and a
+# checker that disagrees with the thing it checks is worse than none. Running on
+# labeled/unlabeled as well means this re-evaluates after the autolabeler acts, so
+# there's no race with pr-labeler.yml.
+on:
+  pull_request_target:
+    types: [opened, reopened, edited, synchronize, labeled, unlabeled]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: pr-title-check-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  title-check:
+    if: github.event.pull_request.user.type != 'Bot'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for a version-resolvable label
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          # Keep in sync with version-resolver in .github/release-drafter.yml.
+          KNOWN="xfeat xfeature major feat feature minor fix bugfix bug patch chore"
+          gh pr view "$PR" --json labels --jq '.labels[].name' > labels.txt || true
+          FOUND=""
+          for l in $KNOWN; do
+            grep -qx "$l" labels.txt && { FOUND="$l"; break; }
+          done
+          if [ -n "$FOUND" ]; then
+            echo "ok=true" >> $GITHUB_OUTPUT
+            echo "PR carries '$FOUND' - title is resolvable."
+          else
+            echo "ok=false" >> $GITHUB_OUTPUT
+            echo "::warning::PR has no version-resolvable label; its title type maps to nothing."
+          fi
+
+      - name: Suggest a title type from the commits
+        if: steps.check.outputs.ok == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          gh api --paginate "repos/$GH_REPO/pulls/$PR/commits" \
+            --jq '.[].commit.message | split("\n")[0]' > subjects.txt
+          python3 - <<'PY'
+          import pathlib, re
+
+          subjects = [s for s in pathlib.Path("subjects.txt").read_text().splitlines() if s.strip()]
+          TYPE = re.compile(r"^(?P<type>[a-zA-Z]+)(\([^)]*\))?(?P<bang>!)?:")
+          MAINT = {"chore", "docs", "refactor", "perf", "test", "build", "ci", "style"}
+
+          # Highest-impact type present wins, matching the version-resolver's precedence.
+          win = None
+          for s in subjects:
+              m = TYPE.match(s)
+              if not m:
+                  continue
+              t = m.group("type").lower()
+              if m.group("bang"):
+                  win = "breaking"; break
+              if t in ("feat", "feature"):
+                  win = win if win == "breaking" else "feat"
+              elif t == "fix" and win not in ("feat",):
+                  win = "fix"
+              elif t in MAINT and win is None:
+                  win = "chore"
+
+          suggest = {
+              "breaking": ("`feat!:` (or any `type!:`)", "🚨 Breaking Change", "major"),
+              "feat":     ("`feat:`",  "🚀 Features",    "minor"),
+              "fix":      ("`fix:`",   "🔧 Fixes",       "patch"),
+              "chore":    ("`chore:`", "🧰 Maintenance", "patch"),
+          }.get(win or "chore")
+
+          body = f"""<!-- pr-title-check -->
+          ### This PR's title can't be labelled
+
+          The autolabeler maps the title to a label, release-drafter turns that label into a
+          release category, and the version gate resolves the expected bump from it. This
+          title matches none of its rules, so the PR has no label, won't appear in the draft
+          release notes, and gives the version gate nothing to check.
+
+          `lint_pr` passed because it accepts the full Conventional Commits set — `revert:`
+          is the type that clears the lint and still maps to nothing.
+
+          **Suggested type, from this PR's commits: {suggest[0]}** — files under
+          *{suggest[1]}*, resolves a **{suggest[2]}** bump.
+
+          Mapped types: `feat`/`feature` · `fix` · `chore`/`docs`/`refactor`/`perf`/`test`/`build`/`ci`/`style` · any `type!:` for breaking.
+
+          Edit the title and this comment will remove itself. Nothing here changes your title.
+          """
+          pathlib.Path("comment.md").write_text("\n".join(l.lstrip() for l in body.splitlines()))
+          PY
+          EXISTING=$(gh api "repos/$GH_REPO/issues/$PR/comments" \
+            --jq '[.[] | select(.body | startswith("<!-- pr-title-check -->"))] | .[0].id // ""')
+          if [ -n "$EXISTING" ]; then
+            gh api -X PATCH "repos/$GH_REPO/issues/comments/$EXISTING" -F body=@comment.md --silent
+          else
+            gh pr comment "$PR" --body-file comment.md
+          fi
+
+      - name: Withdraw the suggestion once the title is fixed
+        if: steps.check.outputs.ok == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          EXISTING=$(gh api "repos/$GH_REPO/issues/$PR/comments" \
+            --jq '[.[] | select(.body | startswith("<!-- pr-title-check -->"))] | .[0].id // ""')
+          [ -n "$EXISTING" ] && gh api -X DELETE "repos/$GH_REPO/issues/comments/$EXISTING" --silent \
+            && echo "removed the stale suggestion" || echo "nothing to withdraw"
