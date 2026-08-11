@@ -145,6 +145,29 @@ sys.exit(1 if bad else 0)
 PYCHK
 fi
 
+# --- Exactly ONE labeler ---
+# pr-checks.yml's `label` job is it. A second labeler (classically a
+# release-drafter autolabeler job on pull_request) makes labels flap AND breaks
+# pr-checks' `needs: label` ordering: title-check waits for the first labeler
+# while the second is still applying labels. This drifted into the skill's own
+# repo and went unnoticed until a manual template diff.
+if [ -f .github/workflows/release_drafter.yml ]; then
+  python3 - .github/workflows/release_drafter.yml <<'PYRD' || FAIL "release_drafter.yml must be push-only with no autolabeler job (pr-checks.yml is the sole labeler)"
+import sys, yaml
+w = yaml.safe_load(open(sys.argv[1]))
+triggers = set((w.get(True) or w.get("on") or {}))
+bad = []
+if triggers - {"push", "workflow_dispatch"}:
+    bad.append(f"triggers {sorted(triggers)} (expected push only)")
+for name, jd in w.get("jobs", {}).items():
+    if "label" in name.lower():
+        bad.append(f"job '{name}' looks like a second labeler")
+for b in bad:
+    print(f"    {b}")
+sys.exit(1 if bad else 0)
+PYRD
+fi
+
 # No workflow may open PRs. create-dev-pr.yml is the superseded auto-opener: it cannot
 # serve fork contributions (push never fires on a fork; a fork's pull_request token is
 # read-only) and it overwrote human PR titles. PRs are opened by humans.
