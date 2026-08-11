@@ -532,3 +532,20 @@ Fixed: untracked all three, added a repo-root `.gitignore`, added
 `device_map.md` — the Mode 5 map holds a home's IP/device layout and must never
 be committed), and gave `skill_audit.sh` two checks, both verified firing: a
 missing `.gitignore`, and **any** tracked `__pycache__`/`.py[cod]`.
+
+### R17a. …and the fix for R16 shipped a workflow-ordering bug
+
+Caught by CI on the very next PR, not by the 54 unit tests — because it wasn't a
+logic bug. Extracting the classifier into a script meant the job now needed a
+checkout, and I inserted that step **between** the one writing `subjects.txt` and
+the one reading it. `actions/checkout` clears the workspace, so the file was
+deleted between write and read: `FileNotFoundError: subjects.txt`.
+
+Unit tests cannot see this class of defect — the logic was right, the wiring was
+not. `skill_audit.sh` now parses `pr-checks.yml` and fails unless
+`actions/checkout` is the **first** step of any job that uses it, which is the
+general form of the rule. Verified firing.
+
+Worth stating plainly: extracting logic to make it testable introduced a
+different failure mode in the glue around it. Tests raise the floor; they do not
+remove the need to run the thing.
