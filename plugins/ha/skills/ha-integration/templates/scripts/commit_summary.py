@@ -85,11 +85,19 @@ def group(subjects: list[str]) -> dict[str, list[str]]:
 
 
 def render(subjects: list[str]) -> str:
-    """The marked-block body: bullets, with type sub-heads only when >1 type."""
+    """The marked-block body, or "" when it would add nothing.
+
+    A single bullet is always the PR title minus its type prefix, so the block
+    just restates the heading above it. Measured on three published releases:
+    every one carried at least one such block and none carried the multi-type
+    case the sub-heads exist for. Emit nothing and let the caller drop the block.
+    """
     groups = group(subjects)
     used = [k for k in ORDER if groups[k]]
     if not used:
-        return "  - (no commits)"
+        return ""
+    if sum(len(groups[k]) for k in used) == 1:
+        return ""
     lines: list[str] = []
     for key in used:
         # Sub-heads only when the PR spans >1 type: release-drafter already files
