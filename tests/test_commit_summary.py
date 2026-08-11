@@ -100,6 +100,17 @@ def test_dependency_bumps_survive(subject: str) -> None:
 
 # --- render -----------------------------------------------------------------
 
+def test_single_commit_renders_nothing() -> None:
+    """One bullet is the PR title minus its prefix — the block would add nothing."""
+    assert cs.render(["feat: add reconfigure flow"]) == ""
+    assert cs.render(["fix: close the session"]) == ""
+
+
+def test_two_commits_still_render() -> None:
+    """The block earns its place as soon as it says more than the title."""
+    assert cs.render(["fix: one", "fix: two"]) == "  - one\n  - two"
+
+
 def test_single_type_has_no_subheads() -> None:
     """One type -> the category heading above already says it; no sub-head."""
     out = cs.render(["fix: one", "fix: two"])
@@ -120,14 +131,18 @@ def test_multiple_types_get_subheads_in_severity_order() -> None:
 
 def test_empty_and_plumbing_only_input() -> None:
     """A PR with nothing but a version bump renders a placeholder, not junk."""
-    assert cs.render([]) == "  - (no commits)"
-    assert cs.render(["chore: bump manifest version to v1.0.0"]) == "  - (no commits)"
-    assert cs.render(["", "   ", ""]) == "  - (no commits)"
+    assert cs.render([]) == ""
+    assert cs.render(["chore: bump manifest version to v1.0.0"]) == ""
+    assert cs.render(["", "   ", ""]) == ""
 
 
 def test_duplicate_subjects_collapse() -> None:
-    """A rebase can replay an identical subject; don't list it twice."""
-    assert cs.render(["fix: same", "fix: same"]) == "  - same"
+    """A rebase can replay an identical subject; don't list it twice.
+
+    Collapsing to one bullet then makes the block redundant, so it renders empty.
+    """
+    assert cs.render(["fix: same", "fix: same"]) == ""
+    assert cs.render(["fix: same", "fix: same", "fix: other"]) == "  - same\n  - other"
 
 
 def test_render_never_emits_an_empty_bullet() -> None:
