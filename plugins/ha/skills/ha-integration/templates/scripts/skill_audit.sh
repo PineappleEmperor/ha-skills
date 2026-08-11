@@ -20,6 +20,16 @@ for w in pr-checks release_drafter semantic_release lint_pr \
 done
 [ -f .github/release-drafter.yml ] || FAIL "missing .github/release-drafter.yml"
 [ -f .github/dependabot.yml ]      || FAIL "missing .github/dependabot.yml"
+[ -f .gitignore ]                  || FAIL "missing .gitignore (copy templates/.gitignore)"
+
+# Build artefacts must never be tracked. A committed .pyc under templates/ is
+# copied verbatim into every scaffolded repo — a stale compiled conftest, tagged
+# for one Python/pytest version. This has happened: `git add -A` after a local
+# pytest run committed three of them.
+if git rev-parse --git-dir >/dev/null 2>&1; then
+  tracked_pyc=$(git ls-files | grep -E '__pycache__|\.py[cod]$' || true)
+  [ -n "$tracked_pyc" ] && { echo "$tracked_pyc"; FAIL "compiled Python artefacts are tracked (git rm --cached, and add them to .gitignore)"; }
+fi
 
 # --- Canonical scripts present (pr-checks.yml's version-gate job shells out to
 # the gate; a missing script fails that job at runtime on every PR) ---
@@ -110,6 +120,19 @@ if [ -f .github/workflows/pr-checks.yml ]; then
   fi
   # Untrusted strings (PR title, the PR's own manifest version) must reach run: via
   # env, never `${{ }}` interpolation.
+  # actions/checkout CLEARS the workspace, so a job that checks out after writing
+  # a file there loses it. That shipped: the commit-summary job fetched subjects
+  # into subjects.txt, then checked out, then read a file that no longer existed.
+  python3 - "$P" <<'PYCO' || FAIL "pr-checks.yml: actions/checkout must be the FIRST step of its job (it clears the workspace)"
+import sys, yaml
+w = yaml.safe_load(open(sys.argv[1]))
+bad = [j for j, jd in w["jobs"].items()
+       if any("actions/checkout" in str(s.get("uses", "")) for s in jd["steps"])
+       and "actions/checkout" not in str(jd["steps"][0].get("uses", ""))]
+for j in bad:
+    print(f"    job '{j}' checks out after another step has run")
+sys.exit(1 if bad else 0)
+PYCO
   python3 - "$P" <<'PYCHK' || FAIL "pr-checks.yml interpolates \${{ }} inside a run: block (use env:)"
 import sys, re, yaml
 w = yaml.safe_load(open(sys.argv[1]))
