@@ -811,3 +811,83 @@ disappears, and PR #13's genuine three-commit block still renders.
 disagree with the category above them (a 🔧 Fixes sub-head under 🧰 Maintenance).
 That reading is arguably correct — "filed as Maintenance, contains a fix" — and
 the case is now rare. Left alone rather than redesigned on one example.
+
+---
+
+# Round 7 — 2026-08-11 · field feedback from building ha-lego
+
+First feedback from a consumer using the skill on a real panel integration. Three
+live findings, all reproduced here before acting. Two earlier fixes were confirmed
+to have reached a consumer (the commit-summary checkout ordering and the tracked
+`.pyc` files) — worth recording that the fixes landed, not just that they shipped.
+
+## R30. A panel integration cannot pass its own tests — FIXED
+
+**The highest-value finding so far, because it is silent and misattributed.**
+
+A panel declares `frontend` (usually `panel_custom`) in manifest `dependencies`.
+The frontend *component* has its own pip requirement, and `pip install
+homeassistant` does **not** pull it in — component requirements are installed by HA
+at runtime. Every setup test then fails in CI:
+
+    ERROR: Error during setup of component frontend: No module named 'hass_frontend'
+    DependencyError: Could not setup dependencies: frontend, panel_custom
+    76 failed, 88 passed
+
+Two properties make it vicious. It usually **passes locally**, because a dev
+machine already has the package from an earlier install — local green, CI red. And
+the failures surface as `'MockConfigEntry' object has no attribute 'runtime_data'`
+×76, which points at the integration rather than at a missing dependency.
+
+Verified: `grep -rln "home-assistant-frontend\|hass_frontend"` across the entire
+skill returned nothing.
+
+Fixed in `requirements.test.txt` with the pin commented out and the failure mode
+spelled out, plus a gate rule: manifest depends on `frontend`/`panel_custom` and no
+`home-assistant-frontend==` pin -> FAIL. Verified quiet on a non-panel integration,
+firing on a panel one, quiet again once the pin is uncommented.
+
+**Pin from core's manifest, not PyPI latest.** Checked while implementing: HA
+2026.8.0 requires `home-assistant-frontend==20260729.5` while PyPI already had
+`20260729.6`. Taking the newer one reintroduces the same import failure.
+
+## R31. No scaffolding for the panel build pipeline — ADDED
+
+`ha-panel-design` covers the CSS; nothing covered how the TypeScript reaches the
+user. HACS ships the repo as-is with no build step on the user's machine, so the
+esbuild output must be **committed** — and a stale bundle then breaks invisibly:
+the old bundle still runs, tests pass, CI is green, and the symptom is "the fix I
+made isn't there".
+
+Two independent repos had converged on the same solution, which is the signal it
+belongs in `templates/` rather than in folklore. Added `templates/frontend/`
+(`package.json`, `tsconfig.json`) and `templates/.github/workflows/frontend_build.yml`,
+whose `git diff --exit-code` on the bundle is the point of the file.
+
+Stated explicitly in SKILL.md: this differs from a Lovelace **card** repo, which
+attaches the built `.js` as a release asset. An integration cannot — the asset is
+not in the zip HACS installs.
+
+Two registration traps carried over, both non-obvious and both silent: cache-bust
+`module_url` with the integration version, and claim the registered flag **before**
+the `await` so two entries setting up in parallel cannot both register.
+
+## R32. The docstring rule was stricter than its prose — RECONCILED
+
+The rule walked `ast.Module` and so failed any multi-line module docstring.
+SKILL.md's Code style constrains "public functions and classes"; the module line
+carries no length constraint.
+
+Resolved in favour of the prose: `ast.Module` is exempt, and SKILL.md now says so
+explicitly. The reporter had complied by demoting a file-level explanation to a
+comment and noted that was *worse* — the constraint it described was load-bearing
+and a module docstring was the right home. Agreed; a rule that pushes documentation
+somewhere worse is a bad rule.
+
+## Not a finding: the version gate
+
+Reported and then withdrawn by the reporter. Last release `0.3.0`, `main` at
+`0.4.0`, PR proposing `0.5.0` -> refused. Correct: `0.4.0` was unpublished, so a
+second unreleased bump was not justified. The `max(floor, main_version)` ceiling
+exists precisely to refuse it. Recorded because the gate's behaviour reads as wrong
+until the ceiling's purpose is understood.

@@ -242,6 +242,14 @@ PYQS
   if grep -q '"config_flow"[[:space:]]*:[[:space:]]*true' "$M" 2>/dev/null; then
     [ -f "${CC}config_flow.py" ] || FAIL "manifest declares config_flow: true but ${CC}config_flow.py is missing"
   fi
+  # A panel integration declares `frontend` in dependencies; the frontend component's
+  # pip requirement is NOT pulled in by `pip install homeassistant`, so without an
+  # explicit pin every setup test fails in CI with "No module named 'hass_frontend'"
+  # while usually passing locally (the package is already there from another install).
+  if grep -qE '"(frontend|panel_custom)"' "$M" 2>/dev/null; then
+    grep -qE '^[[:space:]]*home-assistant-frontend==' requirements.test.txt 2>/dev/null \
+      || FAIL "manifest depends on frontend/panel_custom but requirements.test.txt has no home-assistant-frontend pin (every setup test will fail in CI with: No module named 'hass_frontend')"
+  fi
   [ -f CLAUDE.md ]         || FAIL "missing CLAUDE.md (the skill's per-repo enforcement — without it no future session is told to re-invoke)"
   [ -f README.md ]         || FAIL "missing README.md (HACS 'information' and 'images' checks both need it)"
   [ -f pyrightconfig.json ] || WARN "missing pyrightconfig.json"
@@ -266,10 +274,13 @@ sys.exit(1 if bad else 0)
 PYAL
 fi
 
-# 2. Docstrings are ONE line. Named as a highest-cost trap in the reminder hook
-#    and never mechanically checked until now.
+# 2. Docstrings are ONE line for functions and classes. MODULE docstrings are
+#    exempt: SKILL.md's Code style constrains "public functions and classes", and a
+#    file-level explanation of a load-bearing constraint is better placed in a module
+#    docstring than demoted to a comment. Reported from the field — the rule was
+#    stricter than the prose it enforced.
 if [ -n "$CC" ]; then
-  python3 - "$CC" <<'PYDS' || FAIL "multi-line docstring in custom_components/ (the skill requires single-line)"
+  python3 - "$CC" <<'PYDS' || FAIL "multi-line docstring on a function or class in custom_components/ (single-line required; module docstrings are exempt)"
 import ast, pathlib, sys
 bad = []
 for f in pathlib.Path(sys.argv[1]).rglob("*.py"):
@@ -278,7 +289,7 @@ for f in pathlib.Path(sys.argv[1]).rglob("*.py"):
     except SyntaxError:
         continue
     for node in ast.walk(tree):
-        if not isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+        if not isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
             continue
         doc = ast.get_docstring(node, clean=False)
         if doc and "\n" in doc.strip():
