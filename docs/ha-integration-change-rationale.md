@@ -473,3 +473,37 @@ breakage rather than fixing it; both tags had to be escaped.
 
 Caveat documented in `versioning.md`: refer to the tag as `&lt;details&gt;`,
 never literally, anywhere outside the real wrapper.
+
+## R16. The commit classifier was inline and untested — EXTRACTED
+
+Asked directly whether the shipped code had been properly tested. It had not: the
+classifier lived as an inline `python3 - <<'PY'` heredoc inside `pr-checks.yml`,
+which cannot be unit-tested at all. Everything had been verified reactively, by
+reading output — which is how the following survived into two releases.
+
+**The bug.** The filter dropping release-plumbing commits was
+`^[a-z]+(\([^)]*\))?:\s*bump\b.*(\bversion\b|\bmanifest\b|\bto v?\d+\.\d+)`.
+That trailing alternative matches *any* semver-shaped bump, so
+`chore: bump actions/checkout from 6.0.0 to 7.0.1` was silently discarded — every
+Dependabot bump with a dotted version vanished from the release notes. Inherited
+from `create-dev-pr` and carried forward without a test.
+
+Impact was narrowed by luck: `commit-summary` skips bot authors, so Dependabot's
+own PRs never reached it. It bit only when a human PR carried a dependency-bump
+commit. Under a commit-driven notes generator it would have hit everything.
+
+**Fix.** Extracted to `scripts/commit_summary.py` with `tests/test_commit_summary.py`
+— 54 cases covering scoped and breaking types, case-insensitivity, missing
+descriptions, non-Conventional subjects, `revert:`, duplicate subjects from a
+rebase, sub-head suppression for single-type PRs, and the plumbing-vs-dependency
+distinction both ways. Verified RED against the shipped regex (4 failures) and
+GREEN against the fix. The corrected filter anchors on the shape
+(`bump … version`) rather than on anything version-shaped.
+
+`skill_audit.sh` now fails if the script or its tests are missing, **or if the
+classifier is inlined back into the workflow**.
+
+The general rule was already in `versioning.md` — decision logic belongs in a
+unit-tested script, not inline bash — written after an inline version gate
+shipped a real bug. I broke the same rule writing this, in the same repo, and it
+produced the same class of defect.
