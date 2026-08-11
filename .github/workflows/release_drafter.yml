@@ -2,10 +2,7 @@ name: Release Drafter
 
 on:
   push:
-    branches:
-      - main
-  pull_request:
-    types: [opened, reopened, synchronize]
+    branches: [main]
 
 permissions:
   contents: write
@@ -14,7 +11,6 @@ permissions:
 jobs:
   update_release_draft:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push'
     steps:
       - uses: actions/checkout@v7
       - id: ver
@@ -33,14 +29,5 @@ jobs:
           tag: v${{ steps.ver.outputs.version }}
           name: v${{ steps.ver.outputs.version }}
           prerelease: ${{ steps.ver.outputs.prerelease }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  autolabeler:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    steps:
-      - uses: release-drafter/release-drafter@v7
-        with:
-          config-name: release-drafter.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

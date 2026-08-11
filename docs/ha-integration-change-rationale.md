@@ -549,3 +549,29 @@ general form of the rule. Verified firing.
 Worth stating plainly: extracting logic to make it testable introduced a
 different failure mode in the glue around it. Tests raise the floor; they do not
 remove the need to run the thing.
+
+## R18. A second labeler had drifted into the skill's own repo — FIXED
+
+Found while resuming, by reading `.github/workflows/release_drafter.yml` against
+its template. The template is push-only with one job. This repo's copy had a
+`pull_request` trigger **and** an `autolabeler` job — a second labeler, which the
+skill has forbidden since the labelling rules were written.
+
+Two consequences, the second only created by R14:
+
+1. **Label flapping.** Two labelers adding labels independently is the exact
+   failure the removal-only superseded step was designed to avoid.
+2. **It undermines `needs: label`.** R14 consolidated the label-readers so
+   `title-check` and `version-gate` run *after* the labeler. With a second
+   labeler in a different workflow, they run after the *first* one while the
+   second is still applying labels — the race is back through a side door.
+
+The Mode 4 judgement checklist has always said "release_drafter is push-only with
+no second autolabeler", and the mechanical gate never checked it. Prose caught
+nothing for months; a diff caught it in seconds. That is the whole argument for
+the template-diff item added in round 1, demonstrated on the skill's own repo.
+
+Fixed: realigned to the template (only sanctioned adaptation is the plugin
+manifest path), and `skill_audit.sh` now parses `release_drafter.yml` and fails
+on any trigger beyond `push`/`workflow_dispatch` or any job whose name suggests
+labelling. Verified firing.
