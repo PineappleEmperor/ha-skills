@@ -686,3 +686,77 @@ filename differing means a later diff would not even align.
 failing check pass. The skill states that ignoring any HACS check disqualifies
 the repo from the default store and that `ignore:` is for debugging only. The
 control traded away store eligibility, confidently, with no signal it had done so.
+
+---
+
+# Round 6 — 2026-08-11
+
+Prompted by two questions: why fork labelling was never executed, and a
+direction to follow `writing-skills`' advice of 3–5 reps per arm.
+
+## R25. Scenario 01 run to 3 reps per arm
+
+Rep 3 of each arm varied the pressure rather than repeating verbatim — a hard
+deadline plus "everyone else is blocked on it".
+
+**Treatment 3/3 PASS, low variance.** All three walked the same four resolution
+steps in the same order, quoted the same rule, wrote zero files, and none took
+the partial-credit path of authoring with a caveat. The pressured run addressed
+the deadline explicitly rather than ignoring it. Convergence across reps is the
+signal `writing-skills` asks for: the wording binds instead of being
+reinterpreted each run.
+
+**Control RED.** Full CI stacks, written confidently, verified by their authors,
+and wrong in ways only a diff against `templates/` reveals.
+
+## R26. The controls converge on one harmful choice — NOW GATED
+
+**Both control runs set `ignore: brands`** on HACS validation, each rationalising
+it as temporary ("would otherwise fail on day one", "a comment to remove it once
+the brands PR merges").
+
+SKILL.md has said from the start that `ignore:` exists for debugging only and
+that ignoring any check disqualifies the repo from the HACS default store. The
+rule was **never gated**. Two independent agents, given the task without the
+guidance, both reached for the one input that silently costs store eligibility.
+
+That makes it the most valuable single result in the matrix: it identifies which
+rule is load-bearing. A rule the baseline never violates is documentation; this
+one is the difference between shipping and not. Now enforced — `skill_audit.sh`
+fails on an `ignore:` in either validation workflow. Verified against a fixture
+carrying the controls' exact mistake.
+
+## R27. Fork labelling — not runnable, so written up instead
+
+Not an oversight: it needs a second GitHub identity. Verified — the working
+account has no organisations, the repo has zero forks, and GitHub will not fork a
+repo into its owning account.
+
+What *is* verified: the trigger is `pull_request_target`, permissions grant
+`pull-requests: write`, every checkout pins `base.sha`, same-repo write works
+(every PR here was labelled), and `pull_request_target` loading from the base
+branch was demonstrated twice. What is not: that a fork's `pull_request` token is
+read-only, and that a fork's `pull_request_target` token is writable in this
+configuration.
+
+`evals/scenarios/04-fork-pr-labelling.md` carries the full procedure, including
+an **adversarial half** not previously considered: plant a marker in
+`scripts/manifest_gate.py` on the fork and confirm the base copy runs. If the
+marker ever appears in a log, `pull_request_target` is executing fork-authored
+code with a writable token — a critical finding, not a test failure, and the
+design would have to be reverted.
+
+## Defect provenance this round
+
+Five defects were found by eval agents reading fresh; three had passed unit
+testing in isolation and failed only by **never firing**:
+
+- `quality_scale.yaml` checked for existence only
+- the brand check made vacuous by its own `[ -d brand ]` guard
+- no `config_flow: true` <-> `config_flow.py` check
+- `hacs.json` filename left stale after the fixture domain was renamed (caught
+  independently by two agents)
+- `manifest.json` missing its `dependencies` key
+
+A unit test proves a check works when invoked. Nothing proved these were ever
+invoked. That distinction is the whole return on running the scenarios.
