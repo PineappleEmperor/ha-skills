@@ -120,6 +120,19 @@ if [ -f .github/workflows/pr-checks.yml ]; then
   fi
   # Untrusted strings (PR title, the PR's own manifest version) must reach run: via
   # env, never `${{ }}` interpolation.
+  # actions/checkout CLEARS the workspace, so a job that checks out after writing
+  # a file there loses it. That shipped: the commit-summary job fetched subjects
+  # into subjects.txt, then checked out, then read a file that no longer existed.
+  python3 - "$P" <<'PYCO' || FAIL "pr-checks.yml: actions/checkout must be the FIRST step of its job (it clears the workspace)"
+import sys, yaml
+w = yaml.safe_load(open(sys.argv[1]))
+bad = [j for j, jd in w["jobs"].items()
+       if any("actions/checkout" in str(s.get("uses", "")) for s in jd["steps"])
+       and "actions/checkout" not in str(jd["steps"][0].get("uses", ""))]
+for j in bad:
+    print(f"    job '{j}' checks out after another step has run")
+sys.exit(1 if bad else 0)
+PYCO
   python3 - "$P" <<'PYCHK' || FAIL "pr-checks.yml interpolates \${{ }} inside a run: block (use env:)"
 import sys, re, yaml
 w = yaml.safe_load(open(sys.argv[1]))
