@@ -507,3 +507,45 @@ The general rule was already in `versioning.md` — decision logic belongs in a
 unit-tested script, not inline bash — written after an inline version gate
 shipped a real bug. I broke the same rule writing this, in the same repo, and it
 produced the same class of defect.
+
+## R17. Stray `.pyc` files were committed, and no `.gitignore` existed — FIXED
+
+Spotted in review. Three compiled artefacts were tracked, all from my own local
+`pytest` runs followed by `git add -A`:
+
+- `templates/__pycache__/conftest.cpython-314-pytest-9.0.3.pyc`
+- `scripts/__pycache__/commit_summary.cpython-314.pyc`
+- `tests/__pycache__/test_commit_summary.cpython-314-pytest-9.0.3.pyc`
+
+The first is the damaging one: `templates/` is copied **verbatim**, so every
+newly scaffolded integration would have inherited a stale compiled `conftest`,
+byte-tagged for one specific Python and pytest version.
+
+**Root cause: the skill repo had no `.gitignore` at all** — and `templates/`
+shipped none either, despite `SKILL.md`'s scaffold list naming `.gitignore` as a
+repo-root file to create. Another phantom file, the same class as the
+`.github/pr-labeler.yml` entry in R5: named in the list, no template behind it.
+The one file that would have prevented this was the file that didn't exist.
+
+Fixed: untracked all three, added a repo-root `.gitignore`, added
+`templates/.gitignore` (Python caches, venvs, HA dev artefacts, and
+`device_map.md` — the Mode 5 map holds a home's IP/device layout and must never
+be committed), and gave `skill_audit.sh` two checks, both verified firing: a
+missing `.gitignore`, and **any** tracked `__pycache__`/`.py[cod]`.
+
+### R17a. …and the fix for R16 shipped a workflow-ordering bug
+
+Caught by CI on the very next PR, not by the 54 unit tests — because it wasn't a
+logic bug. Extracting the classifier into a script meant the job now needed a
+checkout, and I inserted that step **between** the one writing `subjects.txt` and
+the one reading it. `actions/checkout` clears the workspace, so the file was
+deleted between write and read: `FileNotFoundError: subjects.txt`.
+
+Unit tests cannot see this class of defect — the logic was right, the wiring was
+not. `skill_audit.sh` now parses `pr-checks.yml` and fails unless
+`actions/checkout` is the **first** step of any job that uses it, which is the
+general form of the rule. Verified firing.
+
+Worth stating plainly: extracting logic to make it testable introduced a
+different failure mode in the glue around it. Tests raise the floor; they do not
+remove the need to run the thing.
