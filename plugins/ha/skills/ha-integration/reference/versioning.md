@@ -83,7 +83,9 @@ exit 0
 >   </details>
 >   ```
 >
->   Verified on a live draft: a ~40-line PR body collapsed to its summary paragraph, with the generated commit block still present. If you only notice after merging, edit the merged PR's body and re-run the Release Drafter workflow — it regenerates the draft from the current bodies.
+>   ⚠️ **Never write a literal `&lt;details&gt;` or `&lt;/details&gt;` as text in the body — escape it.** The replacer is a regex, not a parser: it matches the *first* opening tag to the *first* closing tag anywhere in the body, and it cannot tell a real tag from one inside backticks or a code fence. A PR that mentions the convention in prose (`the \`<details>\` convention…`) has its match start at that inline mention and run to the real closer, so the strip eats the summary you meant to keep and leaves a dangling fragment in the release notes. Both a stray opener and a stray closer break it, in different places. Write `&amp;lt;details&amp;gt;` when you need to refer to the tag.
+>
+>   Verified on a live draft: a ~40-line PR body collapsed to its summary paragraph, with the generated commit block still present. Also verified the failure: two rounds of mangled notes on a PR that discussed the convention, fixed only by escaping every literal tag outside the real wrapper. If you only notice after merging, edit the merged PR's body and re-run the Release Drafter workflow — it regenerates the draft from the current bodies.
 > - **`change-template`** keeps the two-line `$BODY` form:
 >   ```yaml
 >   change-template: |-
