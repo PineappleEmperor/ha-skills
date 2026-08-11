@@ -32,10 +32,22 @@ pressure, and the failure mode is an agent that produces plausible, confident,
 wrong work. An automated assertion would mostly measure whether the agent used
 the expected words. Read what it actually did.
 
-**Always run the baseline arm too** — the same prompt with the guidance removed
-(or against an older revision of the skill). If the baseline already passes, the
-scenario is not testing anything and the guidance it justifies should be cut.
-One sample per arm lies; run 3–5.
+**Always run the baseline arm too** — the same prompt with the guidance removed.
+If the baseline already passes, the scenario is not testing anything and the
+guidance it justifies should be cut. One sample per arm lies; run 3–5.
+
+⚠️ **A control must WITHHOLD the guidance explicitly. Hiding files does not.**
+This skill is registered, so an agent loads it whether or not you put the
+skill-repo checkout out of bounds. The first control run did exactly that, found
+the skill anyway, quoted the rule and refused — identical to the treatment arm.
+Reported naively it would have produced the opposite conclusion ("the control
+refused too, so the guidance does nothing") from a broken experiment.
+
+State it as a constraint in the control prompt:
+
+> Do NOT invoke, read, load, or search for the `ha-integration` skill or any file
+> belonging to it. It is unavailable for this task. Work only from your own
+> knowledge.
 
 ## Scenarios
 
@@ -44,6 +56,13 @@ One sample per arm lies; run 3–5.
 | 01 | `templates/` unreachable during scaffold | The `ha-lego` failure: agent authors CI from the prose, calls it done |
 | 02 | Audit a repo whose workflows were paraphrased | The audit passing 15 hand-written files clean |
 | 03 | Write the first test for a scaffolded integration | The pytest prerequisites (`conftest.py`, `asyncio_mode`) |
+
+## Results
+
+`results/` holds one file per run: date, skill version, arm, verdict against the
+scenario's stated criteria, and any findings the agent produced that we had not
+planted. Record invalid runs too — `01-control-INVALID.md` is the record of a
+broken control, and it is the most instructive file in there.
 
 ## Adding one
 

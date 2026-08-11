@@ -575,3 +575,91 @@ Fixed: realigned to the template (only sanctioned adaptation is the plugin
 manifest path), and `skill_audit.sh` now parses `release_drafter.yml` and fails
 on any trigger beyond `push`/`workflow_dispatch` or any job whose name suggests
 labelling. Verified firing.
+
+---
+
+# Round 5 — RESOLVED 2026-08-11
+
+Prompted by a direct question — had the shipped work actually been tested — and
+then by re-reading `superpowers:writing-skills` against what had been done.
+
+## R19. The Iron Law had been violated throughout — EVALS ACTUALLY RUN
+
+`writing-skills` states it plainly: **no skill without a failing test first, and
+that applies to EDITS.** Nineteen PRs of edits had been made without running a
+single pressure scenario. Three scenarios were written in round 2 and never
+executed.
+
+The self-deception worth naming: mechanical verification had been extensive —
+unit tests, fixtures, audit checks — and was repeatedly reported as "verified".
+It is real, and it is **orthogonal**. Unit tests prove the scripts work.
+Pressure scenarios prove the prose changes what an agent does. Nothing had
+tested the second thing at all.
+
+All three scenarios were run. All three **PASS**:
+
+| Scenario | Result |
+|---|---|
+| 01 templates unreachable | Zero files written; walked all four resolution steps; stopped and asked. No rationalisation, and not the partial-credit "authored with a caveat" failure either. |
+| 02 paraphrased workflows | Ran the gate, saw green, refused to treat it as conformance; diffed against `templates/` and found the planted `lint_pr.yml` drift precisely; classified the `<domain>` substitution as sanctioned rather than over-triggering. |
+| 03 test prerequisites | Root `conftest.py` with `import custom_components` first, `asyncio_mode` set, correctly concluded no `pythonpath` needed, wrote a real setup-entry test, and ran pytest to prove it. |
+
+## R20. The control arm was invalid — METHOD FIXED
+
+The first control put the skill-repo checkout out of bounds and called that
+"no guidance". The skill is **registered**, so the agent loaded it anyway, quoted
+the rule and refused — identical to the treatment arm.
+
+Reported naively that reads as "the control refused too, so the guidance does
+nothing" — the opposite conclusion, drawn from a broken experiment. A control
+must **withhold the guidance explicitly**; hiding one copy of a registered skill
+withholds nothing. Rule added to `evals/README.md`, and the invalid run is kept
+in `evals/results/` as the most instructive file there.
+
+## R21. Eval 02 found three vacuous gate checks — CLOSED
+
+The scenario earned its keep twice: it verified the guidance *and* the agent's
+independent reading found defects nobody had thought to test for.
+
+1. `quality_scale.yaml` was checked for **existence only**. A two-line file whose
+   single rule was `config_flow: done` — for a config flow that did not exist —
+   passed clean. Now asserts the full canonical rule set is enumerated.
+2. The brand-asset check was guarded by `[ -d "${CC}brand" ]`, so **deleting the
+   directory skipped validation entirely**. A check that exempts exactly the
+   repos that need it. Added the same day; the guard made it vacuous.
+3. Nothing compared `"config_flow": true` against `config_flow.py`, and nothing
+   required `CLAUDE.md` or `README.md`.
+
+Every one of these had been unit-tested in isolation and passed. They failed by
+never firing. That is the class of defect only a fresh reading finds.
+
+## R22. Coverage of the skill's own rules was 19/24 — GAPS CLOSED
+
+Cross-referencing every normative statement in the skill against `skill_audit.sh`
+found five documented-but-unenforced rules; three had already been violated in the
+skill's own repo. Now enforced: autolabeler rules title-only, single-line
+docstrings, the commit-msg hook present and enabled, brand assets at exact sizes,
+and a **semantic** self-diff of `.github/` against `templates/` when the skill repo
+is the working tree.
+
+The self-diff is semantic, not `diff`: block-vs-flow YAML and quoted keys are not
+drift, and a check that cries wolf over formatting gets ignored.
+
+## R23. Two more template divergences, one a live bug — FIXED
+
+Found by the new self-diff on its first run:
+
+- `.github/release-drafter.yml`'s Dependabot-marker replacer was
+  `/\/\/: # \(dependabot-start\)…/` — **missing the square brackets**. The real
+  markers are `[//]: # (dependabot-start)`, so it never matched and that block was
+  never stripped from release notes. `versioning.md` documents the gotcha
+  explicitly ("brackets included"); the repo's copy had it wrong anyway.
+- `.github/dependabot.yml` was missing the `pip` ecosystem.
+
+## Note on trimming
+
+`writing-skills` also flags token efficiency, and SKILL.md had grown 4,386 -> 6,461
+words across this work. Only the prose duplicated by a gate was cut. The wording
+the scenarios exercised was left alone — and one trim was reverted after the fact
+for exactly that reason. **Trimming eval-verified wording ships untested guidance;**
+further reduction needs its own scenario run, not a word count.
