@@ -17,6 +17,7 @@ cat > "custom_components/$DOMAIN/manifest.json" <<JSON
   "name": "Demo",
   "codeowners": ["@someone"],
   "config_flow": true,
+  "dependencies": [],
   "documentation": "https://github.com/someone/demo",
   "integration_type": "device",
   "iot_class": "local_polling",
@@ -28,7 +29,11 @@ JSON
 printf '"""The Demo integration."""\n\nfrom __future__ import annotations\n' \
   > "custom_components/$DOMAIN/__init__.py"
 printf 'rules:\n  config_flow: done\n' > "custom_components/$DOMAIN/quality_scale.yaml"
-printf '{"name": "Demo", "zip_release": true, "content_in_root": false, "filename": "demo.zip"}\n' > hacs.json
+# filename MUST track $DOMAIN — release.yml attaches <domain>.zip and HACS
+# downloads exactly this name. A stale literal here was caught by an eval run.
+cat > hacs.json <<JSON
+{"name": "Acme Dev", "zip_release": true, "content_in_root": false, "filename": "$DOMAIN.zip"}
+JSON
 # Output must stay clean: the caller does `F=$(make_fixture.sh …)`, so any git
 # chatter on stdout (e.g. "nothing to commit" when a scenario adds no files)
 # ends up in the captured path.
