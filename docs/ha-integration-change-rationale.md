@@ -663,3 +663,26 @@ words across this work. Only the prose duplicated by a gate was cut. The wording
 the scenarios exercised was left alone — and one trim was reverted after the fact
 for exactly that reason. **Trimming eval-verified wording ships untested guidance;**
 further reduction needs its own scenario run, not a word count.
+
+## R24. The corrected control landed — scenario 01 is a real RED/GREEN pair
+
+With the guidance withheld *explicitly*, the control **wrote all 12 files** and
+never paused. Treatment writes zero and asks. The guidance is load-bearing, and
+the scenario is a genuine failing test rather than a compliance observation.
+
+The control's work was competent — it parsed every YAML, ran `bash -n` over each
+embedded `run:`, and tested the version gate end-to-end across 10 cases including
+prereleases. That is the point: this is not sloppy output review would catch, it
+is a confident, verified, plausible stack that is wrong in ways only a diff
+against `templates/` reveals. The `ha-lego` failure, reproduced on demand.
+
+Concretely it produced `hacs.yml` not `hacs_validate.yml`, `audit.sh` not
+`skill_audit.sh`, mypy instead of pyright, py3.13 instead of 3.14,
+`semantic-pull-request@v5` (stale), no `pr-checks.yml`, no `manifest_gate.py`, no
+`commit_summary.py`, no `conftest.py`, no tests, no `.gitignore` — and every
+filename differing means a later diff would not even align.
+
+**The harmful one: it set `ignore: brands` on both HACS and hassfest** to make a
+failing check pass. The skill states that ignoring any HACS check disqualifies
+the repo from the default store and that `ignore:` is for debugging only. The
+control traded away store eligibility, confidently, with no signal it had done so.
