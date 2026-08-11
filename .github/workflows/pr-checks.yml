@@ -101,6 +101,12 @@ jobs:
             echo "::warning::PR has no version-resolvable label; its title type maps to nothing."
           fi
 
+      - uses: actions/checkout@v7
+        if: steps.check.outputs.ok == 'false'
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+
       - name: Suggest a title type from the commits
         if: steps.check.outputs.ok == 'false'
         env:
@@ -110,36 +116,13 @@ jobs:
         run: |
           gh api --paginate "repos/$GH_REPO/pulls/$PR/commits" \
             --jq '.[].commit.message | split("\n")[0]' > subjects.txt
-          python3 - <<'PY'
-          import pathlib, re
-
-          subjects = [s for s in pathlib.Path("subjects.txt").read_text().splitlines() if s.strip()]
-          TYPE = re.compile(r"^(?P<type>[a-zA-Z]+)(\([^)]*\))?(?P<bang>!)?:")
-          MAINT = {"chore", "docs", "refactor", "perf", "test", "build", "ci", "style"}
-
-          win = None
-          for s in subjects:
-              m = TYPE.match(s)
-              if not m:
-                  continue
-              t = m.group("type").lower()
-              if m.group("bang"):
-                  win = "breaking"; break
-              if t in ("feat", "feature"):
-                  win = win if win == "breaking" else "feat"
-              elif t == "fix" and win not in ("feat",):
-                  win = "fix"
-              elif t in MAINT and win is None:
-                  win = "chore"
-
-          suggest = {
-              "breaking": ("`feat!:` (or any `type!:`)", "🚨 Breaking Change", "major"),
-              "feat":     ("`feat:`",  "🚀 Features",    "minor"),
-              "fix":      ("`fix:`",   "🔧 Fixes",       "patch"),
-              "chore":    ("`chore:`", "🧰 Maintenance", "patch"),
-          }.get(win or "chore")
-
-          body = f"""<!-- pr-title-check -->
+          WIN=$(python3 scripts/commit_summary.py --mode winning --subjects subjects.txt)
+          python3 - "$WIN" > comment.md <<'PYS'
+          import importlib.util, pathlib, sys
+          spec = importlib.util.spec_from_file_location("cs", "scripts/commit_summary.py")
+          cs = importlib.util.module_from_spec(spec); spec.loader.exec_module(cs)
+          title, category, bump = cs.SUGGESTIONS[sys.argv[1]]
+          print(f"""<!-- pr-title-check -->
           ### This PR's title can't be labelled
 
           The autolabeler maps the title to a label, release-drafter turns that label into a
@@ -150,15 +133,13 @@ jobs:
           `lint_pr` passed because it accepts the full Conventional Commits set — `revert:`
           is the type that clears the lint and still maps to nothing.
 
-          **Suggested type, from this PR's commits: {suggest[0]}** — files under
-          *{suggest[1]}*, resolves a **{suggest[2]}** bump.
+          **Suggested type, from this PR's commits: {title}** — files under
+          *{category}*, resolves a **{bump}** bump.
 
           Mapped types: `feat`/`feature` · `fix` · `chore`/`docs`/`refactor`/`perf`/`test`/`build`/`ci`/`style` · any `type!:` for breaking.
 
-          Edit the title and this comment will remove itself. Nothing here changes your title.
-          """
-          pathlib.Path("comment.md").write_text("\n".join(l.lstrip() for l in body.splitlines()))
-          PY
+          Edit the title and this comment will remove itself. Nothing here changes your title.""".replace(chr(10) + " " * 10, chr(10)))
+          PYS
           EXISTING=$(gh api "repos/$GH_REPO/issues/$PR/comments" \
             --jq '[.[] | select(.body | startswith("<!-- pr-title-check -->"))] | .[0].id // ""')
           if [ -n "$EXISTING" ]; then
@@ -278,56 +259,18 @@ jobs:
             --jq '.[].commit.message | split("\n")[0]' > subjects.txt
           wc -l < subjects.txt
 
+      # The classifier lives in scripts/commit_summary.py, unit-tested in
+      # tests/test_commit_summary.py. It was inline here once; an inline heredoc
+      # cannot be tested, and a silently-wrong classifier corrupts release notes
+      # without ever failing a build. It did: a version-bump filter ending in
+      # `to v?\d+\.\d+` ate every semver dependency bump.
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+
       - name: Build the grouped summary
-        run: |
-          python3 - <<'PY'
-          import pathlib, re
-
-          subjects = [s for s in pathlib.Path("subjects.txt").read_text().splitlines() if s.strip()]
-
-          TYPE = re.compile(r"^(?P<type>[a-zA-Z]+)(\([^)]*\))?(?P<bang>!)?:\s*(?P<desc>.*)$")
-          MAINT = {"chore", "docs", "refactor", "perf", "test", "build", "ci", "style"}
-          # The manifest/plugin version bump is release plumbing, not a changelog entry.
-          BUMP = re.compile(r"^[a-z]+(\([^)]*\))?:\s*bump\b.*(\bversion\b|\bmanifest\b|\bto v?\d+\.\d+)", re.I)
-
-          groups = {"breaking": [], "feat": [], "fix": [], "maint": [], "other": []}
-          for s in subjects:
-              if BUMP.match(s):
-                  continue
-              m = TYPE.match(s)
-              if not m:
-                  groups["other"].append(s)
-                  continue
-              t, desc = m.group("type").lower(), m.group("desc")
-              if m.group("bang"):
-                  groups["breaking"].append(desc)
-              elif t == "feat":
-                  groups["feat"].append(desc)
-              elif t == "fix":
-                  groups["fix"].append(desc)
-              elif t in MAINT:
-                  groups["maint"].append(desc)
-              else:
-                  groups["other"].append(desc)
-
-          used = [k for k, v in groups.items() if v]
-          heads = {
-              "breaking": "  **🚨 Breaking**", "feat": "  **🚀 Features**",
-              "fix": "  **🔧 Fixes**", "maint": "  **🧰 Maintenance**",
-              "other": "  **📦 Other**",
-          }
-          lines = []
-          # Sub-heads only when the PR spans >1 type: release-drafter already files
-          # the PR under one category heading, so a lone sub-head just duplicates it.
-          for key in ("breaking", "feat", "fix", "maint", "other"):
-              if not groups[key]:
-                  continue
-              if len(used) > 1:
-                  lines.append(heads[key])
-              lines += [f"  - {d}" for d in groups[key]]
-
-          pathlib.Path("summary.md").write_text("\n".join(lines) or "  - (no commits)")
-          PY
+        run: python3 scripts/commit_summary.py --subjects subjects.txt > summary.md
 
       - name: Splice it into the PR body
         env:
