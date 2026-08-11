@@ -178,6 +178,16 @@ The `!`-breaking branch must come first (else `feat!` matches the `feat` arm). T
 
 ---
 
+### ⚠️ A `pull_request_target` workflow cannot validate a fix to itself
+
+`pull_request_target` loads the workflow definition from the **base** branch, not the PR's. So a PR that fixes `pr-checks.yml` is still checked by the *broken* copy on `main`, and its check stays red no matter how correct the fix is.
+
+Observed: a job wrote `subjects.txt`, then checked out (which clears the workspace), then read the file — `FileNotFoundError`. The fix reordered the steps; PR #17 carrying that fix failed anyway, because `main` still held the broken version.
+
+**How to handle it.** Confirm the fix by reading the base copy against the branch copy (`git show origin/main:.github/workflows/pr-checks.yml`), merge past the red check knowingly, then verify on the **next** PR — the first one to run the corrected workflow from `main`. Don't chase the red check on the fixing PR; it is reporting the bug, not the fix.
+
+The same property makes a *new* `pull_request_target` workflow inert on the PR that introduces it: it only starts running once merged.
+
 ### PR events fire normally — the `GITHUB_TOKEN` suppression no longer applies
 
 **Historical note, kept because the symptom is memorable and the old advice is still circulating.** GitHub suppresses workflow runs for events caused by the default `secrets.GITHUB_TOKEN` (an anti-recursion rule). While this skill shipped `create-dev-pr.yml`, that bot opened the PR, so the `pull_request: opened` event was swallowed and `lint_pr`, the autolabeler and the version gate **did not run on first open**. It bit exactly once per branch — a later human push fired `synchronize` with the human as `triggering_actor`, and everything ran — so the footgun only really hurt a branch pushed once and merged untouched.
