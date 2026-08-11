@@ -20,6 +20,16 @@ for w in pr-checks release_drafter semantic_release lint_pr \
 done
 [ -f .github/release-drafter.yml ] || FAIL "missing .github/release-drafter.yml"
 [ -f .github/dependabot.yml ]      || FAIL "missing .github/dependabot.yml"
+[ -f .gitignore ]                  || FAIL "missing .gitignore (copy templates/.gitignore)"
+
+# Build artefacts must never be tracked. A committed .pyc under templates/ is
+# copied verbatim into every scaffolded repo — a stale compiled conftest, tagged
+# for one Python/pytest version. This has happened: `git add -A` after a local
+# pytest run committed three of them.
+if git rev-parse --git-dir >/dev/null 2>&1; then
+  tracked_pyc=$(git ls-files | grep -E '__pycache__|\.py[cod]$' || true)
+  [ -n "$tracked_pyc" ] && { echo "$tracked_pyc"; FAIL "compiled Python artefacts are tracked (git rm --cached, and add them to .gitignore)"; }
+fi
 
 # --- Canonical scripts present (pr-checks.yml's version-gate job shells out to
 # the gate; a missing script fails that job at runtime on every PR) ---
