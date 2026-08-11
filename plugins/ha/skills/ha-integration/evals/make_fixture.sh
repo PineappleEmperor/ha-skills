@@ -6,7 +6,7 @@ set -euo pipefail
 SCENARIO="${1:?usage: make_fixture.sh <01|02|03> [dest]}"
 SKILL="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DEST="${2:-$(mktemp -d "${TMPDIR:-/tmp}/ha-eval-${SCENARIO}-XXXXXX")}"
-DOMAIN=demo
+DOMAIN=acmedev   # NOT a core domain: a custom `demo` is shadowed by core's
 
 mkdir -p "$DEST/custom_components/$DOMAIN"
 cd "$DEST"
