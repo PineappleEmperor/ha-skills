@@ -151,6 +151,7 @@ The `description`, `issues`, and `topics` checks fail silently until the first `
 - `.github/workflows/hacs_validate.yml`
 - `.github/workflows/hassfest_validate.yml`
 - `.github/workflows/python_validate.yml` — ruff, pyright **and pytest**. Tests run in CI, not just locally: the quality scale requires a test for every rule marked `done`, and a suite nothing runs is a suite that rots. The pytest step needs `requirements.test.txt` (see repo-root file list) and fails the build on a red test; it emits a workflow **warning** if `tests/` is absent, so a freshly scaffolded repo is loud rather than silently green. **Pin the matrix to HA's current minimum Python** (snapshot `["3.14"]` — HA dev requires 3.14.2+; `pip install homeassistant` refuses older; see the **Freshness** table to re-derive). Test the *floor* HA supports. Keep this in lockstep with `pyproject.toml` ruff `target-version = "py314"` and pylint `py-version = "3.14"`, and `pyrightconfig.json`.
+- `.github/workflows/frontend_build.yml` — **panel integrations only.** Builds the TypeScript and fails if the committed bundle is stale (`git diff --exit-code`). See *Panel integrations* above.
 - `.github/workflows/quality_audit.yml` — runs `scripts/skill_audit.sh` on every PR to mechanically enforce skill conformance (workflows present, action pins current, antipatterns absent). See **Mode 4 — Audit**.
 - `scripts/skill_audit.sh` — the mechanical conformance check (run locally before claiming done; CI runs it too).
 - `scripts/manifest_gate.py` — the version-gate decision logic the `version-gate` job in `pr-checks.yml` shells out to. **Not optional:** the job fails at runtime on every PR if the script isn't there. Kept as a separate, unit-tested script precisely because inline bash gate logic shipped a real bug — see `reference/github-actions.md`.
@@ -158,6 +159,31 @@ The `description`, `issues`, and `topics` checks fail silently until the first `
 - `scripts/commit_summary.py` + `tests/test_commit_summary.py` — the Conventional-Commit classifier behind `commit-summary` and `title-check`, and its 54 unit tests. Same rule as the gate: **decision logic goes in a tested script, never inline in a workflow.**
 - `.github/release-drafter.yml` — autolabeler rules are **title-only** (no `branch:` rules). The release-drafter autolabeler can only match title/body/branch/files (never commit subjects), so label off the **title**. Keep it the one-and-only labeler. ⚠️ Since a **human** now writes the title, its type must be one the rules map: `feat`/`feature` → **feature**, `fix` → **fix**, `chore`/`docs`/`refactor`/`perf`/`test`/`build`/`ci`/`style` → **chore**, and any `type!:` → **xfeat**. An unmapped title gets no label → no release-drafter category → nothing for the version gate to check. `lint_pr.yml` accepts the full Conventional Commits set, so it won't catch this — **`revert:` is the one type that passes the lint and maps to nothing**, along with any title that isn't Conventional Commits at all. The `title-check` job in `pr-checks.yml` comments on the PR when that happens.
 - `.github/dependabot.yml` — see `reference/versioning.md` (Dependabot).
+
+#### Panel integrations (a custom panel served by the integration)
+
+Only if the integration registers a panel. Three things are non-obvious and each fails silently.
+
+**1. The bundle must be committed.** HACS ships the repo as-is and runs no build step on the user's machine, so the esbuild output has to live inside `custom_components/<domain>/panel/` to reach the release zip. A stale bundle then breaks *invisibly*: the old bundle still runs, tests pass, CI is green, and the only symptom is "the fix I made isn't there". Copy `templates/frontend/{package.json,tsconfig.json}` and `templates/.github/workflows/frontend_build.yml`; the workflow's `git diff --exit-code` on the bundle is the point of the whole file. **This differs from a Lovelace *card* repo**, which attaches the built `.js` as a release asset — an integration cannot, because the asset isn't in the zip HACS installs.
+
+**2. `home-assistant-frontend` must be pinned in `requirements.test.txt`.** A panel declares `frontend` (usually `panel_custom` too) in manifest `dependencies`. The frontend *component* has its own pip requirement that `pip install homeassistant` does **not** pull in — component requirements are installed by HA at runtime. Without the pin every setup test fails in CI with `No module named 'hass_frontend'`, while typically **passing locally** because a dev machine already has the package. Worse, the failures read as `'MockConfigEntry' object has no attribute 'runtime_data'`, pointing at the integration rather than the missing dependency. Pin from **core's own manifest** for your HA version, not from PyPI latest:
+```bash
+curl -s https://raw.githubusercontent.com/home-assistant/core/<ha-version>/homeassistant/components/frontend/manifest.json
+```
+Gate-enforced: a manifest depending on `frontend`/`panel_custom` with no pin fails the audit.
+
+**3. Registration has two traps.** Cache-bust the module URL or a browser serves the previous panel after an update, and claim the registered flag **before** the `await` or two entries setting up in parallel both register:
+```python
+if not hass.data.get(REGISTERED):
+    hass.data[REGISTERED] = True          # claim BEFORE the await
+    integration = await async_get_integration(hass, DOMAIN)
+    await panel_custom.async_register_panel(
+        hass, ...,
+        module_url=f"{PANEL_MODULE_URL}?v={integration.version}",   # or the browser caches
+    )
+```
+
+> **Panel *styling* — sizing, type, colour, spacing — is the `ha-panel-design` skill, not this one.** This section covers only how the TypeScript reaches the user and how the integration registers it.
 
 #### GitHub CI templates
 
@@ -266,8 +292,8 @@ Common `exempt`s for a local-push MQTT device integration: `appropriate-polling`
 
 ### Code style
 
-- Module docstring on every file
-- Short single-line docstrings on all public functions and classes
+- Module docstring on every file. **This one may be multi-line** — a file-level explanation of a load-bearing constraint belongs here, not demoted to a comment.
+- Short **single-line** docstrings on all public functions and classes. Enforced by `skill_audit.sh`; module docstrings are exempt.
 - No inline comments unless the WHY is genuinely non-obvious
 - No trailing summaries after edits
 - ruff + pylint compliant; pyright standard mode
