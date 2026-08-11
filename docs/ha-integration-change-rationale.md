@@ -391,3 +391,68 @@ no release category. The same limitation `create-dev-pr` had, in the labeller.
 this reason; `pr-labeler` should probably follow (the autolabeler checks out no
 code, so the usual `pull_request_target` hazard does not apply). Untested against
 a real fork PR — verify before changing it.
+
+---
+
+# Round 4 — RESOLVED 2026-08-07
+
+Raised in review, from noticing that R13 was the *second* race fix in a row:
+"we have circled around something similar before in terms of slight race
+conditions and an inability to sequentially run the actions."
+
+## R14. Label-ordering was structural, not a series of bugs — CONSOLIDATED
+
+R13 fixed a race by polling. That was a workaround, and the shape of it had
+appeared before. The underlying fact:
+
+**GitHub Actions can order jobs, and cannot order workflows.** `needs:` works
+within a workflow. Across workflows the only mechanism is reacting to another
+workflow's event — and the one that matters here, `labeled`, is emitted by the
+autolabeler using the default `GITHUB_TOKEN`, so the anti-recursion rule
+suppresses it. Every separate label-reader therefore had to race the labeler or
+poll for it. Four workflows were in that relationship: `pr-labeler` wrote labels;
+`pr-title-check`, `check-manifest-version` and `release_drafter` read them.
+`check-manifest-version` had no guard at all and passed on timing alone.
+
+Merged `pr-labeler.yml`, `pr-title-check.yml`, `pr-commit-summary.yml` and
+`check-manifest-version.yml` into one **`pr-checks.yml`**:
+
+| Job | `needs:` |
+|---|---|
+| `label` | — |
+| `title-check` | `label` |
+| `version-gate` | `label` |
+| `commit-summary` | — (reads only commits) |
+
+The polling workaround is gone. `lint_pr`, `validate-manifests`,
+`hacs_validate`, `hassfest_validate`, `python_validate`, `quality_audit` and
+`release_drafter` stayed separate: they neither read nor write labels, so folding
+them in would only couple unrelated failures and cost granular status checks.
+
+**Two things fell out of it.**
+
+*Fork PRs can now be labelled.* `pr-labeler` ran on `pull_request`, which hands a
+read-only token to fork PRs — so they could not be labelled at all, and got no
+release category. The same class of gap that killed `create-dev-pr`, sitting in
+the labeller the whole time. `pull_request_target` fixes it. That trigger runs in
+the base repo's context with a writable token, so no job may execute PR-authored
+code: `label` and the comment/body jobs check out nothing, and `version-gate`
+checks out `base.sha` explicitly and reads the PR's manifest as data over the API.
+
+*A shell-injection vector was closed.* The old gate interpolated
+`${{ steps.gather.outputs.pr_version }}` into a `run:` command — and that value
+is read from the PR's own `manifest.json`, which a fork PR controls entirely.
+Harmless under `pull_request` (read-only token, no secrets); under
+`pull_request_target` it would be injection against a writable token. All
+untrusted values now reach the shell via `env:`. `skill_audit.sh` parses the
+workflow and fails on **any** `${{ }}` inside a `run:` block.
+
+*Also dropped:* `check-manifest-version.yml`'s `push` trigger, which never did
+anything — both of its steps were gated on
+`github.event_name == 'pull_request'`. The label-derived expected bump needs PR
+context, so the push path could never have done the gate's real work.
+
+Six mechanical checks added or reworked, each verified firing against a fixture:
+missing `pr-checks.yml` · a label-reading job without `needs: label` · a `${{ }}`
+interpolation inside `run:` · a checkout not pinned to `base.sha` · a checkout of
+the PR head · a missing bot skip.

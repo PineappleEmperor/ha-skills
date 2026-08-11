@@ -1,0 +1,332 @@
+name: PR Checks
+
+# Every PR-time job that WRITES or READS labels, in one workflow so `needs:` can
+# order them. Separate workflows cannot be sequenced: the only mechanism would be
+# reacting to the `labeled` event, and GitHub suppresses events caused by the
+# default GITHUB_TOKEN — so the autolabeler's own label never wakes anything.
+# Consumers previously either raced it or polled for it. `needs:` removes both.
+#
+# Deliberately NOT here: lint_pr, hacs/hassfest/python validation, quality_audit.
+# They neither read nor write labels, so folding them in would only couple
+# unrelated failures and cost granular status checks.
+#
+# pull_request_target throughout, because a fork PR gets a read-only token under
+# `pull_request` — it could not be labelled, commented on, or have its body
+# updated, which is the whole point of these jobs.
+# SAFETY: that trigger runs in the base repo's context with a writable token, so
+# nothing here may execute PR-authored code. The autolabeler checks out nothing;
+# the version gate explicitly checks out the BASE and reads the PR's manifest as
+# data over the API; the body/comment jobs never check out at all.
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, edited, labeled, unlabeled]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: pr-checks-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  # ---------------------------------------------------------------- label ----
+  # The sole labeler. Everything below that reads labels declares `needs: label`.
+  label:
+    name: Label from title
+    runs-on: ubuntu-latest
+    steps:
+      - uses: release-drafter/release-drafter/autolabeler@v7
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # The autolabeler only *adds*. When a PR's title flips type mid-life
+      # (fix -> feat), the old label lingers and the PR lists under two
+      # release-drafter categories. Remove superseded labels, keyed on the
+      # same title the autolabeler reads (removal-only -> cannot flap).
+      - name: Remove superseded type labels
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}  # job has no checkout
+          TITLE: ${{ github.event.pull_request.title }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          if   printf '%s' "$TITLE" | grep -qiE '^[a-z]+(\([^)]*\))?!:';        then WIN=xfeat
+          elif printf '%s' "$TITLE" | grep -qiE '^(chore|docs)(\([^)]*\))?:';   then WIN=chore
+          elif printf '%s' "$TITLE" | grep -qiE '^fix(\([^)]*\))?:';            then WIN=fix
+          elif printf '%s' "$TITLE" | grep -qiE '^(feat|feature)(\([^)]*\))?:'; then WIN=feature
+          else exit 0  # title maps to no managed label; leave labels untouched
+          fi
+          CURRENT=$(gh pr view "$PR" --json labels --jq '.labels[].name')
+          for L in xfeat feature fix chore; do
+            [ "$L" = "$WIN" ] && continue
+            # `if` (not `grep && gh`): a no-match grep as the step's last command
+            # returns 1 under `bash -e`, failing the step even when nothing's wrong.
+            if printf '%s\n' "$CURRENT" | grep -qx "$L"; then
+              gh pr edit "$PR" --remove-label "$L"
+            fi
+          done
+
+  # ----------------------------------------------------------- title-check ----
+  # Reads labels, so it must follow `label`. No polling: `needs` guarantees the
+  # autolabeler has finished, which is what the old standalone workflow could not.
+  title-check:
+    name: Title is labellable
+    needs: label
+    if: github.event.pull_request.user.type != 'Bot'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for a version-resolvable label
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          # Ground truth is the PR's ACTUAL labels, never a copy of the autolabeler's
+          # regexes — a duplicate would drift from .github/release-drafter.yml, and a
+          # checker that disagrees with the thing it checks is worse than none.
+          # Keep in sync with version-resolver in .github/release-drafter.yml.
+          KNOWN="xfeat xfeature major feat feature minor fix bugfix bug patch chore"
+          gh pr view "$PR" --json labels --jq '.labels[].name' > labels.txt || true
+          FOUND=""
+          for l in $KNOWN; do
+            grep -qx "$l" labels.txt && { FOUND="$l"; break; }
+          done
+          if [ -n "$FOUND" ]; then
+            echo "ok=true" >> $GITHUB_OUTPUT
+            echo "PR carries '$FOUND' - title is resolvable."
+          else
+            echo "ok=false" >> $GITHUB_OUTPUT
+            echo "::warning::PR has no version-resolvable label; its title type maps to nothing."
+          fi
+
+      - name: Suggest a title type from the commits
+        if: steps.check.outputs.ok == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          gh api --paginate "repos/$GH_REPO/pulls/$PR/commits" \
+            --jq '.[].commit.message | split("\n")[0]' > subjects.txt
+          python3 - <<'PY'
+          import pathlib, re
+
+          subjects = [s for s in pathlib.Path("subjects.txt").read_text().splitlines() if s.strip()]
+          TYPE = re.compile(r"^(?P<type>[a-zA-Z]+)(\([^)]*\))?(?P<bang>!)?:")
+          MAINT = {"chore", "docs", "refactor", "perf", "test", "build", "ci", "style"}
+
+          win = None
+          for s in subjects:
+              m = TYPE.match(s)
+              if not m:
+                  continue
+              t = m.group("type").lower()
+              if m.group("bang"):
+                  win = "breaking"; break
+              if t in ("feat", "feature"):
+                  win = win if win == "breaking" else "feat"
+              elif t == "fix" and win not in ("feat",):
+                  win = "fix"
+              elif t in MAINT and win is None:
+                  win = "chore"
+
+          suggest = {
+              "breaking": ("`feat!:` (or any `type!:`)", "🚨 Breaking Change", "major"),
+              "feat":     ("`feat:`",  "🚀 Features",    "minor"),
+              "fix":      ("`fix:`",   "🔧 Fixes",       "patch"),
+              "chore":    ("`chore:`", "🧰 Maintenance", "patch"),
+          }.get(win or "chore")
+
+          body = f"""<!-- pr-title-check -->
+          ### This PR's title can't be labelled
+
+          The autolabeler maps the title to a label, release-drafter turns that label into a
+          release category, and the version gate resolves the expected bump from it. This
+          title matches none of its rules, so the PR has no label, won't appear in the draft
+          release notes, and gives the version gate nothing to check.
+
+          `lint_pr` passed because it accepts the full Conventional Commits set — `revert:`
+          is the type that clears the lint and still maps to nothing.
+
+          **Suggested type, from this PR's commits: {suggest[0]}** — files under
+          *{suggest[1]}*, resolves a **{suggest[2]}** bump.
+
+          Mapped types: `feat`/`feature` · `fix` · `chore`/`docs`/`refactor`/`perf`/`test`/`build`/`ci`/`style` · any `type!:` for breaking.
+
+          Edit the title and this comment will remove itself. Nothing here changes your title.
+          """
+          pathlib.Path("comment.md").write_text("\n".join(l.lstrip() for l in body.splitlines()))
+          PY
+          EXISTING=$(gh api "repos/$GH_REPO/issues/$PR/comments" \
+            --jq '[.[] | select(.body | startswith("<!-- pr-title-check -->"))] | .[0].id // ""')
+          if [ -n "$EXISTING" ]; then
+            gh api -X PATCH "repos/$GH_REPO/issues/comments/$EXISTING" -F body=@comment.md --silent
+          else
+            gh pr comment "$PR" --body-file comment.md
+          fi
+
+      - name: Withdraw the suggestion once the title is fixed
+        if: steps.check.outputs.ok == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          EXISTING=$(gh api "repos/$GH_REPO/issues/$PR/comments" \
+            --jq '[.[] | select(.body | startswith("<!-- pr-title-check -->"))] | .[0].id // ""')
+          [ -n "$EXISTING" ] && gh api -X DELETE "repos/$GH_REPO/issues/comments/$EXISTING" --silent \
+            && echo "removed the stale suggestion" || echo "nothing to withdraw"
+
+  # ---------------------------------------------------------- version-gate ----
+  # Reads labels to derive the expected bump, so it must follow `label` too.
+  version-gate:
+    name: Manifest version bumped vs last release
+    needs: label
+    if: github.event.pull_request.user.login != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      # BASE, not the PR head. Under pull_request_target the token is writable, so
+      # scripts/manifest_gate.py must be the trusted copy from the base branch — a
+      # fork PR that edited it would otherwise run with that token.
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+
+      - name: Gather versions and labels
+        id: gather
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          MANIFEST=$(ls custom_components/*/manifest.json | head -1)
+          # The PR's manifest is read as DATA over the API — never checked out.
+          gh api "repos/$GH_REPO/contents/$MANIFEST?ref=$HEAD_SHA" --jq '.content' \
+            | base64 -d > pr_manifest.json
+          echo "pr_version=$(jq -r '.version' pr_manifest.json)" >> "$GITHUB_OUTPUT"
+          echo "main_version=$(jq -r '.version' "$MANIFEST")" >> "$GITHUB_OUTPUT"
+          TAG=$(gh release list --exclude-drafts --limit 1 --json tagName --jq '.[0].tagName')
+          echo "last_release=${TAG#v}" >> "$GITHUB_OUTPUT"
+          echo "labels=$(gh pr view "$PR" --json labels -q '[.labels[].name]|join(",")')" >> "$GITHUB_OUTPUT"
+
+      # All decision logic lives in scripts/manifest_gate.py (unit-tested in
+      # tests/test_manifest_gate.py) so the gate can't silently regress again.
+      - name: Version gate
+        # Via env, never `${{ }}` inside run: `pr_version` is read from the PR's own
+        # manifest.json, so a fork PR controls that string entirely. Interpolated into
+        # the command line it would be shell injection against a writable token.
+        env:
+          LAST_RELEASE: ${{ steps.gather.outputs.last_release }}
+          MAIN_VERSION: ${{ steps.gather.outputs.main_version }}
+          PR_VERSION: ${{ steps.gather.outputs.pr_version }}
+          LABELS: ${{ steps.gather.outputs.labels }}
+        run: |
+          python3 scripts/manifest_gate.py \
+            --last-release "$LAST_RELEASE" \
+            --main-version "$MAIN_VERSION" \
+            --pr-version "$PR_VERSION" \
+            --labels "$LABELS"
+
+  # -------------------------------------------------------- commit-summary ----
+  # Reads only commits, so it declares no `needs` and runs in parallel. It lives
+  # here because it is PR-body hygiene like the rest, not because it is ordered.
+  commit-summary:
+    name: Commit summary in PR body
+    if: github.event.pull_request.user.type != 'Bot'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch commit subjects
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          gh api --paginate "repos/$GH_REPO/pulls/$PR/commits" \
+            --jq '.[].commit.message | split("\n")[0]' > subjects.txt
+          wc -l < subjects.txt
+
+      - name: Build the grouped summary
+        run: |
+          python3 - <<'PY'
+          import pathlib, re
+
+          subjects = [s for s in pathlib.Path("subjects.txt").read_text().splitlines() if s.strip()]
+
+          TYPE = re.compile(r"^(?P<type>[a-zA-Z]+)(\([^)]*\))?(?P<bang>!)?:\s*(?P<desc>.*)$")
+          MAINT = {"chore", "docs", "refactor", "perf", "test", "build", "ci", "style"}
+          # The manifest/plugin version bump is release plumbing, not a changelog entry.
+          BUMP = re.compile(r"^[a-z]+(\([^)]*\))?:\s*bump\b.*(\bversion\b|\bmanifest\b|\bto v?\d+\.\d+)", re.I)
+
+          groups = {"breaking": [], "feat": [], "fix": [], "maint": [], "other": []}
+          for s in subjects:
+              if BUMP.match(s):
+                  continue
+              m = TYPE.match(s)
+              if not m:
+                  groups["other"].append(s)
+                  continue
+              t, desc = m.group("type").lower(), m.group("desc")
+              if m.group("bang"):
+                  groups["breaking"].append(desc)
+              elif t == "feat":
+                  groups["feat"].append(desc)
+              elif t == "fix":
+                  groups["fix"].append(desc)
+              elif t in MAINT:
+                  groups["maint"].append(desc)
+              else:
+                  groups["other"].append(desc)
+
+          used = [k for k, v in groups.items() if v]
+          heads = {
+              "breaking": "  **🚨 Breaking**", "feat": "  **🚀 Features**",
+              "fix": "  **🔧 Fixes**", "maint": "  **🧰 Maintenance**",
+              "other": "  **📦 Other**",
+          }
+          lines = []
+          # Sub-heads only when the PR spans >1 type: release-drafter already files
+          # the PR under one category heading, so a lone sub-head just duplicates it.
+          for key in ("breaking", "feat", "fix", "maint", "other"):
+              if not groups[key]:
+                  continue
+              if len(used) > 1:
+                  lines.append(heads[key])
+              lines += [f"  - {d}" for d in groups[key]]
+
+          pathlib.Path("summary.md").write_text("\n".join(lines) or "  - (no commits)")
+          PY
+
+      - name: Splice it into the PR body
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          gh pr view "$PR" --json body --jq '.body // ""' > body.md
+          python3 - <<'PY'
+          import pathlib
+
+          START, END = "<!-- commit-summary:start -->", "<!-- commit-summary:end -->"
+          body = pathlib.Path("body.md").read_text()
+          block = f"{START}\n{pathlib.Path('summary.md').read_text().strip()}\n{END}"
+
+          # Replace only the managed block so a human-written description survives.
+          if START in body and END in body:
+              head, rest = body.split(START, 1)
+              _, tail = rest.split(END, 1)
+              new = f"{head}{block}{tail}"
+          else:
+              new = f"{body.rstrip()}\n\n{block}\n" if body.strip() else f"{block}\n"
+
+          if new != body:
+              pathlib.Path("new_body.md").write_text(new)
+          PY
+          if [ -f new_body.md ]; then
+            gh pr edit "$PR" --body-file new_body.md
+          else
+            echo "body already current"
+          fi

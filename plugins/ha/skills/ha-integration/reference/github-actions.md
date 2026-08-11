@@ -4,20 +4,30 @@ The **file bodies** live in the skill's `templates/` dir (mirrors the target rep
 
 ⚠️ **This file does not substitute for the templates.** It describes required behaviour so you can *review* a workflow; a workflow written from these descriptions is a paraphrase, and paraphrases drift silently. Locate `templates/` per **Where `templates/` lives** in `SKILL.md` (Mode 1) and copy byte-for-byte; if you cannot locate it, stop and say so rather than authoring from prose. Only sanctioned adaptation: `<domain>` in `release.yml`.
 
-#### pr-commit-summary.yml template (canonical — copy this, no external repo)
+#### pr-checks.yml template (canonical — copy this, no external repo)
 
-**PRs are opened by humans.** No workflow opens one. This maintains a generated, type-grouped commit list inside a marked block in the PR body, so release-drafter's `$BODY` still renders a per-PR mini-changelog.
+**PRs are opened by humans.** No workflow opens one. `pr-checks.yml` holds every PR-time job that reads or writes labels, in **one** workflow, ordered with `needs:`.
+
+| Job | `needs:` | Does |
+|---|---|---|
+| `label` | — | sole labeler: autolabeler + removal-only superseded step |
+| `title-check` | `label` | comments when the title maps to no label; suggests a type from the commits; withdraws itself when fixed |
+| `version-gate` | `label` | last-published-release version gate via `scripts/manifest_gate.py` |
+| `commit-summary` | — | maintains the marked commit-list block feeding `$BODY` |
 
 Must-preserve behaviours:
 
-- **`pull_request_target`, and no checkout — ever.** Fork PRs need a writable token to have their body edited, and only `pull_request_target` provides one. That trigger runs in the *base* repo's context, so checking out the PR head there would execute a contributor's code with a write-scoped token. The workflow reads commit subjects from the API into a file instead, and interpolates nothing from the PR into a shell command.
-- **Skips bot authors** (`user.type != 'Bot'`). Dependabot writes its own body and `replacers` scrub it; rewriting adds nothing.
-- **Rewrites only the marked block** (`<!-- commit-summary:start -->…<!-- commit-summary:end -->`), so a human-written description survives every push, and it's a no-op when already current.
-- **No title handling and no label step.** The human owns the title, `lint_pr` gates its format, and the autolabeler is the sole labeler.
+- **One workflow, because jobs can be ordered and workflows cannot.** `needs:` is the only sequencing primitive GitHub Actions offers, and it works *within* a workflow. Across workflows the only option is reacting to the `labeled` event — which never fires, because the autolabeler applies its label with the default `GITHUB_TOKEN` and GitHub suppresses events caused by that token. Every separate label-reader therefore either raced the autolabeler or polled for it. Both were workarounds; `needs:` is the fix. **Do not split these back into separate workflows.**
+- **`pull_request_target`, and no PR-authored code ever runs.** A fork PR under plain `pull_request` gets a read-only token — it cannot be labelled, commented on, or have its body updated, which is the entire purpose of these jobs. `pull_request_target` supplies a writable token but runs in the base repo's context, so: `label` and the comment/body jobs check out **nothing**; `version-gate` checks out `base.sha` **explicitly** (never the head) and reads the PR's manifest **as data over the API**.
+- **No `${{ }}` inside any `run:`.** Untrusted strings — the PR title, and the PR's own `manifest.json` version — reach the shell through `env:`. A fork PR controls its manifest `version` string completely; interpolated into a command line that is shell injection against a writable token. `skill_audit.sh` enforces this mechanically.
+- **`title-check` decides from the PR's real labels**, never a copy of the autolabeler's regexes — a duplicate drifts from `.github/release-drafter.yml`, and a checker that disagrees with the thing it checks is worse than none. It **suggests**; it never edits the title.
+- **`commit-summary` rewrites only the marked block**, so a human description survives; it is a no-op when already current, and skips bot authors.
 
-> **Superseded — do not reinstate `create-dev-pr.yml`.** It opened a draft PR on every push to a non-main branch and derived the title from the commits. Four problems, the first fatal: it **cannot serve fork-based contributions** (a `push` workflow never fires for a contributor pushing to their own fork, and a fork's `pull_request` token is read-only, so it could not open the PR anyway) — so the convention only ever worked for people with write access. It also auto-opened a PR for every WIP branch, clobbered a human-edited PR title on the next push, and tripped the `GITHUB_TOKEN` `opened`-suppression rule so no checks ran on first open.
+> **Superseded — do not reinstate.** `create-dev-pr.yml` auto-opened a draft PR on every push to a non-main branch and derived the title from the commits. Four problems, the first fatal: it **cannot serve fork-based contributions** (a `push` workflow never fires for a contributor pushing to their own fork, and a fork's `pull_request` token is read-only), so the convention only ever worked for people with write access. It also auto-opened a PR for every WIP branch, clobbered human-edited titles, and tripped the `GITHUB_TOKEN` `opened`-suppression rule so no checks ran on first open.
 >
-> **The `GITHUB_TOKEN` `opened`-suppression footgun is gone with it.** A human-opened PR is not a token-caused event, so `lint_pr`, `pr-labeler`, the autolabeler and `check-manifest-version` all run on the first open, as they always should have.
+> The separate `pr-labeler.yml`, `pr-title-check.yml`, `pr-commit-summary.yml` and `check-manifest-version.yml` are superseded by `pr-checks.yml` — the first three because they could not be ordered against the labeler, and `check-manifest-version.yml` because its `push` trigger was a no-op (both its steps were gated on `github.event_name == 'pull_request'`).
+>
+> **The `GITHUB_TOKEN` `opened`-suppression footgun is gone.** A human-opened PR is not a token-caused event, so every `pull_request` workflow runs on the first open, as it always should have.
 
 #### Remaining workflow + config templates (canonical — copy these, no external repo)
 
@@ -25,9 +35,7 @@ All paths assume one integration per repo: `custom_components/<domain>/manifest.
 
 **`.github/workflows/lint_pr.yml`** — semantic PR-title gate.
 
-**`.github/workflows/pr-labeler.yml`** — the **sole** labeler: autolabeler adds, removal-only step subtracts superseded type labels (can't flap).
-
-**`.github/workflows/release_drafter.yml`** — drafts release notes on `main` only (labelling lives in `pr-labeler.yml`, so no autolabeler job here). Reads the release version from the manifest.
+**`.github/workflows/release_drafter.yml`** — drafts release notes on `main` only (labelling lives in the `label` job of `pr-checks.yml`, so no autolabeler job here). Reads the release version from the manifest.
 
 **`.github/release-drafter.yml`** (config) — title-only autolabeler rules (breaking `!` first), `$BODY` kept with bounded Dependabot `replacers`, label→semver `version-resolver`.
 
@@ -41,7 +49,7 @@ All paths assume one integration per repo: `custom_components/<domain>/manifest.
 
 **`.github/workflows/python_validate.yml`** + **`requirements.test.txt`** — ruff + pyright + **pytest** on HA's floor Python (keep the matrix in lockstep with `pyproject.toml` / `pyrightconfig.json`). **Tests run in CI, not local-only:** the quality scale requires a test per rule marked `done`, so a suite CI never runs lets those claims rot unverified. The pytest step fails the build on a red test, warns (doesn't fail) when `tests/` is absent so a fresh scaffold is loud rather than silently green, and hard-fails when `tests/` exists but `requirements.test.txt` doesn't — that combination means the suite was never actually installed. `pytest-homeassistant-custom-component` hard-pins `homeassistant==<matching release>`, so the pin in `requirements.test.txt` decides which HA the suite runs against; a mismatched pin fails at import, not at test time.
 
-**`.github/workflows/check-manifest-version.yml`** + **`scripts/manifest_gate.py`** + **`tests/test_manifest_gate.py`** — version gate **against the last published release** (not `main` HEAD). ⚠️ **The decision logic lives in a unit-tested Python script, NOT inline bash.** A real bug shipped from inline-bash logic: it used strict equality (`suggested == manifest`), so a `chore` PR sitting at `1.2.0` (riding a minor already merged this cycle) was rejected with "expected v1.1.1" — even though `1.2.0` is a perfectly valid in-cycle version. Inline gate logic is untested and regresses silently; extract it so it has a test suite. The gate must enforce a **floor** (≥ the label's minimum bump from the last release — catches under-bumps) **and** a **ceiling** (≤ the in-cycle version on `main`, or this PR's own label bump if it escalates the tier — catches over-bumps), with prerelease versions only needing to differ and `dependabot[bot]` exempt.
+**`pr-checks.yml`'s `version-gate` job** + **`scripts/manifest_gate.py`** + **`tests/test_manifest_gate.py`** — version gate **against the last published release** (not `main` HEAD). ⚠️ **The decision logic lives in a unit-tested Python script, NOT inline bash.** A real bug shipped from inline-bash logic: it used strict equality (`suggested == manifest`), so a `chore` PR sitting at `1.2.0` (riding a minor already merged this cycle) was rejected with "expected v1.1.1" — even though `1.2.0` is a perfectly valid in-cycle version. Inline gate logic is untested and regresses silently; extract it so it has a test suite. The gate must enforce a **floor** (≥ the label's minimum bump from the last release — catches under-bumps) **and** a **ceiling** (≤ the in-cycle version on `main`, or this PR's own label bump if it escalates the tier — catches over-bumps), with prerelease versions only needing to differ and `dependabot[bot]` exempt.
 
 The workflow just gathers inputs and shells out:
 
@@ -53,7 +61,7 @@ The workflow just gathers inputs and shells out:
 
 #### Optional: per-turn reminder hooks (personal `~/.claude`)
 
-The repo `CLAUDE.md` rule is the **canonical, shareable** enforcement (it ships with the repo, applies to everyone). These two personal hooks are a *convenience* layer on top — they live in your own `~/.claude/` and re-arm the rules every session/turn so they don't drift down-context in a long session. **Marker-file gated** so each only fires where it applies: the skill anchor on an integration repo (`custom_components/*/manifest.json`), the CI-convention anchor on any repo using this workflow stack (`.github/workflows/pr-commit-summary.yml`) — which includes this skill's own repo, not just scaffolded integrations.
+The repo `CLAUDE.md` rule is the **canonical, shareable** enforcement (it ships with the repo, applies to everyone). These two personal hooks are a *convenience* layer on top — they live in your own `~/.claude/` and re-arm the rules every session/turn so they don't drift down-context in a long session. **Marker-file gated** so each only fires where it applies: the skill anchor on an integration repo (`custom_components/*/manifest.json`), the CI-convention anchor on any repo using this workflow stack (`.github/workflows/pr-checks.yml`) — which includes this skill's own repo, not just scaffolded integrations.
 
 `~/.claude/settings.json` (merge into existing `hooks`):
 
