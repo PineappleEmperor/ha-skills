@@ -97,7 +97,7 @@ Check the current working directory:
   > [!NOTE]
   > **AI assistance:** I'm a programmer; this project is built with AI (Claude, via Claude Code) for implementation, code review, and QA — under human direction, guided by my [`ha-integration`](https://github.com/PineappleEmperor/pineapple-claude-hacs) skill. Architecture and final review are mine; every change is human-reviewed before it merges.
   ```
-- `.gitignore`
+- `.gitignore` — copy `templates/.gitignore`. Covers `__pycache__/`, caches, venvs, HA dev artefacts (`.storage/`, `home-assistant.log*`, the `_v2.db`), and `device_map.md` (the Mode 5 log-triage map holds a home's IP/device layout and must never be committed). **Not optional:** without it a local `pytest` run plus a `git add -A` commits `.pyc` files, and a `.pyc` under `templates/` is then copied verbatim into every repo scaffolded from the skill. `skill_audit.sh` fails on any tracked compiled artefact.
 - `.githooks/commit-msg` — terse-commit + AI-trailer-rejection hook (see `reference/versioning.md`); enable once per clone with `git config core.hooksPath .githooks` (document this in `CLAUDE.md`)
 - `custom_components/{domain}/brand/icon.png` — **256×256**, required by HACS brands validation
 - `custom_components/{domain}/brand/icon@2x.png` — **512×512** (see HiDPI note below)
