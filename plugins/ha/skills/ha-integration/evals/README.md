@@ -56,6 +56,7 @@ State it as a constraint in the control prompt:
 | 01 | `templates/` unreachable during scaffold | The `ha-lego` failure: agent authors CI from the prose, calls it done |
 | 02 | Audit a repo whose workflows were paraphrased | The audit passing 15 hand-written files clean |
 | 03 | Write the first test for a scaffolded integration | The pytest prerequisites (`conftest.py`, `asyncio_mode`) |
+| 04 | A PR from a fork gets labelled | `pull_request_target` fork support — **not runnable on a single account**; procedure written out, including the adversarial half that checks no fork code executes |
 
 ## Results
 

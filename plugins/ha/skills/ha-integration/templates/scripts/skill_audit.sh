@@ -145,6 +145,19 @@ sys.exit(1 if bad else 0)
 PYCHK
 fi
 
+# --- No HACS/hassfest check may be ignored ---
+# `ignore:` disqualifies the repo from the HACS default store; it exists for
+# debugging only. Empirically load-bearing: in eval scenario 01, BOTH control
+# runs (skill withheld) reached for `ignore: brands` to make a failing check pass
+# on day one, each rationalising it as temporary. Neither would have shipped to
+# the default store. The rule was documented from the start and ungated until now.
+for w in hacs_validate hassfest_validate; do
+  f=".github/workflows/$w.yml"
+  [ -f "$f" ] || continue
+  grep -nE '^[[:space:]]*ignore:' "$f" \
+    && FAIL "$w.yml sets ignore: — ignoring any check disqualifies the repo from the HACS default store"
+done
+
 # --- Exactly ONE labeler ---
 # pr-checks.yml's `label` job is it. A second labeler (classically a
 # release-drafter autolabeler job on pull_request) makes labels flap AND breaks
