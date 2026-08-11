@@ -456,3 +456,20 @@ Six mechanical checks added or reworked, each verified firing against a fixture:
 missing `pr-checks.yml` · a label-reading job without `needs: label` · a `${{ }}`
 interpolation inside `run:` · a checkout not pinned to `base.sha` · a checkout of
 the PR head · a missing bot skip.
+
+## R15. The `<details>` convention breaks on literal tag text — CAVEAT ADDED
+
+Found while generating the v5.0.0 notes. The `replacers` entry is
+`/<details>[\s\S]*?<\/details>\s*/g` — a regex, not a parser. It matches the
+first opening tag to the first closing tag **anywhere** in the body and cannot
+distinguish a real tag from one inside backticks or a code fence.
+
+PR #13 discussed the convention, so its body contained `` `<details>` `` in the
+summary line and `` `<details>…</details>` `` in the prose. The match started at
+the inline mention and ran to the real closer, so the strip ate the summary that
+was supposed to survive and left `Two doc-only follow-ups to v4.0.0: the ` as a
+dangling fragment in the release notes. Escaping only the closer moved the
+breakage rather than fixing it; both tags had to be escaped.
+
+Caveat documented in `versioning.md`: refer to the tag as `&lt;details&gt;`,
+never literally, anywhere outside the real wrapper.
