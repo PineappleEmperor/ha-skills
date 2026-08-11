@@ -260,15 +260,19 @@ jobs:
 
           START, END = "<!-- commit-summary:start -->", "<!-- commit-summary:end -->"
           body = pathlib.Path("body.md").read_text()
-          block = f"{START}\n{pathlib.Path('summary.md').read_text().strip()}\n{END}"
+          summary = pathlib.Path("summary.md").read_text().strip()
+          # Empty summary => the block would only restate the title. Remove it.
+          block = f"{START}\n{summary}\n{END}" if summary else ""
 
           # Replace only the managed block so a human-written description survives.
           if START in body and END in body:
               head, rest = body.split(START, 1)
               _, tail = rest.split(END, 1)
               new = f"{head}{block}{tail}"
-          else:
+          elif block:
               new = f"{body.rstrip()}\n\n{block}\n" if body.strip() else f"{block}\n"
+          else:
+              new = body
 
           if new != body:
               pathlib.Path("new_body.md").write_text(new)

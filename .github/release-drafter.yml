@@ -54,6 +54,8 @@ replacers:
     replace: ''
   - search: '/<br\s*\/?>\s*/g'
     replace: ''
+  - search: '/<!-- commit-summary:(start|end) -->\n?/g'   # markers are plumbing, not notes
+    replace: ''
 version-resolver:
   major:
     labels:

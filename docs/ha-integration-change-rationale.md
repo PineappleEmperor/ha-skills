@@ -760,3 +760,54 @@ testing in isolation and failed only by **never firing**:
 
 A unit test proves a check works when invoked. Nothing proved these were ever
 invoked. That distinction is the whole return on running the scenarios.
+
+## R28. The commit-driven notes generator was NOT needed — scope corrected
+
+A prototype `release_notes.py` was written to fix release notes categorising by
+PR label rather than commit type, so a `fix:` commit inside a `docs:`-titled PR
+files under Maintenance instead of Fixes. The design was approved and the
+prototype worked against real history.
+
+**Checking whether the problem was live killed it.** Every recent PR is
+single-type:
+
+| PR | label | commit types |
+|---|---|---|
+| #22 | feature | `feat` |
+| #20 | feature | `feat` |
+| #19 | fix | `fix` |
+| #17 | fix | `fix` |
+| #16 | xfeat | `fix!` |
+
+The scattering needs a PR whose commits span types. That happened once (#13) and
+essentially cannot recur under the working practice this skill already enforces:
+one tight PR per change, title matching the winning commit type. The problem was
+demonstrated with a **synthetic** four-PR example, and the synthetic case was
+then treated as the live one.
+
+Cost avoided: a script, its tests, a workflow, and a cascade into `version-gate`
+resolving from commits instead of labels — which would in turn have made
+`title-check` largely redundant. All to fix something that does not occur.
+
+## R29. What WAS wrong with the notes — FIXED
+
+Measured across three published releases (v6.0.2, v6.1.1, v6.2.0): every one
+carried raw `<!-- commit-summary -->` markers, and every one carried at least one
+block that merely restated the PR title minus its type prefix. None carried the
+multi-type case the sub-heads exist for.
+
+Two small fixes:
+
+- `render()` returns empty when the block would hold a single bullet — that
+  bullet is always the title minus its prefix, so it restates the heading above
+  it. The splice now removes an existing block rather than leaving a stale one.
+- A bounded `replacers` entry strips the markers from rendered notes. They are
+  plumbing for the splice, not content.
+
+Verified against the real v6.2.0 body: 0 markers survive, PR #22's block
+disappears, and PR #13's genuine three-commit block still renders.
+
+**Residual, deliberately not fixed:** on a multi-type PR the sub-heads still
+disagree with the category above them (a 🔧 Fixes sub-head under 🧰 Maintenance).
+That reading is arguably correct — "filed as Maintenance, contains a fix" — and
+the case is now rare. Left alone rather than redesigned on one example.
