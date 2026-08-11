@@ -1,0 +1,58 @@
+name: Frontend Build
+
+# HACS ships the repository as-is and runs no build step on the user's machine, so
+# the esbuild output must be COMMITTED inside custom_components/<domain>/panel/ to
+# reach the release zip. That makes a stale bundle silent: the old bundle still
+# runs, tests pass, CI is green, and the only symptom is "the fix I made isn't
+# there". The `git diff --exit-code` step below is the whole point of this file —
+# it fails when the committed bundle does not match a fresh build of the source.
+#
+# This differs from a Lovelace CARD repo, which attaches the built .js as a
+# release asset instead. An integration cannot: the asset is not in the zip HACS
+# installs into custom_components/<domain>/.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - 'frontend/**'
+      - 'custom_components/*/panel/**'
+      - '.github/workflows/frontend_build.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Type-check
+        run: npm run check
+
+      - name: Build
+        run: npm run build
+
+      - name: Committed bundle must match a fresh build
+        working-directory: .
+        run: |
+          if ! git diff --exit-code -- 'custom_components/*/panel/*.js'; then
+            echo "::error::The committed panel bundle is stale. Run 'npm run build' in frontend/ and commit the result."
+            exit 1
+          fi

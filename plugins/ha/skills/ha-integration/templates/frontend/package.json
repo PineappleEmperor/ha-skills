@@ -1,0 +1,14 @@
+{
+  "name": "<domain>-panel",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "tsc --noEmit",
+    "build": "esbuild src/<name>.ts --bundle --minify --format=esm --target=es2021 --outfile=../custom_components/<domain>/panel/<name>.js"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "lit": "^3.2.0",
+    "typescript": "^5.7.0"
+  }
+}
