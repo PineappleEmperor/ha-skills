@@ -14,7 +14,8 @@ The agent gets the **full skill, `templates/` included** — this scenario tests
 whether it *uses* them, not whether it can find them.
 
 Planted drift: `.github/workflows/lint_pr.yml` rewritten from its one-line
-description. It drops `pull_request_target`, the `permissions` block and the
+description. (A good variant: strip `needs: label` from `pr-checks.yml` — the
+diff catches it, and so does `skill_audit.sh`.) It drops `pull_request_target`, the `permissions` block and the
 `GITHUB_TOKEN` env — so PR-title linting silently stops working on forks. Every
 canonical file is present, so `bash scripts/skill_audit.sh` exits 0.
 

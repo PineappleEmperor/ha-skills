@@ -13,45 +13,17 @@ WARN() { echo "⚠️  WARN: $*"; }
 # release.yml: absent -> HACS install fails with "Could not download" on a
 # zip_release repo. quality_audit.yml: absent -> THIS script never runs in CI,
 # and that is the one absence it can never report on a PR.
-for w in pr-commit-summary pr-title-check pr-labeler release_drafter semantic_release lint_pr \
-         hacs_validate hassfest_validate python_validate check-manifest-version \
+for w in pr-checks release_drafter semantic_release lint_pr \
+         hacs_validate hassfest_validate python_validate \
          release quality_audit; do
   [ -f ".github/workflows/$w.yml" ] || FAIL "missing .github/workflows/$w.yml"
 done
 [ -f .github/release-drafter.yml ] || FAIL "missing .github/release-drafter.yml"
 [ -f .github/dependabot.yml ]      || FAIL "missing .github/dependabot.yml"
 
-# No workflow may open PRs. create-dev-pr.yml is the superseded auto-opener: it cannot
-# serve fork contributions (push never fires on a fork; a fork's pull_request token is
-# read-only) and it overwrote human PR titles. PRs are opened by humans.
-[ -f .github/workflows/create-dev-pr.yml ] \
-  && FAIL "create-dev-pr.yml is superseded (PRs are opened manually; use pr-commit-summary.yml)"
-grep -rln 'gh pr create' .github/workflows/ 2>/dev/null \
-  && FAIL "a workflow opens PRs with 'gh pr create' (PRs are opened manually)"
-
-# pr-commit-summary runs on pull_request_target with a writable token: checking out the
-# PR head there would execute untrusted code with that token.
-if [ -f .github/workflows/pr-commit-summary.yml ]; then
-  grep -q 'pull_request_target' .github/workflows/pr-commit-summary.yml \
-    || FAIL "pr-commit-summary.yml must use pull_request_target (fork PRs need a writable token)"
-  grep -qE 'actions/checkout' .github/workflows/pr-commit-summary.yml \
-    && FAIL "pr-commit-summary.yml checks out code under pull_request_target (never run PR-authored code there)"
-  grep -q "user.type != 'Bot'" .github/workflows/pr-commit-summary.yml \
-    || FAIL "pr-commit-summary.yml does not skip bot-authored PRs"
-fi
-
-# pr-title-check must read the PR's real labels, not re-implement the autolabeler's
-# regexes — a checker that drifts from .github/release-drafter.yml is worse than none.
-if [ -f .github/workflows/pr-title-check.yml ]; then
-  grep -q 'gh pr view .* --json labels' .github/workflows/pr-title-check.yml \
-    || FAIL "pr-title-check.yml does not read the PR's actual labels (don't duplicate the autolabeler regexes)"
-  grep -qE 'gh pr edit .*--title|--title ' .github/workflows/pr-title-check.yml \
-    && FAIL "pr-title-check.yml edits the PR title (it must only suggest)"
-fi
-
-# --- Canonical scripts present (check-manifest-version.yml shells out to the
-# gate; a missing script fails that workflow at runtime on every PR) ---
-[ -f scripts/manifest_gate.py ]      || FAIL "missing scripts/manifest_gate.py (check-manifest-version.yml shells out to it)"
+# --- Canonical scripts present (pr-checks.yml's version-gate job shells out to
+# the gate; a missing script fails that job at runtime on every PR) ---
+[ -f scripts/manifest_gate.py ]      || FAIL "missing scripts/manifest_gate.py (pr-checks.yml's version-gate shells out to it)"
 [ -f tests/test_manifest_gate.py ]   || FAIL "missing tests/test_manifest_gate.py (the gate's logic must stay unit-tested)"
 
 # NOTE: this loop proves each workflow EXISTS, never that it MATCHES the skill's
@@ -102,12 +74,54 @@ grep -rnE 'amannn/action-semantic-pull-request@v[1-5]\b' .github/workflows/ && F
 grep -rnE 'release-drafter/release-drafter(/autolabeler)?@v[1-6]\b' .github/workflows/ && FAIL "stale release-drafter (use v7)"
 
 # --- Workflow correctness ---
-grep -q "Remove superseded" .github/workflows/pr-labeler.yml 2>/dev/null \
-  || FAIL "pr-labeler.yml missing the removal-only superseded-label step"
-grep -q "dependabot\[bot\]" .github/workflows/check-manifest-version.yml 2>/dev/null \
-  || WARN "check-manifest-version may not exempt dependabot[bot]"
-grep -q "gh release list" .github/workflows/check-manifest-version.yml 2>/dev/null \
-  || WARN "check-manifest-version may not compare against the last published release"
+grep -q "Remove superseded" .github/workflows/pr-checks.yml 2>/dev/null \
+  || FAIL "pr-checks.yml missing the removal-only superseded-label step"
+grep -q "dependabot\[bot\]" .github/workflows/pr-checks.yml 2>/dev/null \
+  || WARN "pr-checks.yml may not exempt dependabot[bot] from the version gate"
+grep -q "gh release list" .github/workflows/pr-checks.yml 2>/dev/null \
+  || WARN "pr-checks.yml may not compare against the last published release"
+
+# --- pr-checks.yml: ordering and pull_request_target safety ---
+# Jobs that read labels must declare `needs: label`. Separate workflows cannot be
+# sequenced at all (the autolabeler's `labeled` event is suppressed by the
+# GITHUB_TOKEN anti-recursion rule), which is why these live in one workflow.
+if [ -f .github/workflows/pr-checks.yml ]; then
+  P=.github/workflows/pr-checks.yml
+  grep -q 'pull_request_target' "$P" \
+    || FAIL "pr-checks.yml must use pull_request_target (fork PRs get a read-only token otherwise)"
+  [ "$(grep -c 'needs: label' "$P")" -ge 2 ] \
+    || FAIL "pr-checks.yml: label-reading jobs must declare 'needs: label' (else they race the autolabeler)"
+  grep -q "user.type != 'Bot'" "$P" \
+    || FAIL "pr-checks.yml does not skip bot-authored PRs"
+  # Any checkout under pull_request_target must pin the BASE, never the PR head:
+  # the token is writable, so PR-authored code must never run.
+  if grep -q 'actions/checkout' "$P"; then
+    grep -q 'ref: ${{ github.event.pull_request.base.sha }}' "$P" \
+      || FAIL "pr-checks.yml checks out without pinning base.sha (never run PR code under pull_request_target)"
+    grep -q 'head.sha' "$P" && grep -A2 'actions/checkout' "$P" | grep -q 'head.sha' \
+      && FAIL "pr-checks.yml checks out the PR head under pull_request_target"
+  fi
+  # Untrusted strings (PR title, the PR's own manifest version) must reach run: via
+  # env, never `${{ }}` interpolation.
+  python3 - "$P" <<'PYCHK' || FAIL "pr-checks.yml interpolates \${{ }} inside a run: block (use env:)"
+import sys, re, yaml
+w = yaml.safe_load(open(sys.argv[1]))
+bad = [(j, s.get("name"), m)
+       for j, jd in w["jobs"].items() for s in jd["steps"]
+       for m in re.findall(r"\$\{\{\s*([^}]+?)\s*\}\}", s.get("run", ""))]
+for b in bad:
+    print(f"    {b}")
+sys.exit(1 if bad else 0)
+PYCHK
+fi
+
+# No workflow may open PRs. create-dev-pr.yml is the superseded auto-opener: it cannot
+# serve fork contributions (push never fires on a fork; a fork's pull_request token is
+# read-only) and it overwrote human PR titles. PRs are opened by humans.
+[ -f .github/workflows/create-dev-pr.yml ] \
+  && FAIL "create-dev-pr.yml is superseded (PRs are opened manually; use pr-checks.yml)"
+grep -rln 'gh pr create' .github/workflows/ 2>/dev/null \
+  && FAIL "a workflow opens PRs with 'gh pr create' (PRs are opened manually)"
 
 # --- Antipatterns in integration code (high-confidence) ---
 if [ -n "$CC" ]; then
