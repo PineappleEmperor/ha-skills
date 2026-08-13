@@ -246,6 +246,15 @@ PYQS
   # pip requirement is NOT pulled in by `pip install homeassistant`, so without an
   # explicit pin every setup test fails in CI with "No module named 'hass_frontend'"
   # while usually passing locally (the package is already there from another install).
+  # A panel's presentation logic is reachable from nothing else: tsc proves a helper
+  # returns a string, not that it returns the right one, and the Python suite cannot
+  # see it. WARN rather than FAIL — a hard failure pushes people to a trivially
+  # passing test, which is the vacuous check this gate exists to remove.
+  if [ -d frontend ] && [ -f frontend/package.json ]; then
+    grep -qE '"test"[[:space:]]*:' frontend/package.json \
+      || WARN "frontend/package.json has no test script; the panel's presentation logic is unproven (see the panel section of SKILL.md for what to export)"
+  fi
+
   if grep -qE '"(frontend|panel_custom)"' "$M" 2>/dev/null; then
     grep -qE '^[[:space:]]*home-assistant-frontend==' requirements.test.txt 2>/dev/null \
       || FAIL "manifest depends on frontend/panel_custom but requirements.test.txt has no home-assistant-frontend pin (every setup test will fail in CI with: No module named 'hass_frontend')"

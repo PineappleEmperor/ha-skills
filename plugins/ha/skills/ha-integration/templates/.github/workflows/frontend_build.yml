@@ -46,6 +46,13 @@ jobs:
       - name: Type-check
         run: npm run check
 
+      - name: Unit tests
+        run: |
+          if ! ls test/*.test.ts src/**/*.test.ts >/dev/null 2>&1; then
+            echo "::warning::no frontend test files - presentation logic is unproven"
+          fi
+          npm test
+
       - name: Build
         run: npm run build
 
