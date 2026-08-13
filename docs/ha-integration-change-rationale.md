@@ -891,3 +891,80 @@ Reported and then withdrawn by the reporter. Last release `0.3.0`, `main` at
 second unreleased bump was not justified. The `max(floor, main_version)` ceiling
 exists precisely to refuse it. Recorded because the gate's behaviour reads as wrong
 until the ceiling's purpose is understood.
+
+---
+
+# Round 8 — 2026-08-13 · panel testing, and a backwards gate
+
+Continues the ha-lego feedback. A parallel session had already implemented most of
+this; that work was adapted rather than discarded, and one design error in it —
+mine, from the preceding discussion — was corrected.
+
+## R33. Panel presentation logic had no coverage anywhere — RUNNER ADDED
+
+A panel transforms vendor data before drawing it, and that logic is reachable from
+nothing else in the stack: `tsc --noEmit` proves a helper returns a string, not
+that it returns the right one; the Python suite cannot see it; the bundle-staleness
+check proves the JS matches its source, not that the source is correct. In ha-lego
+the uncovered case was Brickset's `{?}` placeholder, which must render as
+"Name tbd" — including when padded, empty or undefined.
+
+Shipped: `vitest` plus a `test` script in `templates/frontend/package.json`, and a
+test step between type-check and build (fail on logic before paying for a bundle).
+No config file — vitest's default include already picks up `frontend/test/*.test.ts`.
+
+Two corrections to the parallel session's version, both verified rather than
+assumed: the pin moved `^3.0.0` -> `^4.0.0` (4.1.10 confirmed working here: three
+tests pass, `--passWithNoTests` exits 0), and the test-file detection moved from
+`ls test/*.test.ts src/**/*.test.ts` to `find` — bash `**` does not recurse without
+globstar, and `ls` on a non-matching pattern errors rather than reporting "none".
+
+**Testability is a design property, not a tooling one.** The load-bearing guidance
+is *export the pure presentation helpers* rather than inlining them in `render()`;
+a panel that inlines everything has nothing to import and no runner fixes that.
+
+Kept from the parallel session, and better than anything drafted here: a service
+call built in TypeScript against a schema declared in Python has no shared
+definition and no compiler to link them. `callService` takes
+`Record<string, unknown>`, so omitting a `vol.Required` field type-checks cleanly
+and fails only at runtime, in the browser, where nobody is watching.
+
+## R34. The evidence gate was backwards — FIXED
+
+Raised as a question: is testing not supposed to be evidence-based? It is, and the
+shipped gate contradicted the skill's own principle.
+
+SKILL.md has always said every rule marked `done` needs a test that exercises it,
+and that a genuinely untestable rule should be `exempt` with a comment rather than
+an unproven `done`. What the gate actually did:
+
+- **warned** when `tests/` was absent
+- **never checked** that a `done` rule had any test at all
+
+So a repo marking every rule `done` with zero tests got a warning, while a fresh
+scaffold claiming nothing also got one. The rule fired on repos doing nothing wrong
+and stayed quiet on repos making false claims. Exactly backwards.
+
+Now gated on the **claim**:
+
+| Claimed | Required | Missing |
+|---|---|---|
+| no `done` rules | nothing | silent |
+| any `done` rule | `tests/` | **FAIL** |
+| `test-coverage: done` + `frontend/` | frontend tests | **FAIL** |
+
+Verified across five fixtures: fresh scaffold silent, `done`-without-tests fails,
+`exempt`-with-comment silent, panel claiming coverage without frontend tests fails,
+and passing once a test exists.
+
+A consequence worth stating: a freshly scaffolded repo is now **green with no
+warning**, which is better than the previous nag — nothing is claimed, so nothing
+needs proving.
+
+**Why `--passWithNoTests` is still correct on the step.** The safety mechanism is
+the claim gate, not the runner. A panel with no pure helpers yet genuinely has
+nothing to run; failing there would push people toward a trivially passing test,
+which is the vacuous-check class this gate exists to remove — the same defect as
+`quality_scale.yaml` checked for existence only, or the brand check that skipped
+when `brand/` was absent. The workflow runs what exists; the gate decides whether
+what exists is enough for what is claimed.

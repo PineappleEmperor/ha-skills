@@ -183,6 +183,34 @@ if not hass.data.get(REGISTERED):
     )
 ```
 
+**4. Testability is a design property, not a tooling one.** A panel transforms vendor data
+before drawing it, and that logic is reachable from nothing else in the stack: `tsc --noEmit`
+proves a helper returns a string, not that it returns the right one; the Python suite cannot
+see it; and the bundle-staleness check proves the JS matches its source, not that the source
+is correct. So **export the pure presentation helpers** rather than inlining them in
+`render()` — a panel that inlines everything has nothing to import, and no test runner fixes
+that.
+
+```ts
+// panel.ts — exported, so a test can reach them
+export function isNamed(item: Pick<Set, "name">): boolean { ... }
+export function displayName(item: Pick<Set, "name">): string { ... }   // "{?}" -> "Name tbd"
+```
+
+The cases worth testing are the ones where the vendor's data is not what you would draw:
+a placeholder standing in for an unannounced name, a missing price, a date that has already
+passed, a sort comparator, a unit formatter. `templates/frontend/package.json` ships
+`vitest` and a `test` script for this; it needs no config file, since vitest's default
+include pattern already picks up `frontend/test/*.test.ts`. The runner never reaches users:
+`release.yml` zips `custom_components/<domain>/` only, so `frontend/` is CI-time weight and
+nothing more.
+
+The same reasoning applies to anything the panel sends. A service call built in TypeScript
+against a schema declared in Python has no shared definition and no compiler to link them —
+`callService` takes `Record<string, unknown>`, so omitting a `vol.Required` field type-checks
+cleanly and fails only at runtime, in the browser, where nobody is watching. A test that
+captures the outgoing call and asserts its shape is the only thing that catches it.
+
 > **Panel *styling* — sizing, type, colour, spacing — is the `ha-panel-design` skill, not this one.** This section covers only how the TypeScript reaches the user and how the integration registers it.
 
 #### GitHub CI templates
@@ -277,6 +305,8 @@ rules:
 Valid statuses: `done`, `todo`, `exempt` (exempt requires a `comment`).
 
 **Scaffold `quality_scale.yaml` from the start** (even in Mode 2 on an existing integration that lacks it) and treat it as the definition-of-done — don't discover rules by hitting them. **hassfest gotchas:** the file must list **every** canonical rule with a valid status, `exempt` **must** carry a `comment`, and **only add `"quality_scale": "<tier>"` to `manifest.json` once every rule up to that tier is `done`/`exempt`** — claiming a tier makes hassfest enforce it (a single `todo` at/below that tier fails CI). So: ship the yaml as a tracking ledger first, omit the manifest tier until a tier is fully met.
+
+**Gate-enforced, on the claim rather than on the tests.** `skill_audit.sh` stays silent when nothing is marked `done` — a fresh scaffold claims nothing, so it has nothing to prove — and **fails** when any rule is `done` with no `tests/`, or when `test-coverage` is `done` while a `frontend/` panel has no tests of its own. `exempt` with a comment is always the honest alternative; `todo` is fine indefinitely.
 
 ⚠️ **Prove the rule, don't just claim it — hassfest checks structure, not behaviour.** A green hassfest + a `done` in `quality_scale.yaml` only proves the file is well-formed and the manifest tier is a valid enum; hassfest **never runs the integration**, so it cannot tell you `diagnostics.py` actually redacts, the reconfigure flow works, `async_remove_config_entry_device` returns correctly, or that a `translation_key` used in code resolves in `strings.json`. (For HA core those rules are enforced by human reviewers; for a custom integration nothing enforces them.) So **every rule you mark `done` must have a test that exercises it** — marking `done` off code-presence alone is "claiming compliance" without showing it. Concretely, each of these needs its own test, not just the code: `reconfiguration-flow` (a reconfigure-success + reconfigure-error flow test), `diagnostics` (asserts the payload shape **and** that secrets are `**REDACTED**`), `stale-devices` (`async_remove_config_entry_device` → `False` while the device is live, `True` once it's gone), `exception-translations`/`entity-translations`/`icon-translations` (a test that scrapes the `translation_key`s used in code and asserts each exists in `strings.json` — catches a typo'd key that hassfest passes). If a rule is genuinely untestable, it should be `exempt` with a comment, not an unproven `done`.
 
