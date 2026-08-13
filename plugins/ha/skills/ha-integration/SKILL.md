@@ -183,6 +183,34 @@ if not hass.data.get(REGISTERED):
     )
 ```
 
+**4. Testability is a design property, not a tooling one.** A panel transforms vendor data
+before drawing it, and that logic is reachable from nothing else in the stack: `tsc --noEmit`
+proves a helper returns a string, not that it returns the right one; the Python suite cannot
+see it; and the bundle-staleness check proves the JS matches its source, not that the source
+is correct. So **export the pure presentation helpers** rather than inlining them in
+`render()` — a panel that inlines everything has nothing to import, and no test runner fixes
+that.
+
+```ts
+// panel.ts — exported, so a test can reach them
+export function isNamed(item: Pick<Set, "name">): boolean { ... }
+export function displayName(item: Pick<Set, "name">): string { ... }   // "{?}" -> "Name tbd"
+```
+
+The cases worth testing are the ones where the vendor's data is not what you would draw:
+a placeholder standing in for an unannounced name, a missing price, a date that has already
+passed, a sort comparator, a unit formatter. `templates/frontend/package.json` ships
+`vitest` and a `test` script for this; it needs no config file, since vitest's default
+include pattern already picks up `frontend/test/*.test.ts`. The runner never reaches users:
+`release.yml` zips `custom_components/<domain>/` only, so `frontend/` is CI-time weight and
+nothing more.
+
+The same reasoning applies to anything the panel sends. A service call built in TypeScript
+against a schema declared in Python has no shared definition and no compiler to link them —
+`callService` takes `Record<string, unknown>`, so omitting a `vol.Required` field type-checks
+cleanly and fails only at runtime, in the browser, where nobody is watching. A test that
+captures the outgoing call and asserts its shape is the only thing that catches it.
+
 > **Panel *styling* — sizing, type, colour, spacing — is the `ha-panel-design` skill, not this one.** This section covers only how the TypeScript reaches the user and how the integration registers it.
 
 #### GitHub CI templates
