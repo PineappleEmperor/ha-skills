@@ -48,6 +48,37 @@ grep -q 'MAINT = ' .github/workflows/pr-checks.yml 2>/dev/null \
 # fidelity is the first item of the Mode 4 judgement checklist, run by an agent
 # that does have the skill on disk. Green here is not evidence of a faithful copy.
 
+# --- Evidence must match the claim ---
+# SKILL.md: "every rule you mark `done` must have a test that exercises it... If a
+# rule is genuinely untestable it should be `exempt` with a comment, not an
+# unproven `done`." Gate on the CLAIM, not on the presence of tests:
+#   no `done` rules  -> nothing is claimed, nothing to prove, stay silent
+#   any `done` rule  -> tests must exist, or the claim is unproven -> FAIL
+# The previous rule was backwards: it warned at a fresh scaffold (claiming nothing,
+# doing nothing wrong) and stayed quiet on a repo marking everything `done` with no
+# tests at all — exactly the false claim the skill forbids.
+DONE_RULES=0
+QS_DONE_TESTCOV=no
+if [ -n "$CC" ] && [ -f "${CC}quality_scale.yaml" ]; then
+  DONE_RULES=$(python3 -c "
+import sys, yaml
+rules = (yaml.safe_load(open(sys.argv[1])) or {}).get('rules') or {}
+def status(v): return v if isinstance(v, str) else (v or {}).get('status')
+print(sum(1 for v in rules.values() if status(v) == 'done'))" "${CC}quality_scale.yaml" 2>/dev/null || echo 0)
+  QS_DONE_TESTCOV=$(python3 -c "
+import sys, yaml
+rules = (yaml.safe_load(open(sys.argv[1])) or {}).get('rules') or {}
+v = rules.get('test-coverage')
+print('yes' if (v if isinstance(v, str) else (v or {}).get('status')) == 'done' else 'no')" "${CC}quality_scale.yaml" 2>/dev/null || echo no)
+fi
+
+# A panel's presentation logic is part of test-coverage: nothing else can reach it.
+# Claiming test-coverage done while the panel is untested is the same unproven claim.
+if [ "$QS_DONE_TESTCOV" = yes ] && [ -d frontend ]; then
+  [ -n "$(find frontend/src frontend/test -name '*.test.ts' -o -name '*.spec.ts' 2>/dev/null)" ] \
+    || FAIL "quality_scale marks test-coverage done, but the panel has no frontend tests (its presentation logic is reachable from nothing else — see the panel section of SKILL.md)"
+fi
+
 # --- CI actually runs the tests ---
 if [ -d tests ]; then
   [ -f requirements.test.txt ] \
@@ -67,8 +98,8 @@ if [ -d tests ]; then
     || FAIL "pyproject.toml missing asyncio_mode = \"auto\" (async tests never run)"
   grep -q 'pytest' .github/workflows/python_validate.yml 2>/dev/null \
     || FAIL "python_validate.yml has no pytest step (quality_scale 'done' rules would go unproven)"
-else
-  WARN "no tests/ directory — every quality_scale rule marked 'done' is unproven"
+elif [ "$DONE_RULES" -gt 0 ]; then
+  FAIL "quality_scale marks $DONE_RULES rule(s) done but there is no tests/ directory — a done without a test is a claim, not evidence (mark them todo, or exempt with a comment)"
 fi
 if [ -f requirements.test.txt ]; then
   grep -qE 'pytest-homeassistant-custom-component[[:space:]]*==' requirements.test.txt \
@@ -246,6 +277,15 @@ PYQS
   # pip requirement is NOT pulled in by `pip install homeassistant`, so without an
   # explicit pin every setup test fails in CI with "No module named 'hass_frontend'"
   # while usually passing locally (the package is already there from another install).
+  # A panel's presentation logic is reachable from nothing else: tsc proves a helper
+  # returns a string, not that it returns the right one, and the Python suite cannot
+  # see it. WARN rather than FAIL — a hard failure pushes people to a trivially
+  # passing test, which is the vacuous check this gate exists to remove.
+  if [ -d frontend ] && [ -f frontend/package.json ]; then
+    grep -qE '"test"[[:space:]]*:' frontend/package.json \
+      || WARN "frontend/package.json has no test script; the panel's presentation logic is unproven (see the panel section of SKILL.md for what to export)"
+  fi
+
   if grep -qE '"(frontend|panel_custom)"' "$M" 2>/dev/null; then
     grep -qE '^[[:space:]]*home-assistant-frontend==' requirements.test.txt 2>/dev/null \
       || FAIL "manifest depends on frontend/panel_custom but requirements.test.txt has no home-assistant-frontend pin (every setup test will fail in CI with: No module named 'hass_frontend')"

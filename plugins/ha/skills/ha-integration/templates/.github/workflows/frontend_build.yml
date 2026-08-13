@@ -46,6 +46,15 @@ jobs:
       - name: Type-check
         run: npm run check
 
+      - name: Unit tests
+        run: |
+          # find, not a glob: bash `**` does not recurse without globstar, and `ls`
+          # on a non-matching pattern errors rather than reporting "none".
+          if [ -z "$(find src test -name '*.test.ts' -o -name '*.spec.ts' 2>/dev/null)" ]; then
+            echo "::warning::no frontend test files - the panel's presentation logic is unproven"
+          fi
+          npm test
+
       - name: Build
         run: npm run build
 
