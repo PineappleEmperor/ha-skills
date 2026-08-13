@@ -48,8 +48,10 @@ jobs:
 
       - name: Unit tests
         run: |
-          if ! ls test/*.test.ts src/**/*.test.ts >/dev/null 2>&1; then
-            echo "::warning::no frontend test files - presentation logic is unproven"
+          # find, not a glob: bash `**` does not recurse without globstar, and `ls`
+          # on a non-matching pattern errors rather than reporting "none".
+          if [ -z "$(find src test -name '*.test.ts' -o -name '*.spec.ts' 2>/dev/null)" ]; then
+            echo "::warning::no frontend test files - the panel's presentation logic is unproven"
           fi
           npm test
 
