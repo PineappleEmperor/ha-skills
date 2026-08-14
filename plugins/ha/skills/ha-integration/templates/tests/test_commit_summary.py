@@ -116,17 +116,42 @@ def test_single_type_has_no_subheads() -> None:
     out = cs.render(["fix: one", "fix: two"])
     assert out == "  - one\n  - two"
     assert "**" not in out
+    assert ":" not in out  # no label when there is only one type
 
 
-def test_multiple_types_get_subheads_in_severity_order() -> None:
-    """Sub-heads appear only when they add information, hardest type first."""
+def test_multiple_types_get_labels_in_severity_order() -> None:
+    """Labels appear only when they add information, hardest type first."""
     out = cs.render(["chore: c", "fix: b", "feat!: a", "feat: d"])
     assert out.splitlines() == [
-        "  **🚨 Breaking**", "  - a",
-        "  **🚀 Features**", "  - d",
-        "  **🔧 Fixes**", "  - b",
-        "  **🧰 Maintenance**", "  - c",
+        "  Breaking:", "    - a",
+        "  Features:", "    - d",
+        "  Fixes:", "    - b",
+        "  Maintenance:", "    - c",
     ]
+
+
+def test_no_boldface_or_emoji_anywhere() -> None:
+    """Bold and emoji headings are machine-writing tells; this block avoids both.
+
+    It is inlined verbatim into release notes a human is expected to have written.
+    """
+    out = cs.render(["chore: c", "fix: b", "feat!: a"])
+    assert "**" not in out
+    assert out.isascii(), f"non-ascii (emoji?) in {out!r}"
+
+
+def test_every_line_keeps_its_indent() -> None:
+    """No line may sit flush left.
+
+    The block is spliced into a PR body and then inlined under release-drafter's
+    `- $TITLE ...` bullet, so every line carries a two-space base indent. A bare
+    .strip() in the splice step once removed it from the FIRST line only, leaving
+    the opening label flush left while every later one stayed indented.
+    """
+    out = cs.render(["chore: c", "fix: b", "feat!: a"])
+    for line in out.splitlines():
+        assert line.startswith("  "), f"flush-left line: {line!r}"
+    assert out.strip("\n") == out, "render must not emit leading/trailing blank lines"
 
 
 def test_empty_and_plumbing_only_input() -> None:
