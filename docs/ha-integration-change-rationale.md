@@ -1234,3 +1234,53 @@ old shape. `markdown` added to `requirements.test.txt` for it.
 The lesson generalises past this block: a test that asserts the *source* of
 generated markup proves the string, not the output. For anything whose product is
 rendered, render it in the test.
+
+## R46. Nothing checked the release description — CHECK ADDED
+
+Asked directly whether there were reinforcement checks on this, given the skill
+demands them of the repos it scaffolds. There were none.
+
+`skill_audit.sh` mentions "release" nineteen times and every one is about a
+workflow existing or an action pin. No workflow looked at release-note content.
+The artefact the whole stack exists to produce was the one thing unverified.
+
+That is how a malformed commit-summary block shipped across several releases while
+every gate stayed green.
+
+**The verification was wrong three times, each more subtly.** First the source text
+was inspected with spaces made visible; the source was correct and the render was
+not. Then a test rendered it with **python-markdown**, which requires four spaces
+to nest a list where CommonMark needs two. GitHub uses CommonMark. So the test
+reported a working block as broken and a broken one as working, and each "verified"
+claim rested on it.
+
+Added `scripts/check_release_notes.py`: renders with markdown-it in CommonMark mode
+and fails on a label glued onto a sibling bullet, or a bullet that restates the PR
+title it sits under. Wired into `release_drafter.yml` and required by the audit.
+
+Run against the real v6.6.1 draft it found three problems, including one entry this
+session had already declared correct.
+
+## R47. Bullets restated the PR title — DEDUPED
+
+The PR title is meant to be the winning commit subject, so on most PRs one bullet
+duplicates the heading directly above it. `render()` now takes the title and drops
+any bullet matching it.
+
+That made the old single-bullet heuristic wrong. It suppressed the block whenever
+one bullet remained, on the assumption a lone bullet is always a restatement. With
+an exact title check that assumption is obsolete, and it was discarding real
+information: PR #31's only non-duplicate commit. The heuristic now applies only
+when no title is supplied.
+
+## R48. A frozen artefact can only be fixed downstream
+
+PR #30's body holds the pre-fix block and cannot be regenerated: a
+`pull_request_target` job checks out `base.sha`, which for a merged PR is pinned to
+the commit before it merged, and #30's fix was in #30. Re-triggering it will always
+run the old script.
+
+The v6.6.1 draft was corrected directly instead, and now passes the new check. The
+skill documents the pre-merge half of this trap; the post-merge half, that the
+artefact is unrecoverable and the release body is the only place left to fix it, is
+new.

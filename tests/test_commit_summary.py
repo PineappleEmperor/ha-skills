@@ -137,14 +137,31 @@ def test_block_renders_as_a_list_not_a_paragraph() -> None:
     body. Blank lines fix that but break the release notes, where the block is
     inlined after `- $TITLE ...`. Only a nested list works in both.
     """
-    markdown = pytest.importorskip("markdown")
+    # CommonMark, because that is what GitHub renders with. python-markdown needs
+    # four spaces to nest a list where CommonMark needs two, so it reported this
+    # block as broken when GitHub showed it fine, and fine when GitHub showed it
+    # broken. A test against the wrong parser is worse than no test.
+    MarkdownIt = pytest.importorskip("markdown_it").MarkdownIt
+    md = MarkdownIt("commonmark")
     block = cs.render(["feat!: a", "feat: d", "fix: b", "chore: c"])
 
-    standalone = markdown.markdown(block)
+    standalone = md.render(block)
     assert "<li>" in standalone, f"PR body renders as a paragraph, not a list:\n{standalone}"
 
-    nested = markdown.markdown(f"- feat: a title @dev (#1)\n{block}")
+    nested = md.render(f"- feat: a title @dev (#1)\n{block}")
     assert nested.count("<ul>") > 1, f"release note does not nest the block:\n{nested}"
+    # Each label must head its own item, never be glued onto a sibling bullet.
+    assert nested.count("<li><strong>") >= 2, f"labels glued to sibling bullets:\n{nested}"
+
+
+def test_a_bullet_never_restates_the_pr_title() -> None:
+    """The title is the winning commit subject, so one bullet usually duplicates it."""
+    subs = ["docs: describe the artefacts", "docs: lead with install"]
+    out = cs.render(subs, title="docs: describe the artefacts")
+    assert "describe the artefacts" not in out
+    assert "lead with install" in out
+    # If the only commit IS the title, the block says nothing and is dropped.
+    assert cs.render(["fix: only change"], title="fix: only change") == ""
 
 
 def test_every_line_keeps_its_indent() -> None:

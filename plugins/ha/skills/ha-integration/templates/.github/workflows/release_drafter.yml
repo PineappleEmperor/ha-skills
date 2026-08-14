@@ -32,3 +32,14 @@ jobs:
           prerelease: ${{ steps.ver.outputs.prerelease }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # The release description is what users read, and nothing checked it. Every
+      # earlier verification of the commit-summary block looked at the source text
+      # or used a parser that disagrees with GitHub about list nesting, so a broken
+      # block shipped in several releases while the checks stayed green.
+      - name: Release notes render correctly
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          pip install --quiet markdown-it-py
+          python3 scripts/check_release_notes.py --tag "v${{ steps.ver.outputs.version }}"
