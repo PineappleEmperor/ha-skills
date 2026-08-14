@@ -1160,3 +1160,45 @@ hand-written prose in a PR body. With no prose there is nothing to wrap and noth
 to escape. The `replacers` entry stays, because its original job is stripping
 Dependabot's own folds. A practice that needed two workarounds was the wrong
 practice.
+
+## R42. The rule existed and was ignored — FORM CORRECTED
+
+Correction from the maintainer: the skill already said this. The original wording
+was "keep two or three sentences of summary at the top of the PR body, and wrap
+everything else". It was read and skipped across eight consecutive PRs.
+
+That reclassifies the failure. R41 treated it as an omission and fixed it by
+stating the rule more clearly, which is the wrong form for a rule that already
+existed. `writing-skills` is explicit: a discipline failure, where the agent knows
+the rule and does it anyway under a competing incentive, needs a prohibition, a
+rationalisation table built from the excuses actually used, and red flags.
+
+Now in `SKILL.md` as *PR discipline*, with five excuses taken from the real
+behaviour rather than imagined. The load-bearing one was "the verification belongs
+with the change", which is how several hundred words of test evidence ended up in
+descriptions that `$BODY` then republished under the repo owner's name.
+
+## R43. The mandated commit-msg hook shipped as prose — NOW A TEMPLATE
+
+Found while auditing this repo against its own skill. `SKILL.md` mandates
+`.githooks/commit-msg`; the body lived only as a fenced code block in
+`reference/versioning.md`. Every scaffolded repo had to retype it from a document,
+which is exactly what the skill forbids twenty lines earlier: "the prose describes
+the templates, it does not replace them."
+
+Same class as the phantom `.github/pr-labeler.yml` in R5: mandated in the file
+list, no artefact behind it.
+
+Now `templates/hooks/commit-msg`, mode 755, with `versioning.md` pointing at it
+instead of carrying a copy. That also removed 467 words of inlined shell.
+
+## R44. This repo did not follow its own skill — DOGFOODED
+
+The audit found the skill repo had neither the hook nor `core.hooksPath` set, so
+the trailer ban and the terse-subject rule were unenforced in the very repo that
+mandates them. Both now installed and exercised: the hook correctly rejects an
+AI-attribution trailer, a narrative body, and an 85-character subject.
+
+Worth noting what it would not have caught. The hook guards **commit messages**;
+the 2,728-word problem was in **PR descriptions**, which no hook sees. That is why
+R42 needed a discipline rule rather than another automated check.
