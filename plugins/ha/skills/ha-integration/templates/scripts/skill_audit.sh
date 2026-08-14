@@ -36,6 +36,9 @@ fi
 [ -f scripts/manifest_gate.py ]      || FAIL "missing scripts/manifest_gate.py (pr-checks.yml's version-gate shells out to it)"
 [ -f tests/test_manifest_gate.py ]   || FAIL "missing tests/test_manifest_gate.py (the gate's logic must stay unit-tested)"
 [ -f scripts/commit_summary.py ]     || FAIL "missing scripts/commit_summary.py (pr-checks.yml's commit-summary shells out to it)"
+# The release description is the artefact users read. Nothing checked it until a
+# malformed block shipped in several releases while every other gate stayed green.
+[ -f scripts/check_release_notes.py ] || FAIL "missing scripts/check_release_notes.py (nothing would verify the release description renders)"
 [ -f tests/test_commit_summary.py ]  || FAIL "missing tests/test_commit_summary.py (the classifier must stay unit-tested)"
 # Classifier logic must NOT be inlined back into the workflow: an inline heredoc
 # cannot be unit-tested, and a wrong classifier corrupts release notes silently

@@ -61,6 +61,12 @@ SUGGESTIONS = {
 }
 
 
+def _strip_type(subject: str) -> str:
+    """The description part of a Conventional Commit subject, lowercased."""
+    m = TYPE.match(subject)
+    return (m.group("desc") if m else subject).strip().lower()
+
+
 def classify(subject: str) -> tuple[str, str]:
     """Return (group, description) for one commit subject."""
     m = TYPE.match(subject)
@@ -96,7 +102,7 @@ def group(subjects: list[str]) -> dict[str, list[str]]:
     return groups
 
 
-def render(subjects: list[str]) -> str:
+def render(subjects: list[str], title: str | None = None) -> str:
     """The marked-block body, or "" when it would add nothing.
 
     A single bullet is always the PR title minus its type prefix, so the block
@@ -105,10 +111,22 @@ def render(subjects: list[str]) -> str:
     case the sub-heads exist for. Emit nothing and let the caller drop the block.
     """
     groups = group(subjects)
+
+    # Drop any bullet that merely restates the PR title. The title is meant to be
+    # the winning commit subject, so on most PRs one bullet duplicates the heading
+    # it sits under. Release notes then say the same thing twice.
+    if title:
+        want = _strip_type(title)
+        for k in groups:
+            groups[k] = [d for d in groups[k] if d.strip().lower() != want]
+
     used = [k for k in ORDER if groups[k]]
     if not used:
         return ""
-    if sum(len(groups[k]) for k in used) == 1:
+    # Without a title we fall back to a heuristic: a lone bullet is almost always
+    # the title minus its prefix. With a title the check above is exact, so a
+    # surviving single bullet says something the title does not and is kept.
+    if title is None and sum(len(groups[k]) for k in used) == 1:
         return ""
     lines: list[str] = []
     labelled = len(used) > 1
@@ -135,13 +153,14 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--mode", choices=("render", "winning"), default="render")
     ap.add_argument("--subjects", default="-", help="file of commit subjects, or - for stdin")
+    ap.add_argument("--title", help="PR title; bullets that merely restate it are dropped")
     args = ap.parse_args()
 
     src = sys.stdin if args.subjects == "-" else open(args.subjects, encoding="utf-8")
     with src as fh:
         subjects = fh.read().splitlines()
 
-    print(render(subjects) if args.mode == "render" else winning(subjects))
+    print(render(subjects, args.title) if args.mode == "render" else winning(subjects))
     return 0
 
 
