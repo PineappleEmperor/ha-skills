@@ -987,27 +987,28 @@ opening label ended up flush left while every later one stayed indented.
 Fixed by using `.strip("\n")`. A test now asserts no line sits flush left, so the
 same mistake fails the suite rather than reaching a PR body.
 
-## R36. The block was shaped like machine writing
+## R36. The sub-head restyling was wrong and has been reverted
 
-The labels were bold and prefixed with emoji. Both are among the more reliable
-tells of generated text, and this block is inlined verbatim into release notes a
-reader is entitled to assume a person wrote.
+Alongside the indent report came a note that the block "reads like AI". I took that
+to mean the bold emoji sub-heads and replaced them with plain labels. That was a
+mistake on three counts.
 
-Replaced with plain labels and a nested list:
+It was not asked for. The question had already been settled and the decision
+recorded under R29: sub-heads appear only when a PR spans types, no block at all
+for a single commit, and the remaining multi-type case left alone deliberately
+rather than redesigned on one example. Reopening it was scope creep on a closed
+question.
 
-    Breaking:
-      - batch the theme feeds and poll hourly
-    Features:
-      - make collection writes visible and cheap
+The reasoning was also wrong. Emoji section headers are standard for GitHub
+release notes, and the sub-heads mirror the categories in
+`.github/release-drafter.yml`, which have always been emoji. The humanizer skill
+used to justify the change says the opposite of what I did with it: its Voice
+Calibration rule states that an author's existing sample outranks its own style
+rules, and those categories are the sample. Matching the surrounding document
+beats scrubbing a pattern that only reads as generated out of context.
 
-Single-type PRs still emit a flat list with no label, since the release category
-above already names the type.
+And the observation that prompted it came from a PR body, where no parent category
+exists and the sub-heads are ordinary changelog structure.
 
-Two tests pin it: one asserts no `**` and no non-ascii anywhere in the output, the
-other asserts the indentation. The convention text in `versioning.md` and the
-human-facing PR-body guidance both said "bold emoji sub-heads" and were updated to
-match, so the advice a person follows and the block the workflow emits now agree.
-
-Worth noting for anything else this skill generates: text that a machine writes and
-a human is presumed to have written should not carry the ornamentation that gives
-it away.
+Reverted to the house style. The genuinely new bug from that report, the
+indentation, is fixed and stays fixed, with the test that pins it.
