@@ -122,11 +122,29 @@ def test_multiple_types_get_subheads_in_severity_order() -> None:
     """Sub-heads appear only when they add information, hardest type first."""
     out = cs.render(["chore: c", "fix: b", "feat!: a", "feat: d"])
     assert out.splitlines() == [
-        "  **🚨 Breaking**", "  - a",
-        "  **🚀 Features**", "  - d",
-        "  **🔧 Fixes**", "  - b",
-        "  **🧰 Maintenance**", "  - c",
+        "  - **🚨 Breaking**", "    - a",
+        "  - **🚀 Features**", "    - d",
+        "  - **🔧 Fixes**", "    - b",
+        "  - **🧰 Maintenance**", "    - c",
     ]
+
+
+def test_block_renders_as_a_list_not_a_paragraph() -> None:
+    """The block must render as a list in BOTH places it appears.
+
+    A plain indented line does not start a markdown list without a preceding blank
+    line, so `  **Label**` + `  - item` collapsed into one run-on paragraph in a PR
+    body. Blank lines fix that but break the release notes, where the block is
+    inlined after `- $TITLE ...`. Only a nested list works in both.
+    """
+    markdown = pytest.importorskip("markdown")
+    block = cs.render(["feat!: a", "feat: d", "fix: b", "chore: c"])
+
+    standalone = markdown.markdown(block)
+    assert "<li>" in standalone, f"PR body renders as a paragraph, not a list:\n{standalone}"
+
+    nested = markdown.markdown(f"- feat: a title @dev (#1)\n{block}")
+    assert nested.count("<ul>") > 1, f"release note does not nest the block:\n{nested}"
 
 
 def test_every_line_keeps_its_indent() -> None:

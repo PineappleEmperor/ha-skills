@@ -1202,3 +1202,35 @@ AI-attribution trailer, a narrative body, and an 85-character subject.
 Worth noting what it would not have caught. The hook guards **commit messages**;
 the 2,728-word problem was in **PR descriptions**, which no hook sees. That is why
 R42 needed a discipline rule rather than another automated check.
+
+## R45. The block never rendered as a list — FIXED
+
+Spotted by the maintainer on PR #30: the indentation problem "looks like it is
+still present". The indentation was in fact fixed by R35. The rendering was not,
+and had never worked.
+
+`  **🚀 Features**` followed by `  - item` renders as **one run-on paragraph**.
+Markdown will not start a list on an indented line without a preceding blank line,
+so the whole block collapsed: no list, no labels, every group merged into a single
+`<p>`. Confirmed by rendering it rather than reading it.
+
+Every fix in this area until now had been checked by looking at the source text
+with spaces made visible. The source was correct. What it *rendered* to was not,
+and nothing had ever checked that.
+
+The obvious repair makes it worse. Adding blank lines between label and bullets
+fixes a PR body but breaks the release note, where the block is inlined after
+`- $TITLE @$AUTHOR (#$NUMBER)`: the first label is absorbed into the title's list
+item and later labels escape the list into bare paragraphs.
+
+The form that works in both is a **nested list** — labels as list items
+(`  - **🚀 Features**`), bullets indented one level under them (`    - …`).
+Verified in both contexts.
+
+`test_block_renders_as_a_list_not_a_paragraph` now renders the block and asserts
+`<li>` standalone and a nested `<ul>` under a title bullet. It fails against the
+old shape. `markdown` added to `requirements.test.txt` for it.
+
+The lesson generalises past this block: a test that asserts the *source* of
+generated markup proves the string, not the output. For anything whose product is
+rendered, render it in the test.
