@@ -133,54 +133,22 @@ The `description`, `issues`, and `topics` checks fail silently until the first `
 
 #### Make the checks REQUIRED — a workflow is not a gate until it can block a merge
 
-⚠️ **Every workflow in this stack is advisory by default.** GitHub will happily let anyone merge a PR with `pr-checks`, the version gate, hassfest and HACS all red. The gate architecture in this skill assumes it can stop a bad merge; nothing in a fresh repo gives it that power. Configure this on the repo, once, or none of the rest is enforcement.
+⚠️ **Every workflow here is advisory by default.** GitHub will let a PR merge with all of it red, so without this step the gate stack is decorative. Copy `templates/ruleset.json` and apply it once:
 
-Under **Settings → Rules → Rulesets**, on a ruleset targeting the default branch, enable **Require status checks to pass** and add the contexts (they are the *job names*, not the workflow names):
+```bash
+gh api -X POST repos/<owner>/<repo>/rulesets --input ruleset.json
+```
 
-| Context | From |
-|---|---|
-| `Label from title` · `Title is labellable` · `Manifest version bumped vs last release` · `Commit summary in PR body` | `pr-checks.yml` |
-| `Validate PR title` | `lint_pr.yml` |
-| `hassfest` · `hacs` | `hassfest_validate.yml` · `hacs_validate.yml` |
-| `lint-and-type` | `python_validate.yml` |
-| `audit` | `quality_audit.yml` |
+It requires the nine job-name contexts the templates produce and keeps deletions and force-pushes blocked. `skill_audit.sh` FAILs a repo whose default branch has no required checks, so skipping this shows up rather than going unnoticed.
 
-⚠️ **Do not require a path-filtered workflow.** `frontend_build.yml` only triggers on changes under `frontend/` or `custom_components/*/panel/`. A required check that never runs never reports, and GitHub treats "expected but missing" as blocking, so every PR that doesn't touch those paths would wait forever. Leave `build` out of the required list; the path filter is what makes it useful.
+Two ways to get it wrong, both of which block every PR permanently:
 
-Also keep **Restrict deletions** and **Block force pushes**.
+- **A context that never reports.** Requiring a check the repo doesn't produce (a repo without `quality_audit.yml` must drop `audit`) leaves PRs waiting for a check that will never run.
+- **A path-filtered workflow.** `build` from `frontend_build.yml` is deliberately absent for this reason: it only triggers on `frontend/` changes, so requiring it would block every unrelated PR.
 
-⚠️ **Check `bypass_actors`.** A ruleset that grants repository admins `bypass_mode: always` is not a constraint on anyone holding admin — the push simply reports `Bypassed rule violations` and proceeds. If the point is to stop *yourself* (or an agent acting with your credentials) from merging past a red check, the bypass list has to be empty, and overruling then becomes a deliberate edit to the ruleset rather than a silent default.
+⚠️ **`bypass_actors` must stay empty to mean anything.** A ruleset granting admins `bypass_mode: always` does not constrain anyone holding admin; the push reports `Bypassed rule violations` and proceeds. Overrule deliberately instead: set the ruleset's enforcement to `disabled`, merge, set it back, which leaves an audit-log entry.
 
-> **For AI sessions specifically.** An agent running with your `gh` credentials merges exactly as you do. Two things make that dangerous: a broad allow-rule such as `Bash(gh pr *)` in `.claude/settings.local.json` pre-approves `gh pr merge`, so no prompt appears; and an admin `bypass_mode: always` means even a required check does not stop the merge. Narrow the allow-rule to the verbs you mean (`Bash(gh pr view *)`, `Bash(gh pr list *)`), and give the agent a credential without **Administration** if it should not be able to edit rulesets or force-push. A restriction the agent can lift is friction, not a limit.
-
-**GitHub workflows** — look for existing workflow files in the current project first and replicate the same patterns. If none exist, use standard HA integration CI:
-- `.github/workflows/semantic_release.yml` — triggers on `v*.*.*` tag push; uses `softprops/action-gh-release@v3` with `generate_release_notes: true`. Tags containing `beta` auto-marked as prerelease. No npm, no semantic-release tooling needed.
-- `.github/workflows/release.yml` — **Create Release ZIP.** Triggers on `release: published`; zips the contents of `custom_components/<domain>/` (files at the **zip root**, not nested) and attaches it as the `<filename>` asset declared in `hacs.json`. **Required whenever `hacs.json` sets `zip_release: true`** — HACS downloads that asset, so a missing zip = `Could not download` on install. Body in `templates/.github/workflows/release.yml`; rationale in `reference/github-actions.md`. (The `release: published` trigger fires when a human publishes the drafted release; a release *created* by `GITHUB_TOKEN` would be suppressed by the anti-recursion rule, so publish from the draft, don't auto-create via token.)
-- `.github/workflows/pr-checks.yml` — **humans open their own PRs.** One workflow holding every PR-time job that reads or writes labels, ordered with `needs:`.
-  - `label` — the **sole** labeler: `release-drafter/autolabeler@v7` plus a removal-only superseded-label step (removal-only, so it can't flap).
-  - `title-check` (`needs: label`) — comments when the title maps to no label, suggesting a type derived from the PR's commits, and deletes its own comment once fixed. **Never edits the title.** It decides from the PR's *actual labels*, not a copy of the autolabeler's regexes — a duplicate would drift from `.github/release-drafter.yml`.
-  - `version-gate` (`needs: label`) — the last-published-release version gate; shells out to `scripts/manifest_gate.py`.
-  - `commit-summary` — maintains a type-grouped commit list in a marked block (`<!-- commit-summary:start -->…`) so release-drafter's `$BODY` reads as a per-PR mini-changelog. Declares no `needs`: it reads only commits. The classifier is **`scripts/commit_summary.py`, unit-tested** — not inline in the workflow. An inline heredoc can't be tested, and a wrong classifier corrupts release notes silently instead of failing a build; that is exactly how a version-bump filter ending in `to v?\d+\.\d+` came to eat every semver dependency bump. `title-check` shares the same module for its suggestion.
-
-  > **Why one workflow, and don't split it.** `needs:` orders jobs; **nothing orders workflows.** The only cross-workflow mechanism is reacting to the `labeled` event, which never fires — the autolabeler applies its label with `GITHUB_TOKEN`, and GitHub suppresses events caused by that token. Separate label-readers can only race it or poll for it.
-
-  > **`pull_request_target` throughout; no job may run PR-authored code.** A fork PR gets a read-only token under plain `pull_request`, so it can't be labelled or commented on — the whole point. The trade-off: the token is writable, so `version-gate` pins `base.sha` and reads the PR's manifest over the API, and untrusted strings reach `run:` via `env:` only. A fork controls its own manifest `version` string; interpolated into a command line that is injection.
-
-  *Enforced by `skill_audit.sh`* (fails on: a missing `needs: label`, a `${{ }}` inside any `run:`, a checkout that isn't first or isn't pinned to `base.sha`, a missing bot skip, a reinstated `create-dev-pr.yml`, or any workflow calling `gh pr create`). The superseded stack — `create-dev-pr`, `pr-labeler`, `pr-title-check`, `pr-commit-summary`, `check-manifest-version` — is described in `reference/github-actions.md`; don't reinstate any of it.
-
-- `.github/workflows/release_drafter.yml` — owns the draft release notes (categories + `version-resolver` + `$BODY`); `push` (main) trigger only; `pull-requests: write`. Labelling lives in the `label` job of `pr-checks.yml`, so this carries no autolabeler job.
-- `.github/workflows/lint_pr.yml`
-- `.github/workflows/hacs_validate.yml`
-- `.github/workflows/hassfest_validate.yml`
-- `.github/workflows/python_validate.yml` — ruff, pyright **and pytest**. Tests run in CI, not just locally: the quality scale requires a test for every rule marked `done`, and a suite nothing runs is a suite that rots. The pytest step needs `requirements.test.txt` (see repo-root file list) and fails the build on a red test; it emits a workflow **warning** if `tests/` is absent, so a freshly scaffolded repo is loud rather than silently green. **Pin the matrix to HA's current minimum Python** (snapshot `["3.14"]` — HA dev requires 3.14.2+; `pip install homeassistant` refuses older; see the **Freshness** table to re-derive). Test the *floor* HA supports. Keep this in lockstep with `pyproject.toml` ruff `target-version = "py314"` and pylint `py-version = "3.14"`, and `pyrightconfig.json`.
-- `.github/workflows/frontend_build.yml` — **panel integrations only.** Builds the TypeScript and fails if the committed bundle is stale (`git diff --exit-code`). See *Panel integrations* above.
-- `.github/workflows/quality_audit.yml` — runs `scripts/skill_audit.sh` on every PR to mechanically enforce skill conformance (workflows present, action pins current, antipatterns absent). See **Mode 4 — Audit**.
-- `scripts/skill_audit.sh` — the mechanical conformance check (run locally before claiming done; CI runs it too).
-- `scripts/manifest_gate.py` — the version-gate decision logic the `version-gate` job in `pr-checks.yml` shells out to. **Not optional:** the job fails at runtime on every PR if the script isn't there. Kept as a separate, unit-tested script precisely because inline bash gate logic shipped a real bug — see `reference/github-actions.md`.
-- `tests/test_manifest_gate.py` — its unit tests, including the regression that shipped. Copy alongside the script; they travel together.
-- `scripts/commit_summary.py` + `tests/test_commit_summary.py` — the Conventional-Commit classifier behind `commit-summary` and `title-check`, and its 54 unit tests. Same rule as the gate: **decision logic goes in a tested script, never inline in a workflow.**
-- `.github/release-drafter.yml` — autolabeler rules are **title-only** (no `branch:` rules). The release-drafter autolabeler can only match title/body/branch/files (never commit subjects), so label off the **title**. Keep it the one-and-only labeler. ⚠️ Since a **human** now writes the title, its type must be one the rules map: `feat`/`feature` → **feature**, `fix` → **fix**, `chore`/`docs`/`refactor`/`perf`/`test`/`build`/`ci`/`style` → **chore**, and any `type!:` → **xfeat**. An unmapped title gets no label → no release-drafter category → nothing for the version gate to check. `lint_pr.yml` accepts the full Conventional Commits set, so it won't catch this — **`revert:` is the one type that passes the lint and maps to nothing**, along with any title that isn't Conventional Commits at all. The `title-check` job in `pr-checks.yml` comments on the PR when that happens.
-- `.github/dependabot.yml` — see `reference/versioning.md` (Dependabot).
+> **For AI sessions.** An agent running with your `gh` credentials merges exactly as you do, and `bypass_actors` is evaluated by actor, so any bypass you hold it inherits. Two things make that silent: a broad allow-rule such as `Bash(gh pr *)` in `.claude/settings.local.json` pre-approves `gh pr merge` with no prompt, and an agent with admin can lift any rule it can see. Narrow the allow-rule to read-only verbs (`gh pr view`, `gh pr list`), and give the agent a credential without **Administration** if it genuinely should not edit rulesets or force-push. A restriction the agent can lift is friction, not a limit.
 
 #### Panel integrations (a custom panel served by the integration)
 
