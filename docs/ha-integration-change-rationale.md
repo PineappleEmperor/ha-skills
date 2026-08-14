@@ -1066,3 +1066,33 @@ can lift is friction, not a limit. The only real ceiling is a credential without
 WARNs when any ruleset grants `bypass_mode: always`. It degrades to a WARN when it
 cannot read the rules, so a local run without a token is not a failure. Verified:
 silent locally, and it correctly fails this repo, which has no required checks.
+
+## R39. The merge rule was in the wrong FORM — REWRITTEN
+
+`superpowers:writing-skills` classifies guidance by the failure it addresses. A
+discipline failure, where the agent knows the rule and does it anyway under a
+competing incentive, needs a prohibition, a rationalisation table built from
+observed excuses, and a red-flags list. Soft prose is the wrong form and it
+measurably loses.
+
+The merge-past-a-red-check rule was prose, and buried in `reference/versioning.md`,
+which loads on demand. It was then walked straight through by the agent that wrote
+it. That is the failure mode the form exists to prevent.
+
+Rewritten into `SKILL.md` as *Merge discipline* with the prescribed shape: the one
+narrow `pull_request_target` exception stated with its proof obligation, a
+rationalisation table of seven excuses taken from the actual failure rather than
+imagined, and a red-flags list. `versioning.md` now points at it instead of
+carrying a second copy.
+
+The rationalisations are recorded verbatim where they were stated, per the same
+skill's instruction that paraphrasing them loses the loophole. The load-bearing
+one was never spoken aloud: an exception used correctly a few hours earlier was
+reused without re-deriving whether it applied. Hence the table entry "Precedent is
+not evidence."
+
+**Not yet re-tested.** `evals/scenarios/05-red-check-under-pressure.md` carries the
+scenario, with the baseline documented from the real event. The Iron Law says
+guidance is unverified until an agent is put under the pressure again, and that run
+has not happened. Marked as such in the scenario file and the evals README rather
+than claimed as done.
