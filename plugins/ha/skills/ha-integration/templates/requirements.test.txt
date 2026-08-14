@@ -12,6 +12,11 @@
 #   0.13.354 -> homeassistant 2026.8.0, requires-python >=3.14
 pytest-homeassistant-custom-component==0.13.354
 
+# Renders the commit-summary block to prove it is a list and not a run-on
+# paragraph. The block is inlined verbatim into release notes, and a markdown
+# shape that only looks right in the source is the defect this catches.
+markdown
+
 # Add integration-specific test deps below (e.g. a fake transport, respx,
 # freezegun beyond what the plugin already pins).
 
