@@ -1096,3 +1096,32 @@ scenario, with the baseline documented from the real event. The Iron Law says
 guidance is unverified until an agent is put under the pressure again, and that run
 has not happened. Marked as such in the scenario file and the evals README rather
 than claimed as done.
+
+## R40. The one binding step was prose — SHIPPED AS A TEMPLATE
+
+`writing-skills` classifies by failure. Nobody rationalises past configuring branch
+protection; they simply never do it. That is an **omission of a required element**,
+and the prescribed form is structural, a slot in the thing they already produce,
+not a prose reminder near the template.
+
+The skill had it as a paragraph telling you to click through Settings, which is why
+this repo ran the entire session unprotected while shipping an elaborate gate stack.
+
+Now `templates/ruleset.json`, applied with one command. "Copy `templates/`" includes
+it, and the file carries the nine contexts so nobody re-types them. `skill_audit.sh`
+already FAILs a repo whose default branch has no required checks, so the same skill
+also says: if validation can enforce it, automate it and keep documentation for
+judgement calls. The prose shrank accordingly, 8,019 to 6,952 words, because the
+context table became the artefact.
+
+Retained as judgement calls, since no check can decide them: a context that never
+reports blocks PRs forever, `build` is path-filtered and must stay out, and
+`bypass_actors` must be empty or the rule constrains nobody holding that role.
+
+**A near miss worth recording.** The first attempt at this edit sliced from the
+required-checks heading to a heading much further down and silently destroyed the
+entire *Panel integrations* section, every bit of the ha-lego feedback work. It was
+caught only because the word count fell 1,687 instead of the few hundred expected.
+Bounding the replacement at the *next* heading and diffing the heading list before
+and after is now how these edits get made. Measuring the size of a change is a
+cheap way to notice you deleted something you never looked at.
