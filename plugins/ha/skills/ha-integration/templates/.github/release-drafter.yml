@@ -20,13 +20,37 @@ autolabeler:
       - '/^(feat|feature)(\(.+\))?:/i'
 categories:
   - title: '🚨 Breaking Change'
-    labels: ['xfeat', 'xfeature', 'major']
+    semver-increment: major
+    labels:
+      - 'xfeat'
+      - 'xfeature'
+      - 'major'
   - title: '🚀 Features'
-    labels: ['feat', 'feature', 'enhancement']
+    semver-increment: minor
+    labels:
+      - 'feat'
+      - 'feature'
+      - 'enhancement'
   - title: '🔧 Fixes'
-    labels: ['fix', 'bugfix', 'bug']
+    semver-increment: patch
+    labels:
+      - 'fix'
+      - 'bugfix'
+      - 'bug'
   - title: '🧰 Maintenance'
-    label: 'chore'
+    semver-increment: patch
+    labels:
+      - 'chore'
+  # Bump-only labels: they set the increment without being changelog sections.
+  # `version-resolver.<level>.labels` is deprecated; this is its replacement.
+  - type: version-resolver
+    semver-increment: minor
+    labels:
+      - 'minor'
+  - type: version-resolver
+    semver-increment: patch
+    labels:
+      - 'patch'
 change-template: |-
   - $TITLE @$AUTHOR (#$NUMBER)
   $BODY
@@ -47,14 +71,6 @@ replacers:
     replace: ''
   - search: '/<!-- commit-summary:(start|end) -->\n?/g'   # markers are plumbing, not notes
     replace: ''
-version-resolver:
-  major:
-    labels: ['major', 'xfeature', 'xfeat']
-  minor:
-    labels: ['feat', 'feature', 'minor']
-  patch:
-    labels: ['patch', 'fix', 'chore', 'bugfix', 'bug']
-  default: patch
 template: |
   ## Changes
 
