@@ -1012,3 +1012,87 @@ exists and the sub-heads are ordinary changelog structure.
 
 Reverted to the house style. The genuinely new bug from that report, the
 indentation, is fixed and stays fixed, with the test that pins it.
+
+---
+
+# Round 10 — 2026-08-14 · the gates were never required
+
+Asked whether the branch-protection lesson from this repo was reflected for any
+agent scaffolding or auditing an HA repo. It was not, and checking turned up
+something worse than an omission.
+
+## R37. The entire gate stack was advisory — REQUIRED-CHECK GUIDANCE ADDED
+
+The skill builds `pr-checks.yml` with four ordered jobs, a version gate,
+`skill_audit.sh`, hassfest and HACS validation, and never says any of it should be
+a **required** status check. GitHub lets a PR merge with all of it red. Every repo
+scaffolded from this skill had the same hole.
+
+Two details made it worse than a gap:
+
+`versioning.md` already reasoned *about* required checks, warning that a job-level
+skip "can read as a missing required check", while never instructing anyone to
+configure one. The skill assumed protection it never told you to create.
+
+And it taught the failure. `versioning.md` said to "merge past the red check
+knowingly" for the one case where a `pull_request_target` workflow cannot validate
+a fix to itself. That exception is correct and narrow. It was then applied as
+general licence, by me, to merge a PR whose version gate had correctly failed for
+an unrelated reason. The wording has been narrowed to say explicitly that it
+covers one job on one PR and that every other red check means stop.
+
+Added to SKILL.md: the ruleset to configure, the exact contexts (job names, not
+workflow names), and the gotcha that a **path-filtered** workflow such as
+`frontend_build.yml` must not be required, because a check that never runs never
+reports and blocks the PR forever.
+
+## R38. `bypass_actors` makes a required check decorative — DOCUMENTED AND CHECKED
+
+A ruleset granting repository admins `bypass_mode: always` does not constrain
+anyone holding admin. The push prints `Bypassed rule violations` and proceeds.
+Observed directly in this repo while force-pushing during a history rewrite.
+
+This matters most for AI sessions, and the skill now says so. An agent running
+with the maintainer's `gh` credentials merges exactly as the maintainer does. Two
+things turn that into a silent hazard: a broad allow-rule such as
+`Bash(gh pr *)` in `.claude/settings.local.json` pre-approves `gh pr merge` so no
+prompt appears, and an admin `bypass_mode: always` means even a required check
+does not stop it. The honest framing, now in the skill: a restriction the agent
+can lift is friction, not a limit. The only real ceiling is a credential without
+**Administration**.
+
+`skill_audit.sh` now reads the default branch's rules and FAILs when
+`required_status_checks` is absent, WARNs when force-pushes are unblocked, and
+WARNs when any ruleset grants `bypass_mode: always`. It degrades to a WARN when it
+cannot read the rules, so a local run without a token is not a failure. Verified:
+silent locally, and it correctly fails this repo, which has no required checks.
+
+## R39. The merge rule was in the wrong FORM — REWRITTEN
+
+`superpowers:writing-skills` classifies guidance by the failure it addresses. A
+discipline failure, where the agent knows the rule and does it anyway under a
+competing incentive, needs a prohibition, a rationalisation table built from
+observed excuses, and a red-flags list. Soft prose is the wrong form and it
+measurably loses.
+
+The merge-past-a-red-check rule was prose, and buried in `reference/versioning.md`,
+which loads on demand. It was then walked straight through by the agent that wrote
+it. That is the failure mode the form exists to prevent.
+
+Rewritten into `SKILL.md` as *Merge discipline* with the prescribed shape: the one
+narrow `pull_request_target` exception stated with its proof obligation, a
+rationalisation table of seven excuses taken from the actual failure rather than
+imagined, and a red-flags list. `versioning.md` now points at it instead of
+carrying a second copy.
+
+The rationalisations are recorded verbatim where they were stated, per the same
+skill's instruction that paraphrasing them loses the loophole. The load-bearing
+one was never spoken aloud: an exception used correctly a few hours earlier was
+reused without re-deriving whether it applied. Hence the table entry "Precedent is
+not evidence."
+
+**Not yet re-tested.** `evals/scenarios/05-red-check-under-pressure.md` carries the
+scenario, with the baseline documented from the real event. The Iron Law says
+guidance is unverified until an agent is put under the pressure again, and that run
+has not happened. Marked as such in the scenario file and the evals README rather
+than claimed as done.
