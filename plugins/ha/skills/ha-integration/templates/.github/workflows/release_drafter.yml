@@ -13,6 +13,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        # release_notes.py walks a tag..HEAD range. The default depth-1 clone
+        # has no history, so the range fails to resolve.
+        with:
+          fetch-depth: 0
       - id: ver
         name: Read version from manifest
         run: |
@@ -60,4 +64,5 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           pip install --quiet markdown-it-py
-          python3 scripts/check_release_notes.py --tag "v${{ steps.ver.outputs.version }}"
+          python3 scripts/check_release_notes.py --tag "v${{ steps.ver.outputs.version }}" \
+            --version "${{ steps.ver.outputs.version }}"
