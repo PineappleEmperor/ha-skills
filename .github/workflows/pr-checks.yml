@@ -275,7 +275,12 @@ jobs:
           wc -l < subjects.txt
 
       - name: Build the grouped summary
-        run: python3 scripts/commit_summary.py --subjects subjects.txt > summary.md
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          # Pass the title so bullets that merely restate it are dropped; otherwise
+          # most PRs say the same thing twice in the release notes.
+          python3 scripts/commit_summary.py --subjects subjects.txt --title "$PR_TITLE" > summary.md
 
       - name: Splice it into the PR body
         env:
