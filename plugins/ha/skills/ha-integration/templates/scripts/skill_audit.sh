@@ -38,6 +38,7 @@ fi
 [ -f scripts/commit_summary.py ]     || FAIL "missing scripts/commit_summary.py (pr-checks.yml's commit-summary shells out to it)"
 # The release description is the artefact users read. Nothing checked it until a
 # malformed block shipped in several releases while every other gate stayed green.
+[ -f scripts/release_notes.py ]      || FAIL "missing scripts/release_notes.py (release notes would be grouped by PR label, filing fixes under Features)"
 [ -f scripts/check_release_notes.py ] || FAIL "missing scripts/check_release_notes.py (nothing would verify the release description renders)"
 [ -f tests/test_commit_summary.py ]  || FAIL "missing tests/test_commit_summary.py (the classifier must stay unit-tested)"
 # Classifier logic must NOT be inlined back into the workflow: an inline heredoc
