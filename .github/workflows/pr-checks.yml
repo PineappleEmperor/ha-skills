@@ -289,7 +289,11 @@ jobs:
 
           START, END = "<!-- commit-summary:start -->", "<!-- commit-summary:end -->"
           body = pathlib.Path("body.md").read_text()
-          summary = pathlib.Path("summary.md").read_text().strip()
+          # strip("\n"), NOT strip(): the block's lines carry two leading spaces so
+          # that release-drafter's `$BODY` nests under its `- $TITLE …` bullet. A bare
+          # .strip() removes that indent from the FIRST line only, leaving the opening
+          # sub-head flush left while every later one stays indented.
+          summary = pathlib.Path("summary.md").read_text().strip("\n")
           # Empty summary => the block would only restate the title. Remove it.
           block = f"{START}\n{summary}\n{END}" if summary else ""
 
