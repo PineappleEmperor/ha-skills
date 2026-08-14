@@ -18,49 +18,7 @@ Reference for `ha-integration`. Loaded on demand.
 **No AI-attribution trailers.** Don't append `Co-Authored-By: Claude`, tool/session links, or any "generated with…" line to commits — keep the authorship history clean. (If a harness injects such trailers by default, strip them.) A `Co-Authored-By:` for a *real* human collaborator is fine.
 
 ⚠️ **Enforce the trailer ban with a `commit-msg` hook — prose alone isn't enough.** A coding harness can inject `Co-Authored-By: Claude` / `Claude-Session:` on *every* commit via a standing instruction, which fights this rule turn after turn; the agent keeps "remembering" the harness default over the skill and regresses. The fix is deterministic enforcement at the git layer, not memory. Ship `.githooks/commit-msg` (terse-subject + no-narrative-body + **AI-trailer rejection**), add it to the scaffold's repo-root files, and tell contributors to enable it once per clone in `CLAUDE.md`: `git config core.hooksPath .githooks`.
-```bash
-#!/usr/bin/env bash
-# Enforce terse commits: subject <=72 chars, no narrative body, no AI-attribution trailers.
-# Body lines allowed only as trailers (Key: value), Closes/Refs/Fixes #N, or any body when a
-# BREAKING CHANGE footer is present. Enable once per clone: git config core.hooksPath .githooks
-msg_file="$1"
-subject="$(grep -v '^#' "$msg_file" | sed -n '1p')"
-
-if [ "${#subject}" -gt 72 ]; then
-  echo "commit-msg: subject is ${#subject} chars (>72). Keep it terse." >&2
-  exit 1
-fi
-case "$subject" in "Merge "*|"Revert "*|"fixup! "*|"squash! "*) exit 0 ;; esac
-
-# Reject harness-injected AI-attribution trailers (this skill bans them). A real human
-# Co-Authored-By is still fine.
-if grep -v '^#' "$msg_file" | grep -Eqi '^Co-authored-by:[[:space:]]*Claude|^Claude-Session:|Generated with .*(Claude|Anthropic)'; then
-  echo "commit-msg: AI-attribution trailer not allowed (strip Co-Authored-By: Claude / Claude-Session)." >&2
-  exit 1
-fi
-
-if grep -q 'BREAKING CHANGE' "$msg_file"; then
-  exit 0
-fi
-
-bad=""
-while IFS= read -r line; do
-  [ -z "$line" ] && continue
-  case "$line" in \#*) continue ;; esac
-  printf '%s' "$line" | grep -Eq '^[A-Za-z][A-Za-z-]*: ' && continue
-  printf '%s' "$line" | grep -Eq '^(Closes|Refs|Fixes|Resolves) #' && continue
-  bad="$line"
-  break
-done < <(grep -v '^#' "$msg_file" | tail -n +2)
-
-if [ -n "$bad" ]; then
-  echo "commit-msg: narrative body line not allowed:" >&2
-  echo "    $bad" >&2
-  echo "Keep commits subject-only; put detail in the PR / release notes." >&2
-  exit 1
-fi
-exit 0
-```
+Body in **`templates/hooks/commit-msg`** — copy it to `.githooks/commit-msg`, `chmod +x`, and enable once per clone with `git config core.hooksPath .githooks`. Don't retype it from this document.
 
 **Put the narrative in the release, not the commit.** The human-readable "what changed and why it matters" belongs in the **PR description / release notes** (surfaced by release-drafter / `generate_release_notes`), which is where users actually read it. Keep commits terse; write the detail once, in the release description.
 

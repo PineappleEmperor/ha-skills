@@ -98,7 +98,7 @@ Check the current working directory:
   > **AI assistance:** I'm a programmer; this project is built with AI (Claude, via Claude Code) for implementation, code review, and QA — under human direction, guided by my [`ha-integration`](https://github.com/PineappleEmperor/pineapple-claude-hacs) skill. Architecture and final review are mine; every change is human-reviewed before it merges.
   ```
 - `.gitignore` — copy `templates/.gitignore`. Covers `__pycache__/`, caches, venvs, HA dev artefacts (`.storage/`, `home-assistant.log*`, the `_v2.db`), and `device_map.md` (the Mode 5 log-triage map holds a home's IP/device layout and must never be committed). **Not optional:** without it a local `pytest` run plus a `git add -A` commits `.pyc` files, and a `.pyc` under `templates/` is then copied verbatim into every repo scaffolded from the skill. `skill_audit.sh` fails on any tracked compiled artefact.
-- `.githooks/commit-msg` — terse-commit + AI-trailer-rejection hook (see `reference/versioning.md`); enable once per clone with `git config core.hooksPath .githooks` (document this in `CLAUDE.md`)
+- `.githooks/commit-msg` — copy `templates/hooks/commit-msg`, `chmod +x`. Terse-subject + AI-trailer rejection. **Enable once per clone: `git config core.hooksPath .githooks`** — an unenabled hook is a file, not a guard. Document that line in `CLAUDE.md`.
 - `custom_components/{domain}/brand/icon.png` — **256×256**, required by HACS brands validation
 - `custom_components/{domain}/brand/icon@2x.png` — **512×512** (see HiDPI note below)
 - `custom_components/{domain}/brand/logo.png` — landscape, shortest side **128–256**
@@ -323,6 +323,33 @@ Common `exempt`s for a local-push MQTT device integration: `appropriate-polling`
 ### Conventional Commits, versioning & CI gating
 
 See **`reference/versioning.md`** — Conventional Commits → semver mapping, the **single bump as the last commit before merge** discipline, the prerelease/rc cycle, the **last-published-release** version gate, Dependabot, and the `GITHUB_TOKEN` workflow-suppression footgun.
+
+---
+
+## PR discipline — the body is generated, don't write one
+
+**The commit subjects are the PR body.** The `commit-summary` job accumulates them into the marked block; `$BODY` inlines that into the release notes. A description is either **empty** (single commit, the title says it) or **the generated block**, and nothing else.
+
+Reasoning, alternatives, verification evidence: those go in the PR **conversation**, where reviewers read them and `$BODY` does not.
+
+| Excuse | Reality |
+|---|---|
+| "This change is complex, it needs explaining" | Then it needs splitting, or better commit subjects. The subjects are the changelog. |
+| "Reviewers need the reasoning" | Reviewers read the conversation. `$BODY` is republished to users who did not review it. |
+| "The verification belongs with the change" | It belongs in a comment. A description is not a lab notebook. |
+| "I wrapped it in `<details>` so it's stripped" | The fold is for Dependabot's own output, not a licence to write an essay. |
+| "It's only a few paragraphs" | Measured across eight PRs it was 2,728 words, all republished under the repo owner's byline. |
+
+### Red flags — stop
+
+- Typing prose into `gh pr create --body`
+- Reaching for `<details>` in a PR description
+- A description longer than its diff is interesting
+- Explaining *why* anywhere the commit subjects should have said it
+
+**All of these mean: put it in a comment, or fix the commit subjects.**
+
+> **Observed.** This rule already existed, as "keep two or three sentences of summary at the top of the PR body". It was read and ignored across eight consecutive PRs in this skill's own repo. The author was unaware until they read one of their own PRs. Guidance that exists and is skipped needs a prohibition, not a clearer sentence.
 
 ---
 
