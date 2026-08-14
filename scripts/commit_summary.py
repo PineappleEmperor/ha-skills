@@ -32,16 +32,17 @@ BUMP = re.compile(
 )
 
 ORDER = ("breaking", "feat", "fix", "maint", "other")
-# Plain labels, not bold and not emoji. Boldface and emoji headings are two of the
-# most reliable tells of machine-written text, and this block is inlined verbatim
-# into release notes a human is expected to have written. The two-space indent nests
-# the whole block under release-drafter's `- $TITLE @$AUTHOR (#$NUMBER)` bullet.
+# Mirrors the emoji categories in .github/release-drafter.yml. House style: these
+# are standard for GitHub release notes, and matching the surrounding document beats
+# scrubbing a pattern that only reads as machine-written out of context.
+# The two-space indent nests the block under release-drafter's
+# `- $TITLE @$AUTHOR (#$NUMBER)` bullet, so no line may sit flush left.
 HEADINGS = {
-    "breaking": "  Breaking:",
-    "feat": "  Features:",
-    "fix": "  Fixes:",
-    "maint": "  Maintenance:",
-    "other": "  Other:",
+    "breaking": "  **🚨 Breaking**",
+    "feat": "  **🚀 Features**",
+    "fix": "  **🔧 Fixes**",
+    "maint": "  **🧰 Maintenance**",
+    "other": "  **📦 Other**",
 }
 # Suggested PR title type per winning commit group: (title, category, semver bump).
 SUGGESTIONS = {
@@ -103,14 +104,12 @@ def render(subjects: list[str]) -> str:
     if sum(len(groups[k]) for k in used) == 1:
         return ""
     lines: list[str] = []
-    labelled = len(used) > 1
     for key in used:
-        # Labels only when the PR spans >1 type: release-drafter already files the
-        # PR under one category heading, so a lone label duplicates it.
-        if labelled:
+        # Sub-heads only when the PR spans >1 type: release-drafter already files
+        # the PR under one category heading, so a lone sub-head duplicates it.
+        if len(used) > 1:
             lines.append(HEADINGS[key])
-        indent = "    " if labelled else "  "
-        lines += [f"{indent}- {d}" for d in groups[key]]
+        lines += [f"  - {d}" for d in groups[key]]
     return "\n".join(lines)
 
 
