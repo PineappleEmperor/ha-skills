@@ -13,6 +13,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        # release_notes.py walks a tag..HEAD range. The default depth-1 clone
+        # has no history, so the range fails to resolve.
+        with:
+          fetch-depth: 0
       - id: ver
         name: Read version from plugin manifest
         run: |
@@ -31,3 +35,33 @@ jobs:
           prerelease: ${{ steps.ver.outputs.prerelease }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # release-drafter categorises by PR LABEL, one entry per PR, so a fix inside a
+      # feat-titled PR files under Features. Surveyed HACS repos all group by the
+      # TYPE OF CHANGE instead, one line each, linking to the PR. Generate the body
+      # and overwrite what the drafter wrote; it still owns the draft and the version.
+      - name: Generate notes grouped by commit type
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          V: ${{ steps.ver.outputs.version }}
+        run: |
+          PREV=$(gh release list --exclude-drafts --limit 1 --json tagName --jq '.[0].tagName')
+          git fetch --tags --quiet
+          python3 scripts/release_notes.py \
+            --range "${PREV}..HEAD" \
+            --repo-url "https://github.com/$GH_REPO" \
+            --previous "$PREV" --version "$V" > notes.md
+          gh release edit "v$V" --notes-file notes.md
+
+      # The release description is what users read, and nothing checked it. Every
+      # earlier verification of the commit-summary block looked at the source text
+      # or used a parser that disagrees with GitHub about list nesting, so a broken
+      # block shipped in several releases while the checks stayed green.
+      - name: Release notes render correctly
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          pip install --quiet markdown-it-py
+          python3 scripts/check_release_notes.py --tag "v${{ steps.ver.outputs.version }}" \
+            --version "${{ steps.ver.outputs.version }}"
