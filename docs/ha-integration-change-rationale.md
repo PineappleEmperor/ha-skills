@@ -968,3 +968,46 @@ which is the vacuous-check class this gate exists to remove — the same defect 
 `quality_scale.yaml` checked for existence only, or the brand check that skipped
 when `brand/` was absent. The workflow runs what exists; the gate decides whether
 what exists is enough for what is claimed.
+
+---
+
+# Round 9 — 2026-08-13 · the generated block
+
+Reported from ha-lego: the sub-heads in a real PR body were indented
+inconsistently, and the block read as machine-written.
+
+## R35. A bare .strip() removed the first line's indent
+
+Every line of the block carries two leading spaces so the whole thing nests under
+release-drafter's `- $TITLE @$AUTHOR (#$NUMBER)` bullet when `$BODY` is inlined.
+The splice step in `pr-checks.yml` called `.strip()` on the rendered summary, which
+removes leading whitespace from the first line as well as surrounding newlines. The
+opening label ended up flush left while every later one stayed indented.
+
+Fixed by using `.strip("\n")`. A test now asserts no line sits flush left, so the
+same mistake fails the suite rather than reaching a PR body.
+
+## R36. The block was shaped like machine writing
+
+The labels were bold and prefixed with emoji. Both are among the more reliable
+tells of generated text, and this block is inlined verbatim into release notes a
+reader is entitled to assume a person wrote.
+
+Replaced with plain labels and a nested list:
+
+    Breaking:
+      - batch the theme feeds and poll hourly
+    Features:
+      - make collection writes visible and cheap
+
+Single-type PRs still emit a flat list with no label, since the release category
+above already names the type.
+
+Two tests pin it: one asserts no `**` and no non-ascii anywhere in the output, the
+other asserts the indentation. The convention text in `versioning.md` and the
+human-facing PR-body guidance both said "bold emoji sub-heads" and were updated to
+match, so the advice a person follows and the block the workflow emits now agree.
+
+Worth noting for anything else this skill generates: text that a machine writes and
+a human is presumed to have written should not carry the ornamentation that gives
+it away.
