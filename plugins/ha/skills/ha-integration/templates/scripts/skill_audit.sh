@@ -40,6 +40,21 @@ fi
 # malformed block shipped in several releases while every other gate stayed green.
 [ -f scripts/release_notes.py ]      || FAIL "missing scripts/release_notes.py (release notes would be grouped by PR label, filing fixes under Features)"
 [ -f scripts/check_release_notes.py ] || FAIL "missing scripts/check_release_notes.py (nothing would verify the release description renders)"
+
+# Both scripts shipped, both sat unused: release_drafter.yml ran the drafter and
+# stopped, so every release used $CHANGES while the audit passed on file presence.
+# Presence is not wiring.
+RD=.github/workflows/release_drafter.yml
+if [ -f "$RD" ]; then
+  grep -q 'scripts/release_notes.py' "$RD" \
+    || FAIL "$RD never runs scripts/release_notes.py (notes fall back to release-drafter's \$CHANGES, grouped by PR label)"
+  grep -q 'scripts/check_release_notes.py' "$RD" \
+    || FAIL "$RD never runs scripts/check_release_notes.py (a malformed release description would ship unnoticed)"
+  # release_notes.py resolves a tag..HEAD range; checkout is depth 1 by default and
+  # the range dies with "unknown revision".
+  grep -q 'fetch-depth: 0' "$RD" \
+    || FAIL "$RD checks out at depth 1; release_notes.py cannot resolve its commit range without fetch-depth: 0"
+fi
 [ -f tests/test_commit_summary.py ]  || FAIL "missing tests/test_commit_summary.py (the classifier must stay unit-tested)"
 # Classifier logic must NOT be inlined back into the workflow: an inline heredoc
 # cannot be unit-tested, and a wrong classifier corrupts release notes silently
