@@ -1308,3 +1308,33 @@ inoculate the author against making them.
 So it is now a check rather than a note: `check_release_notes.py` fails any bullet
 that repeats its section heading. Verified against the shape that shipped in v6.6.0
 and v6.6.1, which it catches.
+
+## R50. The notes had to be grouped by commit type — GENERATOR RESTORED
+
+Pushed on the half-measure: removing the group labels left every commit under
+whichever category the PR happened to be labelled, so fixes sat under Features with
+nothing marking them. That is worse than the duplicate heading it replaced.
+
+**Surveyed real HACS repos, which had never been done.** alexa_media_player,
+alandtse/tesla, hacs/integration and SonoffLAN, 2026-08-15. All four group by the
+**type of change** at the top level, one line per change, each linking to its PR.
+Two add a full-changelog compare link. None nests commits under a PR entry, which
+is the shape this skill had been building and refining for several versions.
+
+`release-drafter`'s `$CHANGES` cannot do that: it categorises by PR label, one
+entry per PR. So the notes have to be generated.
+
+`scripts/release_notes.py` was written for exactly this a day earlier, verified
+against real history, and then **parked** on the finding that the scattering
+problem "does not occur". It occurs in 3 of 8 merged PRs. The prototype was right
+and the measurement that killed it was the same unchecked "rare" as R49.
+
+Restored, with unit tests and a compare link, wired into `release_drafter.yml`
+after the drafter runs: the drafter still owns the draft and resolves the version,
+the body is generated over the top, then `check_release_notes.py` validates it.
+
+The v6.6.1 draft now reads with Features, Fixes and Maintenance as separate
+sections, each linking to the PR its commit came from.
+
+**What went wrong, in one line:** the right solution was built, then discarded on
+an unmeasured premise, and three versions were spent refining the wrong one.
