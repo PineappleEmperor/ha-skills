@@ -1096,3 +1096,141 @@ scenario, with the baseline documented from the real event. The Iron Law says
 guidance is unverified until an agent is put under the pressure again, and that run
 has not happened. Marked as such in the scenario file and the evals README rather
 than claimed as done.
+
+## R40. The one binding step was prose — SHIPPED AS A TEMPLATE
+
+`writing-skills` classifies by failure. Nobody rationalises past configuring branch
+protection; they simply never do it. That is an **omission of a required element**,
+and the prescribed form is structural, a slot in the thing they already produce,
+not a prose reminder near the template.
+
+The skill had it as a paragraph telling you to click through Settings, which is why
+this repo ran the entire session unprotected while shipping an elaborate gate stack.
+
+Now `templates/ruleset.json`, applied with one command. "Copy `templates/`" includes
+it, and the file carries the nine contexts so nobody re-types them. `skill_audit.sh`
+already FAILs a repo whose default branch has no required checks, so the same skill
+also says: if validation can enforce it, automate it and keep documentation for
+judgement calls. The prose shrank accordingly, 8,019 to 6,952 words, because the
+context table became the artefact.
+
+Retained as judgement calls, since no check can decide them: a context that never
+reports blocks PRs forever, `build` is path-filtered and must stay out, and
+`bypass_actors` must be empty or the rule constrains nobody holding that role.
+
+**A near miss worth recording.** The first attempt at this edit sliced from the
+required-checks heading to a heading much further down and silently destroyed the
+entire *Panel integrations* section, every bit of the ha-lego feedback work. It was
+caught only because the word count fell 1,687 instead of the few hundred expected.
+Bounding the replacement at the *next* heading and diffing the heading list before
+and after is now how these edits get made. Measuring the size of a change is a
+cheap way to notice you deleted something you never looked at.
+
+## R41. PR bodies are generated, not written — CORRECTED
+
+Raised by the maintainer, who found several hundred words of agent-written prose
+published as a PR description under their own name and had not been aware of it.
+
+Across eight PRs this session that came to 2,728 words of description, plus 812
+words inlined into published release notes by `$BODY`. All of it bylined to the
+repository owner, because the agent opens PRs with their credentials.
+
+The skill was partly to blame and the agent entirely so. `versioning.md` said to
+keep "two or three sentences of summary at the top of the PR body" and wrap the
+rest in `<details>`. Even that was wrong: **the PR body is generated**. The
+`commit-summary` job accumulates the commit subjects into the marked block, and
+that block is the description. A PR is either empty, when a single commit's title
+already says it, or the generated block, and nothing else.
+
+That is the reason the commit-subject discipline elsewhere in this file matters so
+much. The subjects are the changelog. Effort belongs in the subject line, not in a
+description written afterwards.
+
+Anything that would have gone in a description — reasoning, alternatives,
+verification notes — belongs in the PR **conversation**, which reviewers read and
+`$BODY` does not.
+
+Fixed: all eight PR bodies replaced with the generated block or emptied, and the
+six affected published releases rebuilt from generated content. 2,728 words down
+to the block alone.
+
+**Two earlier findings are now moot.** R12 (`$BODY` inlines the whole description)
+and R15 (the `<details>` strip breaks on literal tag text) both existed to manage
+hand-written prose in a PR body. With no prose there is nothing to wrap and nothing
+to escape. The `replacers` entry stays, because its original job is stripping
+Dependabot's own folds. A practice that needed two workarounds was the wrong
+practice.
+
+## R42. The rule existed and was ignored — FORM CORRECTED
+
+Correction from the maintainer: the skill already said this. The original wording
+was "keep two or three sentences of summary at the top of the PR body, and wrap
+everything else". It was read and skipped across eight consecutive PRs.
+
+That reclassifies the failure. R41 treated it as an omission and fixed it by
+stating the rule more clearly, which is the wrong form for a rule that already
+existed. `writing-skills` is explicit: a discipline failure, where the agent knows
+the rule and does it anyway under a competing incentive, needs a prohibition, a
+rationalisation table built from the excuses actually used, and red flags.
+
+Now in `SKILL.md` as *PR discipline*, with five excuses taken from the real
+behaviour rather than imagined. The load-bearing one was "the verification belongs
+with the change", which is how several hundred words of test evidence ended up in
+descriptions that `$BODY` then republished under the repo owner's name.
+
+## R43. The mandated commit-msg hook shipped as prose — NOW A TEMPLATE
+
+Found while auditing this repo against its own skill. `SKILL.md` mandates
+`.githooks/commit-msg`; the body lived only as a fenced code block in
+`reference/versioning.md`. Every scaffolded repo had to retype it from a document,
+which is exactly what the skill forbids twenty lines earlier: "the prose describes
+the templates, it does not replace them."
+
+Same class as the phantom `.github/pr-labeler.yml` in R5: mandated in the file
+list, no artefact behind it.
+
+Now `templates/hooks/commit-msg`, mode 755, with `versioning.md` pointing at it
+instead of carrying a copy. That also removed 467 words of inlined shell.
+
+## R44. This repo did not follow its own skill — DOGFOODED
+
+The audit found the skill repo had neither the hook nor `core.hooksPath` set, so
+the trailer ban and the terse-subject rule were unenforced in the very repo that
+mandates them. Both now installed and exercised: the hook correctly rejects an
+AI-attribution trailer, a narrative body, and an 85-character subject.
+
+Worth noting what it would not have caught. The hook guards **commit messages**;
+the 2,728-word problem was in **PR descriptions**, which no hook sees. That is why
+R42 needed a discipline rule rather than another automated check.
+
+## R45. The block never rendered as a list — FIXED
+
+Spotted by the maintainer on PR #30: the indentation problem "looks like it is
+still present". The indentation was in fact fixed by R35. The rendering was not,
+and had never worked.
+
+`  **🚀 Features**` followed by `  - item` renders as **one run-on paragraph**.
+Markdown will not start a list on an indented line without a preceding blank line,
+so the whole block collapsed: no list, no labels, every group merged into a single
+`<p>`. Confirmed by rendering it rather than reading it.
+
+Every fix in this area until now had been checked by looking at the source text
+with spaces made visible. The source was correct. What it *rendered* to was not,
+and nothing had ever checked that.
+
+The obvious repair makes it worse. Adding blank lines between label and bullets
+fixes a PR body but breaks the release note, where the block is inlined after
+`- $TITLE @$AUTHOR (#$NUMBER)`: the first label is absorbed into the title's list
+item and later labels escape the list into bare paragraphs.
+
+The form that works in both is a **nested list** — labels as list items
+(`  - **🚀 Features**`), bullets indented one level under them (`    - …`).
+Verified in both contexts.
+
+`test_block_renders_as_a_list_not_a_paragraph` now renders the block and asserts
+`<li>` standalone and a nested `<ul>` under a title bullet. It fails against the
+old shape. `markdown` added to `requirements.test.txt` for it.
+
+The lesson generalises past this block: a test that asserts the *source* of
+generated markup proves the string, not the output. For anything whose product is
+rendered, render it in the test.
