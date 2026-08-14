@@ -37,12 +37,19 @@ ORDER = ("breaking", "feat", "fix", "maint", "other")
 # scrubbing a pattern that only reads as machine-written out of context.
 # The two-space indent nests the block under release-drafter's
 # `- $TITLE @$AUTHOR (#$NUMBER)` bullet, so no line may sit flush left.
+# Labels are LIST ITEMS, with their bullets nested one level under them. A plain
+# indented line does not start a list in markdown without a preceding blank line,
+# so the earlier `  **Label**` + `  - item` shape rendered as one run-on paragraph
+# in a PR body: no list, no labels. Adding blank lines fixes the PR body but breaks
+# the release notes, where the block is inlined after `- $TITLE ...` and the label
+# gets absorbed into that item while later labels escape the list entirely.
+# This form is the only one that renders correctly in both.
 HEADINGS = {
-    "breaking": "  **🚨 Breaking**",
-    "feat": "  **🚀 Features**",
-    "fix": "  **🔧 Fixes**",
-    "maint": "  **🧰 Maintenance**",
-    "other": "  **📦 Other**",
+    "breaking": "  - **🚨 Breaking**",
+    "feat": "  - **🚀 Features**",
+    "fix": "  - **🔧 Fixes**",
+    "maint": "  - **🧰 Maintenance**",
+    "other": "  - **📦 Other**",
 }
 # Suggested PR title type per winning commit group: (title, category, semver bump).
 SUGGESTIONS = {
@@ -104,12 +111,14 @@ def render(subjects: list[str]) -> str:
     if sum(len(groups[k]) for k in used) == 1:
         return ""
     lines: list[str] = []
+    labelled = len(used) > 1
     for key in used:
-        # Sub-heads only when the PR spans >1 type: release-drafter already files
-        # the PR under one category heading, so a lone sub-head duplicates it.
-        if len(used) > 1:
+        # Labels only when the PR spans >1 type: release-drafter already files the
+        # PR under one category heading, so a lone label duplicates it.
+        if labelled:
             lines.append(HEADINGS[key])
-        lines += [f"  - {d}" for d in groups[key]]
+        indent = "    " if labelled else "  "
+        lines += [f"{indent}- {d}" for d in groups[key]]
     return "\n".join(lines)
 
 
