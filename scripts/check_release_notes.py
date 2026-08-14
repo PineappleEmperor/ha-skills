@@ -53,6 +53,19 @@ def check(notes: str) -> list[str]:
                 first = re.sub(r"<[^>]+>", "", body).strip().splitlines()[0][:60]
                 problems.append(f"label glued onto a bullet: {first!r}")
 
+    # A bullet repeating the section heading it sits under. This shipped for two
+    # versions because the design note called the case "rare" and nobody measured
+    # it; it was 3 of 8 merged PRs. An assumption in a comment is not a check.
+    section: str | None = None
+    for line in notes.splitlines():
+        if line.startswith("## "):
+            section = line[3:].strip().lower()
+            continue
+        text = line.strip().lstrip("- ").strip()
+        plain = re.sub(r"[*_`]", "", text).strip().lower()
+        if section and plain and plain == section:
+            problems.append(f"bullet repeats its section heading: {text!r}")
+
     # A bullet that restates the PR title it belongs to.
     current: str | None = None
     for line in notes.splitlines():

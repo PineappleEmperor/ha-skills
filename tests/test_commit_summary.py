@@ -115,18 +115,18 @@ def test_single_type_has_no_subheads() -> None:
     """One type -> the category heading above already says it; no sub-head."""
     out = cs.render(["fix: one", "fix: two"])
     assert out == "  - one\n  - two"
-    assert "**" not in out
 
 
-def test_multiple_types_get_subheads_in_severity_order() -> None:
-    """Sub-heads appear only when they add information, hardest type first."""
+def test_multiple_types_are_one_flat_list_in_severity_order() -> None:
+    """No group labels: the release category above already names the PR.
+
+    A label inside the entry repeats that heading four lines later, and on a PR
+    spanning types it files fixes under Features. Measured at 3 of 8 merged PRs,
+    so this is the common case, not the rare one.
+    """
     out = cs.render(["chore: c", "fix: b", "feat!: a", "feat: d"])
-    assert out.splitlines() == [
-        "  - **🚨 Breaking**", "    - a",
-        "  - **🚀 Features**", "    - d",
-        "  - **🔧 Fixes**", "    - b",
-        "  - **🧰 Maintenance**", "    - c",
-    ]
+    assert out.splitlines() == ["  - a", "  - d", "  - b", "  - c"]
+    assert "**" not in out, f"group label leaked into the block:\n{out}"
 
 
 def test_block_renders_as_a_list_not_a_paragraph() -> None:
@@ -150,8 +150,6 @@ def test_block_renders_as_a_list_not_a_paragraph() -> None:
 
     nested = md.render(f"- feat: a title @dev (#1)\n{block}")
     assert nested.count("<ul>") > 1, f"release note does not nest the block:\n{nested}"
-    # Each label must head its own item, never be glued onto a sibling bullet.
-    assert nested.count("<li><strong>") >= 2, f"labels glued to sibling bullets:\n{nested}"
 
 
 def test_a_bullet_never_restates_the_pr_title() -> None:
@@ -228,8 +226,7 @@ def test_winning(subjects: list[str], expected: str) -> None:
     assert cs.winning(subjects) == expected
 
 
-def test_every_group_has_a_suggestion_and_heading() -> None:
-    """No group can be reached that lacks a rendering or a suggestion."""
+def test_every_group_has_a_title_suggestion() -> None:
+    """No group can be reached that lacks a suggestion for title-check."""
     for key in cs.ORDER:
-        assert key in cs.HEADINGS
         assert key in cs.SUGGESTIONS

@@ -1284,3 +1284,27 @@ The v6.6.1 draft was corrected directly instead, and now passes the new check. T
 skill documents the pre-merge half of this trap; the post-merge half, that the
 artefact is unrecoverable and the release body is the only place left to fix it, is
 new.
+
+## R49. "Rare" was never measured — LABELS REMOVED, ASSUMPTION GATED
+
+The category-versus-sub-head clash was diagnosed correctly two versions ago and
+closed with: "the case is now rare. Left alone rather than redesigned on one
+example." Nobody measured it.
+
+Measured now, across every merged PR of the session: **3 of 8 span more than one
+commit type.** Not rare. Every one produced an entry whose first bullet repeats the
+release category above it, and which files fixes under Features.
+
+The labels are gone. Each entry is one flat list in severity order, and the
+category heading does the job the labels were duplicating.
+
+**The part that matters more than the fix.** This session established, at length,
+that a claim needs evidence and a gate rather than a confident sentence, and
+rewrote the quality_scale gate for exactly that reason (R34). The word "rare" then
+sat unmeasured in a design note for two versions, in the same file, while every
+other assumption was being hunted down. Guidance about assumptions does not
+inoculate the author against making them.
+
+So it is now a check rather than a note: `check_release_notes.py` fails any bullet
+that repeats its section heading. Verified against the shape that shipped in v6.6.0
+and v6.6.1, which it catches.
