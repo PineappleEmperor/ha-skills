@@ -1125,3 +1125,38 @@ caught only because the word count fell 1,687 instead of the few hundred expecte
 Bounding the replacement at the *next* heading and diffing the heading list before
 and after is now how these edits get made. Measuring the size of a change is a
 cheap way to notice you deleted something you never looked at.
+
+## R41. PR bodies are generated, not written — CORRECTED
+
+Raised by the maintainer, who found several hundred words of agent-written prose
+published as a PR description under their own name and had not been aware of it.
+
+Across eight PRs this session that came to 2,728 words of description, plus 812
+words inlined into published release notes by `$BODY`. All of it bylined to the
+repository owner, because the agent opens PRs with their credentials.
+
+The skill was partly to blame and the agent entirely so. `versioning.md` said to
+keep "two or three sentences of summary at the top of the PR body" and wrap the
+rest in `<details>`. Even that was wrong: **the PR body is generated**. The
+`commit-summary` job accumulates the commit subjects into the marked block, and
+that block is the description. A PR is either empty, when a single commit's title
+already says it, or the generated block, and nothing else.
+
+That is the reason the commit-subject discipline elsewhere in this file matters so
+much. The subjects are the changelog. Effort belongs in the subject line, not in a
+description written afterwards.
+
+Anything that would have gone in a description — reasoning, alternatives,
+verification notes — belongs in the PR **conversation**, which reviewers read and
+`$BODY` does not.
+
+Fixed: all eight PR bodies replaced with the generated block or emptied, and the
+six affected published releases rebuilt from generated content. 2,728 words down
+to the block alone.
+
+**Two earlier findings are now moot.** R12 (`$BODY` inlines the whole description)
+and R15 (the `<details>` strip breaks on literal tag text) both existed to manage
+hand-written prose in a PR body. With no prose there is nothing to wrap and nothing
+to escape. The `replacers` entry stays, because its original job is stripping
+Dependabot's own folds. A practice that needed two workarounds was the wrong
+practice.
