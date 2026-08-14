@@ -22,68 +22,34 @@ Body in **`templates/hooks/commit-msg`** — copy it to `.githooks/commit-msg`, 
 
 **Put the narrative in the release, not the commit.** The human-readable "what changed and why it matters" belongs in the **PR description / release notes** (surfaced by release-drafter / `generate_release_notes`), which is where users actually read it. Keep commits terse; write the detail once, in the release description.
 
-**The PR body is generated, not written.** `$BODY` inlines the whole description under its category heading, so the `commit-summary` block is the body and its bold emoji sub-heads are shaped to nest there. Label the PR so it lands in the intended category (e.g. a `major`/`xfeature` label → 🚨 Breaking Change). Note release-drafter draws the PR body via the GraphQL path; `gh pr edit` can fail on the Projects-classic deprecation — set title/body via `gh api -X PATCH repos/{o}/{r}/pulls/{n} -f title=… -F body=@file` instead.
+**The PR body is generated, not written.** The `commit-summary` block is the body: a flat, severity-ordered list of the commit subjects. It is for reviewers on the PR and no longer feeds the release notes, which are generated separately from the commits themselves. Label the PR so it lands in the intended category (e.g. a `major`/`xfeature` label → 🚨 Breaking Change). Note release-drafter draws the PR body via the GraphQL path; `gh pr edit` can fail on the Projects-classic deprecation — set title/body via `gh api -X PATCH repos/{o}/{r}/pulls/{n} -f title=… -F body=@file` instead.
 
-> ✅ **Canonical release-notes pattern (Dependabot + `$BODY` + `replacers` scrub) — the standard for every repo.** Keep `$BODY` in `change-template` so **human** PRs surface their grouped mini-changelog (the `commit-summary` job in `pr-checks.yml` builds it — see below), and scrub Dependabot's noise with release-drafter **`replacers`** (native regex find/replace over the *rendered* notes). This **supersedes the older "drop `$BODY` when Dependabot is on" advice** — that worked but threw away the human per-commit detail. release-drafter has **no per-category `change-template`** (verified), so `$BODY` is global (all PRs or none); `replacers` is the only way to keep human detail *and* strip bot fluff.
+> ✅ **Release notes are generated from commit subjects, not from PR bodies.**
+> `scripts/release_notes.py` walks the commits since the last published release,
+> classifies each by its own Conventional Commit type, and groups them under
+> Breaking / Features / Fixes / Maintenance, one line each, linking to the PR it
+> arrived with, and ends with a full-changelog compare link.
 >
-> - **Group the PR body by commit type** in the `commit-summary` job of `pr-checks.yml`: classify each subject in the PR (`breaking`/`feat`/`fix`/`maint`/`other`), emit one flat list of the commit descriptions, in severity order, nested under the PR's entry (`  - …`). **No group labels inside the entry**: release-drafter already files the PR under a category heading, so a label repeats it four lines later, and on a PR spanning types it files fixes under Features. Measured at 3 of 8 merged PRs, so that is the common case, into a marked block spliced into the PR body. ⚠️ The nesting is load-bearing, in two ways. Every line keeps a two-space base indent so the block nests under the `- $TITLE …` bullet. And the labels must be **list items**: a plain indented line does not start a markdown list without a preceding blank line, so `  **Label**` followed by `  - item` renders as one run-on paragraph with no list and no labels at all. Adding blank lines fixes a PR body but breaks the release note, where the label is absorbed into the title's item and later labels escape the list. A nested list is the only form that renders in both. `test_block_renders_as_a_list_not_a_paragraph` pins it. Strip that from the first line and the opening sub-head sits flush left while every later one stays indented, which is what a bare `.strip()` in the splice step does; use `.strip("\n")`. release-drafter inlines `$BODY` verbatim under the PR's one category and does **no** intra-body sorting, so the grouping must happen at body-generation time.
-> - ⚠️ **Do not write a PR body. The commit subjects are the body.** The
->   `commit-summary` job accumulates them into the marked block, and `$BODY` inlines
->   that into the release notes. A PR description is either empty (single commit, the
->   title already says it) or the generated block, nothing else.
+> This is what surveyed HACS repos do (alexa_media_player, alandtse/tesla,
+> hacs/integration, SonoffLAN, checked 2026-08-15). None of them nests commits
+> under a PR entry.
 >
->   This is why commit subjects must be tight imperatives: they are the changelog,
->   read by users, not notes to yourself. Effort belongs in the subject line, not in
->   a description written afterwards.
+> **Why not release-drafter's `$CHANGES`.** It categorises each *PR* by its single
+> label, so a `fix:` commit inside a `feat:`-titled PR is filed under Features and a
+> reader looking for what was fixed finds no Fixes section. Measured on one session,
+> 3 of 8 merged PRs spanned more than one commit type, so this is the common case.
 >
->   Anything you would put in a description — reasoning, alternatives considered,
->   verification notes — goes in the PR **conversation**, where reviewers read it and
->   `$BODY` does not. `$BODY` is the whole description, so prose there is republished
->   verbatim in the release notes under the PR author's name.
+> release-drafter still owns the draft and the tag; `release_drafter.yml` generates
+> the body over the top, then `check_release_notes.py` validates the result. The
+> config keeps only `autolabeler`, `categories` (for `semver-increment`) and a
+> placeholder `template` that is visible if the generator ever fails to run.
 >
-> - **`change-template`** keeps the two-line `$BODY` form:
->   ```yaml
->   change-template: |-
->     - $TITLE @$AUTHOR (#$NUMBER)
->     $BODY
->   ```
-> - **`replacers`** scrub Dependabot's fluff. All patterns must be **bounded** (no `$`/end-of-string anchor) — the changelog concatenates every PR's `$BODY`, so an end-anchored strip bleeds across PRs and eats later human entries:
->   ```yaml
->   replacers:
->     - search: '/<details>[\s\S]*?<\/details>\s*/g'                                  # release-note/commit folds
->       replace: ''
->     - search: '/\[!\[Dependabot compatibility score\][^\n]*\n?/g'                   # compat badge
->       replace: ''
->     - search: '/Dependabot will resolve[^\n]*\n?/g'                                 # rebase boilerplate line
->       replace: ''
->     - search: '/\[\/\/\]: # \(dependabot-start\)[\s\S]*?\[\/\/\]: # \(dependabot-end\)\s*/g' # command block — markers are `[//]: # (...)`, brackets included
->       replace: ''
->     - search: '/<br\s*\/?>\s*/g'
->       replace: ''
->   ```
->   Leaves Dependabot's clean opener (`Bumps [pkg] from a to b.`) as the body — a fine one-liner. Regex over bot output is inherently brittle: revisit if Dependabot changes its format. (The job that builds the grouped `$BODY` is `commit-summary` in `templates/.github/workflows/pr-checks.yml`; rationale in `reference/github-actions.md`.)
->
-> **Adopt this in every repo** — enable Dependabot (`github-actions` ecosystem at minimum) *and* the `$BODY`+grouping+`replacers` release-drafter, so release notes carry real per-PR detail without bot noise everywhere. (A repo on the old title-only template is behind, not "configured differently".)
-
-**Types and semver mapping:**
-
-| Type | Semver | Notes |
-|------|--------|-------|
-| `feat` | MINOR | New feature |
-| `fix` | PATCH | Bug fix |
-| `feat!` / `BREAKING CHANGE:` | MAJOR | Breaking change — any type with `!` or `BREAKING CHANGE` footer |
-| `chore`, `docs`, `refactor`, `perf`, `test`, `build`, `ci`, `style` | PATCH | No user-facing change |
-
-**How this flows through the repo workflows:**
-
-1. A **human** writes the PR **title**. `lint_pr.yml` gates its format; nothing sets it automatically. The `commit-summary` job in `pr-checks.yml` only maintains the commit-list block in the body and does **no** labelling.
-2. The `label` job in `pr-checks.yml` runs the **release-drafter autolabeler** — the sole labeler — keyed on the PR **title** (title-only rules; no `branch:`). Since the title is the winning commit type, the label tracks the commits: breaking `type!:` → `xfeat`, `feat|feature:` → `feature`, `fix:` → `fix`, `chore|docs:` → `chore`. The breaking `!` rule must precede `feature` (else `feat!` is swallowed as a minor `feature`).
-3. `release-drafter.yml` config maps labels → semver bump: `feature` → minor, `fix`/`chore` → patch, `major`/`xfeat`/`xfeature` → major.
-4. On tag push (`v*.*.*`), `semantic_release.yml` cuts the GitHub release
+> **The PR body is a separate thing** and stays generated by the `commit-summary`
+> job: it is what a reviewer reads on the PR, and it no longer feeds the notes.
 
 ⚠️ **One labeler, title-only — don't hand-roll a second one.** The autolabeler can only match title/body/branch/files (never commit subjects). Label off the **title** and keep it the *only* labeler. Pitfalls: (a) a second label step in any workflow **fights** the autolabeler → labels flap (add/remove every push); (b) `branch:` rules flap when the branch name disagrees with the commits (e.g. branch `chore/…`, commits `feat:`) — so use **title-only** rules. Resist re-adding custom bash to "label from commit subjects"; the title already encodes the winning type.
 
-⚠️ **Stale superseded labels — NOT rare in a squash + rc-cycle repo.** The autolabeler only *adds*, never removes. When a PR's title flips type mid-life (`fix:` → `feat:` as scope grows — routine on a long-lived `feat/rcN` branch), the **old type label lingers alongside the new one**. release-drafter is PR-granular and lists a PR under **every** matching label's category, so a double-labelled PR shows up under *two* headings (e.g. both `## 🚀 Features` and `## 🔧 Fixes`) with its full `$BODY` duplicated under each. The `version-resolver` still picks the highest for the bump, but the **release notes are wrong**. This is common — not "rare since a PR is usually one type"; rc-cycle PRs routinely accrue mixed types and a flipping title. Fix with a **removal-only** step after the autolabeler (removal-only can't flap — it only ever subtracts the non-winning labels, keyed on the same title the autolabeler reads):
+⚠️ **Stale superseded labels — NOT rare in a squash + rc-cycle repo.** The autolabeler only *adds*, never removes. When a PR's title flips type mid-life (`fix:` → `feat:` as scope grows — routine on a long-lived `feat/rcN` branch), the **old type label lingers alongside the new one**. release-drafter is PR-granular and lists a PR under **every** matching label's category, so a double-labelled PR shows up under *two* headings (e.g. both `## 🚀 Features` and `## 🔧 Fixes`) with its full the same change listed under two release sections. The `version-resolver` still picks the highest for the bump, but the **release notes are wrong**. This is common — not "rare since a PR is usually one type"; rc-cycle PRs routinely accrue mixed types and a flipping title. Fix with a **removal-only** step after the autolabeler (removal-only can't flap — it only ever subtracts the non-winning labels, keyed on the same title the autolabeler reads):
 ```yaml
 # pr-checks.yml `label` job, step AFTER autolabeler@v7
 - name: Remove superseded type labels
@@ -109,7 +75,7 @@ Body in **`templates/hooks/commit-msg`** — copy it to `.githooks/commit-msg`, 
       fi
     done
 ```
-The `!`-breaking branch must come first (else `feat!` matches the `feat` arm). This is still **one source of truth** — the title — and removal-only, so it can't fight the autolabeler the way a second *adding* step does. Needs `pull-requests: write`. **Note this only fixes the *labels* (one PR → one category).** Within a single squash PR whose body lists mixed-type commits, the commits stay together under that PR's one category — sort *those* by grouping the PR body itself by commit type in the `commit-summary` job (bold emoji sub-heads), since release-drafter inlines `$BODY` verbatim under the category and does no intra-body sorting.
+The `!`-breaking branch must come first (else `feat!` matches the `feat` arm). This is still **one source of truth** — the title — and removal-only, so it can't fight the autolabeler the way a second *adding* step does. Needs `pull-requests: write`. **Note this only fixes the *labels* (one PR → one category).** Within a single squash PR whose body lists mixed-type commits, the commits stay together under that PR's one category — that no longer arises: the notes are built from commit subjects and each commit is classified on its own, so a mixed-type PR contributes to whichever sections its commits belong in.
 
 ⚠️ **Type-vocab gap (narrower than it looks — verify against the config, not from memory).** The autolabeler maps `feat`/`feature` → **feature**, `fix` → **fix**, `chore`/`docs`/`refactor`/`perf`/`test`/`build`/`ci`/`style` → **chore**, and any `type!:` → **xfeat**. So `ci:`, `refactor:`, `perf:`, `build:`, `style:` and `test:` **are** labelled (as `chore` → 🧰 Maintenance → patch). The real gap is **`revert:`**, which `lint_pr` accepts and the autolabeler maps to nothing → no label → no release-drafter category. **This matters more now a human types the title.** A `revert:` PR — or any non-Conventional title — passes `lint_pr` and still ends up unlabelled, hence uncategorised and invisible to the version gate. The `title-check` job in `pr-checks.yml` catches it: it reads the PR's **actual labels** (ground truth, so it can't drift from this config), and `needs: label` guarantees the autolabeler has already run and comments with a suggested title type derived from the commits. It does not edit the title; that's the author's call. Don't hand-patch the label either — the autolabeler rewrites it on the next `synchronize`.
 
@@ -167,6 +133,6 @@ The old advice also suggested a `push:` trigger on the version gate so it ran on
 
 **Keeping `>=` floors current (custom, since Dependabot can't):** a small `scripts/update_manifest_floors.py` (parse manifest requirements, query PyPI `…/pypi/{name}/json` for the latest non-prerelease, raise the floor if newer; `--check` to dry-run) plus a scheduled `update_manifest_floors.yml` (`schedule:` + `workflow_dispatch`) that runs it and — on a change — commits to a branch, pushes, and **opens its own PR** (`gh pr create`). Since no workflow opens PRs generally, this one must do it itself; guard with `gh pr list --head <branch> --state open` so a re-run updates rather than duplicates. The resulting PR is bot-authored, so `commit-summary` skips it — give it a title with a mapped type (`chore:`) so the autolabeler still files it. The floor-bump PR needs **no manifest version bump** under the last-release gate model above.
 
-**Two Dependabot consequences, both covered above:** the **version gate** must compare against the last release and **exempt `dependabot[bot]`** (see the versioning section), and the release notes must **scrub Dependabot's body fluff via `replacers`** while keeping `$BODY` for human detail (see the canonical release-notes pattern in release-drafter — *not* the old "drop `$BODY`" workaround).
+**Two Dependabot consequences, both covered above:** the **version gate** must compare against the last release and **exempt `dependabot[bot]`** (see the versioning section), and Dependabot's PR body no longer reaches the notes at all, since they are built from commit subjects; its `chore: bump …` subject is classified as Maintenance like any other commit.
 
 ---
