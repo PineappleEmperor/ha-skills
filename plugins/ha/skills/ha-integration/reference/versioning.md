@@ -64,28 +64,25 @@ exit 0
 
 **Put the narrative in the release, not the commit.** The human-readable "what changed and why it matters" belongs in the **PR description / release notes** (surfaced by release-drafter / `generate_release_notes`), which is where users actually read it. Keep commits terse; write the detail once, in the release description.
 
-**Match release-drafter when writing the PR body.** If `change-template` includes `$BODY`, the PR description is inlined **under** its category heading (e.g. `### 🚀 Features`). So the body must nest cleanly: use **bold emoji sub-heads** (`**🧩 Engine**`), not `#`/`##` — top-level headings render bigger than the category and clash. Mirror the config's emoji category style, and label the PR so it lands in the intended category (e.g. a `major`/`xfeature` label → 🚨 Breaking Change). Note release-drafter draws the PR body via the GraphQL path; `gh pr edit` can fail on the Projects-classic deprecation — set title/body via `gh api -X PATCH repos/{o}/{r}/pulls/{n} -f title=… -F body=@file` instead.
+**The PR body is generated, not written.** `$BODY` inlines the whole description under its category heading, so the `commit-summary` block is the body and its bold emoji sub-heads are shaped to nest there. Label the PR so it lands in the intended category (e.g. a `major`/`xfeature` label → 🚨 Breaking Change). Note release-drafter draws the PR body via the GraphQL path; `gh pr edit` can fail on the Projects-classic deprecation — set title/body via `gh api -X PATCH repos/{o}/{r}/pulls/{n} -f title=… -F body=@file` instead.
 
 > ✅ **Canonical release-notes pattern (Dependabot + `$BODY` + `replacers` scrub) — the standard for every repo.** Keep `$BODY` in `change-template` so **human** PRs surface their grouped mini-changelog (the `commit-summary` job in `pr-checks.yml` builds it — see below), and scrub Dependabot's noise with release-drafter **`replacers`** (native regex find/replace over the *rendered* notes). This **supersedes the older "drop `$BODY` when Dependabot is on" advice** — that worked but threw away the human per-commit detail. release-drafter has **no per-category `change-template`** (verified), so `$BODY` is global (all PRs or none); `replacers` is the only way to keep human detail *and* strip bot fluff.
 >
 > - **Group the PR body by commit type** in the `commit-summary` job of `pr-checks.yml`: classify each subject in the PR (`breaking`/`feat`/`fix`/`maint`/`other`), emit bold emoji sub-heads mirroring the categories in `.github/release-drafter.yml` (`  **🚀 Features**`, `  **🔧 Fixes**`, `  **🧰 Maintenance**`…) with the descriptions under each, into a marked block spliced into the PR body. ⚠️ Every line keeps a two-space base indent so the block nests under the `- $TITLE …` bullet. Strip that from the first line and the opening sub-head sits flush left while every later one stays indented, which is what a bare `.strip()` in the splice step does; use `.strip("\n")`. release-drafter inlines `$BODY` verbatim under the PR's one category and does **no** intra-body sorting, so the grouping must happen at body-generation time.
-> - ⚠️ **Put long rationale in `<details>`, or it lands in the release notes verbatim.** `$BODY` is the **whole** PR description, not just the generated block. While a bot owned the body this didn't matter — the body *was* the grouped list. Now that humans write PR descriptions and `commit-summary` only appends a block, every paragraph of design discussion is inlined under the category. One verbose PR turns a four-line release note into forty.
+> - ⚠️ **Do not write a PR body. The commit subjects are the body.** The
+>   `commit-summary` job accumulates them into the marked block, and `$BODY` inlines
+>   that into the release notes. A PR description is either empty (single commit, the
+>   title already says it) or the generated block, nothing else.
 >
->   No config change is needed: the Dependabot `replacers` already strip `<details>…</details>` globally, so the convention is free. Keep two or three sentences of summary at the top of the PR body, and wrap everything else:
+>   This is why commit subjects must be tight imperatives: they are the changelog,
+>   read by users, not notes to yourself. Effort belongs in the subject line, not in
+>   a description written afterwards.
 >
->   ```markdown
->   One-paragraph summary — this is what appears in the release notes.
+>   Anything you would put in a description — reasoning, alternatives considered,
+>   verification notes — goes in the PR **conversation**, where reviewers read it and
+>   `$BODY` does not. `$BODY` is the whole description, so prose there is republished
+>   verbatim in the release notes under the PR author's name.
 >
->   <details><summary>Full rationale, design notes and verification</summary>
->
->   …everything else…
->
->   </details>
->   ```
->
->   ⚠️ **Never write a literal `&lt;details&gt;` or `&lt;/details&gt;` as text in the body — escape it.** The replacer is a regex, not a parser: it matches the *first* opening tag to the *first* closing tag anywhere in the body, and it cannot tell a real tag from one inside backticks or a code fence. A PR that mentions the convention in prose (`the \`<details>\` convention…`) has its match start at that inline mention and run to the real closer, so the strip eats the summary you meant to keep and leaves a dangling fragment in the release notes. Both a stray opener and a stray closer break it, in different places. Write `&amp;lt;details&amp;gt;` when you need to refer to the tag.
->
->   Verified on a live draft: a ~40-line PR body collapsed to its summary paragraph, with the generated commit block still present. Also verified the failure: two rounds of mangled notes on a PR that discussed the convention, fixed only by escaping every literal tag outside the real wrapper. If you only notice after merging, edit the merged PR's body and re-run the Release Drafter workflow — it regenerates the draft from the current bodies.
 > - **`change-template`** keeps the two-line `$BODY` form:
 >   ```yaml
 >   change-template: |-
