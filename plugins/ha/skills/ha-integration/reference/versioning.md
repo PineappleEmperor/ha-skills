@@ -186,7 +186,7 @@ Observed: a job wrote `subjects.txt`, then checked out (which clears the workspa
 
 **How to handle it.** This is the ONLY sanctioned reason to merge with a red check, and it applies to one job on one PR: the job whose own definition the PR is fixing. Confirm first by diffing the base copy against the branch copy (`git show origin/main:.github/workflows/pr-checks.yml` versus the branch's), state in the PR that the failure is the bug being fixed, then verify on the **next** PR, the first to run the corrected workflow from `main`.
 
-⚠️ **It is not general licence, and it has been misread as such.** A red check on any other job, or on a PR that is not fixing that job, means stop. The failure this exception was written for is structural and provable in a diff; every other red check is the gate doing its job. Treat "I understand why it is red" as a reason to fix it, not to merge it.
+⚠️ **It is not general licence, and it has been misread as such.** The full rule, with the rationalisation table and red flags, is *Merge discipline* in `SKILL.md`. A red check on any other job, or on a PR that is not fixing that job, means stop. The failure this exception was written for is structural and provable in a diff; every other red check is the gate doing its job. Treat "I understand why it is red" as a reason to fix it, not to merge it.
 
 The same property makes a *new* `pull_request_target` workflow inert on the PR that introduces it: it only starts running once merged.
 
