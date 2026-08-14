@@ -131,6 +131,28 @@ Check the current working directory:
 
 The `description`, `issues`, and `topics` checks fail silently until the first `hacs_validate` run — they're GitHub settings, not files.
 
+#### Make the checks REQUIRED — a workflow is not a gate until it can block a merge
+
+⚠️ **Every workflow in this stack is advisory by default.** GitHub will happily let anyone merge a PR with `pr-checks`, the version gate, hassfest and HACS all red. The gate architecture in this skill assumes it can stop a bad merge; nothing in a fresh repo gives it that power. Configure this on the repo, once, or none of the rest is enforcement.
+
+Under **Settings → Rules → Rulesets**, on a ruleset targeting the default branch, enable **Require status checks to pass** and add the contexts (they are the *job names*, not the workflow names):
+
+| Context | From |
+|---|---|
+| `Label from title` · `Title is labellable` · `Manifest version bumped vs last release` · `Commit summary in PR body` | `pr-checks.yml` |
+| `Validate PR title` | `lint_pr.yml` |
+| `hassfest` · `hacs` | `hassfest_validate.yml` · `hacs_validate.yml` |
+| `lint-and-type` | `python_validate.yml` |
+| `audit` | `quality_audit.yml` |
+
+⚠️ **Do not require a path-filtered workflow.** `frontend_build.yml` only triggers on changes under `frontend/` or `custom_components/*/panel/`. A required check that never runs never reports, and GitHub treats "expected but missing" as blocking, so every PR that doesn't touch those paths would wait forever. Leave `build` out of the required list; the path filter is what makes it useful.
+
+Also keep **Restrict deletions** and **Block force pushes**.
+
+⚠️ **Check `bypass_actors`.** A ruleset that grants repository admins `bypass_mode: always` is not a constraint on anyone holding admin — the push simply reports `Bypassed rule violations` and proceeds. If the point is to stop *yourself* (or an agent acting with your credentials) from merging past a red check, the bypass list has to be empty, and overruling then becomes a deliberate edit to the ruleset rather than a silent default.
+
+> **For AI sessions specifically.** An agent running with your `gh` credentials merges exactly as you do. Two things make that dangerous: a broad allow-rule such as `Bash(gh pr *)` in `.claude/settings.local.json` pre-approves `gh pr merge`, so no prompt appears; and an admin `bypass_mode: always` means even a required check does not stop the merge. Narrow the allow-rule to the verbs you mean (`Bash(gh pr view *)`, `Bash(gh pr list *)`), and give the agent a credential without **Administration** if it should not be able to edit rulesets or force-push. A restriction the agent can lift is friction, not a limit.
+
 **GitHub workflows** — look for existing workflow files in the current project first and replicate the same patterns. If none exist, use standard HA integration CI:
 - `.github/workflows/semantic_release.yml` — triggers on `v*.*.*` tag push; uses `softprops/action-gh-release@v3` with `generate_release_notes: true`. Tags containing `beta` auto-marked as prerelease. No npm, no semantic-release tooling needed.
 - `.github/workflows/release.yml` — **Create Release ZIP.** Triggers on `release: published`; zips the contents of `custom_components/<domain>/` (files at the **zip root**, not nested) and attaches it as the `<filename>` asset declared in `hacs.json`. **Required whenever `hacs.json` sets `zip_release: true`** — HACS downloads that asset, so a missing zip = `Could not download` on install. Body in `templates/.github/workflows/release.yml`; rationale in `reference/github-actions.md`. (The `release: published` trigger fires when a human publishes the drafted release; a release *created* by `GITHUB_TOKEN` would be suppressed by the anti-recursion rule, so publish from the draft, don't auto-create via token.)

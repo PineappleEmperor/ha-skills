@@ -189,6 +189,31 @@ for w in hacs_validate hassfest_validate; do
     && FAIL "$w.yml sets ignore: — ignoring any check disqualifies the repo from the HACS default store"
 done
 
+# --- The checks must actually be able to block a merge ---
+# Every workflow here is ADVISORY until the default branch requires it. A repo can
+# have the whole gate stack green-or-red and still merge either way, which makes the
+# architecture decorative. Needs a token that can read rulesets, so it degrades to a
+# WARN when unavailable rather than failing a local run.
+if command -v gh >/dev/null 2>&1 && [ -n "${GITHUB_REPOSITORY:-}" ]; then
+  branch=$(gh api "repos/$GITHUB_REPOSITORY" --jq .default_branch 2>/dev/null || echo "")
+  if [ -n "$branch" ]; then
+    rules=$(gh api "repos/$GITHUB_REPOSITORY/rules/branches/$branch" --jq '[.[].type]' 2>/dev/null || echo "")
+    if [ -z "$rules" ]; then
+      WARN "could not read branch rules for $branch (token lacks permission?) — verify required status checks by hand"
+    else
+      printf '%s' "$rules" | grep -q required_status_checks \
+        || FAIL "no required status checks on $branch — every workflow in this stack is advisory and a red PR can be merged (see 'Make the checks REQUIRED' in SKILL.md)"
+      printf '%s' "$rules" | grep -q non_fast_forward \
+        || WARN "force-pushes to $branch are not blocked"
+      # An admin bypass of `always` means a required check stops nobody who holds admin.
+      gh api "repos/$GITHUB_REPOSITORY/rulesets" --jq '.[].id' 2>/dev/null | while read -r rid; do
+        gh api "repos/$GITHUB_REPOSITORY/rulesets/$rid" --jq '.bypass_actors[]? | select(.bypass_mode=="always") | .actor_type' 2>/dev/null
+      done | grep -q . \
+        && WARN "a ruleset grants bypass_mode: always — required checks do not constrain anyone holding that role"
+    fi
+  fi
+fi
+
 # --- Exactly ONE labeler ---
 # pr-checks.yml's `label` job is it. A second labeler (classically a
 # release-drafter autolabeler job on pull_request) makes labels flap AND breaks
