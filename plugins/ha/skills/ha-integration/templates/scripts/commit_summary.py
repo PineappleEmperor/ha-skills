@@ -25,9 +25,13 @@ MAINT = frozenset({"chore", "docs", "refactor", "perf", "test", "build", "ci", "
 # version-shaped": an earlier pattern ended in `to v?\d+\.\d+`, which silently ate
 # `chore: bump actions/checkout from 6.0.0 to 7.0.1` — i.e. every semver dependency
 # bump vanished from the notes.
+# Release plumbing, not a changelog entry. The noun list stays closed on purpose:
+# allowing arbitrary words before "to <semver>" would swallow every Dependabot
+# bump ("bump aiohttp to 3.10.1"), which is a real change and must reach the notes.
 BUMP = re.compile(
     r"^[a-z]+(\([^)]*\))?:\s*bump\s+(the\s+)?"
-    r"((manifest|plugin|integration|skill)\s+)?version\b",
+    r"((manifest|plugin|integration|skill|marketplace|ha)\s+)*"
+    r"(version\b|to\s+v?\d+\.\d+)",
     re.I,
 )
 

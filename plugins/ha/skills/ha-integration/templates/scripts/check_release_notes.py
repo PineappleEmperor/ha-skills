@@ -39,9 +39,22 @@ def render(md: str) -> str:
     return MarkdownIt("commonmark").render(md)
 
 
-def check(notes: str) -> list[str]:
+def check(notes: str, version: str | None = None) -> list[str]:
     """Return a list of problems; empty means the notes are well formed."""
     problems: list[str] = []
+
+    # A major bump with nothing under Breaking Changes. The version comes from the
+    # PR label, which is set from the PR TITLE, but the notes are built from COMMIT
+    # subjects. Mark a PR `feat!:` and leave the `!` off every commit and the release
+    # majors with no statement of what broke. v7.0.0 shipped exactly this.
+    if version:
+        major = version.lstrip("v").split(".")[0]
+        minor_patch = version.lstrip("v").split(".")[1:]
+        if major.isdigit() and int(major) > 0 and minor_patch[:2] == ["0", "0"]:
+            if "Breaking Change" not in notes:
+                problems.append(
+                    f"{version} is a major release with no Breaking Changes section; "
+                    "mark the breaking commit `type!:`, not just the PR title")
     html = render(notes)
 
     # A label glued to the end of a sibling bullet instead of heading its own item.
@@ -86,6 +99,7 @@ def main() -> int:
     src = ap.add_mutually_exclusive_group(required=True)
     src.add_argument("--tag", help="release tag to fetch with gh")
     src.add_argument("--file", help="local markdown file")
+    ap.add_argument("--version", help="version being released, to check major/breaking agreement")
     args = ap.parse_args()
 
     if args.tag:
@@ -100,7 +114,7 @@ def main() -> int:
         with open(args.file, encoding="utf-8") as fh:
             notes = fh.read()
 
-    problems = check(notes)
+    problems = check(notes, args.tag or args.version)
     if not problems:
         print("release notes render correctly")
         return 0

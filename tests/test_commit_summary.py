@@ -75,6 +75,11 @@ def test_classify(subject: str, group: str, desc: str) -> None:
         "chore: bump version to 5.0.1",
         "chore: bump the manifest version",
         "chore: bump integration version to 1.2.3",
+        # The bare form the release workflow actually writes. It leaked into
+        # Maintenance in the v7.0.1 draft because the pattern demanded the word
+        # "version" after the noun.
+        "chore: bump to 7.0.1",
+        "chore: bump the ha plugin to 6.4.0",
     ],
 )
 def test_release_plumbing_is_dropped(subject: str) -> None:

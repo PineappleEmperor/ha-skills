@@ -320,3 +320,18 @@ jobs:
           else
             echo "body already current"
           fi
+
+  # The 63 tests covering commit_summary.py and release_notes.py existed but no
+  # workflow ran them, so the code that writes the release description was never
+  # exercised in CI. That is how a broken notes pipeline stayed green.
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - run: pip install --quiet pytest markdown-it-py
+      - run: python -m pytest tests/ -q
