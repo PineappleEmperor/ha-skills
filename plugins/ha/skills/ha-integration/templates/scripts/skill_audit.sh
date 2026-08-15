@@ -13,11 +13,21 @@ WARN() { echo "⚠️  WARN: $*"; }
 # release.yml: absent -> HACS install fails with "Could not download" on a
 # zip_release repo. quality_audit.yml: absent -> THIS script never runs in CI,
 # and that is the one absence it can never report on a PR.
+# Split by what actually needs an integration. Run whole against a repo that has no
+# custom_components/ and the integration-only rows fire as false positives; a report
+# that is mostly noise gets waved away, which is how a real pull_request_target
+# finding sat unread in this very output.
 for w in pr-checks release_drafter semantic_release lint_pr \
-         hacs_validate hassfest_validate python_validate \
-         release quality_audit; do
+         python_validate quality_audit; do
   [ -f ".github/workflows/$w.yml" ] || FAIL "missing .github/workflows/$w.yml"
 done
+if [ -n "$CC" ]; then
+  for w in hacs_validate hassfest_validate release; do
+    [ -f ".github/workflows/$w.yml" ] || FAIL "missing .github/workflows/$w.yml"
+  done
+else
+  echo "ℹ️  no custom_components/ — skipping integration-only checks (HACS, hassfest, zip release, HA test harness)"
+fi
 [ -f .github/release-drafter.yml ] || FAIL "missing .github/release-drafter.yml"
 [ -f .github/dependabot.yml ]      || FAIL "missing .github/dependabot.yml"
 [ -f .gitignore ]                  || FAIL "missing .gitignore (copy templates/.gitignore)"
@@ -44,6 +54,20 @@ fi
 # Both scripts shipped, both sat unused: release_drafter.yml ran the drafter and
 # stopped, so every release used $CHANGES while the audit passed on file presence.
 # Presence is not wiring.
+# Every shipped script must be INVOKED by some workflow. Presence was checked one
+# script at a time, by hand, and each grep was added only after that script had
+# already shipped unwired: release_notes.py generated nothing for three releases and
+# manifest_gate.py is still unreferenced in this repo. Reachability is the property
+# that matters, so assert it for all of them at once rather than per-script.
+if [ -d scripts ] && [ -d .github/workflows ]; then
+  for s in scripts/*.py scripts/*.sh; do
+    [ -e "$s" ] || continue
+    base=$(basename "$s")
+    grep -rqF "$base" .github/workflows/ \
+      || FAIL "scripts/$base is never invoked by any workflow (shipped but dead — the check it performs does not run)"
+  done
+fi
+
 RD=.github/workflows/release_drafter.yml
 if [ -f "$RD" ]; then
   grep -q 'scripts/release_notes.py' "$RD" \
@@ -99,7 +123,7 @@ if [ "$QS_DONE_TESTCOV" = yes ] && [ -d frontend ]; then
 fi
 
 # --- CI actually runs the tests ---
-if [ -d tests ]; then
+if [ -d tests ] && [ -n "$CC" ]; then
   [ -f requirements.test.txt ] \
     || FAIL "tests/ exists but requirements.test.txt is missing (pytest step cannot install the suite)"
   # Root conftest, not tests/conftest: it must import `custom_components` before
@@ -120,7 +144,7 @@ if [ -d tests ]; then
 elif [ "$DONE_RULES" -gt 0 ]; then
   FAIL "quality_scale marks $DONE_RULES rule(s) done but there is no tests/ directory — a done without a test is a claim, not evidence (mark them todo, or exempt with a comment)"
 fi
-if [ -f requirements.test.txt ]; then
+if [ -f requirements.test.txt ] && [ -n "$CC" ]; then
   grep -qE 'pytest-homeassistant-custom-component[[:space:]]*==' requirements.test.txt \
     || WARN "pytest-homeassistant-custom-component is unpinned (it hard-pins the HA version the suite tests against)"
 fi
@@ -201,7 +225,7 @@ fi
 # runs (skill withheld) reached for `ignore: brands` to make a failing check pass
 # on day one, each rationalising it as temporary. Neither would have shipped to
 # the default store. The rule was documented from the start and ungated until now.
-for w in hacs_validate hassfest_validate; do
+for w in ${CC:+hacs_validate hassfest_validate}; do
   f=".github/workflows/$w.yml"
   [ -f "$f" ] || continue
   grep -nE '^[[:space:]]*ignore:' "$f" \
@@ -443,7 +467,9 @@ import pathlib, sys, yaml
 
 tmpl, repo = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])
 # Files this repo legitimately adapts; every other difference is drift.
-SANCTIONED = {"release_drafter.yml"}   # reads a plugin manifest, not an HA one
+SANCTIONED = {"release_drafter.yml",   # reads a plugin manifest, not an HA one
+              "pr-checks.yml",         # gather step reads plugin.json + marketplace.json
+              "python_validate.yml"}   # non-HA suite, runs on pull_request
 bad = False
 for tf in sorted(tmpl.rglob("*.yml")):
     rel = tf.relative_to(tmpl)
@@ -451,7 +477,10 @@ for tf in sorted(tmpl.rglob("*.yml")):
         continue
     rf = repo / rel
     if not rf.exists():
-        print(f"    missing: .github/{rel}"); bad = True; continue
+        # Presence is the canonical-workflows list's job, and that list knows which
+        # rows are integration-only. Enforcing it here too made the two disagree:
+        # a non-integration repo passed the list and failed this with the same file.
+        continue
     if yaml.safe_load(tf.read_text()) != yaml.safe_load(rf.read_text()):
         print(f"    diverges: .github/{rel}"); bad = True
 sys.exit(1 if bad else 0)
