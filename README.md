@@ -34,6 +34,22 @@ Add this repo as a marketplace and install the plugin from inside Claude Code:
 
 Update later with `/plugin marketplace update pineapple-claude-hacs`.
 
+### Without the plugin system
+
+Symlink the `SKILL.md` files into your commands directory to get plain
+`/ha-integration` and `/ha-panel-design`:
+
+```bash
+git clone git@github.com:PineappleEmperor/pineapple-claude-hacs.git
+ln -s "$PWD/pineapple-claude-hacs/plugins/ha/skills/ha-integration/SKILL.md"  ~/.claude/commands/ha-integration.md
+ln -s "$PWD/pineapple-claude-hacs/plugins/ha/skills/ha-panel-design/SKILL.md" ~/.claude/commands/ha-panel-design.md
+```
+
+That gets you the guidance without the templates. When it needs them the skill asks where
+you cloned the repo; it will not write the CI from memory.
+
+## Using the skills
+
 Claude invokes a skill when the task matches its `description`, or you can call one
 directly. Plugin skills are namespaced:
 
@@ -57,20 +73,6 @@ When the task touches a HA custom panel or any display/UI layer, invoke the
 `ha-panel-design` skill before changing it. Re-invoke after a `/compact`.
 ```
 
-### Without the plugin system
-
-Symlink the `SKILL.md` files into your commands directory to get plain
-`/ha-integration` and `/ha-panel-design`:
-
-```bash
-git clone git@github.com:PineappleEmperor/pineapple-claude-hacs.git
-ln -s "$PWD/pineapple-claude-hacs/plugins/ha/skills/ha-integration/SKILL.md"  ~/.claude/commands/ha-integration.md
-ln -s "$PWD/pineapple-claude-hacs/plugins/ha/skills/ha-panel-design/SKILL.md" ~/.claude/commands/ha-panel-design.md
-```
-
-That gets you the guidance without the templates. When it needs them the skill asks where
-you cloned the repo; it will not write the CI from memory.
-
 ## The CI templates
 
 Scaffolding an integration copies a working CI setup into it, from
@@ -80,7 +82,7 @@ Scaffolding an integration copies a working CI setup into it, from
 |---|---|
 | **PR checks** | One workflow whose jobs are ordered with `needs:`. Labels the PR from its title, checks the title is labellable, gates the version against the last published release, and collects the commit subjects into the PR body. |
 | **Validation** | hassfest, the eight HACS checks, ruff and pyright, and pytest with the Home Assistant test plugin already wired up. |
-| **Release** | Notes drafted from the PR labels, and the zip asset HACS installs from. |
+| **Release** | Notes generated from the commit subjects and grouped by type, validated before they publish, plus the zip asset HACS installs from. |
 | **Conformance** | `skill_audit.sh` runs on every PR and fails on a missing workflow, a stale action pin, a deprecated pattern, a `quality_scale.yaml` claiming rules it has no tests for, or a branch with no required status checks. |
 | **Repo setup** | A `commit-msg` hook, a `.gitignore`, and a branch ruleset, without which every check above is advisory and a red PR still merges. |
 | **Panels** | An esbuild pipeline that fails the build when the committed bundle is stale, plus the frontend test runner. |
@@ -91,13 +93,16 @@ audit looks for the files themselves.
 
 ## Development
 
-The skills are treated as code. `skill_audit.sh` and `manifest_gate.py` have unit tests, and
-this repo runs the same CI it scaffolds.
+The skills are treated as code. `commit_summary.py` and `release_notes.py` have unit tests that
+run on every PR, and this repo runs the PR checks it scaffolds. It is not itself a HA
+integration, so `skill_audit.sh` does not pass against it.
 
-[`evals/`](plugins/ha/skills/ha-integration/evals) holds pressure scenarios with their
-recorded results. Each states its pass and fail criteria and gets run twice, once with the
-skill and once with it withheld. If the withheld run passes too, the guidance was not doing
-anything and should go.
+[`evals/`](plugins/ha/skills/ha-integration/evals) holds five pressure scenarios, each
+stating its pass and fail criteria. The intent is to run every one twice, once with the
+skill and once with it withheld, because a withheld run that also passes means the guidance
+was doing nothing. Coverage is short of that: scenario 01 has both arms, 02 and 03 have only
+the with-skill run, and 04 (fork-PR labelling, which needs a second GitHub identity) and 05
+(merge discipline) have not been run.
 
 On the scaffolding task, the withheld runs produce a confident, well-tested CI setup that
 would not reach the HACS default store. With the skill, they stop and ask for the templates.
