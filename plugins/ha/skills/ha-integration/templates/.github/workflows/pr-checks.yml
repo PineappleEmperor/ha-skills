@@ -202,16 +202,25 @@ jobs:
         # manifest.json, so a fork PR controls that string entirely. Interpolated into
         # the command line it would be shell injection against a writable token.
         env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
           LAST_RELEASE: ${{ steps.gather.outputs.last_release }}
           MAIN_VERSION: ${{ steps.gather.outputs.main_version }}
           PR_VERSION: ${{ steps.gather.outputs.pr_version }}
           LABELS: ${{ steps.gather.outputs.labels }}
         run: |
+          # The count is computed here, not in manifest_gate.py: the gate runs from
+          # the trusted base checkout and must not run `git log` over PR-controlled
+          # refs. `gh` returns data only, and jq emits an integer.
+          BRK=$(gh pr view "$PR_NUMBER" --json commits \
+                --jq '[.commits[].messageHeadline | select(test("^[a-zA-Z]+(\\([^)]*\\))?!:"))] | length')
           python3 scripts/manifest_gate.py \
             --last-release "$LAST_RELEASE" \
             --main-version "$MAIN_VERSION" \
             --pr-version "$PR_VERSION" \
-            --labels "$LABELS"
+            --labels "$LABELS" \
+            --breaking-commits "$BRK"
 
   # -------------------------------------------------------- commit-summary ----
   # Reads only commits, so it declares no `needs` and runs in parallel. It lives
