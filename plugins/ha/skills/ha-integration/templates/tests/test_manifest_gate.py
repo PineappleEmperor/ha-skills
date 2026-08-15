@@ -48,3 +48,43 @@ def test_dependabot_exempt() -> None:
 
 def test_no_managed_label_passes_when_changed() -> None:
     assert ok("1.1.0", "1.1.0", "1.1.5", [])
+
+
+# --- title/commit breaking agreement -----------------------------------------
+# v7.0.0 was labelled major from a `feat!:` PR title while no commit carried `!`,
+# so the generated notes had no Breaking Changes section. The reverse ships a
+# breaking change as a minor. Neither was caught, because the version came from
+# the title and the notes came from the commits.
+
+def test_breaking_title_without_breaking_commit_fails() -> None:
+    ok, reason = evaluate("6.5.0", "6.5.0", "7.0.0", ["xfeat"], breaking_commits=0)
+    assert not ok
+    assert "no commit" in reason
+
+
+def test_breaking_commit_without_breaking_title_fails() -> None:
+    ok, reason = evaluate("6.5.0", "6.5.0", "6.6.0", ["feature"], breaking_commits=1)
+    assert not ok
+    assert "without a" in reason
+
+
+def test_breaking_title_with_breaking_commit_passes() -> None:
+    ok, _ = evaluate("6.5.0", "6.5.0", "7.0.0", ["xfeat"], breaking_commits=1)
+    assert ok
+
+
+def test_non_breaking_agreement_passes() -> None:
+    ok, _ = evaluate("6.5.0", "6.5.0", "6.6.0", ["feature"], breaking_commits=0)
+    assert ok
+
+
+def test_omitting_the_count_skips_the_check() -> None:
+    """Existing callers that pass no count keep their old behaviour."""
+    ok, _ = evaluate("6.5.0", "6.5.0", "7.0.0", ["xfeat"])
+    assert ok
+
+
+def test_dependabot_still_exempt_with_a_count() -> None:
+    ok, _ = evaluate("6.5.0", "6.5.0", "6.5.1", [], dependabot=True, breaking_commits=1)
+    assert ok
+

@@ -45,9 +45,31 @@ def _fmt(version: Version) -> str:
 
 
 def evaluate(last_release: str, main_version: str, pr_version: str,
-             labels: list[str], *, dependabot: bool = False) -> tuple[bool, str]:
+             labels: list[str], *, dependabot: bool = False,
+             breaking_commits: int | None = None) -> tuple[bool, str]:
     if dependabot:
         return True, "dependabot exempt"
+
+    # The version comes from the label, which comes from the PR TITLE. The release
+    # notes come from the COMMIT subjects. Nothing compared the two, so a PR titled
+    # `feat!:` with no `!` on any commit shipped a major whose notes had no Breaking
+    # Changes section, and a `!` commit under a `feat:` title shipped a breaking
+    # change as a minor. Both directions are caught here, before the version lands.
+    # PRECONDITION: labels must already be reconciled. The autolabeler only ADDS,
+    # so a PR retitled from `feat!:` to `fix:` keeps a stale `xfeat` and this would
+    # reject it. pr-checks.yml handles that: `version-gate` declares `needs: label`,
+    # and the label job removes superseded type labels before the gate runs. Reuse
+    # this function outside that ordering and you inherit the stale-label problem.
+    if breaking_commits is not None:
+        claims_breaking = bool({"xfeat", "xfeature", "major"} & set(labels))
+        if claims_breaking and breaking_commits == 0:
+            return False, ("PR title marks a breaking change but no commit does. "
+                           "The notes are built from commits, so this majors with an "
+                           "empty Breaking Changes section. Mark the commit `type!:`.")
+        if not claims_breaking and breaking_commits > 0:
+            return False, (f"{breaking_commits} commit(s) marked `type!:` but the PR "
+                           "title does not, so this ships a breaking change without a "
+                           "major bump. Retitle the PR `type!:` or drop the `!`.")
     base = parse_semver(last_release or "0.0.0")
     if is_prerelease(pr_version):
         if pr_version == last_release:
@@ -81,10 +103,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--pr-version", required=True)
     parser.add_argument("--labels", default="", help="comma-separated label names")
     parser.add_argument("--dependabot", action="store_true")
+    parser.add_argument("--breaking-commits", type=int, default=None,
+                        help="count of commits whose subject carries a Conventional "
+                             "Commit `!` marker; omit to skip the consistency check")
     args = parser.parse_args(argv)
     labels = [label.strip() for label in args.labels.split(",") if label.strip()]
     ok, reason = evaluate(args.last_release, args.main_version, args.pr_version,
-                          labels, dependabot=args.dependabot)
+                          labels, dependabot=args.dependabot,
+                          breaking_commits=args.breaking_commits)
     print(("✅ " if ok else "❌ ") + reason)
     return 0 if ok else 1
 
