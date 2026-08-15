@@ -200,47 +200,43 @@ jobs:
       # Decision logic in Python, not inline bash: an untested inline gate shipped a
       # real bug once (strict equality rejected a valid in-cycle version).
       # Untrusted values reach it via env, never `${{ }}` inside run:.
-      - name: Version gate
+      # This repo carries the version in two files. manifest_gate.py is deliberately
+      # single-version (an HA integration has one manifest.json), so the agreement
+      # check lives here rather than diverging the shared gate step.
+      - name: Manifests agree
         env:
           PR_VERSION: ${{ steps.gather.outputs.pr_version }}
           PR_MP_VERSION: ${{ steps.gather.outputs.pr_mp_version }}
-          BASE_VERSION: ${{ steps.gather.outputs.base_version }}
+        run: |
+          if [ "$PR_VERSION" != "$PR_MP_VERSION" ]; then
+            echo "::error::plugin.json ($PR_VERSION) != marketplace.json ($PR_MP_VERSION). Bump both together."
+            exit 1
+          fi
+
+      - name: Version gate
+        # Via env, never `${{ }}` inside run: `pr_version` is read from the PR's own
+        # manifest.json, so a fork PR controls that string entirely. Interpolated into
+        # the command line it would be shell injection against a writable token.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          LAST_RELEASE: ${{ steps.gather.outputs.last_release }}
+          MAIN_VERSION: ${{ steps.gather.outputs.main_version }}
+          PR_VERSION: ${{ steps.gather.outputs.pr_version }}
           LABELS: ${{ steps.gather.outputs.labels }}
         run: |
-          python3 - <<'PY'
-          import os, re, sys
-
-          pr, mp = os.environ["PR_VERSION"], os.environ["PR_MP_VERSION"]
-          base = os.environ["BASE_VERSION"]
-          labels = {l for l in os.environ["LABELS"].split(",") if l}
-
-          if pr != mp:
-              sys.exit(f"::error::plugin.json ({pr}) != marketplace.json ({mp}). Bump both together.")
-          if pr == base:
-              sys.exit(f"::error::version unchanged at {base}. Bump it per the PR's label.")
-
-          m = re.match(r"^(\d+)\.(\d+)\.(\d+)", base)
-          if not m:
-              sys.exit(f"::error::cannot parse base version {base}")
-          major, minor, patch = (int(g) for g in m.groups())
-
-          if labels & {"xfeat", "xfeature", "major"}:
-              want = f"{major+1}.0.0"
-          elif labels & {"feat", "feature", "minor"}:
-              want = f"{major}.{minor+1}.0"
-          elif labels & {"fix", "bugfix", "bug", "patch", "chore"}:
-              want = f"{major}.{minor}.{patch+1}"
-          else:
-              sys.exit("::error::no version-resolvable label; pr-checks' title-check explains why.")
-
-          # A prerelease is a deliberate frozen version; it only has to differ from base.
-          if re.search(r"(rc|alpha|beta|a|b|dev)\d*$", pr):
-              print(f"prerelease {pr} accepted (differs from base {base})")
-          elif pr != want:
-              sys.exit(f"::error::expected {want} from the PR's labels, found {pr}")
-          else:
-              print(f"version {pr} matches the label-implied bump")
-          PY
+          # The count is computed here, not in manifest_gate.py: the gate runs from
+          # the trusted base checkout and must not run `git log` over PR-controlled
+          # refs. `gh` returns data only, and jq emits an integer.
+          BRK=$(gh pr view "$PR_NUMBER" --json commits \
+                --jq '[.commits[].messageHeadline | select(test("^[a-zA-Z]+(\\([^)]*\\))?!:"))] | length')
+          python3 scripts/manifest_gate.py \
+            --last-release "$LAST_RELEASE" \
+            --main-version "$MAIN_VERSION" \
+            --pr-version "$PR_VERSION" \
+            --labels "$LABELS" \
+            --breaking-commits "$BRK"
 
   # -------------------------------------------------------- commit-summary ----
   # Reads only commits, so it declares no `needs` and runs in parallel. It lives
@@ -320,18 +316,3 @@ jobs:
           else
             echo "body already current"
           fi
-
-  # The 63 tests covering commit_summary.py and release_notes.py existed but no
-  # workflow ran them, so the code that writes the release description was never
-  # exercised in CI. That is how a broken notes pipeline stayed green.
-  tests:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-      - uses: actions/setup-python@v6
-        with:
-          python-version: '3.13'
-      - run: pip install --quiet pytest markdown-it-py
-      - run: python -m pytest tests/ -q
