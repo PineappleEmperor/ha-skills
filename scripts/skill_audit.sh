@@ -54,18 +54,62 @@ fi
 # Both scripts shipped, both sat unused: release_drafter.yml ran the drafter and
 # stopped, so every release used $CHANGES while the audit passed on file presence.
 # Presence is not wiring.
-# Every shipped script must be INVOKED by some workflow. Presence was checked one
-# script at a time, by hand, and each grep was added only after that script had
-# already shipped unwired: release_notes.py generated nothing for three releases and
-# manifest_gate.py is still unreferenced in this repo. Reachability is the property
-# that matters, so assert it for all of them at once rather than per-script.
+# Every script this skill SHIPS must be invoked by some workflow. Presence was
+# checked one script at a time, by hand, and each grep was added only after that
+# script had already shipped unwired: release_notes.py generated nothing for three
+# releases and manifest_gate.py sat unreferenced in the skill's own repo.
+#
+# Match `run:` bodies only. A plain grep over the workflow files counts a mention in
+# a COMMENT as an invocation, which is the same mistake one level up: checking for a
+# string rather than for the thing actually running.
+#
+# A repo's own developer utilities are a normal category and must not trip this, so
+# they opt out with a marker. The marker is ignored for the scripts this skill ships
+# — otherwise it would switch off the very wiring check it exists to enforce.
 if [ -d scripts ] && [ -d .github/workflows ]; then
-  for s in scripts/*.py scripts/*.sh; do
-    [ -e "$s" ] || continue
-    base=$(basename "$s")
-    grep -rqF "$base" .github/workflows/ \
-      || FAIL "scripts/$base is never invoked by any workflow (shipped but dead — the check it performs does not run)"
-  done
+  python3 - <<'PYWIRE' || fail=1
+import pathlib, sys, yaml
+
+SHIPPED = {"manifest_gate.py", "commit_summary.py", "release_notes.py",
+           "check_release_notes.py", "skill_audit.sh"}
+
+runs = []
+for wf in pathlib.Path(".github/workflows").glob("*.y*ml"):
+    try:
+        doc = yaml.safe_load(wf.read_text()) or {}
+    except yaml.YAMLError:
+        continue
+    for job in (doc.get("jobs") or {}).values():
+        for step in (job or {}).get("steps", []) or []:
+            runs.append(str((step or {}).get("run", "")))
+
+# Shell comments live INSIDE run: bodies, and pr-checks.yml explains manifest_gate.py
+# in one. Matching the raw body counts that explanation as an invocation, so drop
+# comment lines first. A trailing inline comment is not stripped; that would need a
+# shell parser, and a name appearing only there is not a realistic false pass.
+body = "\n".join(
+    line for r in runs for line in r.splitlines()
+    if not line.lstrip().startswith("#"))
+
+bad = False
+for s in sorted(pathlib.Path("scripts").glob("*")):
+    if s.suffix not in (".py", ".sh") or not s.is_file():
+        continue
+    if s.name in body:
+        continue
+    if s.name in SHIPPED:
+        print(f"❌ FAIL: scripts/{s.name} ships with this skill but no workflow step "
+              f"runs it (the check it performs never runs)")
+        bad = True
+        continue
+    head = "".join(s.read_text(errors="replace").splitlines(keepends=True)[:10])
+    if "skill-audit: local-tool" not in head:
+        print(f"❌ FAIL: scripts/{s.name} is not run by any workflow step. If it is a "
+              f"developer utility rather than a CI check, add "
+              f"'# skill-audit: local-tool' within its first 10 lines")
+        bad = True
+sys.exit(1 if bad else 0)
+PYWIRE
 fi
 
 RD=.github/workflows/release_drafter.yml
