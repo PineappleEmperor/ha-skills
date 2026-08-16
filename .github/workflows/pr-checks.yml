@@ -194,7 +194,14 @@ jobs:
             | base64 -d > pr_marketplace.json
           echo "pr_version=$(jq -r '.version' pr_plugin.json)" >> "$GITHUB_OUTPUT"
           echo "pr_mp_version=$(jq -r --arg n "$PLUGIN_NAME" '.plugins[]|select(.name==$n)|.version' pr_marketplace.json)" >> "$GITHUB_OUTPUT"
-          echo "base_version=$(jq -r '.version' "$PLUGIN_MANIFEST")" >> "$GITHUB_OUTPUT"
+          # manifest_gate.py compares against the last PUBLISHED release and uses the
+          # base branch's version only as a ceiling. The previous inline gate compared
+          # against the base branch alone, so these names differ; emitting the old
+          # `base_version` here left both gate inputs empty and it evaluated against
+          # 0.0.0.
+          echo "main_version=$(jq -r '.version' "$PLUGIN_MANIFEST")" >> "$GITHUB_OUTPUT"
+          TAG=$(gh release list --exclude-drafts --limit 1 --json tagName --jq '.[0].tagName')
+          echo "last_release=${TAG#v}" >> "$GITHUB_OUTPUT"
           echo "labels=$(gh pr view "$PR" --json labels -q '[.labels[].name]|join(",")')" >> "$GITHUB_OUTPUT"
 
       # Decision logic in Python, not inline bash: an untested inline gate shipped a
