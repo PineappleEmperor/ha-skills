@@ -25,7 +25,11 @@ jobs:
           fi
       - uses: softprops/action-gh-release@v3
         with:
-          generate_release_notes: true
+          # The body is written by release_notes.py on `release: published`.
+          # Leaving this true made both write it, and on ha-lego's v1.0.0rc1 they
+          # raced: the published notes carried GitHub's `What's Changed` beneath
+          # the grouped sections. The New Contributors block that this flag used
+          # to provide is now spliced in by release_notes.py.
           prerelease: ${{ steps.pre.outputs.prerelease }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

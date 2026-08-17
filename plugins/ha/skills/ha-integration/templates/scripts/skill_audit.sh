@@ -54,18 +54,132 @@ fi
 # Both scripts shipped, both sat unused: release_drafter.yml ran the drafter and
 # stopped, so every release used $CHANGES while the audit passed on file presence.
 # Presence is not wiring.
-# Every shipped script must be INVOKED by some workflow. Presence was checked one
-# script at a time, by hand, and each grep was added only after that script had
-# already shipped unwired: release_notes.py generated nothing for three releases and
-# manifest_gate.py is still unreferenced in this repo. Reachability is the property
-# that matters, so assert it for all of them at once rather than per-script.
+# Every script this skill SHIPS must be invoked by some workflow. Presence was
+# checked one script at a time, by hand, and each grep was added only after that
+# script had already shipped unwired: release_notes.py generated nothing for three
+# releases and manifest_gate.py sat unreferenced in the skill's own repo.
+#
+# Match `run:` bodies only. A plain grep over the workflow files counts a mention in
+# a COMMENT as an invocation, which is the same mistake one level up: checking for a
+# string rather than for the thing actually running.
+#
+# A repo's own developer utilities are a normal category and must not trip this, so
+# they opt out with a marker. The marker is ignored for the scripts this skill ships
+# — otherwise it would switch off the very wiring check it exists to enforce.
 if [ -d scripts ] && [ -d .github/workflows ]; then
-  for s in scripts/*.py scripts/*.sh; do
-    [ -e "$s" ] || continue
-    base=$(basename "$s")
-    grep -rqF "$base" .github/workflows/ \
-      || FAIL "scripts/$base is never invoked by any workflow (shipped but dead — the check it performs does not run)"
-  done
+  python3 - <<'PYWIRE' || fail=1
+import pathlib, sys, yaml
+
+SHIPPED = {"manifest_gate.py", "commit_summary.py", "release_notes.py",
+           "check_release_notes.py", "skill_audit.sh"}
+
+runs = []
+for wf in pathlib.Path(".github/workflows").glob("*.y*ml"):
+    try:
+        doc = yaml.safe_load(wf.read_text()) or {}
+    except yaml.YAMLError:
+        continue
+    for job in (doc.get("jobs") or {}).values():
+        for step in (job or {}).get("steps", []) or []:
+            runs.append(str((step or {}).get("run", "")))
+
+# Shell comments live INSIDE run: bodies, and pr-checks.yml explains manifest_gate.py
+# in one. Matching the raw body counts that explanation as an invocation, so drop
+# comment lines first. A trailing inline comment is not stripped; that would need a
+# shell parser, and a name appearing only there is not a realistic false pass.
+body = "\n".join(
+    line for r in runs for line in r.splitlines()
+    if not line.lstrip().startswith("#"))
+
+bad = False
+for s in sorted(pathlib.Path("scripts").glob("*")):
+    if s.suffix not in (".py", ".sh") or not s.is_file():
+        continue
+    if s.name in body:
+        continue
+    if s.name in SHIPPED:
+        print(f"❌ FAIL: scripts/{s.name} ships with this skill but no workflow step "
+              f"runs it (the check it performs never runs)")
+        bad = True
+        continue
+    marked = any(line.lstrip().startswith("#") and "skill-audit: local-tool" in line
+                 for line in s.read_text(errors="replace").splitlines())
+    if not marked:
+        print(f"❌ FAIL: scripts/{s.name} is not run by any workflow step. If it is a "
+              f"developer utility rather than a CI check, add a comment line "
+              f"'# skill-audit: local-tool' anywhere in it")
+        bad = True
+sys.exit(1 if bad else 0)
+PYWIRE
+fi
+
+# Exactly one thing may write the release body. Two did, and on a tagged release they
+# raced: the published notes carried GitHub's `What's Changed` beneath the grouped
+# sections. check_release_notes.py cannot catch that — it runs inside the workflow
+# that writes first, so it validates a body that is still correct at the time.
+# Counts every writer: `gh release edit --notes*`, `generate_release_notes: true`, and
+# an explicit `body:` on a release action. The generate-notes API only renders a body,
+# so it is not a writer.
+if [ -d .github/workflows ]; then
+  python3 - <<'PYBODY' || fail=1
+import pathlib, re, sys, yaml
+
+writers = []
+for wf in pathlib.Path(".github/workflows").glob("*.y*ml"):
+    try:
+        doc = yaml.safe_load(wf.read_text()) or {}
+    except yaml.YAMLError:
+        continue
+    for jn, job in (doc.get("jobs") or {}).items():
+        for step in (job or {}).get("steps", []) or []:
+            step = step or {}
+            run = str(step.get("run", ""))
+            live = "\n".join(l for l in run.splitlines() if not l.lstrip().startswith("#"))
+            if re.search(r"gh release (edit|create)[^\n]*--notes", live):
+                writers.append(f"{wf.name}:{jn} (gh release --notes)")
+            with_ = step.get("with") or {}
+            if str(with_.get("generate_release_notes", "")).lower() == "true":
+                writers.append(f"{wf.name}:{jn} (generate_release_notes)")
+            if "body" in with_ or "body_path" in with_:
+                writers.append(f"{wf.name}:{jn} (body)")
+
+if len(writers) > 1:
+    print("❌ FAIL: more than one workflow step writes the release body; they race and "
+          "the published notes end up containing both:")
+    for w in writers:
+        print(f"    {w}")
+    sys.exit(1)
+sys.exit(0)
+PYBODY
+fi
+
+# `labeled`/`unlabeled` plus `cancel-in-progress` is a merge deadlock. Our autolabeler
+# cannot fire those events (the default token suppresses them), but Dependabot can:
+# it applies several labels at once, each starting a run, and the concurrency group
+# cancels all but the last. CANCELLED check-runs make the rollup FAILURE even though
+# nothing failed, and a required-checks ruleset then refuses the merge. Verified on
+# ha-lego #22: mergeable MERGEABLE, rollup FAILURE, three cancelled contexts.
+# Re-running one cancelled run flipped the rollup to SUCCESS with no other change,
+# which is what proves it was the cancellations and not the skipped jobs.
+#
+# A SKIPPED job is fine and does satisfy a required check — do not "fix" that.
+if [ -f .github/workflows/pr-checks.yml ]; then
+  python3 - <<'PYCANCEL' || fail=1
+import pathlib, sys, yaml
+
+doc = yaml.safe_load(pathlib.Path(".github/workflows/pr-checks.yml").read_text()) or {}
+on = doc.get(True) or doc.get("on") or {}
+types = set((on.get("pull_request_target") or on.get("pull_request") or {}).get("types", []))
+cancels = bool((doc.get("concurrency") or {}).get("cancel-in-progress"))
+hazard = types & {"labeled", "unlabeled"}
+if hazard and cancels:
+    print(f"❌ FAIL: pr-checks.yml triggers on {sorted(hazard)} with "
+          f"cancel-in-progress. A bot applying several labels starts a run per label; "
+          f"the cancelled ones make the status rollup FAILURE and the PR unmergeable. "
+          f"Drop those types — the in-workflow autolabeler cannot fire them anyway.")
+    sys.exit(1)
+sys.exit(0)
+PYCANCEL
 fi
 
 RD=.github/workflows/release_drafter.yml
@@ -237,10 +351,12 @@ done
 # have the whole gate stack green-or-red and still merge either way, which makes the
 # architecture decorative. Needs a token that can read rulesets, so it degrades to a
 # WARN when unavailable rather than failing a local run.
-if command -v gh >/dev/null 2>&1 && [ -n "${GITHUB_REPOSITORY:-}" ]; then
-  branch=$(gh api "repos/$GITHUB_REPOSITORY" --jq .default_branch 2>/dev/null || echo "")
+if command -v gh >/dev/null 2>&1; then
+  REPO="${GITHUB_REPOSITORY:-$(gh repo view --json nameWithOwner --jq .nameWithOwner 2>/dev/null || echo "")}"
+  branch=""
+  [ -n "$REPO" ] && branch=$(gh api "repos/$REPO" --jq .default_branch 2>/dev/null || echo "")
   if [ -n "$branch" ]; then
-    rules=$(gh api "repos/$GITHUB_REPOSITORY/rules/branches/$branch" --jq '[.[].type]' 2>/dev/null || echo "")
+    rules=$(gh api "repos/$REPO/rules/branches/$branch" --jq '[.[].type]' 2>/dev/null || echo "")
     if [ -z "$rules" ]; then
       WARN "could not read branch rules for $branch (token lacks permission?) — verify required status checks by hand"
     else
@@ -249,8 +365,8 @@ if command -v gh >/dev/null 2>&1 && [ -n "${GITHUB_REPOSITORY:-}" ]; then
       printf '%s' "$rules" | grep -q non_fast_forward \
         || WARN "force-pushes to $branch are not blocked"
       # An admin bypass of `always` means a required check stops nobody who holds admin.
-      gh api "repos/$GITHUB_REPOSITORY/rulesets" --jq '.[].id' 2>/dev/null | while read -r rid; do
-        gh api "repos/$GITHUB_REPOSITORY/rulesets/$rid" --jq '.bypass_actors[]? | select(.bypass_mode=="always") | .actor_type' 2>/dev/null
+      gh api "repos/$REPO/rulesets" --jq '.[].id' 2>/dev/null | while read -r rid; do
+        gh api "repos/$REPO/rulesets/$rid" --jq '.bypass_actors[]? | select(.bypass_mode=="always") | .actor_type' 2>/dev/null
       done | grep -q . \
         && WARN "a ruleset grants bypass_mode: always — required checks do not constrain anyone holding that role"
     fi
@@ -269,8 +385,11 @@ import sys, yaml
 w = yaml.safe_load(open(sys.argv[1]))
 triggers = set((w.get(True) or w.get("on") or {}))
 bad = []
-if triggers - {"push", "workflow_dispatch"}:
-    bad.append(f"triggers {sorted(triggers)} (expected push only)")
+# `release` is expected: a push maintains the draft, and `release: published` is the
+# last writer for both the draft-published and tag-pushed paths, so the body is
+# written once. Anything else here would be a second writer racing it.
+if triggers - {"push", "workflow_dispatch", "release"}:
+    bad.append(f"triggers {sorted(triggers)} (expected push and release only)")
 for name, jd in w.get("jobs", {}).items():
     if "label" in name.lower():
         bad.append(f"job '{name}' looks like a second labeler")
