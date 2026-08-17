@@ -2,25 +2,54 @@
   "name": "Protect main",
   "target": "branch",
   "enforcement": "active",
-  "conditions": { "ref_name": { "include": ["~DEFAULT_BRANCH"], "exclude": [] } },
+  "conditions": {
+    "ref_name": {
+      "include": [
+        "~DEFAULT_BRANCH"
+      ],
+      "exclude": []
+    }
+  },
   "rules": [
-    { "type": "deletion" },
-    { "type": "non_fast_forward" },
+    {
+      "type": "deletion"
+    },
+    {
+      "type": "non_fast_forward"
+    },
     {
       "type": "required_status_checks",
       "parameters": {
-        "strict_required_status_checks_policy": false,
+        "strict_required_status_checks_policy": true,
         "do_not_enforce_on_create": false,
         "required_status_checks": [
-          { "context": "Label from title" },
-          { "context": "Title is labellable" },
-          { "context": "Manifest version bumped vs last release" },
-          { "context": "Commit summary in PR body" },
-          { "context": "Validate PR title" },
-          { "context": "hassfest" },
-          { "context": "hacs" },
-          { "context": "lint-and-type" },
-          { "context": "audit" }
+          {
+            "context": "Label from title"
+          },
+          {
+            "context": "Title is labellable"
+          },
+          {
+            "context": "Manifest version bumped vs last release"
+          },
+          {
+            "context": "Commit summary in PR body"
+          },
+          {
+            "context": "Validate PR title"
+          },
+          {
+            "context": "hassfest"
+          },
+          {
+            "context": "hacs"
+          },
+          {
+            "context": "lint-and-type"
+          },
+          {
+            "context": "audit"
+          }
         ]
       }
     }
