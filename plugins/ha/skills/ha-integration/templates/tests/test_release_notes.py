@@ -66,3 +66,49 @@ def test_no_changes_says_so(monkeypatch) -> None:
     """An empty range must not render an empty document."""
     monkeypatch.setattr(rn, "_git", lambda *a: "")
     assert rn.build("v1..HEAD").strip() == "_No user-facing changes._"
+
+
+GH_NOTES = "\n".join([
+    "## What's Changed",
+    "* fix: close the session by @someone in https://x/y/pull/7",
+    "",
+    "## New Contributors",
+    "* @newbie made their first contribution in https://x/y/pull/7",
+    "* @dependabot[bot] made their first contribution in https://x/y/pull/8",
+    "",
+    "**Full Changelog**: https://x/y/compare/v1.0.0...v1.1.0",
+])
+
+
+def test_new_contributors_takes_only_that_section() -> None:
+    """GitHub's `What's Changed` and compare line must not come with it."""
+    block = rn.new_contributors(GH_NOTES)
+    assert block.startswith("## New Contributors")
+    assert "@newbie" in block
+    assert "What's Changed" not in block
+    assert "Full Changelog" not in block
+
+
+def test_new_contributors_drops_bots() -> None:
+    """Thanking dependabot for its first contribution is noise, not credit."""
+    assert "dependabot" not in rn.new_contributors(GH_NOTES)
+    assert "dependabot" in rn.new_contributors(GH_NOTES, include_bots=True)
+
+
+def test_new_contributors_empty_when_only_bots() -> None:
+    """Filtering can empty the section, and a bare heading is worse than none."""
+    notes = "\n".join([
+        "## New Contributors",
+        "* @dependabot[bot] made their first contribution in https://x/y/pull/8",
+    ])
+    assert rn.new_contributors(notes) == ""
+
+
+def test_new_contributors_spliced_before_the_compare_link(monkeypatch) -> None:
+    """The block belongs in the body, above the compare link this file writes."""
+    monkeypatch.setattr(rn, "_git", lambda *a: "aaa\x00feat: thing")
+    monkeypatch.setattr(rn, "pr_for", lambda sha, head: None)
+    out = rn.build("v1..HEAD", repo_url="https://x/y", previous="v1.0.0", version="1.1.0",
+                   github_notes=GH_NOTES)
+    assert out.index("## New Contributors") < out.index("**Full Changelog**")
+    assert out.count("**Full Changelog**") == 1
