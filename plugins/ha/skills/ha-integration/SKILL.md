@@ -133,6 +133,26 @@ The `description`, `issues`, and `topics` checks fail silently until the first `
 
 #### Make the checks REQUIRED — a workflow is not a gate until it can block a merge
 
+> **A cancelled check blocks; a skipped one does not.** GitHub is explicit that a
+> skipped job satisfies a required check, so job-level `if:` guards are fine.
+> Cancelled runs are the hazard. Trigger on `labeled`/`unlabeled` with
+> `cancel-in-progress` and a bot applying several labels at once starts a run per
+> label; the concurrency group cancels all but the last, and those cancelled
+> check-runs make the rollup `FAILURE` with nothing broken. The PR then reports
+> `mergeable: MERGEABLE` and still cannot merge. Drop those two types: the
+> in-workflow autolabeler cannot fire them anyway, because the default token
+> suppresses events it causes.
+>
+> Confirmed by re-running a single cancelled run on ha-lego #22: the rollup went
+> from `FAILURE` to `SUCCESS` with nothing else changed.
+
+> **A matrix renames the check.** GitHub names a matrix job's check-run
+> `<job> (<value>)`, so a job `lint-and-type` with `python-version: ["3.14"]`
+> reports as `lint-and-type (3.14)` and a ruleset requiring the bare name waits
+> forever. `templates/ruleset.json` shipped exactly this bug. Either drop a
+> single-value matrix or put the suffixed name in the ruleset; never assume the
+> context equals the job name.
+
 ⚠️ **Every workflow here is advisory by default.** GitHub will let a PR merge with all of it red, so without this step the gate stack is decorative. Copy `templates/ruleset.json` and apply it once:
 
 ```bash
@@ -227,7 +247,7 @@ For each canonical file: read the template, write it to the target path byte-for
 | File | Allowed change |
 |---|---|
 | `.github/workflows/release.yml` | `<domain>` → the integration's domain (3 occurrences) |
-| `.github/workflows/python_validate.yml` | `python-version` matrix, **only** when HA's minimum Python has moved and the template is stale — fix the template too |
+| `.github/workflows/python_validate.yml` | `python-version`, **only** when HA's minimum Python has moved and the template is stale — fix the template too |
 | lint/format config (`pyproject.toml`, ruff) | exclusions needed to leave copied files unformatted |
 
 **Traps this section exists to close** (both have happened, with the reminder hook active and the agent believing it was complying):
