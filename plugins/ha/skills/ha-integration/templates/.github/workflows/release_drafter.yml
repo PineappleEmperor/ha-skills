@@ -1,8 +1,14 @@
 name: Release Drafter
 
+# Two events, one writer. A push maintains the draft; `release: published` is the
+# last thing to fire for both the draft-published and tag-pushed paths, so the body
+# is written once, last. Draft creation does not fire `published`, and the write uses
+# `gh release edit`, which fires `edited` — so this does not retrigger itself.
 on:
   push:
     branches: [main]
+  release:
+    types: [published]
 
 permissions:
   contents: write
@@ -19,9 +25,15 @@ jobs:
           fetch-depth: 0
       - id: ver
         name: Read version from manifest
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
-          MANIFEST=$(ls custom_components/*/manifest.json | head -1)
-          V=$(python3 -c "import json,sys;print(json.load(open(sys.argv[1]))['version'])" "$MANIFEST")
+          if [ -n "$RELEASE_TAG" ]; then
+            V="${RELEASE_TAG#v}"
+          else
+            MANIFEST=$(ls custom_components/*/manifest.json | head -1)
+            V=$(python3 -c "import json,sys;print(json.load(open(sys.argv[1]))['version'])" "$MANIFEST")
+          fi
           echo "version=$V" >> "$GITHUB_OUTPUT"
           if echo "$V" | grep -Eiq '[0-9][-._]?(rc|alpha|beta|dev|a|b)'; then
             echo "prerelease=true" >> "$GITHUB_OUTPUT"
@@ -29,6 +41,7 @@ jobs:
             echo "prerelease=false" >> "$GITHUB_OUTPUT"
           fi
       - uses: release-drafter/release-drafter@v7
+        if: github.event_name == 'push'
         with:
           version: ${{ steps.ver.outputs.version }}
           tag: v${{ steps.ver.outputs.version }}
@@ -49,10 +62,17 @@ jobs:
         run: |
           PREV=$(gh release list --exclude-drafts --limit 1 --json tagName --jq '.[0].tagName')
           git fetch --tags --quiet
+          # New Contributors comes from GitHub's own generator, because "first
+          # contribution" is its definition and reimplementing it would drift. This
+          # endpoint only renders a body; it does not touch the release.
+          gh api -X POST "repos/$GH_REPO/releases/generate-notes" \
+            -f tag_name="v$V" -f previous_tag_name="$PREV" --jq .body > gh_notes.md \
+            || : > gh_notes.md
           python3 scripts/release_notes.py \
             --range "${PREV}..HEAD" \
             --repo-url "https://github.com/$GH_REPO" \
-            --previous "$PREV" --version "$V" > notes.md
+            --previous "$PREV" --version "$V" \
+            --github-notes-file gh_notes.md > notes.md
           gh release edit "v$V" --notes-file notes.md
 
       # The release description is what users read, and nothing checked it. Every
