@@ -70,8 +70,48 @@ def pr_for(sha: str, head: str) -> str | None:
     return None
 
 
+def new_contributors(github_notes: str, *, include_bots: bool = False) -> str:
+    """The `## New Contributors` block out of GitHub's own generated notes.
+
+    Two workflows used to write the release body and raced, so a published release
+    carried both this file's output and GitHub's whole `## What's Changed` block.
+    Dropping GitHub's generator outright would have lost first-time contributors,
+    which nothing else produces, so take that one section and leave the rest.
+
+    Sourced rather than recomputed: "first contribution" is GitHub's definition and
+    reimplementing it would drift.
+    """
+    out: list[str] = []
+    for line in github_notes.splitlines():
+        if line.startswith("## "):
+            if out:
+                break
+            if "New Contributors" not in line:
+                continue
+            out.append(line)
+            continue
+        if not out or not line.strip():
+            continue
+        # Only list items belong to the section. Require the space: the trailing
+        # `**Full Changelog**` line is bold, not a heading, and `**` starts with the
+        # same character as a bullet, so testing for "*" alone still swallowed it.
+        if not line.lstrip().startswith(("* ", "- ")):
+            break
+        # GitHub counts bots. Thanking dependabot for its first contribution is
+        # noise, not credit.
+        if not include_bots and re.search(r"@[\w.-]+\[bot\]", line):
+            continue
+        out.append(line)
+    # Filtering can empty the section: ha-lego's only new contributor for v1.0.0rc1
+    # was dependabot, which left a bare heading with nothing under it.
+    if len(out) < 2:
+        return ""
+    return "\n".join(out).rstrip()
+
+
 def build(rev_range: str, repo_url: str | None = None, head: str = "HEAD",
-          previous: str | None = None, version: str | None = None) -> str:
+          previous: str | None = None, version: str | None = None,
+          github_notes: str | None = None, include_bots: bool = False) -> str:
     groups: dict[str, list[str]] = {k: [] for k in ORDER}
     seen: set[tuple[str, str]] = set()
 
@@ -98,6 +138,9 @@ def build(rev_range: str, repo_url: str | None = None, head: str = "HEAD",
     if not out:
         return "_No user-facing changes._"
 
+    if github_notes and (block := new_contributors(github_notes, include_bots=include_bots)):
+        out += [block, ""]
+
     if repo_url and previous and version:
         tag = version if version.startswith("v") else f"v{version}"
         out.append(f"**Full Changelog**: [{previous}...{tag}]({repo_url}/compare/{previous}...{tag})")
@@ -112,8 +155,18 @@ def main() -> int:
     ap.add_argument("--repo-url", help="https://github.com/owner/repo, to link PRs")
     ap.add_argument("--previous", help="previous tag, for the compare link")
     ap.add_argument("--version", help="version being released, for the compare link")
+    ap.add_argument("--github-notes-file",
+                    help="body from POST /releases/generate-notes; its New "
+                         "Contributors section is spliced in")
+    ap.add_argument("--include-bots", action="store_true",
+                    help="keep bot accounts in New Contributors")
     args = ap.parse_args()
-    print(build(args.range, args.repo_url, args.head, args.previous, args.version), end="")
+    gh_notes = None
+    if args.github_notes_file:
+        with open(args.github_notes_file, encoding="utf-8") as fh:
+            gh_notes = fh.read()
+    print(build(args.range, args.repo_url, args.head, args.previous, args.version,
+                github_notes=gh_notes, include_bots=args.include_bots), end="")
     return 0
 
 
