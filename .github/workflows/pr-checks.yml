@@ -19,7 +19,14 @@ name: PR Checks
 # data over the API; the body/comment jobs never check out at all.
 on:
   pull_request_target:
-    types: [opened, reopened, synchronize, edited, labeled, unlabeled]
+    # NOT `labeled`/`unlabeled`. The autolabeler runs inside this workflow with the
+    # default token, and GitHub suppresses events caused by that token, so those
+    # types never fire for our own labels. They DO fire for external actors:
+    # Dependabot applies three labels at once, which started five runs within two
+    # seconds on ha-lego #22. `cancel-in-progress` killed four, and the cancelled
+    # check-runs left the rollup FAILURE with nothing actually broken, so the PR
+    # was unmergeable.
+    types: [opened, reopened, synchronize, edited]
 
 permissions:
   contents: read
