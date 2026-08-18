@@ -68,6 +68,23 @@ def test_no_changes_says_so(monkeypatch) -> None:
     assert rn.build("v1..HEAD").strip() == "_No user-facing changes._"
 
 
+def test_empty_range_sentinel_is_flagged() -> None:
+    """A published body of `_No user-facing changes._` means the range was wrong.
+
+    v7.2.0 shipped a 25-character body over nine commits, because the previous tag
+    resolved to the release being written. Everything else about the body was valid,
+    so only a check for the sentinel itself catches it.
+    """
+    import importlib.util as _il
+    spec = _il.spec_from_file_location("check_release_notes", _SCRIPTS / "check_release_notes.py")
+    crn = _il.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(crn)
+
+    assert any("empty-range sentinel" in p for p in crn.check("_No user-facing changes._"))
+    assert not any("empty-range sentinel" in p for p in crn.check("## 🔧 Fixes\n\n- a real change"))
+
+
 GH_NOTES = "\n".join([
     "## What's Changed",
     "* fix: close the session by @someone in https://x/y/pull/7",
