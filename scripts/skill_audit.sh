@@ -183,6 +183,17 @@ sys.exit(0)
 PYPREV
 fi
 
+# A zip_release repo must patch the manifest version from the tag. HACS installs the
+# asset, so an unpatched zip ships whatever version the last PR happened to commit —
+# users then see the old version after updating, and nothing in CI notices because
+# hassfest only reads the repo copy. frenck/spook patches from `release: published`.
+if [ -f hacs.json ] && [ -f .github/workflows/release.yml ]; then
+  if grep -q '"zip_release"[[:space:]]*:[[:space:]]*true' hacs.json; then
+    grep -q 'manifest.json' .github/workflows/release.yml \
+      || FAIL "release.yml builds a zip_release asset without setting the manifest version from the tag (see templates/.github/workflows/release.yml)"
+  fi
+fi
+
 # `labeled`/`unlabeled` plus `cancel-in-progress` is a merge deadlock. Our autolabeler
 # cannot fire those events (the default token suppresses them), but Dependabot can:
 # it applies several labels at once, each starting a run, and the concurrency group
