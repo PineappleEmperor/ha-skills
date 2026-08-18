@@ -59,7 +59,12 @@ jobs:
           GH_REPO: ${{ github.repository }}
           V: ${{ steps.ver.outputs.version }}
         run: |
-          PREV=$(gh release list --exclude-drafts --limit 1 --json tagName --jq '.[0].tagName')
+          # Skip the release being written. On `release: published` it is already the
+          # newest non-draft, so a bare `--limit 1` returns its own tag, the range
+          # collapses to nothing and the body renders `_No user-facing changes._`.
+          # The draft written on push had the right notes; publishing destroyed them.
+          PREV=$(gh release list --exclude-drafts --limit 10 --json tagName --jq '.[].tagName' \
+            | grep -vx "v$V" | head -1)
           git fetch --tags --quiet
           # New Contributors comes from GitHub's own generator, because "first
           # contribution" is its definition and reimplementing it would drift. This
