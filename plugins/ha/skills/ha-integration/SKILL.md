@@ -87,6 +87,15 @@ Check the current working directory:
   ```
   (A user may *additionally* wire personal `SessionStart` + `UserPromptSubmit` hooks in their own `~/.claude/settings.json` to re-arm the rule and anchor the CI conventions per-turn — see `reference/github-actions.md` (reminder-hook recipe) for the full recipe. That's a personal convenience; the canonical, shareable enforcement still lives in the repo's `CLAUDE.md`.)
 - `hacs.json` — `name` is the only strict requirement, but the canonical setup ships a **zip release**: `{"name": "My Integration", "content_in_root": false, "zip_release": true, "filename": "<domain>.zip"}` (add `"homeassistant": "2024.1.0"` for a minimum HA version). `zip_release` makes HACS download a release **asset** named `<filename>` instead of the tag source archive — so it **requires** the `release.yml` *Create Release ZIP* workflow (`templates/.github/workflows/release.yml`) to build and attach that asset on every published release. **Without that workflow, HACS install fails with `Could not download`** (the symptom of a `zip_release` repo whose release has no attached zip). Drop `zip_release`/`filename` only if you deliberately want HACS to pull the whole tagged repo archive instead.
+
+  > **The tag is the version, not the committed manifest.** `release.yml` rewrites
+  > `manifest.json` from the release tag before zipping, so nobody hand-bumps a version
+  > in a PR and the asset users install always matches the release they installed it
+  > from. The committed value is a placeholder between releases. [frenck/spook](https://github.com/frenck/spook)
+  > patches from the same event; `skill_audit.sh` fails a `zip_release` repo whose
+  > `release.yml` doesn't. Overriding a bump is choosing the tag. This applies to
+  > integrations HACS installs as a zip — a repo whose *committed* file is what
+  > consumers read (a plugin marketplace, a library) still has to commit the bump.
 - `pyproject.toml`
 - `pyrightconfig.json`
 - `requirements.test.txt` — **required**; `python_validate.yml` installs from it and runs `pytest`, so an integration without it has no test job. Copy `templates/requirements.test.txt`. Pin `pytest-homeassistant-custom-component` to the release matching the HA version in the CI matrix (it tracks HA releases 1:1 — a mismatched pin fails at import, not at test time).
