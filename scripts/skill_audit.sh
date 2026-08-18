@@ -153,6 +153,36 @@ sys.exit(0)
 PYBODY
 fi
 
+# The previous tag must exclude the release being written. `gh release list --limit 1`
+# is correct for the version gate, which runs while the current version is unreleased,
+# and wrong here: on `release: published` it returns the tag being published, so the
+# range is empty and the body renders `_No user-facing changes._`. v7.2.0 shipped that
+# way — the draft written on push was right, the publish overwrote it. Two halves that
+# must agree, moved apart: the trigger changed, the tag lookup did not.
+if [ -f .github/workflows/release_drafter.yml ]; then
+  python3 - <<'PYPREV' || fail=1
+import pathlib, re, sys, yaml
+
+wf = pathlib.Path(".github/workflows/release_drafter.yml")
+text = wf.read_text()
+doc = yaml.safe_load(text) or {}
+on = doc.get(True) or doc.get("on") or {}
+if "release" not in on:
+    sys.exit(0)
+for step in (s for j in (doc.get("jobs") or {}).values() for s in (j or {}).get("steps", []) or []):
+    run = str((step or {}).get("run", ""))
+    if "release_notes.py" not in run:
+        continue
+    prev = next((l for l in run.splitlines() if re.match(r"\s*PREV=", l)), "")
+    if "--limit 1 " in prev or prev.rstrip().endswith("--limit 1"):
+        print("❌ FAIL: release_drafter.yml resolves the previous tag with `--limit 1` while "
+              "triggering on `release: published`; that returns the release being written and "
+              "the notes come out empty. Exclude the current tag.")
+        sys.exit(1)
+sys.exit(0)
+PYPREV
+fi
+
 # `labeled`/`unlabeled` plus `cancel-in-progress` is a merge deadlock. Our autolabeler
 # cannot fire those events (the default token suppresses them), but Dependabot can:
 # it applies several labels at once, each starting a run, and the concurrency group
