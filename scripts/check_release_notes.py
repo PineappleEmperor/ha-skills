@@ -55,6 +55,15 @@ def check(notes: str, version: str | None = None) -> list[str]:
                 problems.append(
                     f"{version} is a major release with no Breaking Changes section; "
                     "mark the breaking commit `type!:`, not just the PR title")
+    # The empty-range sentinel on a published release. release_notes.py emits it when
+    # `PREV..HEAD` holds no commits, which happens when PREV resolved to the release
+    # being written. v7.2.0 published a 25-character body over a range of nine commits,
+    # and every check passed because the body it validated was well formed.
+    if notes.strip() == "_No user-facing changes._":
+        problems.append(
+            "release body is the empty-range sentinel; the previous tag resolved to the "
+            "release being written, so the whole changelog was dropped")
+
     html = render(notes)
 
     # A label glued to the end of a sibling bullet instead of heading its own item.
