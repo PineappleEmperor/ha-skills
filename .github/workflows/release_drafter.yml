@@ -59,13 +59,24 @@ jobs:
           GH_REPO: ${{ github.repository }}
           V: ${{ steps.ver.outputs.version }}
         run: |
-          # Skip the release being written. On `release: published` it is already the
-          # newest non-draft, so a bare `--limit 1` returns its own tag, the range
-          # collapses to nothing and the body renders `_No user-facing changes._`.
-          # The draft written on push had the right notes; publishing destroyed them.
-          PREV=$(gh release list --exclude-drafts --limit 10 --json tagName --jq '.[].tagName' \
+          # The previous release is the last FULL one, never a prerelease. Measuring
+          # from the newest release of any kind means v1.4.0rc2 covers only what
+          # changed since rc1, and the final covers only what changed since rc2 —
+          # so the release users actually read lists almost nothing. Measuring from
+          # the last final makes every rc show the cumulative "what will ship", and
+          # the final show the complete set.
+          #
+          # Excluding the release being written matters on `release: published`,
+          # where it is already the newest non-draft and would otherwise match itself.
+          PREV=$(gh release list --exclude-drafts --limit 30 --json tagName,isPrerelease \
+            --jq '.[] | select(.isPrerelease == false) | .tagName' \
             | grep -vx "v$V" | head -1)
           git fetch --tags --quiet
+          # A full draft must exist even while prereleases are the newest releases,
+          # so going from rc to final is publishing a draft that already carries the
+          # cumulative notes, not building a release from scratch.
+          gh release view "v$V" >/dev/null 2>&1 \
+            || gh release create "v$V" --draft --title "v$V" --notes "pending"
           # New Contributors comes from GitHub's own generator, because "first
           # contribution" is its definition and reimplementing it would drift. This
           # endpoint only renders a body; it does not touch the release.
