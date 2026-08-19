@@ -23,32 +23,33 @@ jobs:
         # has no history, so the range fails to resolve.
         with:
           fetch-depth: 0
+      # The version comes from the merged PRs, not from a file. Each PR's label
+      # carries a semver-increment (see .github/release-drafter.yml) and the highest
+      # one since the last release wins. `release.yml` writes that number into
+      # manifest.json when the release publishes, so nothing in the repo has to
+      # carry a hand-written bump and the two can never disagree.
+      - uses: release-drafter/release-drafter@v7
+        id: drafter
+        if: github.event_name == 'push'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - id: ver
-        name: Read version from manifest
+        name: Resolve the version being released
         env:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RESOLVED: ${{ steps.drafter.outputs.resolved_version }}
         run: |
           if [ -n "$RELEASE_TAG" ]; then
             V="${RELEASE_TAG#v}"
           else
-            MANIFEST=$(ls custom_components/*/manifest.json | head -1)
-            V=$(python3 -c "import json,sys;print(json.load(open(sys.argv[1]))['version'])" "$MANIFEST")
+            V="$RESOLVED"
+          fi
+          if [ -z "$V" ]; then
+            echo "::error::no version resolved; a PR label with a semver-increment is required"
+            exit 1
           fi
           echo "version=$V" >> "$GITHUB_OUTPUT"
-          if echo "$V" | grep -Eiq '[0-9][-._]?(rc|alpha|beta|dev|a|b)'; then
-            echo "prerelease=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "prerelease=false" >> "$GITHUB_OUTPUT"
-          fi
-      - uses: release-drafter/release-drafter@v7
-        if: github.event_name == 'push'
-        with:
-          version: ${{ steps.ver.outputs.version }}
-          tag: v${{ steps.ver.outputs.version }}
-          name: v${{ steps.ver.outputs.version }}
-          prerelease: ${{ steps.ver.outputs.prerelease }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # release-drafter categorises by PR LABEL, one entry per PR, so a fix inside a
       # feat-titled PR files under Features. Surveyed HACS repos all group by the
