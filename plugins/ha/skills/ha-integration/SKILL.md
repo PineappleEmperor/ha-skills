@@ -140,6 +140,27 @@ Check the current working directory:
 
 The `description`, `issues`, and `topics` checks fail silently until the first `hacs_validate` run — they're GitHub settings, not files.
 
+#### `RELEASE_TOKEN` — set this up before the first release
+
+⚠️ **One secret, once per repo, or release automation silently half-works.** GitHub
+suppresses workflow events caused by `GITHUB_TOKEN`, so a release created by a workflow
+using it fires no `release: published` event: the notes never generate, the zip is never
+attached, and HACS installs fail with `Could not download` on a release that looks fine
+in the UI. `cut_rc.yml` fails loudly instead of producing that, and `skill_audit.sh`
+fails a repo that ships `cut_rc.yml` without the secret.
+
+Create it as a **fine-grained PAT** scoped to the one repo:
+
+1. github.com → Settings → Developer settings → Personal access tokens → Fine-grained
+2. **Repository access**: Only select repositories → this repo
+3. **Repository permissions**: `Contents: Read and write` — nothing else
+4. **Expiration**: 90 days or less; rotating is pasting a new value into the same secret
+5. Repo → Settings → Secrets and variables → Actions → New repository secret
+6. Name it exactly `RELEASE_TOKEN`, paste the value
+
+`Contents: write` is the whole grant: it can create releases and tags in this repo and
+nothing else — no PR merging, no ruleset edits, no other repository.
+
 #### Make the checks REQUIRED — a workflow is not a gate until it can block a merge
 
 > **A cancelled check blocks; a skipped one does not.** GitHub is explicit that a

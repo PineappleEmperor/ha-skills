@@ -647,4 +647,18 @@ sys.exit(1 if bad else 0)
 PYSD
 fi
 
+# A repo that ships cut_rc.yml needs the RELEASE_TOKEN secret it runs on. A release
+# created with GITHUB_TOKEN fires no `release: published` event, so the notes never
+# generate and no zip is attached — the release looks fine and HACS install fails.
+# Secret listing needs admin, so this checks when it can and says so when it cannot,
+# rather than passing silently.
+if [ -f .github/workflows/cut_rc.yml ]; then
+  if SECRETS=$(gh secret list --json name --jq '.[].name' 2>/dev/null); then
+    printf '%s\n' "$SECRETS" | grep -qx RELEASE_TOKEN \
+      || FAIL "cut_rc.yml is present but the RELEASE_TOKEN secret is not set (see SKILL.md, RELEASE_TOKEN)"
+  else
+    echo "ℹ️  cannot list secrets here — verify RELEASE_TOKEN exists before cutting an rc"
+  fi
+fi
+
 [ "$fail" = 0 ] && { echo "✅ skill audit passed"; exit 0; } || { echo "skill audit FAILED"; exit 1; }
