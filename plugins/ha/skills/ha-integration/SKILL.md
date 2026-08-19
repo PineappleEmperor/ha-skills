@@ -149,17 +149,54 @@ attached, and HACS installs fail with `Could not download` on a release that loo
 in the UI. `cut_rc.yml` fails loudly instead of producing that, and `skill_audit.sh`
 fails a repo that ships `cut_rc.yml` without the secret.
 
-Create it as a **fine-grained PAT** scoped to the one repo:
+**Two ways to provide it. Pick by how many repos you maintain.**
 
-1. github.com → Settings → Developer settings → Personal access tokens → Fine-grained
-2. **Repository access**: Only select repositories → this repo
+**A GitHub App (preferred for more than one repo).** An App is installed once and then
+covers every repo you install it on, its tokens are minted per run and expire in an hour,
+and it survives you rotating your own credentials. Events it causes DO trigger workflows,
+which is the whole requirement.
+
+1. github.com → Settings → Developer settings → GitHub Apps → **New GitHub App**
+2. Name it (e.g. `<you>-release-bot`), untick **Webhook → Active**
 3. **Repository permissions**: `Contents: Read and write` — nothing else
-4. **Expiration**: 90 days or less; rotating is pasting a new value into the same secret
-5. Repo → Settings → Secrets and variables → Actions → New repository secret
-6. Name it exactly `RELEASE_TOKEN`, paste the value
+4. Create it, note the **App ID**, then **Generate a private key** (downloads a `.pem`)
+5. Install it: the App's page → **Install App** → pick the repos
+6. In each repo: Settings → **Secrets and variables** → **Actions** → **Secrets** tab →
+   **New repository secret** → `APP_ID` (the numeric ID), then again for `APP_PRIVATE_KEY`
+   (the whole `.pem` contents, including the BEGIN/END lines) → **Add secret**
+7. In `cut_rc.yml`, mint the token before the release step:
+   ```yaml
+   - uses: actions/create-github-app-token@v2
+     id: app-token
+     with:
+       app-id: ${{ secrets.APP_ID }}
+       private-key: ${{ secrets.APP_PRIVATE_KEY }}
+   # then use ${{ steps.app-token.outputs.token }} wherever RELEASE_TOKEN appears
+   ```
 
-`Contents: write` is the whole grant: it can create releases and tags in this repo and
-nothing else — no PR merging, no ruleset edits, no other repository.
+**A fine-grained PAT (fine for a single repo).** Simpler, but tied to your account and it
+expires on a date you have to remember.
+
+1. github.com → Settings → Developer settings → Personal access tokens →
+   **Fine-grained tokens** → **Generate new token**
+2. **Resource owner**: your account · **Repository access**: Only select repositories →
+   this repo
+3. **Repository permissions**: `Contents: Read and write` — nothing else. (`Metadata:
+   Read` is added automatically and cannot be removed.)
+4. **Expiration**: 90 days or less
+5. **Generate token**, copy the `github_pat_…` value — it is shown once
+6. Repo → **Settings** → **Secrets and variables** → **Actions** → **Secrets** tab →
+   **New repository secret** → Name `RELEASE_TOKEN`, paste into **Secret** → **Add secret**
+
+**What the grant actually allows.** `Contents: write` covers creating releases, tags and
+commits in the repos it is scoped to. It cannot merge pull requests, edit rulesets or
+branch protection, change repository settings, or reach any repo outside its scope. That
+matters because this token exists to *trigger* workflows — anything it can do, a workflow
+it starts can do too.
+
+**Rotating.** Paste a new value into the same secret; nothing else changes. An App's
+private key is rotated the same way, and its tokens expire hourly regardless.
+
 
 #### Make the checks REQUIRED — a workflow is not a gate until it can block a merge
 
