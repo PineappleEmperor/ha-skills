@@ -53,6 +53,11 @@ jobs:
           TAG: ${{ steps.rc.outputs.tag }}
           SHA: ${{ github.sha }}
         run: |
-          gh release create "$TAG" --prerelease --title "$TAG" --target "$SHA" \
-            --notes "Release notes are generated when this publishes."
+          # Deliberately writes NO body. release_drafter.yml owns the release body,
+          # and it fires on the `release: published` event this call raises, so the
+          # notes arrive there. Two writers would race, which is what the audit's
+          # single-writer rule exists to stop.
+          gh api -X POST "repos/$GH_REPO/releases" \
+            -f tag_name="$TAG" -f name="$TAG" -f target_commitish="$SHA" \
+            -F prerelease=true --jq .html_url
           echo "::notice::published $TAG"
