@@ -74,6 +74,16 @@ jobs:
             --jq '.[] | select(.isPrerelease == false) | .tagName' \
             | grep -vx "v$V" | head -1)
           git fetch --tags --quiet
+          # A repo's first release has no previous tag, so the range would be `..HEAD`
+          # and every commit would be missed. Fall back to the root commit; the compare
+          # link is dropped with it, since there is nothing to compare against.
+          if [ -n "$PREV" ]; then
+            RANGE="${PREV}..HEAD"
+            PREV_ARG=(--previous "$PREV")
+          else
+            RANGE="$(git rev-list --max-parents=0 HEAD | tail -1)..HEAD"
+            PREV_ARG=()
+          fi
           # A full draft must exist even while prereleases are the newest releases,
           # so going from rc to final is publishing a draft that already carries the
           # cumulative notes, not building a release from scratch.
@@ -86,9 +96,9 @@ jobs:
             -f tag_name="v$V" -f previous_tag_name="$PREV" --jq .body > gh_notes.md \
             || : > gh_notes.md
           python3 scripts/release_notes.py \
-            --range "${PREV}..HEAD" \
+            --range "$RANGE" \
             --repo-url "https://github.com/$GH_REPO" \
-            --previous "$PREV" --version "$V" \
+            "${PREV_ARG[@]}" --version "$V" \
             --github-notes-file gh_notes.md > notes.md
           gh release edit "v$V" --notes-file notes.md
 
