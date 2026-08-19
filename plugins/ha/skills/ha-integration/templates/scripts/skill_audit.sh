@@ -440,13 +440,29 @@ sys.exit(1 if bad else 0)
 PYRD
 fi
 
-# No workflow may open PRs. create-dev-pr.yml is the superseded auto-opener: it cannot
-# serve fork contributions (push never fires on a fork; a fork's pull_request token is
-# read-only) and it overwrote human PR titles. PRs are opened by humans.
+# Only two workflows may open PRs, and only in the shapes below. create-dev-pr.yml is
+# the superseded auto-opener: it overwrote human PR titles and opened with the default
+# token, so no checks ran and the PR could never merge.
+#
+# Permitted: auto_draft_pr.yml (draft only, gated on the actor being the repo owner, so
+# a PR opened with RELEASE_TOKEN cannot appear to be written by someone else) and
+# update_manifest_floors.yml (nothing else can open a PR for a scheduled floor bump).
+# Neither can serve fork contributions — push never fires on a fork and a fork's token
+# is read-only — so fork contributors still open their own.
 [ -f .github/workflows/create-dev-pr.yml ] \
-  && FAIL "create-dev-pr.yml is superseded (PRs are opened manually; use pr-checks.yml)"
-grep -rln 'gh pr create' .github/workflows/ 2>/dev/null \
-  && FAIL "a workflow opens PRs with 'gh pr create' (PRs are opened manually)"
+  && FAIL "create-dev-pr.yml is superseded (use auto_draft_pr.yml, which is draft-only and actor-gated)"
+for wf in $(grep -rln 'gh pr create' .github/workflows/ 2>/dev/null); do
+  case "$(basename "$wf")" in
+    auto_draft_pr.yml|update_manifest_floors.yml) ;;
+    *) FAIL "$wf opens PRs with 'gh pr create' (only auto_draft_pr.yml and update_manifest_floors.yml may)" ;;
+  esac
+done
+if [ -f .github/workflows/auto_draft_pr.yml ]; then
+  grep -q 'github.actor == github.repository_owner' .github/workflows/auto_draft_pr.yml \
+    || FAIL "auto_draft_pr.yml must gate on the actor being the repo owner, or it opens PRs that impersonate the token owner"
+  grep -q -- '--draft' .github/workflows/auto_draft_pr.yml \
+    || FAIL "auto_draft_pr.yml must open the PR as a draft"
+fi
 
 # --- Antipatterns in integration code (high-confidence) ---
 if [ -n "$CC" ]; then
