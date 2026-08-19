@@ -4,7 +4,8 @@ name: Cut Release Candidate
 # separate `vX.Y.ZrcN` release from the current draft's version, leaving the draft in
 # place so shipping the final is one click on notes that already read cumulatively.
 #
-# It uses RELEASE_TOKEN, not GITHUB_TOKEN, on purpose: GitHub suppresses workflow
+# It uses RELEASE_TOKEN (or a GitHub App token — see SKILL.md, RELEASE_TOKEN), not
+# GITHUB_TOKEN, on purpose: GitHub suppresses workflow
 # events caused by the default token, so a release created with it would never fire
 # `release: published` — the notes would stay pending and no zip would be attached.
 on:
