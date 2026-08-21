@@ -158,7 +158,8 @@ which is the whole requirement.
 
 1. github.com → Settings → Developer settings → GitHub Apps → **New GitHub App**
 2. Name it (e.g. `<you>-release-bot`), untick **Webhook → Active**
-3. **Repository permissions**: `Contents: Read and write` — nothing else
+3. **Repository permissions**: `Contents: Read and write`, plus `Pull requests: Read and
+   write` if you use `auto_draft_pr.yml` — nothing else
 4. Create it, note the **App ID**, then **Generate a private key** (downloads a `.pem`)
 5. Install it: the App's page → **Install App** → pick the repos
 6. In each repo: Settings → **Secrets and variables** → **Actions** → **Secrets** tab →
@@ -181,16 +182,22 @@ expires on a date you have to remember.
    **Fine-grained tokens** → **Generate new token**
 2. **Resource owner**: your account · **Repository access**: Only select repositories →
    this repo
-3. **Repository permissions**: `Contents: Read and write` — nothing else. (`Metadata:
-   Read` is added automatically and cannot be removed.)
+3. **Repository permissions**: `Contents: Read and write`, plus `Pull requests: Read and
+   write` if you use `auto_draft_pr.yml` — nothing else. (`Metadata: Read` is added
+   automatically and cannot be removed.)
 4. **Expiration**: 90 days or less
 5. **Generate token**, copy the `github_pat_…` value — it is shown once
 6. Repo → **Settings** → **Secrets and variables** → **Actions** → **Secrets** tab →
    **New repository secret** → Name `RELEASE_TOKEN`, paste into **Secret** → **Add secret**
 
 **What the grant actually allows.** `Contents: write` covers creating releases, tags and
-commits in the repos it is scoped to. It cannot merge pull requests, edit rulesets or
-branch protection, change repository settings, or reach any repo outside its scope. That
+commits in the repos it is scoped to. Adding `Pull requests: write` lets it open the
+draft PR — and, unavoidably, merge one, since GitHub does not separate those. Neither
+permission can edit rulesets or branch protection, change repository settings, or reach
+any repo outside its scope, so a required-checks ruleset still holds.
+
+Without `Pull requests: write`, `auto_draft_pr.yml` fails with
+`Resource not accessible by personal access token (repository.pullRequests)`. That
 matters because this token exists to *trigger* workflows — anything it can do, a workflow
 it starts can do too.
 
