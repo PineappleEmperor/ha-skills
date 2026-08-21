@@ -60,6 +60,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
           V: ${{ steps.ver.outputs.version }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
           # The previous release is the last FULL one, never a prerelease. Measuring
           # from the newest release of any kind means v1.4.0rc2 covers only what
@@ -84,11 +85,21 @@ jobs:
             RANGE="$(git rev-list --max-parents=0 HEAD | tail -1)..HEAD"
             PREV_ARG=()
           fi
-          # A full draft must exist even while prereleases are the newest releases,
-          # so going from rc to final is publishing a draft that already carries the
-          # cumulative notes, not building a release from scratch.
+          # Two drafts are kept alive: the full release and its next rc. Shipping
+          # either is publishing it — no dispatch, no token, and going rc -> final
+          # never means building a release from scratch. The rc draft is reused
+          # while it stays unpublished, so rc numbers track published candidates
+          # rather than incrementing on every push.
           gh release view "v$V" >/dev/null 2>&1 \
             || gh release create "v$V" --draft --title "v$V" --notes "pending"
+          RC_TAG=$(gh release list --limit 50 --json tagName,isDraft \
+            --jq "[.[] | select(.isDraft and (.tagName | startswith(\"v${V}rc\"))) | .tagName] | first // empty")
+          if [ -z "$RC_TAG" ]; then
+            N=1
+            while gh release view "v${V}rc${N}" >/dev/null 2>&1; do N=$((N + 1)); done
+            RC_TAG="v${V}rc${N}"
+            gh release create "$RC_TAG" --draft --prerelease --title "$RC_TAG" --notes "pending"
+          fi
           # New Contributors comes from GitHub's own generator, because "first
           # contribution" is its definition and reimplementing it would drift. This
           # endpoint only renders a body; it does not touch the release.
@@ -101,6 +112,19 @@ jobs:
             "${PREV_ARG[@]}" --version "$V" \
             --github-notes-file gh_notes.md > notes.md
           gh release edit "v$V" --notes-file notes.md
+          gh release edit "$RC_TAG" --notes-file notes.md
+
+          # A published final supersedes its own drafts. Left behind, the rc draft
+          # reappears in the release list for a version that already shipped, and the
+          # next push would keep updating it.
+          if [ -n "${RELEASE_TAG:-}" ] && ! echo "$V" | grep -Eiq 'rc[0-9]*$'; then
+            gh release list --limit 50 --json tagName,isDraft \
+              --jq ".[] | select(.isDraft and (.tagName | startswith(\"v${V}\"))) | .tagName" \
+              | while read -r stale; do
+                  echo "::notice::removing superseded draft $stale"
+                  gh release delete "$stale" --yes
+                done
+          fi
 
       # The release description is what users read, and nothing checked it. Every
       # earlier verification of the commit-summary block looked at the source text

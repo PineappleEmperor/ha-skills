@@ -663,17 +663,17 @@ sys.exit(1 if bad else 0)
 PYSD
 fi
 
-# A repo that ships cut_rc.yml needs the RELEASE_TOKEN secret it runs on. A release
-# created with GITHUB_TOKEN fires no `release: published` event, so the notes never
-# generate and no zip is attached — the release looks fine and HACS install fails.
+# A repo that ships auto_draft_pr.yml needs the RELEASE_TOKEN secret it runs on. A PR
+# opened with GITHUB_TOKEN fires no `pull_request_target` event, so no checks run and
+# the required ones never report — the PR is permanently unmergeable.
 # Secret listing needs admin, so this checks when it can and says so when it cannot,
 # rather than passing silently.
-if [ -f .github/workflows/cut_rc.yml ]; then
+if [ -f .github/workflows/auto_draft_pr.yml ]; then
   if SECRETS=$(gh secret list --json name --jq '.[].name' 2>/dev/null); then
     printf '%s\n' "$SECRETS" | grep -qx RELEASE_TOKEN \
-      || FAIL "cut_rc.yml is present but the RELEASE_TOKEN secret is not set (see SKILL.md, RELEASE_TOKEN)"
+      || FAIL "auto_draft_pr.yml is present but the RELEASE_TOKEN secret is not set (see SKILL.md, RELEASE_TOKEN)"
   else
-    echo "ℹ️  cannot list secrets here — verify RELEASE_TOKEN exists before cutting an rc"
+    echo "ℹ️  cannot list secrets here — verify RELEASE_TOKEN exists, or draft PRs will not open"
   fi
 fi
 
