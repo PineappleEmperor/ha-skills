@@ -677,4 +677,26 @@ if [ -f .github/workflows/cut_rc.yml ]; then
   fi
 fi
 
+# release-drafter v7 matches a category through `when:`. A top-level `labels:` is the
+# v6 shape: it parses, the drafter runs green, and NO category ever matches — so
+# `$RESOLVED_VERSION` silently falls back to a patch bump. Invisible here because the
+# body is overwritten by release_notes.py, so the only symptom is a version that is
+# quietly wrong. A `feature`-labelled PR resolved 0.0.1 instead of 0.1.0 on ha-ci-testing.
+if [ -f .github/release-drafter.yml ]; then
+  python3 - <<'PYDRAFTER' || fail=1
+import pathlib, sys, yaml
+
+doc = yaml.safe_load(pathlib.Path(".github/release-drafter.yml").read_text()) or {}
+bad = [c.get("title") or c.get("type") for c in (doc.get("categories") or [])
+       if "labels" in c or "label" in c]
+if bad:
+    print("❌ FAIL: release-drafter categories use the v6 top-level `labels:`; v7 matches "
+          "under `when:` and these never match, so the version resolves to a patch bump:")
+    for b in bad:
+        print(f"    {b}")
+    sys.exit(1)
+sys.exit(0)
+PYDRAFTER
+fi
+
 [ "$fail" = 0 ] && { echo "✅ skill audit passed"; exit 0; } || { echo "skill audit FAILED"; exit 1; }
