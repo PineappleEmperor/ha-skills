@@ -235,3 +235,18 @@ def test_every_group_has_a_title_suggestion() -> None:
     """No group can be reached that lacks a suggestion for title-check."""
     for key in cs.ORDER:
         assert key in cs.SUGGESTIONS
+
+def test_title_uses_a_labellable_type_from_the_winning_commit() -> None:
+    """`--mode winning` returns a changelog category, which is not a title type.
+
+    `maint` covers chore/docs/refactor/…, so putting it in a title produced "maint:",
+    which lint_pr rejects and the autolabeler maps to nothing. The title takes both
+    type and text from the same commit in the winning category.
+    """
+    assert cs.title_for(["docs: describe the ci"]) == "docs: describe the ci"
+    assert cs.title_for(["feat: add a thing", "fix: correct it"]) == "feat: add a thing"
+    assert cs.title_for(["feat!: drop python 3.13", "docs: note it"]) == "feat!: drop python 3.13"
+    # A type with no label of its own is Maintenance, so it is said as chore.
+    assert cs.title_for(["refactor: tidy internals"]) == "chore: tidy internals"
+    # A version bump is release plumbing and never the headline.
+    assert cs.title_for(["fix: one", "chore: bump to 7.3.0"]) == "fix: one"
