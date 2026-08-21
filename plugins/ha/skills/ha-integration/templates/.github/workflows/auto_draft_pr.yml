@@ -51,9 +51,14 @@ jobs:
             exit 0
           fi
           WIN=$(python3 scripts/commit_summary.py --mode winning --subjects subjects.txt)
-          # The oldest commit is the branch's headline change; its subject reads as the
-          # PR title once the type prefix is replaced by the winning type across all
-          # commits, so a fix that grew a feature files under Features.
-          SUMMARY=$(tail -1 subjects.txt | sed -E 's/^[a-z]+(\([^)]*\))?!?: *//')
+          # Take the summary from a commit that IS the winning type, oldest first —
+          # pairing the winning type with an unrelated commit's text states something
+          # false, e.g. "feat: <the fix commit's subject>". Falls back to the oldest
+          # commit when no subject carries the winning type verbatim.
+          SUMMARY=$(grep -iE "^${WIN}(\([^)]*\))?!?:" subjects.txt | tail -1 \
+            | sed -E 's/^[a-zA-Z]+(\([^)]*\))?!?: *//')
+          if [ -z "$SUMMARY" ]; then
+            SUMMARY=$(tail -1 subjects.txt | sed -E 's/^[a-zA-Z]+(\([^)]*\))?!?: *//')
+          fi
           gh pr create --draft --base "$BASE" --head "$BRANCH" \
             --title "$WIN: $SUMMARY" --body ""
