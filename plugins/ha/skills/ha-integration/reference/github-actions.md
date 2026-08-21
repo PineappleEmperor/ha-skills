@@ -12,7 +12,7 @@ The **file bodies** live in the skill's `templates/` dir (mirrors the target rep
 |---|---|---|
 | `label` | — | sole labeler: autolabeler + removal-only superseded step |
 | `title-check` | `label` | comments when the title maps to no label; suggests a type from the commits; withdraws itself when fixed |
-| `version-gate` | `label` | last-published-release version gate via `scripts/manifest_gate.py` |
+| `version-gate` | `label` | last-published-release version gate via `scripts/manifest_gate.py`; skips itself in a tag-driven repo, where `release.yml` sets the version |
 | `commit-summary` | — | maintains the marked commit-list block feeding `$BODY` |
 
 Must-preserve behaviours:

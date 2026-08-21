@@ -1,0 +1,64 @@
+name: Cut Release Candidate
+
+# Publishing a prerelease must not consume the rolling full draft. This creates a
+# separate `vX.Y.ZrcN` release from the current draft's version, leaving the draft in
+# place so shipping the final is one click on notes that already read cumulatively.
+#
+# It uses RELEASE_TOKEN (or a GitHub App token — see SKILL.md, RELEASE_TOKEN), not
+# GITHUB_TOKEN, on purpose: GitHub suppresses workflow
+# events caused by the default token, so a release created with it would never fire
+# `release: published` — the notes would stay pending and no zip would be attached.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to cut an rc for; defaults to the current draft
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  cut:
+    name: Publish release candidate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve the version and the next rc number
+        id: rc
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::RELEASE_TOKEN is not set; a PAT is required so the new release triggers the publish workflows"
+            exit 1
+          fi
+          V="$INPUT_VERSION"
+          if [ -z "$V" ]; then
+            V=$(gh release list --json tagName,isDraft --jq '.[] | select(.isDraft) | .tagName' | head -1)
+          fi
+          V="${V#v}"
+          if [ -z "$V" ]; then
+            echo "::error::no draft release to cut an rc from"
+            exit 1
+          fi
+          N=1
+          while gh release view "v${V}rc${N}" >/dev/null 2>&1; do N=$((N + 1)); done
+          echo "tag=v${V}rc${N}" >> "$GITHUB_OUTPUT"
+
+      - name: Publish the prerelease
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ steps.rc.outputs.tag }}
+          SHA: ${{ github.sha }}
+        run: |
+          # Deliberately writes NO body. release_drafter.yml owns the release body,
+          # and it fires on the `release: published` event this call raises, so the
+          # notes arrive there. Two writers would race, which is what the audit's
+          # single-writer rule exists to stop.
+          gh api -X POST "repos/$GH_REPO/releases" \
+            -f tag_name="$TAG" -f name="$TAG" -f target_commitish="$SHA" \
+            -F prerelease=true --jq .html_url
+          echo "::notice::published $TAG"

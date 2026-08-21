@@ -184,8 +184,22 @@ jobs:
           ref: ${{ github.event.pull_request.base.sha }}
           persist-credentials: false
 
+      # A tag-driven repo has no bump to gate: release.yml writes manifest.json from
+      # the tag when the release publishes, so the committed value is a placeholder.
+      # Comparing it to the last release would fail every PR with a bump the author
+      # must not make. The job still runs and still reports — rulesets require this
+      # context by name — it just has nothing to check.
+      - name: Detect how the version is set
+        id: mode
+        run: |
+          if grep -q 'Set the manifest version from the tag' .github/workflows/release.yml 2>/dev/null; then
+            echo "tag_driven=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::version comes from the release tag; nothing to gate"
+          fi
+
       - name: Gather versions and labels
         id: gather
+        if: steps.mode.outputs.tag_driven != 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
@@ -205,6 +219,7 @@ jobs:
       # All decision logic lives in scripts/manifest_gate.py (unit-tested in
       # tests/test_manifest_gate.py) so the gate can't silently regress again.
       - name: Version gate
+        if: steps.mode.outputs.tag_driven != 'true'
         # Via env, never `${{ }}` inside run: `pr_version` is read from the PR's own
         # manifest.json, so a fork PR controls that string entirely. Interpolated into
         # the command line it would be shell injection against a writable token.

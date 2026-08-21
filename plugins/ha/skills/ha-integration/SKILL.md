@@ -87,6 +87,15 @@ Check the current working directory:
   ```
   (A user may *additionally* wire personal `SessionStart` + `UserPromptSubmit` hooks in their own `~/.claude/settings.json` to re-arm the rule and anchor the CI conventions per-turn — see `reference/github-actions.md` (reminder-hook recipe) for the full recipe. That's a personal convenience; the canonical, shareable enforcement still lives in the repo's `CLAUDE.md`.)
 - `hacs.json` — `name` is the only strict requirement, but the canonical setup ships a **zip release**: `{"name": "My Integration", "content_in_root": false, "zip_release": true, "filename": "<domain>.zip"}` (add `"homeassistant": "2024.1.0"` for a minimum HA version). `zip_release` makes HACS download a release **asset** named `<filename>` instead of the tag source archive — so it **requires** the `release.yml` *Create Release ZIP* workflow (`templates/.github/workflows/release.yml`) to build and attach that asset on every published release. **Without that workflow, HACS install fails with `Could not download`** (the symptom of a `zip_release` repo whose release has no attached zip). Drop `zip_release`/`filename` only if you deliberately want HACS to pull the whole tagged repo archive instead.
+
+  > **The tag is the version, not the committed manifest.** `release.yml` rewrites
+  > `manifest.json` from the release tag before zipping, so nobody hand-bumps a version
+  > in a PR and the asset users install always matches the release they installed it
+  > from. The committed value is a placeholder between releases. [frenck/spook](https://github.com/frenck/spook)
+  > patches from the same event; `skill_audit.sh` fails a `zip_release` repo whose
+  > `release.yml` doesn't. Overriding a bump is choosing the tag. This applies to
+  > integrations HACS installs as a zip — a repo whose *committed* file is what
+  > consumers read (a plugin marketplace, a library) still has to commit the bump.
 - `pyproject.toml`
 - `pyrightconfig.json`
 - `requirements.test.txt` — **required**; `python_validate.yml` installs from it and runs `pytest`, so an integration without it has no test job. Copy `templates/requirements.test.txt`. Pin `pytest-homeassistant-custom-component` to the release matching the HA version in the CI matrix (it tracks HA releases 1:1 — a mismatched pin fails at import, not at test time).
@@ -130,6 +139,64 @@ Check the current working directory:
 | `topics` | Repo has at least one topic | GitHub repo settings → About |
 
 The `description`, `issues`, and `topics` checks fail silently until the first `hacs_validate` run — they're GitHub settings, not files.
+
+#### `RELEASE_TOKEN` — set this up before the first release
+
+⚠️ **One secret, once per repo, or release automation silently half-works.** GitHub
+suppresses workflow events caused by `GITHUB_TOKEN`, so a release created by a workflow
+using it fires no `release: published` event: the notes never generate, the zip is never
+attached, and HACS installs fail with `Could not download` on a release that looks fine
+in the UI. `cut_rc.yml` fails loudly instead of producing that, and `skill_audit.sh`
+fails a repo that ships `cut_rc.yml` without the secret.
+
+**Two ways to provide it. Pick by how many repos you maintain.**
+
+**A GitHub App (preferred for more than one repo).** An App is installed once and then
+covers every repo you install it on, its tokens are minted per run and expire in an hour,
+and it survives you rotating your own credentials. Events it causes DO trigger workflows,
+which is the whole requirement.
+
+1. github.com → Settings → Developer settings → GitHub Apps → **New GitHub App**
+2. Name it (e.g. `<you>-release-bot`), untick **Webhook → Active**
+3. **Repository permissions**: `Contents: Read and write` — nothing else
+4. Create it, note the **App ID**, then **Generate a private key** (downloads a `.pem`)
+5. Install it: the App's page → **Install App** → pick the repos
+6. In each repo: Settings → **Secrets and variables** → **Actions** → **Secrets** tab →
+   **New repository secret** → `APP_ID` (the numeric ID), then again for `APP_PRIVATE_KEY`
+   (the whole `.pem` contents, including the BEGIN/END lines) → **Add secret**
+7. In `cut_rc.yml`, mint the token before the release step:
+   ```yaml
+   - uses: actions/create-github-app-token@v2
+     id: app-token
+     with:
+       app-id: ${{ secrets.APP_ID }}
+       private-key: ${{ secrets.APP_PRIVATE_KEY }}
+   # then use ${{ steps.app-token.outputs.token }} wherever RELEASE_TOKEN appears
+   ```
+
+**A fine-grained PAT (fine for a single repo).** Simpler, but tied to your account and it
+expires on a date you have to remember.
+
+1. github.com → Settings → Developer settings → Personal access tokens →
+   **Fine-grained tokens** → **Generate new token**
+2. **Resource owner**: your account · **Repository access**: Only select repositories →
+   this repo
+3. **Repository permissions**: `Contents: Read and write` — nothing else. (`Metadata:
+   Read` is added automatically and cannot be removed.)
+4. **Expiration**: 90 days or less
+5. **Generate token**, copy the `github_pat_…` value — it is shown once
+6. Repo → **Settings** → **Secrets and variables** → **Actions** → **Secrets** tab →
+   **New repository secret** → Name `RELEASE_TOKEN`, paste into **Secret** → **Add secret**
+
+**What the grant actually allows.** `Contents: write` covers creating releases, tags and
+commits in the repos it is scoped to. It cannot merge pull requests, edit rulesets or
+branch protection, change repository settings, or reach any repo outside its scope. That
+matters because this token exists to *trigger* workflows — anything it can do, a workflow
+it starts can do too.
+
+**Rotating.** Paste a new value into the same secret; nothing else changes. An App's
+private key is rotated the same way, and its tokens expire hourly regardless.
+
 
 #### Make the checks REQUIRED — a workflow is not a gate until it can block a merge
 
@@ -468,11 +535,11 @@ Add `"scripts/*" = ["T20", "INP001"]` to ruff `per-file-ignores` if any audit he
   diff -u  "$T/tests/test_manifest_gate.py" tests/test_manifest_gate.py
   ```
   Expected output is the `release.yml` `<domain>` substitution and nothing else. Any other hunk is a finding — report it with the file and hunk, and restore from the template unless the diff is a deliberate, listed adaptation. If `templates/` can't be located, report the audit item as **not checked**; do not mark it passed.
-- **Workflows behave, not just exist:** `pr-checks` runs on `pull_request_target`; `title-check` and `version-gate` declare `needs: label`; no job checks out the PR head (the version gate pins `base.sha` and reads the PR manifest over the API); no `${{ }}` appears inside any `run:`; bot authors are skipped; `commit-summary` rewrites only the marked block; no workflow opens PRs automatically; `release_drafter` is push-only with no second autolabeler; `check-manifest-version` compares to the **last published release** and exempts `dependabot[bot]` on the *failing steps*.
+- **Workflows behave, not just exist:** `pr-checks` runs on `pull_request_target`; `title-check` and `version-gate` declare `needs: label`; no job checks out the PR head (the version gate pins `base.sha` and reads the PR manifest over the API); no `${{ }}` appears inside any `run:`; bot authors are skipped; `commit-summary` rewrites only the marked block; the only workflows opening PRs are `auto_draft_pr.yml` (draft-only, gated on `github.actor == github.repository_owner`) and `update_manifest_floors.yml`; `release_drafter` is push-only with no second autolabeler; `check-manifest-version` compares to the **last published release** and exempts `dependabot[bot]` on the *failing steps*.
 - **Patterns applied:** `runtime_data` (not `hass.data[DOMAIN][entry_id]`) for entry state; coordinator `async_shutdown()` on unload; `async_remove_config_entry_device` present if the integration creates a device; `DeviceInfo` TypedDict; `_attr_has_entity_name = True`; typed `ConfigEntry` alias; modern `NotifyEntity` (or a directly-registered service for custom `data`).
 - **`quality_scale.yaml` honest:** every canonical rule listed; every `exempt` carries a real `comment`; no optimistic `exempt` masking a gap (e.g. `stale-devices` exempt while a device *is* created); the `manifest.json` tier claimed only when every rule at/below it is `done`/`exempt`.
 - **Tests mock the boundary:** a real setup-entry `LOADED` test exists (not just `async_setup_component`); the transport is mocked, not the integration's own functions; a two-entry parallel `LOADED` test exists if multiple devices are allowed; parsers have unit tests.
-- **Commit/PR discipline:** subjects are single tight imperatives; the PR was opened by a human with a title using a **labellable** type (`feat|fix|chore|docs`, `!` for breaking); the version bumped once vs the last release per the type label.
+- **Commit/PR discipline:** subjects are single tight imperatives; the PR title uses a **labellable** type (`feat|fix|chore|docs`, `!` for breaking) — typed by a human, or derived from the commits by `auto_draft_pr.yml`; the version bumped once vs the last release per the type label.
 - **Cached facts still true.** Re-derive any row in the **Freshness** table (top of this skill) captured more than ~3 months ago, using the command in its *Re-derive with* column. Report each as still-current or stale-with-the-new-value, and update every consumer listed on that row in one pass. The stale-pin patterns in `skill_audit.sh` are themselves a cached fact — check them against the action majors, not just the templates against the patterns.
 
 **Report:** per-item pass/fail with `file:line` evidence · what the mechanical gate caught · remaining manual work. Fix findings before claiming the tier.
