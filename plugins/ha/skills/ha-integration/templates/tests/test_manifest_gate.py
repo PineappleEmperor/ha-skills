@@ -88,3 +88,18 @@ def test_dependabot_still_exempt_with_a_count() -> None:
     ok, _ = evaluate("6.5.0", "6.5.0", "6.5.1", [], dependabot=True, breaking_commits=1)
     assert ok
 
+def test_suggest_prints_the_version_the_labels_imply(capsys) -> None:
+    """The advisory check in a tag-driven repo needs a number, not a verdict.
+
+    No PR carries a bump there, so there is nothing to validate — the useful output
+    is what the next release will be if this PR merges.
+    """
+    assert manifest_gate.main(["--suggest", "--last-release", "0.1.0", "--labels", "feature"]) == 0
+    assert capsys.readouterr().out.strip() == "v0.2.0"
+
+    assert manifest_gate.main(["--suggest", "--last-release", "0.1.0", "--labels", "fix"]) == 0
+    assert capsys.readouterr().out.strip() == "v0.1.1"
+
+    # No increment-bearing label implies no release, which is not the same as a patch.
+    assert manifest_gate.main(["--suggest", "--last-release", "0.1.0", "--labels", ""]) == 0
+    assert capsys.readouterr().out.strip() == "v0.1.0"

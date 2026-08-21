@@ -100,7 +100,11 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--last-release", required=True)
     parser.add_argument("--main-version", default="")
-    parser.add_argument("--pr-version", required=True)
+    parser.add_argument("--pr-version", default="")
+    parser.add_argument("--suggest", action="store_true",
+                        help="print the version the labels imply and exit; used by the "
+                             "advisory check in a tag-driven repo, where no PR carries "
+                             "a bump to validate")
     parser.add_argument("--labels", default="", help="comma-separated label names")
     parser.add_argument("--dependabot", action="store_true")
     parser.add_argument("--breaking-commits", type=int, default=None,
@@ -108,6 +112,15 @@ def main(argv: list[str] | None = None) -> int:
                              "Commit `!` marker; omit to skip the consistency check")
     args = parser.parse_args(argv)
     labels = [label.strip() for label in args.labels.split(",") if label.strip()]
+    if args.suggest:
+        # No label that maps to an increment means no release is implied at all,
+        # which is different from implying a patch.
+        tier = label_bump(labels)
+        base = parse_semver(args.last_release)
+        print(_fmt(_bump(base, tier)) if tier else _fmt(base))
+        return 0
+    if not args.pr_version:
+        parser.error("--pr-version is required unless --suggest is given")
     ok, reason = evaluate(args.last_release, args.main_version, args.pr_version,
                           labels, dependabot=args.dependabot,
                           breaking_commits=args.breaking_commits)
