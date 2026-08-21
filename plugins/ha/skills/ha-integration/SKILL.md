@@ -59,7 +59,11 @@ Check the current working directory:
 6. **Auth model** — none / API key / OAuth / username+password
 7. **Platforms** — button, sensor, binary_sensor, switch, light, number, select, text, notify, cover, climate, fan, lock, media_player, vacuum (pick any)
 8. **MicroPython firmware?** (yes/no) — adds `firmware/` exclusion to pyrightconfig.json
-9. **Version** — default `0.1.0`
+9. **Licence** — default **MIT**. HACS validates that the repo has one GitHub can identify
+   by SPDX, so a missing or bespoke licence fails `hacs` on the first PR with
+   `The repository license could not be identified (SPDX: NOASSERTION)`. Write the real
+   text of the chosen licence to `LICENSE`; a paraphrase does not resolve.
+10. **Version** — default `0.1.0`
 
 ### Files to generate
 
@@ -106,6 +110,8 @@ Check the current working directory:
   > [!NOTE]
   > **AI assistance:** I'm a programmer; this project is built with AI (Claude, via Claude Code) for implementation, code review, and QA — under human direction, guided by my [`ha-integration`](https://github.com/PineappleEmperor/pineapple-claude-hacs) skill. Architecture and final review are mine; every change is human-reviewed before it merges.
   ```
+- `LICENSE` — the full text of the chosen licence (MIT unless told otherwise), so GitHub
+  resolves an SPDX identifier and the HACS `license` check passes.
 - `.gitignore` — copy `templates/.gitignore`. Covers `__pycache__/`, caches, venvs, HA dev artefacts (`.storage/`, `home-assistant.log*`, the `_v2.db`), and `device_map.md` (the Mode 5 log-triage map holds a home's IP/device layout and must never be committed). **Not optional:** without it a local `pytest` run plus a `git add -A` commits `.pyc` files, and a `.pyc` under `templates/` is then copied verbatim into every repo scaffolded from the skill. `skill_audit.sh` fails on any tracked compiled artefact.
 - `.githooks/commit-msg` — copy `templates/hooks/commit-msg`, `chmod +x`. Terse-subject + AI-trailer rejection. **Enable once per clone: `git config core.hooksPath .githooks`** — an unenabled hook is a file, not a guard. Document that line in `CLAUDE.md`.
 - `custom_components/{domain}/brand/icon.png` — **256×256**, required by HACS brands validation
@@ -137,8 +143,9 @@ Check the current working directory:
 | `information` | README.md exists | File in repo |
 | `issues` | Issues tab enabled | GitHub repo settings → Features |
 | `topics` | Repo has at least one topic | GitHub repo settings → About |
+| `license` | An SPDX-identifiable `LICENSE` in the repo | File in repo |
 
-The `description`, `issues`, and `topics` checks fail silently until the first `hacs_validate` run — they're GitHub settings, not files.
+The `description`, `issues`, `topics` and `license` checks fail silently until the first `hacs_validate` run — they're GitHub settings, not files.
 
 #### `RELEASE_TOKEN` — set this up before the first release
 
