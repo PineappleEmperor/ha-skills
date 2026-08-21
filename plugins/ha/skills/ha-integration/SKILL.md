@@ -142,12 +142,14 @@ The `description`, `issues`, and `topics` checks fail silently until the first `
 
 #### `RELEASE_TOKEN` — set this up before the first release
 
-⚠️ **One secret, once per repo, or release automation silently half-works.** GitHub
-suppresses workflow events caused by `GITHUB_TOKEN`, so a release created by a workflow
-using it fires no `release: published` event: the notes never generate, the zip is never
-attached, and HACS installs fail with `Could not download` on a release that looks fine
-in the UI. `cut_rc.yml` fails loudly instead of producing that, and `skill_audit.sh`
-fails a repo that ships `cut_rc.yml` without the secret.
+⚠️ **One secret, once per repo, or `auto_draft_pr.yml` cannot open a PR that checks can
+run on.** GitHub suppresses workflow events caused by `GITHUB_TOKEN`, so a PR opened with
+it fires no `pull_request_target`: no checks run, the required ones never report, and the
+PR is permanently unmergeable. That is how `create-dev-pr.yml` died. The opener fails
+loudly instead, and `skill_audit.sh` fails a repo that ships it without the secret.
+
+The **release** path needs no token: both the full release and its next rc are kept as
+drafts, and publishing a draft is a human action, so its events fire normally.
 
 **Two ways to provide it. Pick by how many repos you maintain.**
 
