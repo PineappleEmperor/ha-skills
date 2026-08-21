@@ -90,14 +90,18 @@ jobs:
           # never means building a release from scratch. The rc draft is reused
           # while it stays unpublished, so rc numbers track published candidates
           # rather than incrementing on every push.
-          gh release view "v$V" >/dev/null 2>&1 \
-            || gh release create "v$V" --draft --title "v$V" --notes "pending"
+          # Draft tags are built from the BASE version, never from $V. When the newest
+          # release is a prerelease, release-drafter resolves the version as that
+          # prerelease — 0.1.0rc1 — and appending the rc suffix produced v0.1.0rc1rc1.
+          BASE_V=$(printf '%s' "$V" | sed -E 's/(rc|alpha|beta|a|b)[0-9]*$//I')
+          gh release view "v$BASE_V" >/dev/null 2>&1 \
+            || gh release create "v$BASE_V" --draft --title "v$BASE_V" --notes "pending"
           RC_TAG=$(gh release list --limit 50 --json tagName,isDraft \
-            --jq "[.[] | select(.isDraft and (.tagName | startswith(\"v${V}rc\"))) | .tagName] | first // empty")
+            --jq "[.[] | select(.isDraft and (.tagName | startswith(\"v${BASE_V}rc\"))) | .tagName] | first // empty")
           if [ -z "$RC_TAG" ]; then
             N=1
-            while gh release view "v${V}rc${N}" >/dev/null 2>&1; do N=$((N + 1)); done
-            RC_TAG="v${V}rc${N}"
+            while gh release view "v${BASE_V}rc${N}" >/dev/null 2>&1; do N=$((N + 1)); done
+            RC_TAG="v${BASE_V}rc${N}"
             gh release create "$RC_TAG" --draft --prerelease --title "$RC_TAG" --notes "pending"
           fi
           # New Contributors comes from GitHub's own generator, because "first
@@ -111,7 +115,10 @@ jobs:
             --repo-url "https://github.com/$GH_REPO" \
             "${PREV_ARG[@]}" --version "$V" \
             --github-notes-file gh_notes.md > notes.md
+          # On a release event "v$V" is the release being published; on a push it is
+          # the full draft, which is "v$BASE_V" anyway.
           gh release edit "v$V" --notes-file notes.md
+          [ "v$V" = "v$BASE_V" ] || gh release edit "v$BASE_V" --notes-file notes.md
           gh release edit "$RC_TAG" --notes-file notes.md
 
           # A published final supersedes its own drafts. Left behind, the rc draft
@@ -119,7 +126,7 @@ jobs:
           # next push would keep updating it.
           if [ -n "${RELEASE_TAG:-}" ] && ! echo "$V" | grep -Eiq 'rc[0-9]*$'; then
             gh release list --limit 50 --json tagName,isDraft \
-              --jq ".[] | select(.isDraft and (.tagName | startswith(\"v${V}\"))) | .tagName" \
+              --jq ".[] | select(.isDraft and (.tagName | startswith(\"v${BASE_V}\"))) | .tagName" \
               | while read -r stale; do
                   echo "::notice::removing superseded draft $stale"
                   gh release delete "$stale" --yes
