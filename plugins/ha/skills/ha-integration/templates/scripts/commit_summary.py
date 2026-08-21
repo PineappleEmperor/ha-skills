@@ -136,9 +136,42 @@ def winning(subjects: list[str]) -> str:
     return "maint"
 
 
+# Types the autolabeler maps to a release category. Anything else — `refactor:`,
+# `perf:`, `ci:` — is a valid Conventional Commit that carries no label, so a PR
+# titled with one gets no category and no version increment. Those become `chore:`.
+LABELLABLE = frozenset({"feat", "fix", "chore", "docs"})
+
+
+def title_for(subjects: list[str]) -> str:
+    """A PR title for these commits: the winning group's oldest commit, verbatim.
+
+    The winning group is a CHANGELOG CATEGORY (`maint` covers chore/docs/refactor/…),
+    not a Conventional Commit type. Putting the category in a title produced `maint:`,
+    which lint_pr rejects and the autolabeler maps to nothing. Take the type and the
+    text from the same commit instead, so the title says what that commit said and
+    stays labellable.
+    """
+    win = winning(subjects)
+    for subject in subjects:
+        m = TYPE.match(subject.strip())
+        if not m or BUMP.match(subject.strip()) or classify(subject.strip())[0] != win:
+            continue
+        kind = m.group("type").lower()
+        kind = "feat" if kind == "feature" else kind
+        if kind not in LABELLABLE:
+            kind = "chore"
+        if m.group("bang"):
+            kind += "!"
+        return f"{kind}: {m.group('desc').strip()}"
+    # No subject parses as the winning group; fall back to the first one, retyped.
+    first = subjects[0].strip() if subjects else ""
+    m = TYPE.match(first)
+    return f"chore: {m.group('desc').strip() if m else first}"
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--mode", choices=("render", "winning"), default="render")
+    ap.add_argument("--mode", choices=("render", "winning", "title"), default="render")
     ap.add_argument("--subjects", default="-", help="file of commit subjects, or - for stdin")
     ap.add_argument("--title", help="PR title; bullets that merely restate it are dropped")
     args = ap.parse_args()
@@ -147,7 +180,12 @@ def main() -> int:
     with src as fh:
         subjects = fh.read().splitlines()
 
-    print(render(subjects, args.title) if args.mode == "render" else winning(subjects))
+    if args.mode == "render":
+        print(render(subjects, args.title))
+    elif args.mode == "title":
+        print(title_for(subjects))
+    else:
+        print(winning(subjects))
     return 0
 
 
