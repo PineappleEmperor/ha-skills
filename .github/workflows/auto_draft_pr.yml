@@ -1,0 +1,59 @@
+name: Draft PR
+
+# Opens a draft PR for a pushed branch so the title never has to be typed: it is
+# derived from the commits, which the commit-msg hook already validates.
+#
+# Gated on the actor being the repo owner, because a PR opened with RELEASE_TOKEN is
+# authored by whoever owns that token. Without the gate, another maintainer's branch
+# would produce a PR that appears to be written by the owner. Everyone else opens
+# their own PR; fork contributors are unaffected either way.
+#
+# RELEASE_TOKEN, not GITHUB_TOKEN: a PR opened with the default token fires no
+# `pull_request_target` event, so no checks would run and the required ones would
+# never report — the PR would be permanently unmergeable. That is how the previous
+# auto-PR workflow failed.
+on:
+  push:
+    branches-ignore: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  draft:
+    name: Open draft PR
+    if: github.actor == github.repository_owner
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Open a draft PR if none exists
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          BRANCH: ${{ github.ref_name }}
+          BASE: ${{ github.event.repository.default_branch }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::notice::RELEASE_TOKEN is not set; skipping the draft PR"
+            exit 0
+          fi
+          EXISTING=$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number')
+          if [ -n "$EXISTING" ]; then
+            echo "::notice::PR #$EXISTING already open for $BRANCH"
+            exit 0
+          fi
+          git log --format=%s "origin/$BASE..HEAD" > subjects.txt
+          if [ ! -s subjects.txt ]; then
+            echo "::notice::no commits ahead of $BASE; nothing to open"
+            exit 0
+          fi
+          WIN=$(python3 scripts/commit_summary.py --mode winning --subjects subjects.txt)
+          # The oldest commit is the branch's headline change; its subject reads as the
+          # PR title once the type prefix is replaced by the winning type across all
+          # commits, so a fix that grew a feature files under Features.
+          SUMMARY=$(tail -1 subjects.txt | sed -E 's/^[a-z]+(\([^)]*\))?!?: *//')
+          gh pr create --draft --base "$BASE" --head "$BRANCH" \
+            --title "$WIN: $SUMMARY" --body ""

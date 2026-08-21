@@ -23,32 +23,33 @@ jobs:
         # has no history, so the range fails to resolve.
         with:
           fetch-depth: 0
+      # The version comes from the merged PRs, not from a file. Each PR's label
+      # carries a semver-increment (see .github/release-drafter.yml) and the highest
+      # one since the last release wins. `release.yml` writes that number into
+      # manifest.json when the release publishes, so nothing in the repo has to
+      # carry a hand-written bump and the two can never disagree.
+      - uses: release-drafter/release-drafter@v7
+        id: drafter
+        if: github.event_name == 'push'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - id: ver
-        name: Read version from manifest
+        name: Resolve the version being released
         env:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RESOLVED: ${{ steps.drafter.outputs.resolved_version }}
         run: |
           if [ -n "$RELEASE_TAG" ]; then
             V="${RELEASE_TAG#v}"
           else
-            MANIFEST=$(ls custom_components/*/manifest.json | head -1)
-            V=$(python3 -c "import json,sys;print(json.load(open(sys.argv[1]))['version'])" "$MANIFEST")
+            V="$RESOLVED"
+          fi
+          if [ -z "$V" ]; then
+            echo "::error::no version resolved; a PR label with a semver-increment is required"
+            exit 1
           fi
           echo "version=$V" >> "$GITHUB_OUTPUT"
-          if echo "$V" | grep -Eiq '[0-9][-._]?(rc|alpha|beta|dev|a|b)'; then
-            echo "prerelease=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "prerelease=false" >> "$GITHUB_OUTPUT"
-          fi
-      - uses: release-drafter/release-drafter@v7
-        if: github.event_name == 'push'
-        with:
-          version: ${{ steps.ver.outputs.version }}
-          tag: v${{ steps.ver.outputs.version }}
-          name: v${{ steps.ver.outputs.version }}
-          prerelease: ${{ steps.ver.outputs.prerelease }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # release-drafter categorises by PR LABEL, one entry per PR, so a fix inside a
       # feat-titled PR files under Features. Surveyed HACS repos all group by the
@@ -60,13 +61,34 @@ jobs:
           GH_REPO: ${{ github.repository }}
           V: ${{ steps.ver.outputs.version }}
         run: |
-          # Skip the release being written. On `release: published` it is already the
-          # newest non-draft, so a bare `--limit 1` returns its own tag, the range
-          # collapses to nothing and the body renders `_No user-facing changes._`.
-          # The draft written on push had the right notes; publishing destroyed them.
-          PREV=$(gh release list --exclude-drafts --limit 10 --json tagName --jq '.[].tagName' \
+          # The previous release is the last FULL one, never a prerelease. Measuring
+          # from the newest release of any kind means v1.4.0rc2 covers only what
+          # changed since rc1, and the final covers only what changed since rc2 —
+          # so the release users actually read lists almost nothing. Measuring from
+          # the last final makes every rc show the cumulative "what will ship", and
+          # the final show the complete set.
+          #
+          # Excluding the release being written matters on `release: published`,
+          # where it is already the newest non-draft and would otherwise match itself.
+          PREV=$(gh release list --exclude-drafts --limit 30 --json tagName,isPrerelease \
+            --jq '.[] | select(.isPrerelease == false) | .tagName' \
             | grep -vx "v$V" | head -1)
           git fetch --tags --quiet
+          # A repo's first release has no previous tag, so the range would be `..HEAD`
+          # and every commit would be missed. Fall back to the root commit; the compare
+          # link is dropped with it, since there is nothing to compare against.
+          if [ -n "$PREV" ]; then
+            RANGE="${PREV}..HEAD"
+            PREV_ARG=(--previous "$PREV")
+          else
+            RANGE="$(git rev-list --max-parents=0 HEAD | tail -1)..HEAD"
+            PREV_ARG=()
+          fi
+          # A full draft must exist even while prereleases are the newest releases,
+          # so going from rc to final is publishing a draft that already carries the
+          # cumulative notes, not building a release from scratch.
+          gh release view "v$V" >/dev/null 2>&1 \
+            || gh release create "v$V" --draft --title "v$V" --notes "pending"
           # New Contributors comes from GitHub's own generator, because "first
           # contribution" is its definition and reimplementing it would drift. This
           # endpoint only renders a body; it does not touch the release.
@@ -74,9 +96,9 @@ jobs:
             -f tag_name="v$V" -f previous_tag_name="$PREV" --jq .body > gh_notes.md \
             || : > gh_notes.md
           python3 scripts/release_notes.py \
-            --range "${PREV}..HEAD" \
+            --range "$RANGE" \
             --repo-url "https://github.com/$GH_REPO" \
-            --previous "$PREV" --version "$V" \
+            "${PREV_ARG[@]}" --version "$V" \
             --github-notes-file gh_notes.md > notes.md
           gh release edit "v$V" --notes-file notes.md
 
