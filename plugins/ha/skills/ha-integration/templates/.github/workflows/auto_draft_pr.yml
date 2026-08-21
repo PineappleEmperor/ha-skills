@@ -50,15 +50,28 @@ jobs:
             echo "::notice::no commits ahead of $BASE; nothing to open"
             exit 0
           fi
+          # `--mode winning` returns a CHANGELOG CATEGORY (breaking/feat/fix/maint/other),
+          # not a conventional-commit type. Using it verbatim produced "maint:", which
+          # lint_pr rejects and the autolabeler maps to nothing. Find the oldest commit
+          # in the winning category and take BOTH its type and its text, so the title
+          # says what that commit says and stays labellable.
           WIN=$(python3 scripts/commit_summary.py --mode winning --subjects subjects.txt)
-          # Take the summary from a commit that IS the winning type, oldest first —
-          # pairing the winning type with an unrelated commit's text states something
-          # false, e.g. "feat: <the fix commit's subject>". Falls back to the oldest
-          # commit when no subject carries the winning type verbatim.
-          SUMMARY=$(grep -iE "^${WIN}(\([^)]*\))?!?:" subjects.txt | tail -1 \
-            | sed -E 's/^[a-zA-Z]+(\([^)]*\))?!?: *//')
-          if [ -z "$SUMMARY" ]; then
-            SUMMARY=$(tail -1 subjects.txt | sed -E 's/^[a-zA-Z]+(\([^)]*\))?!?: *//')
-          fi
+          case "$WIN" in
+            breaking) PAT='^[a-zA-Z]+(\([^)]*\))?!:' ;;
+            feat)     PAT='^(feat|feature)(\([^)]*\))?:' ;;
+            fix)      PAT='^fix(\([^)]*\))?:' ;;
+            *)        PAT='^(chore|docs|refactor|perf|test|build|ci|style)(\([^)]*\))?:' ;;
+          esac
+          LINE=$(grep -iE "$PAT" subjects.txt | tail -1)
+          [ -n "$LINE" ] || LINE=$(tail -1 subjects.txt)
+          TYPE=$(printf '%s' "$LINE" | sed -E 's/^([a-zA-Z]+)(\([^)]*\))?(!)?:.*/\1\3/')
+          # Only these carry a label. Anything else is Maintenance, so say chore.
+          case "$TYPE" in
+            feat|fix|chore|docs|feat!|fix!|chore!|docs!) ;;
+            feature) TYPE=feat ;;
+            feature!) TYPE=feat! ;;
+            *) TYPE=chore ;;
+          esac
+          SUMMARY=$(printf '%s' "$LINE" | sed -E 's/^[a-zA-Z]+(\([^)]*\))?!?: *//')
           gh pr create --draft --base "$BASE" --head "$BRANCH" \
-            --title "$WIN: $SUMMARY" --body ""
+            --title "$TYPE: $SUMMARY" --body ""
