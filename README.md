@@ -80,11 +80,12 @@ Scaffolding an integration copies a working CI setup into it, from
 
 | | |
 |---|---|
-| **PR checks** | One workflow whose jobs are ordered with `needs:`. Labels the PR from its title, checks the title is labellable, gates the version against the last published release, and collects the commit subjects into the PR body. |
+| **PR checks** | One workflow whose jobs are ordered with `needs:`. Labels the PR from its title, checks the title is labellable, collects the commit subjects into the PR body, and says what version the labels imply. |
+| **Draft PRs** | Pushing a branch opens a draft PR whose title comes from the commits, so it is never typed twice. Gated on the pusher being the repo owner, since the PR is authored by whoever owns the token that opens it. |
 | **Validation** | hassfest, the eight HACS checks, ruff and pyright, and pytest with the Home Assistant test plugin already wired up. |
-| **Release** | Notes generated from the commit subjects and grouped by type, validated before they publish, plus the zip asset HACS installs from. |
+| **Release** | The release tag is the version: `manifest.json` is written from it at publish, so no PR carries a bump. Two drafts are kept current — the full release and its next rc — and shipping either is publishing it. Notes are generated from the commit subjects, grouped by type, measured from the last full release, and validated before they publish, alongside the zip asset HACS installs from. |
 | **Conformance** | `skill_audit.sh` runs on every PR and fails on a missing workflow, a stale action pin, a deprecated pattern, a `quality_scale.yaml` claiming rules it has no tests for, or a branch with no required status checks. |
-| **Repo setup** | A `commit-msg` hook, a `.gitignore`, and a branch ruleset, without which every check above is advisory and a red PR still merges. |
+| **Repo setup** | A `commit-msg` hook, a `.gitignore`, a licence HACS can identify, and a branch ruleset, without which every check above is advisory and a red PR still merges. One secret, `RELEASE_TOKEN`, because GitHub ignores events caused by the default token, so a PR opened with it would never be checked. |
 | **Panels** | An esbuild pipeline that fails the build when the committed bundle is stale, plus the frontend test runner. |
 
 The templates are copied byte-for-byte, with one permitted substitution. Write them from the
@@ -93,9 +94,15 @@ audit looks for the files themselves.
 
 ## Development
 
-The skills are treated as code. `commit_summary.py` and `release_notes.py` have unit tests that
-run on every PR, and this repo runs the PR checks it scaffolds. It is not itself a HA
-integration, so `skill_audit.sh` does not pass against it.
+The skills are treated as code. `commit_summary.py`, `release_notes.py`,
+`check_release_notes.py` and `manifest_gate.py` have unit tests that run on every PR, and
+this repo runs the PR checks it scaffolds, including `skill_audit.sh` against itself — the
+integration-only checks skip where there is no `custom_components/`.
+
+Changes to the release machinery are proven on
+[ha-ci-testing](https://github.com/PineappleEmperor/ha-ci-testing), a throwaway integration
+that runs the whole cycle — branch, draft PR, merge, release candidate, final — because the
+parts that break only execute when something publishes.
 
 [`evals/`](plugins/ha/skills/ha-integration/evals) holds five pressure scenarios, each
 stating its pass and fail criteria. The intent is to run every one twice, once with the
