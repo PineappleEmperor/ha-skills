@@ -50,28 +50,10 @@ jobs:
             echo "::notice::no commits ahead of $BASE; nothing to open"
             exit 0
           fi
-          # `--mode winning` returns a CHANGELOG CATEGORY (breaking/feat/fix/maint/other),
-          # not a conventional-commit type. Using it verbatim produced "maint:", which
-          # lint_pr rejects and the autolabeler maps to nothing. Find the oldest commit
-          # in the winning category and take BOTH its type and its text, so the title
-          # says what that commit says and stays labellable.
-          WIN=$(python3 scripts/commit_summary.py --mode winning --subjects subjects.txt)
-          case "$WIN" in
-            breaking) PAT='^[a-zA-Z]+(\([^)]*\))?!:' ;;
-            feat)     PAT='^(feat|feature)(\([^)]*\))?:' ;;
-            fix)      PAT='^fix(\([^)]*\))?:' ;;
-            *)        PAT='^(chore|docs|refactor|perf|test|build|ci|style)(\([^)]*\))?:' ;;
-          esac
-          LINE=$(grep -iE "$PAT" subjects.txt | tail -1)
-          [ -n "$LINE" ] || LINE=$(tail -1 subjects.txt)
-          TYPE=$(printf '%s' "$LINE" | sed -E 's/^([a-zA-Z]+)(\([^)]*\))?(!)?:.*/\1\3/')
-          # Only these carry a label. Anything else is Maintenance, so say chore.
-          case "$TYPE" in
-            feat|fix|chore|docs|feat!|fix!|chore!|docs!) ;;
-            feature) TYPE=feat ;;
-            feature!) TYPE=feat! ;;
-            *) TYPE=chore ;;
-          esac
-          SUMMARY=$(printf '%s' "$LINE" | sed -E 's/^[a-zA-Z]+(\([^)]*\))?!?: *//')
+          # The title comes from the commits, which the commit-msg hook already
+          # validates. The mapping from changelog category to a labellable type lives
+          # in commit_summary.py, where it is unit-tested — a title built in bash here
+          # produced "maint:", which lint_pr rejects.
+          TITLE=$(python3 scripts/commit_summary.py --mode title --subjects subjects.txt)
           gh pr create --draft --base "$BASE" --head "$BRANCH" \
-            --title "$TYPE: $SUMMARY" --body ""
+            --title "$TITLE" --body ""
