@@ -65,7 +65,7 @@ Check the current working directory:
 7. **Platforms** — button, sensor, binary_sensor, switch, light, number, select, text, notify, cover, climate, fan, lock, media_player, vacuum (pick any)
 8. **MicroPython firmware?** (yes/no) — adds `firmware/` exclusion to pyrightconfig.json
 9. **Licence** — default **MIT**. HACS validates that the repo has one GitHub can identify
-   by SPDX, so a missing or bespoke licence fails `hacs` on the first PR with
+   by SPDX, so a missing or bespoke licence fails `HACS validation` on the first PR with
    `The repository license could not be identified (SPDX: NOASSERTION)`. Write the real
    text of the chosen licence to `LICENSE`; a paraphrase does not resolve.
 10. **Version** — default `0.1.0`
@@ -235,7 +235,7 @@ private key is rotated the same way, and its tokens expire hourly regardless.
 > from `FAILURE` to `SUCCESS` with nothing else changed.
 
 > **A matrix renames the check.** GitHub names a matrix job's check-run
-> `<job> (<value>)`, so a job `lint-and-type` with `python-version: ["3.14"]`
+> `<job> (<value>)`, so a job `Ruff, Pyright and Pytest` with `python-version: ["3.14"]`
 > reports as `lint-and-type (3.14)` and a ruleset requiring the bare name waits
 > forever. `templates/ruleset.json` shipped exactly this bug. Either drop a
 > single-value matrix or put the suffixed name in the ruleset; never assume the
@@ -260,7 +260,7 @@ It requires the nine job-name contexts the templates produce and keeps deletions
 
 Two ways to get it wrong, both of which block every PR permanently:
 
-- **A context that never reports.** Requiring a check the repo doesn't produce (a repo without `quality_audit.yml` must drop `audit`) leaves PRs waiting for a check that will never run.
+- **A context that never reports.** Requiring a check the repo doesn't produce (a repo without `quality_audit.yml` must drop `ha-integration conformance check`) leaves PRs waiting for a check that will never run.
 - **A path-filtered workflow.** `build` from `frontend_build.yml` is deliberately absent for this reason: it only triggers on `frontend/` changes, so requiring it would block every unrelated PR.
 
 ⚠️ **`bypass_actors` must stay empty to mean anything.** A ruleset granting admins `bypass_mode: always` does not constrain anyone holding admin; the push reports `Bypassed rule violations` and proceeds. Overrule deliberately instead: set the ruleset's enforcement to `disabled`, merge, set it back, which leaves an audit-log entry.

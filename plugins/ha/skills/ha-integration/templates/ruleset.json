@@ -24,31 +24,28 @@
         "do_not_enforce_on_create": false,
         "required_status_checks": [
           {
-            "context": "Label from title"
+            "context": "CC labelling"
           },
           {
-            "context": "Title is labellable"
+            "context": "CC label validation"
           },
           {
-            "context": "Manifest version bumped vs last release"
+            "context": "Version validation"
           },
           {
-            "context": "Commit summary in PR body"
+            "context": "CC title validation"
           },
           {
-            "context": "Validate PR title"
+            "context": "Hassfest manifest validation"
           },
           {
-            "context": "hassfest"
+            "context": "HACS validation"
           },
           {
-            "context": "hacs"
+            "context": "Ruff, Pyright and Pytest"
           },
           {
-            "context": "lint-and-type"
-          },
-          {
-            "context": "audit"
+            "context": "ha-integration conformance check"
           }
         ]
       }
