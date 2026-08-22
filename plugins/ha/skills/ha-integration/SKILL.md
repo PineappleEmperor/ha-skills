@@ -28,6 +28,11 @@ Several load-bearing values in this skill are **snapshots**. They were right whe
 | `pytest-homeassistant-custom-component` → HA | `0.13.354` → HA `2026.8.0`, requires-python `>=3.14` | 2026-08-07 | pypi.org/project/pytest-homeassistant-custom-component | `templates/requirements.test.txt` pin · the HA-minimum-Python row above |
 | Brand assets served from inline `brand/` | since HA `2026.3.0`; HACS dashboard still reads the legacy CDN | 2026-06 | hacs/integration #5171, #5223 | the brand-assets note in Mode 1 |
 
+`scripts/version_sync.py` runs in `quality_audit.yml` and fails when the Python version
+in `python_validate.yml`, ruff's `target-version` and `pyrightconfig.json` disagree, or
+when `pytest-homeassistant-custom-component` is unpinned. It compares what is declared;
+the table above is still what says which value is current.
+
 `hacs/action@main` and `home-assistant/actions/hassfest@master` are **deliberately** on mutable refs — that's the ref each project documents, and a tag pin stops tracking their validation rules. They're exempt from the pin rules above; the trade-off is capped with read-only permissions and `persist-credentials: false` in both workflows.
 
 ## When to use this skill
