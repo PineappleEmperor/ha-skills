@@ -101,7 +101,7 @@ Check the current working directory:
   > `manifest.json` from the release tag before zipping, so nobody hand-bumps a version
   > in a PR and the asset users install always matches the release they installed it
   > from. The committed value is a placeholder between releases. [frenck/spook](https://github.com/frenck/spook)
-  > patches from the same event; `skill_audit.sh` fails a `zip_release` repo whose
+  > patches from the same event; `skill_audit.py` fails a `zip_release` repo whose
   > `release.yml` doesn't. Overriding a bump is choosing the tag. This applies to
   > integrations HACS installs as a zip — a repo whose *committed* file is what
   > consumers read (a plugin marketplace, a library) still has to commit the bump.
@@ -117,7 +117,7 @@ Check the current working directory:
   ```
 - `LICENSE` — the full text of the chosen licence (MIT unless told otherwise), so GitHub
   resolves an SPDX identifier and the HACS `license` check passes.
-- `.gitignore` — copy `templates/.gitignore`. Covers `__pycache__/`, caches, venvs, HA dev artefacts (`.storage/`, `home-assistant.log*`, the `_v2.db`), and `device_map.md` (the Mode 5 log-triage map holds a home's IP/device layout and must never be committed). **Not optional:** without it a local `pytest` run plus a `git add -A` commits `.pyc` files, and a `.pyc` under `templates/` is then copied verbatim into every repo scaffolded from the skill. `skill_audit.sh` fails on any tracked compiled artefact.
+- `.gitignore` — copy `templates/.gitignore`. Covers `__pycache__/`, caches, venvs, HA dev artefacts (`.storage/`, `home-assistant.log*`, the `_v2.db`), and `device_map.md` (the Mode 5 log-triage map holds a home's IP/device layout and must never be committed). **Not optional:** without it a local `pytest` run plus a `git add -A` commits `.pyc` files, and a `.pyc` under `templates/` is then copied verbatim into every repo scaffolded from the skill. `skill_audit.py` fails on any tracked compiled artefact.
 - `.githooks/commit-msg` — copy `templates/hooks/commit-msg`, `chmod +x`. Terse-subject + AI-trailer rejection. **Enable once per clone: `git config core.hooksPath .githooks`** — an unenabled hook is a file, not a guard. Document that line in `CLAUDE.md`.
 - `custom_components/{domain}/brand/icon.png` — **256×256**, required by HACS brands validation
 - `custom_components/{domain}/brand/icon@2x.png` — **512×512** (see HiDPI note below)
@@ -158,7 +158,7 @@ The `description`, `issues`, `topics` and `license` checks fail silently until t
 run on.** GitHub suppresses workflow events caused by `GITHUB_TOKEN`, so a PR opened with
 it fires no `pull_request_target`: no checks run, the required ones never report, and the
 PR is permanently unmergeable. That is how `create-dev-pr.yml` died. The opener fails
-loudly instead, and `skill_audit.sh` fails a repo that ships it without the secret.
+loudly instead, and `skill_audit.py` fails a repo that ships it without the secret.
 
 The **release** path needs no token: both the full release and its next rc are kept as
 drafts, and publishing a draft is a human action, so its events fire normally.
@@ -256,7 +256,7 @@ bash scripts/bootstrap_repo.sh "One-line description of the integration"
 gh api -X POST repos/<owner>/<repo>/rulesets --input ruleset.json
 ```
 
-It requires the nine job-name contexts the templates produce and keeps deletions and force-pushes blocked. `skill_audit.sh` FAILs a repo whose default branch has no required checks, so skipping this shows up rather than going unnoticed.
+It requires the nine job-name contexts the templates produce and keeps deletions and force-pushes blocked. `skill_audit.py` FAILs a repo whose default branch has no required checks, so skipping this shows up rather than going unnoticed.
 
 Two ways to get it wrong, both of which block every PR permanently:
 
@@ -276,12 +276,12 @@ issues and PRs untouched for 60 days and **never closes them** (`days-before-clo
 
 Actions are pinned by commit SHA with the version in a trailing comment, because a tag
 is mutable — whoever owns the action can repoint it at new code, which then runs with the
-workflow's token. Dependabot updates both the SHA and the comment, and `skill_audit.sh`
+workflow's token. Dependabot updates both the SHA and the comment, and `skill_audit.py`
 fails a workflow that uses a bare tag or a SHA with nothing saying what it is.
 
 ⚠️ **Dependabot cannot see `templates/`.** Its `github-actions` ecosystem only scans
 `.github/workflows` at the repo root, so the pins this skill *ships* are never bumped for
-you. `skill_audit.sh` compares them against this repo's own pins — which Dependabot does
+you. `skill_audit.py` compares them against this repo's own pins — which Dependabot does
 update — and fails when the templates fall behind.
 
 #### Panel integrations (a custom panel served by the integration)
@@ -350,7 +350,7 @@ The full, self-contained CI stack ships in the skill's **`templates/`** dir (mir
 3. **Personal or repo skill:** `~/.claude/skills/ha-integration/templates/`, or `plugins/ha/skills/ha-integration/templates/` inside a checkout of the skill repo.
 4. **Last resort — search:** `find ~/.claude ~/.agents . -type d -path '*ha-integration/templates' 2>/dev/null`
 
-**If none of those find it, stop and say so.** Report which paths you checked and ask for the skill's location. Do **not** author the workflows, `skill_audit.sh`, `manifest_gate.py`, `dependabot.yml`, `release-drafter.yml` or `pr-checks.yml` from this document — the prose *describes* the templates, it does not *replace* them. A hand-written CI stack passes a hand-written audit, and every divergence stays invisible until something breaks in production.
+**If none of those find it, stop and say so.** Report which paths you checked and ask for the skill's location. Do **not** author the workflows, `skill_audit.py`, `manifest_gate.py`, `dependabot.yml`, `release-drafter.yml` or `pr-checks.yml` from this document — the prose *describes* the templates, it does not *replace* them. A hand-written CI stack passes a hand-written audit, and every divergence stays invisible until something breaks in production.
 
 ##### Copying the templates
 
@@ -441,7 +441,7 @@ Valid statuses: `done`, `todo`, `exempt` (exempt requires a `comment`).
 
 **Scaffold `quality_scale.yaml` from the start** (even in Mode 2 on an existing integration that lacks it) and treat it as the definition-of-done — don't discover rules by hitting them. **hassfest gotchas:** the file must list **every** canonical rule with a valid status, `exempt` **must** carry a `comment`, and **only add `"quality_scale": "<tier>"` to `manifest.json` once every rule up to that tier is `done`/`exempt`** — claiming a tier makes hassfest enforce it (a single `todo` at/below that tier fails CI). So: ship the yaml as a tracking ledger first, omit the manifest tier until a tier is fully met.
 
-**Gate-enforced, on the claim rather than on the tests.** `skill_audit.sh` stays silent when nothing is marked `done` — a fresh scaffold claims nothing, so it has nothing to prove — and **fails** when any rule is `done` with no `tests/`, or when `test-coverage` is `done` while a `frontend/` panel has no tests of its own. `exempt` with a comment is always the honest alternative; `todo` is fine indefinitely.
+**Gate-enforced, on the claim rather than on the tests.** `skill_audit.py` stays silent when nothing is marked `done` — a fresh scaffold claims nothing, so it has nothing to prove — and **fails** when any rule is `done` with no `tests/`, or when `test-coverage` is `done` while a `frontend/` panel has no tests of its own. `exempt` with a comment is always the honest alternative; `todo` is fine indefinitely.
 
 ⚠️ **Prove the rule, don't just claim it — hassfest checks structure, not behaviour.** A green hassfest + a `done` in `quality_scale.yaml` only proves the file is well-formed and the manifest tier is a valid enum; hassfest **never runs the integration**, so it cannot tell you `diagnostics.py` actually redacts, the reconfigure flow works, `async_remove_config_entry_device` returns correctly, or that a `translation_key` used in code resolves in `strings.json`. (For HA core those rules are enforced by human reviewers; for a custom integration nothing enforces them.) So **every rule you mark `done` must have a test that exercises it** — marking `done` off code-presence alone is "claiming compliance" without showing it. Concretely, each of these needs its own test, not just the code: `reconfiguration-flow` (a reconfigure-success + reconfigure-error flow test), `diagnostics` (asserts the payload shape **and** that secrets are `**REDACTED**`), `stale-devices` (`async_remove_config_entry_device` → `False` while the device is live, `True` once it's gone), `exception-translations`/`entity-translations`/`icon-translations` (a test that scrapes the `translation_key`s used in code and asserts each exists in `strings.json` — catches a typo'd key that hassfest passes). If a rule is genuinely untestable, it should be `exempt` with a comment, not an unproven `done`.
 
@@ -458,7 +458,7 @@ Common `exempt`s for a local-push MQTT device integration: `appropriate-polling`
 ### Code style
 
 - Module docstring on every file. **This one may be multi-line** — a file-level explanation of a load-bearing constraint belongs here, not demoted to a comment.
-- Short **single-line** docstrings on all public functions and classes. Enforced by `skill_audit.sh`; module docstrings are exempt.
+- Short **single-line** docstrings on all public functions and classes. Enforced by `skill_audit.py`; module docstrings are exempt.
 - No inline comments unless the WHY is genuinely non-obvious
 - No trailing summaries after edits
 - ruff + pylint compliant; pyright standard mode
@@ -570,22 +570,22 @@ Apply the same patterns and code style as Mode 1.
 **Why this is separate from lint.** Mode 3 (lint) answers *is the code hygienic* — ruff/pyright/manifest order, tool-driven. Mode 4 answers *was this skill actually followed* — are the canonical workflows present and correct, the documented patterns applied, the antipatterns gone, `quality_scale.yaml` honest. The skill has repeatedly been *used* while specific items were missed (stale action pins, a deprecated notify path, an optimistic `exempt`, a hand-created PR). Lint can't catch those; the audit does. **Run it before claiming a tier and before merge — it's part of definition-of-done.**
 
 **Two layers, because a checklist you must remember to run gets skipped:**
-1. **Mechanical gate (`scripts/skill_audit.sh`, enforced by `quality_audit.yml` on every PR).** Greps the high-confidence, machine-checkable subset and fails CI on any violation. This is what *stops* regressions — it can't be forgotten.
+1. **Mechanical gate (`scripts/skill_audit.py`, enforced by `quality_audit.yml` on every PR).** Greps the high-confidence, machine-checkable subset and fails CI on any violation. This is what *stops* regressions — it can't be forgotten.
 2. **Judgement checklist (below).** The items a grep can't decide — run these by reading the code.
 
-### Mechanical gate — `scripts/skill_audit.sh`
+### Mechanical gate — `scripts/skill_audit.py`
 
-The full script is **`templates/scripts/skill_audit.sh`** (copy to `scripts/`, `chmod +x`). It fails (exit 1) on: a missing canonical workflow; a stale action pin (checkout < v7, setup-python < v6, action-gh-release < v3, semantic-pull-request < v6); an antipattern in `custom_components/` (`discovery.async_load_platform`, `BaseNotificationService`, `update_before_add=True`, `OptionsFlowHandler`, `PlatformNotReady`, f-string logging, bare `# type: ignore`); a missing `quality_scale.yaml` / `integration_type` / `issue_tracker`; or a `tests/` dir with no `requirements.test.txt` or no pytest step in `python_validate.yml` (a suite CI can't install is a suite CI doesn't run). It **warns** on an absent `tests/` dir and on an unpinned `pytest-homeassistant-custom-component`. Keep its rules in lockstep with this skill — when you add an antipattern or canonical workflow here, add the check there.
+The full script is **`templates/scripts/skill_audit.py`** (copy to `scripts/`, `chmod +x`). It fails (exit 1) on: a missing canonical workflow; a stale action pin (checkout < v7, setup-python < v6, action-gh-release < v3, semantic-pull-request < v6); an antipattern in `custom_components/` (`discovery.async_load_platform`, `BaseNotificationService`, `update_before_add=True`, `OptionsFlowHandler`, `PlatformNotReady`, f-string logging, bare `# type: ignore`); a missing `quality_scale.yaml` / `integration_type` / `issue_tracker`; or a `tests/` dir with no `requirements.test.txt` or no pytest step in `python_validate.yml` (a suite CI can't install is a suite CI doesn't run). It **warns** on an absent `tests/` dir and on an unpinned `pytest-homeassistant-custom-component`. Keep its rules in lockstep with this skill — when you add an antipattern or canonical workflow here, add the check there.
 
 ⚠️ **The gate checks each canonical workflow *exists*, not that it *matches* the template** — a consuming repo has no copy of `templates/` to diff against. Content fidelity is the first item of the judgement checklist below, where the agent *does* have the skill on disk. Green CI is not evidence the templates were copied.
 
-Enforce it in CI with **`templates/.github/workflows/quality_audit.yml`** — runs `scripts/skill_audit.sh` on every PR, so conformance can't be silently skipped.
+Enforce it in CI with **`templates/.github/workflows/quality_audit.yml`** — runs `scripts/skill_audit.py` on every PR, so conformance can't be silently skipped.
 
-Add `"scripts/*" = ["T20", "INP001"]` to ruff `per-file-ignores` if any audit helper is Python (the bash script needs no ignore). When the skill adds a new antipattern or canonical workflow, **add the matching check here** — the gate is only as current as its rules.
+Add `"scripts/*" = ["T20", "INP001"]` to ruff `per-file-ignores` — the audit and its helpers print, and are not a package. When the skill adds a new antipattern or canonical workflow, **add the matching check here** — the gate is only as current as its rules.
 
 ### Judgement checklist (read the code — a grep can't decide these)
 
-- **Templates copied, not paraphrased.** Diff `.github/` and `scripts/` against this skill's `templates/` (locate it per *Where `templates/` lives* in Mode 1). Every difference must appear in the sanctioned-adaptations table there. Files that merely *look* equivalent are not equivalent — `skill_audit.sh` checks each canonical workflow **exists**, never that it **matches**, so fifteen hand-written files once passed it clean. Run:
+- **Templates copied, not paraphrased.** Diff `.github/` and `scripts/` against this skill's `templates/` (locate it per *Where `templates/` lives* in Mode 1). Every difference must appear in the sanctioned-adaptations table there. Files that merely *look* equivalent are not equivalent — `skill_audit.py` checks each canonical workflow **exists**, never that it **matches**, so fifteen hand-written files once passed it clean. Run:
   ```bash
   T=<skill>/templates   # from the skill's announced base directory
   diff -ru "$T/.github" .github
@@ -598,7 +598,7 @@ Add `"scripts/*" = ["T20", "INP001"]` to ruff `per-file-ignores` if any audit he
 - **`quality_scale.yaml` honest:** every canonical rule listed; every `exempt` carries a real `comment`; no optimistic `exempt` masking a gap (e.g. `stale-devices` exempt while a device *is* created); the `manifest.json` tier claimed only when every rule at/below it is `done`/`exempt`.
 - **Tests mock the boundary:** a real setup-entry `LOADED` test exists (not just `async_setup_component`); the transport is mocked, not the integration's own functions; a two-entry parallel `LOADED` test exists if multiple devices are allowed; parsers have unit tests.
 - **Commit/PR discipline:** subjects are single tight imperatives; the PR title uses a **labellable** type (`feat|fix|chore|docs`, `!` for breaking) — typed by a human, or derived from the commits by `auto_draft_pr.yml`; in an integration the release tag sets the version and no PR carries a bump, while a repo whose committed file is what consumers read bumps once, as the last commit.
-- **Cached facts still true.** Re-derive any row in the **Freshness** table (top of this skill) captured more than ~3 months ago, using the command in its *Re-derive with* column. Report each as still-current or stale-with-the-new-value, and update every consumer listed on that row in one pass. The stale-pin patterns in `skill_audit.sh` are themselves a cached fact — check them against the action majors, not just the templates against the patterns.
+- **Cached facts still true.** Re-derive any row in the **Freshness** table (top of this skill) captured more than ~3 months ago, using the command in its *Re-derive with* column. Report each as still-current or stale-with-the-new-value, and update every consumer listed on that row in one pass. The stale-pin patterns in `skill_audit.py` are themselves a cached fact — check them against the action majors, not just the templates against the patterns.
 
 **Report:** per-item pass/fail with `file:line` evidence · what the mechanical gate caught · remaining manual work. Fix findings before claiming the tier.
 

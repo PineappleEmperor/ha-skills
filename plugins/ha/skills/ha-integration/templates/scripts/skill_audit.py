@@ -1,0 +1,739 @@
+#!/usr/bin/env python3
+"""Skill-conformance audit: verify the ha-integration skill was actually followed.
+
+Canonical workflows present, action pins current, antipatterns absent, quality_scale
+honest. The mechanical subset of Mode 4 — the judgement items still need an agent with
+the skill on disk. Exit 1 on any FAIL. Runs locally and in CI.
+
+Ported from skill_audit.sh: the shell version grew ten embedded Python blocks, none of
+which could be unit-tested, which is the same trap the skill warns about elsewhere.
+Each check here is a function returning problems, so each has a test.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import pathlib
+import re
+import subprocess
+import sys
+
+Result = tuple[list[str], list[str]]  # (failures, warnings)
+
+CANONICAL = ("pr-checks", "release_drafter", "semantic_release", "lint_pr",
+             "python_validate", "quality_audit")
+INTEGRATION_ONLY = ("hacs_validate", "hassfest_validate", "release")
+SHIPPED_SCRIPTS = {"manifest_gate.py", "commit_summary.py", "release_notes.py",
+                   "check_release_notes.py", "skill_audit.py", "version_sync.py"}
+PIN_EXEMPT = ("hacs/action", "home-assistant/actions")
+CANON_RULES = {
+    "action-setup", "appropriate-polling", "brands", "common-modules",
+    "config-flow-test-coverage", "config-flow", "dependency-transparency", "docs-actions",
+    "docs-high-level-description", "docs-installation-instructions",
+    "docs-removal-instructions", "entity-event-setup", "entity-unique-id",
+    "has-entity-name", "runtime-data", "test-before-configure", "test-before-setup",
+    "unique-config-entry", "config-entry-unloading", "log-when-unavailable",
+    "entity-unavailable", "action-exceptions", "reauthentication-flow", "parallel-updates",
+    "test-coverage", "integration-owner", "docs-installation-parameters",
+    "docs-configuration-parameters", "entity-translations", "entity-device-class",
+    "devices", "entity-category", "entity-disabled-by-default", "discovery",
+    "stale-devices", "diagnostics", "exception-translations", "icon-translations",
+    "reconfiguration-flow", "dynamic-devices", "discovery-update-info", "repair-issues",
+    "docs-use-cases", "docs-supported-devices", "docs-supported-functions",
+    "docs-data-update", "docs-known-limitations", "docs-troubleshooting", "docs-examples",
+    "async-dependency", "inject-websession", "strict-typing",
+}
+ANTIPATTERNS = (
+    (r"discovery\.async_load_platform", "deprecated discovery.async_load_platform (use NotifyEntity / platform forward)"),
+    (r"BaseNotificationService", "deprecated BaseNotificationService (use NotifyEntity)"),
+    (r"update_before_add=True", "update_before_add=True (populate via property or _handle_coordinator_update)"),
+    (r"OptionsFlowHandler", "deprecated OptionsFlowHandler name (use OptionsFlow)"),
+    (r"PlatformNotReady", "PlatformNotReady in a config-entry integration (use ConfigEntryNotReady)"),
+    (r'_LOGGER\.[a-z]+\(\s*f"', "f-string in a logging call (use lazy % args — ruff G004)"),
+)
+
+
+class Repo:
+    """The repository under audit, and the small facts every check needs."""
+
+    def __init__(self, root: pathlib.Path) -> None:
+        self.root = root
+        components = sorted(root.glob("custom_components/*/"))
+        self.cc = components[0] if components else None
+        self.workflows = root / ".github/workflows"
+
+    def text(self, rel: str) -> str:
+        p = self.root / rel
+        return p.read_text(encoding="utf-8", errors="replace") if p.is_file() else ""
+
+    def yaml(self, rel: str) -> dict:
+        import yaml as _yaml
+        try:
+            return _yaml.safe_load(self.text(rel)) or {}
+        except Exception:
+            return {}
+
+    def exists(self, rel: str) -> bool:
+        return (self.root / rel).exists()
+
+    def workflow_files(self) -> list[pathlib.Path]:
+        return sorted(self.workflows.glob("*.y*ml")) if self.workflows.is_dir() else []
+
+    def steps(self, path: pathlib.Path) -> list[tuple[str, dict]]:
+        """Every (job name, step) pair in one workflow."""
+        import yaml as _yaml
+        try:
+            doc = _yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        except Exception:
+            return []
+        return [(jn, s or {}) for jn, job in (doc.get("jobs") or {}).items()
+                for s in (job or {}).get("steps", []) or []]
+
+
+def _live(run: str) -> str:
+    """A run: block with its shell comments dropped.
+
+    A name mentioned only in a comment is documentation, not an invocation — matching
+    the raw body counted pr-checks.yml's explanation of manifest_gate.py as wiring.
+    """
+    return "\n".join(l for l in run.splitlines() if not l.lstrip().startswith("#"))
+
+
+def check_canonical_files(repo: Repo) -> Result:
+    """Every workflow and config the stack cannot run without."""
+    fails, warns = [], []
+    for w in CANONICAL:
+        if not repo.exists(f".github/workflows/{w}.yml"):
+            fails.append(f"missing .github/workflows/{w}.yml")
+    if repo.cc:
+        for w in INTEGRATION_ONLY:
+            if not repo.exists(f".github/workflows/{w}.yml"):
+                fails.append(f"missing .github/workflows/{w}.yml")
+    for f, why in (
+        (".github/release-drafter.yml", ""),
+        (".github/dependabot.yml", ""),
+        (".gitignore", " (copy templates/.gitignore)"),
+    ):
+        if not repo.exists(f):
+            fails.append(f"missing {f}{why}")
+    return fails, warns
+
+
+def check_no_tracked_artefacts(repo: Repo) -> Result:
+    """A committed .pyc is copied verbatim into every scaffolded repo."""
+    try:
+        out = subprocess.run(["git", "ls-files"], cwd=repo.root, capture_output=True,
+                             text=True, check=False).stdout
+    except OSError:
+        return [], []
+    tracked = [l for l in out.splitlines() if re.search(r"__pycache__|\.py[cod]$", l)]
+    if tracked:
+        return ["compiled Python artefacts are tracked (git rm --cached, and add them "
+                "to .gitignore): " + ", ".join(tracked[:5])], []
+    return [], []
+
+
+def check_scripts_present(repo: Repo) -> Result:
+    """The scripts workflows shell out to; a missing one fails at runtime, on every PR."""
+    wanted = {
+        "scripts/manifest_gate.py": "pr-checks.yml's version-gate shells out to it",
+        "tests/test_manifest_gate.py": "the gate's logic must stay unit-tested",
+        "scripts/commit_summary.py": "pr-checks.yml's commit-summary shells out to it",
+        "scripts/release_notes.py": "release notes would be grouped by PR label, filing fixes under Features",
+        "scripts/check_release_notes.py": "nothing would verify the release description renders",
+        "scripts/version_sync.py": "nothing would compare the python version across the files that declare it",
+        "tests/test_commit_summary.py": "the classifier must stay unit-tested",
+    }
+    return [f"missing {p} ({why})" for p, why in wanted.items() if not repo.exists(p)], []
+
+
+def check_scripts_wired(repo: Repo) -> Result:
+    """Presence is not wiring: a shipped script no workflow runs performs no check."""
+    scripts_dir = repo.root / "scripts"
+    if not scripts_dir.is_dir() or not repo.workflows.is_dir():
+        return [], []
+    body = "\n".join(_live(str(s.get("run", "")))
+                     for wf in repo.workflow_files() for _, s in repo.steps(wf))
+    fails = []
+    for s in sorted(scripts_dir.glob("*")):
+        if s.suffix not in (".py", ".sh") or not s.is_file() or s.name in body:
+            continue
+        if s.name in SHIPPED_SCRIPTS:
+            fails.append(f"scripts/{s.name} ships with this skill but no workflow step "
+                         f"runs it (the check it performs never runs)")
+            continue
+        marked = any(l.lstrip().startswith("#") and "skill-audit: local-tool" in l
+                     for l in s.read_text(errors="replace").splitlines())
+        if not marked:
+            fails.append(f"scripts/{s.name} is not run by any workflow step. If it is a "
+                         f"developer utility rather than a CI check, add a comment line "
+                         f"'# skill-audit: local-tool' anywhere in it")
+    return fails, []
+
+
+def check_single_body_writer(repo: Repo) -> Result:
+    """Two writers race, and the loser's output is what users read."""
+    writers = []
+    for wf in repo.workflow_files():
+        for jn, step in repo.steps(wf):
+            run = _live(str(step.get("run", "")))
+            if re.search(r"gh release (edit|create)[^\n]*--notes", run):
+                writers.append(f"{wf.name}:{jn} (gh release --notes)")
+            with_ = step.get("with") or {}
+            if str(with_.get("generate_release_notes", "")).lower() == "true":
+                writers.append(f"{wf.name}:{jn} (generate_release_notes)")
+            if "body" in with_ or "body_path" in with_:
+                writers.append(f"{wf.name}:{jn} (body)")
+    if len(writers) > 1:
+        return ["more than one workflow step writes the release body; they race and the "
+                "published notes end up containing both: " + "; ".join(writers)], []
+    return [], []
+
+
+def check_previous_tag(repo: Repo) -> Result:
+    """`--limit 1` on a release event returns the release being written."""
+    rel = "path:.github/workflows/release_drafter.yml"
+    if not repo.exists(".github/workflows/release_drafter.yml"):
+        return [], []
+    doc = repo.yaml(".github/workflows/release_drafter.yml")
+    on = doc.get(True) or doc.get("on") or {}
+    if "release" not in on:
+        return [], []
+    for _, step in repo.steps(repo.workflows / "release_drafter.yml"):
+        run = str(step.get("run", ""))
+        if "release_notes.py" not in run:
+            continue
+        prev = next((l for l in run.splitlines() if re.match(r"\s*PREV=", l)), "")
+        if "--limit 1 " in prev or prev.rstrip().endswith("--limit 1"):
+            return ["release_drafter.yml resolves the previous tag with `--limit 1` while "
+                    "triggering on `release: published`; that returns the release being "
+                    "written and the notes come out empty. Exclude the current tag."], []
+    return [], []
+
+
+def check_zip_release_patches_manifest(repo: Repo) -> Result:
+    """An unpatched zip ships whatever version the last PR happened to commit."""
+    if not (repo.exists("hacs.json") and repo.exists(".github/workflows/release.yml")):
+        return [], []
+    if not re.search(r'"zip_release"\s*:\s*true', repo.text("hacs.json")):
+        return [], []
+    if "manifest.json" not in repo.text(".github/workflows/release.yml"):
+        return ["release.yml builds a zip_release asset without setting the manifest "
+                "version from the tag (see templates/.github/workflows/release.yml)"], []
+    return [], []
+
+
+def check_label_events(repo: Repo) -> Result:
+    """`labeled` plus `cancel-in-progress` makes cancelled runs look like failures."""
+    if not repo.exists(".github/workflows/pr-checks.yml"):
+        return [], []
+    doc = repo.yaml(".github/workflows/pr-checks.yml")
+    on = doc.get(True) or doc.get("on") or {}
+    types = set((on.get("pull_request_target") or on.get("pull_request") or {}).get("types", []))
+    cancels = bool((doc.get("concurrency") or {}).get("cancel-in-progress"))
+    hazard = types & {"labeled", "unlabeled"}
+    if hazard and cancels:
+        return [f"pr-checks.yml triggers on {sorted(hazard)} with cancel-in-progress. A bot "
+                f"applying several labels starts a run per label; the cancelled ones make "
+                f"the status rollup FAILURE and the PR unmergeable."], []
+    return [], []
+
+
+def check_release_drafter_wiring(repo: Repo) -> Result:
+    """The drafter must run the notes generator, its checker, and clone deep enough."""
+    rel = ".github/workflows/release_drafter.yml"
+    if not repo.exists(rel):
+        return [], []
+    t = repo.text(rel)
+    fails = []
+    if "scripts/release_notes.py" not in t:
+        fails.append(f"{rel} never runs scripts/release_notes.py (notes fall back to "
+                     f"release-drafter's $CHANGES, grouped by PR label)")
+    if "scripts/check_release_notes.py" not in t:
+        fails.append(f"{rel} never runs scripts/check_release_notes.py (a malformed "
+                     f"release description would ship unnoticed)")
+    if "fetch-depth: 0" not in t:
+        fails.append(f"{rel} checks out at depth 1; release_notes.py cannot resolve its "
+                     f"commit range without fetch-depth: 0")
+    return fails, []
+
+
+def check_classifier_not_inlined(repo: Repo) -> Result:
+    """An inline classifier cannot be unit-tested and corrupts notes silently."""
+    if "MAINT = " in repo.text(".github/workflows/pr-checks.yml"):
+        return ["pr-checks.yml inlines the commit classifier (call scripts/commit_summary.py instead)"], []
+    return [], []
+
+
+def _quality_scale(repo: Repo) -> dict:
+    if not repo.cc:
+        return {}
+    rel = str((repo.cc / "quality_scale.yaml").relative_to(repo.root))
+    return (repo.yaml(rel) or {}).get("rules") or {}
+
+
+def _status(value) -> str | None:
+    return value if isinstance(value, str) else (value or {}).get("status")
+
+
+def check_claims_have_tests(repo: Repo) -> Result:
+    """A `done` with no test is a claim, not evidence."""
+    rules = _quality_scale(repo)
+    done = sum(1 for v in rules.values() if _status(v) == "done")
+    fails, warns = [], []
+    tests = repo.exists("tests")
+    if _status(rules.get("test-coverage")) == "done" and repo.exists("frontend"):
+        found = list((repo.root / "frontend").rglob("*.test.ts")) + \
+                list((repo.root / "frontend").rglob("*.spec.ts"))
+        if not found:
+            fails.append("quality_scale marks test-coverage done, but the panel has no "
+                         "frontend tests (its presentation logic is reachable from nothing else)")
+    if tests and repo.cc:
+        if not repo.exists("requirements.test.txt"):
+            fails.append("tests/ exists but requirements.test.txt is missing (pytest step "
+                         "cannot install the suite)")
+        if repo.exists("conftest.py"):
+            conftest = repo.text("conftest.py")
+            if not re.search(r"^import custom_components", conftest, re.M):
+                fails.append("conftest.py does not import custom_components (HA will not "
+                             "discover the integration)")
+            if "enable_custom_integrations" not in conftest:
+                fails.append("conftest.py does not pull in enable_custom_integrations")
+        else:
+            fails.append("missing root conftest.py (must be at the repo root, not tests/conftest.py)")
+        if not re.search(r'asyncio_mode\s*=\s*"auto"', repo.text("pyproject.toml")):
+            fails.append('pyproject.toml missing asyncio_mode = "auto" (async tests never run)')
+        if "pytest" not in repo.text(".github/workflows/python_validate.yml"):
+            fails.append("python_validate.yml has no pytest step (quality_scale 'done' rules "
+                         "would go unproven)")
+    elif done:
+        fails.append(f"quality_scale marks {done} rule(s) done but there is no tests/ "
+                     f"directory — a done without a test is a claim, not evidence")
+    if repo.exists("requirements.test.txt") and repo.cc:
+        if not re.search(r"pytest-homeassistant-custom-component\s*==", repo.text("requirements.test.txt")):
+            warns.append("pytest-homeassistant-custom-component is unpinned (it hard-pins the "
+                         "HA version the suite tests against)")
+    return fails, warns
+
+
+def check_action_pins(repo: Repo) -> Result:
+    """A tag is mutable; its owner can repoint it at code that runs with this token."""
+    uses = re.compile(r"uses:\s*(?P<ref>[^\s#]+)\s*(?P<comment>#.*)?$")
+    fails = []
+    for wf in repo.workflow_files():
+        for n, line in enumerate(wf.read_text(errors="replace").splitlines(), 1):
+            m = uses.search(line)
+            if not m:
+                continue
+            ref = m.group("ref")
+            if ref.startswith("./") or any(ref.startswith(e) for e in PIN_EXEMPT):
+                continue
+            sha = ref.rsplit("@", 1)[-1] if "@" in ref else ""
+            if not re.fullmatch(r"[0-9a-f]{40}", sha):
+                fails.append(f"{wf.name}:{n} {ref} is not pinned to a commit SHA")
+            elif not re.search(r"#\s*v?\d+\.\d+", m.group("comment") or ""):
+                fails.append(f"{wf.name}:{n} {ref} has no version comment (nothing says "
+                             f"what this SHA is)")
+    return fails, []
+
+
+def check_pr_checks_shape(repo: Repo) -> Result:
+    """Ordering and pull_request_target safety, which no other workflow can provide."""
+    rel = ".github/workflows/pr-checks.yml"
+    if not repo.exists(rel):
+        return [], []
+    t = repo.text(rel)
+    fails, warns = [], []
+    if "Remove superseded" not in t:
+        fails.append("pr-checks.yml missing the removal-only superseded-label step")
+    if "dependabot[bot]" not in t:
+        warns.append("pr-checks.yml may not exempt dependabot[bot] from the version gate")
+    if "gh release list" not in t:
+        warns.append("pr-checks.yml may not compare against the last published release")
+    if "pull_request_target" not in t:
+        fails.append("pr-checks.yml must use pull_request_target (fork PRs get a read-only "
+                     "token otherwise)")
+    if t.count("needs: label") < 2:
+        fails.append("pr-checks.yml: label-reading jobs must declare 'needs: label' (else "
+                     "they race the autolabeler)")
+    if "user.type != 'Bot'" not in t:
+        fails.append("pr-checks.yml does not skip bot-authored PRs")
+    if "actions/checkout" in t:
+        if "ref: ${{ github.event.pull_request.base.sha }}" not in t:
+            fails.append("pr-checks.yml checks out without pinning base.sha (never run PR "
+                         "code under pull_request_target)")
+        if re.search(r"actions/checkout[^\n]*\n(?:[^\n]*\n){0,2}?[^\n]*head\.sha", t):
+            fails.append("pr-checks.yml checks out the PR head under pull_request_target")
+    # checkout clears the workspace, so a job that writes a file first loses it
+    late = [jn for jn, steps in _jobs_steps(repo, rel).items()
+            if any("actions/checkout" in str(s.get("uses", "")) for s in steps)
+            and "actions/checkout" not in str((steps[0] or {}).get("uses", ""))]
+    for jn in late:
+        fails.append(f"pr-checks.yml: actions/checkout must be the FIRST step of job '{jn}' "
+                     f"(it clears the workspace)")
+    # untrusted strings must arrive via env, never interpolation
+    interpolated = [(jn, s.get("name"), m)
+                    for jn, steps in _jobs_steps(repo, rel).items() for s in steps
+                    for m in re.findall(r"\$\{\{\s*([^}]+?)\s*\}\}", str(s.get("run", "")))]
+    for jn, name, expr in interpolated:
+        fails.append(f"pr-checks.yml interpolates ${{{{ {expr} }}}} inside a run: block in "
+                     f"'{name or jn}' (use env:)")
+    return fails, warns
+
+
+def _jobs_steps(repo: Repo, rel: str) -> dict[str, list[dict]]:
+    doc = repo.yaml(rel)
+    return {jn: (job or {}).get("steps", []) or [] for jn, job in (doc.get("jobs") or {}).items()}
+
+
+def check_no_ignored_validations(repo: Repo) -> Result:
+    """`ignore:` disqualifies the repo from the HACS default store."""
+    if not repo.cc:
+        return [], []
+    fails = []
+    for w in ("hacs_validate", "hassfest_validate"):
+        rel = f".github/workflows/{w}.yml"
+        if repo.exists(rel) and re.search(r"^\s*ignore:", repo.text(rel), re.M):
+            fails.append(f"{w}.yml sets ignore: — ignoring any check disqualifies the repo "
+                         f"from the HACS default store")
+    return fails, []
+
+
+def check_sole_labeler(repo: Repo) -> Result:
+    """A second labeler makes labels flap and breaks `needs: label` ordering."""
+    rel = ".github/workflows/release_drafter.yml"
+    if not repo.exists(rel):
+        return [], []
+    doc = repo.yaml(rel)
+    triggers = set(doc.get(True) or doc.get("on") or {})
+    bad = []
+    if triggers - {"push", "workflow_dispatch", "release"}:
+        bad.append(f"triggers {sorted(triggers)} (expected push and release only)")
+    bad += [f"job '{n}' looks like a second labeler"
+            for n in (doc.get("jobs") or {}) if "label" in n.lower()]
+    if bad:
+        return ["release_drafter.yml must be push-only with no autolabeler job "
+                "(pr-checks.yml is the sole labeler): " + "; ".join(bad)], []
+    return [], []
+
+
+def check_pr_openers(repo: Repo) -> Result:
+    """Only draft-only, actor-gated openers may exist."""
+    fails = []
+    if repo.exists(".github/workflows/create-dev-pr.yml"):
+        fails.append("create-dev-pr.yml is superseded (use auto_draft_pr.yml, which is "
+                     "draft-only and actor-gated)")
+    for wf in repo.workflow_files():
+        if "gh pr create" in wf.read_text(errors="replace") and \
+                wf.name not in ("auto_draft_pr.yml", "update_manifest_floors.yml"):
+            fails.append(f"{wf.name} opens PRs with 'gh pr create' (only auto_draft_pr.yml "
+                         f"and update_manifest_floors.yml may)")
+    opener = repo.text(".github/workflows/auto_draft_pr.yml")
+    if opener:
+        if "github.actor == github.repository_owner" not in opener:
+            fails.append("auto_draft_pr.yml must gate on the actor being the repo owner, or "
+                         "it opens PRs that impersonate the token owner")
+        if "--draft" not in opener:
+            fails.append("auto_draft_pr.yml must open the PR as a draft")
+    return fails, []
+
+
+def check_antipatterns(repo: Repo) -> Result:
+    """Deprecated APIs that still import cleanly and fail at runtime."""
+    if not repo.cc:
+        return [], []
+    fails, warns = [], []
+    sources = list(repo.cc.rglob("*.py"))
+    blob = {p: p.read_text(errors="replace") for p in sources}
+    for pattern, message in ANTIPATTERNS:
+        if any(re.search(pattern, t) for t in blob.values()):
+            fails.append(message)
+    bare = [f"{p}" for p, t in blob.items()
+            if any("# type: ignore" in l and "import-untyped" not in l for l in t.splitlines())]
+    if bare:
+        fails.append("bare # type: ignore (Platinum: only [import-untyped] with a reason): "
+                     + ", ".join(str(p.name) for p in map(pathlib.Path, bare[:3])))
+    init = repo.cc / "__init__.py"
+    if init.is_file() and "from __future__ import annotations" not in init.read_text(errors="replace"):
+        warns.append("no 'from __future__ import annotations' in __init__.py")
+    return fails, warns
+
+
+def check_quality_scale_and_manifest(repo: Repo) -> Result:
+    """Honesty of the claims a consumer reads before installing."""
+    if not repo.cc:
+        return [], []
+    fails, warns = [], []
+    if repo.exists(str((repo.cc / "quality_scale.yaml").relative_to(repo.root))):
+        missing = sorted(CANON_RULES - set(_quality_scale(repo)))
+        if missing:
+            fails.append(f"quality_scale.yaml does not enumerate the canonical rule set: "
+                         f"{len(missing)} absent, e.g. {missing[:6]}")
+    else:
+        fails.append("missing quality_scale.yaml")
+    manifest = (repo.cc / "manifest.json")
+    m = manifest.read_text(errors="replace") if manifest.is_file() else ""
+    if '"integration_type"' not in m:
+        fails.append("manifest.json missing integration_type")
+    if '"issue_tracker"' not in m:
+        fails.append("manifest.json missing issue_tracker (HACS requires it)")
+    if re.search(r'"config_flow"\s*:\s*true', m) and not (repo.cc / "config_flow.py").is_file():
+        fails.append(f"manifest declares config_flow: true but {repo.cc.name}/config_flow.py is missing")
+    if repo.exists("frontend/package.json") and not re.search(r'"test"\s*:', repo.text("frontend/package.json")):
+        warns.append("frontend/package.json has no test script; the panel's presentation "
+                     "logic is unproven")
+    if re.search(r'"(frontend|panel_custom)"', m) and \
+            not re.search(r"^\s*home-assistant-frontend==", repo.text("requirements.test.txt"), re.M):
+        fails.append("manifest depends on frontend/panel_custom but requirements.test.txt has "
+                     "no home-assistant-frontend pin (every setup test will fail in CI with: "
+                     "No module named 'hass_frontend')")
+    for f, why in ((("CLAUDE.md"), "the skill's per-repo enforcement"),
+                   (("README.md"), "HACS 'information' and 'images' checks both need it")):
+        if not repo.exists(f):
+            fails.append(f"missing {f} ({why})")
+    if not repo.exists("pyrightconfig.json"):
+        warns.append("missing pyrightconfig.json")
+    return fails, warns
+
+
+def check_autolabeler_title_only(repo: Repo) -> Result:
+    """A branch rule flaps whenever the branch name disagrees with the commits."""
+    if not repo.exists(".github/release-drafter.yml"):
+        return [], []
+    cfg = repo.yaml(".github/release-drafter.yml")
+    bad = [r.get("label") for r in cfg.get("autolabeler", []) or [] if set(r) - {"label", "title"}]
+    if bad:
+        return [f"release-drafter.yml autolabeler has non-title rules (title-only, or labels "
+                f"flap): {bad}"], []
+    return [], []
+
+
+def check_drafter_categories(repo: Repo) -> Result:
+    """v7 matches under `when:`; the v6 shape parses and matches nothing."""
+    if not repo.exists(".github/release-drafter.yml"):
+        return [], []
+    cfg = repo.yaml(".github/release-drafter.yml")
+    bad = [c.get("title") or c.get("type") for c in cfg.get("categories") or []
+           if "labels" in c or "label" in c]
+    if bad:
+        return [f"release-drafter categories use the v6 top-level `labels:`; v7 matches under "
+                f"`when:` and these never match, so the version resolves to a patch bump: {bad}"], []
+    return [], []
+
+
+def check_docstrings(repo: Repo) -> Result:
+    """Single-line docstrings on functions and classes; modules are exempt."""
+    if not repo.cc:
+        return [], []
+    import ast
+    bad = []
+    for f in sorted(repo.cc.rglob("*.py")):
+        try:
+            tree = ast.parse(f.read_text(encoding="utf-8", errors="replace"))
+        except SyntaxError:
+            continue
+        for node in ast.walk(tree):
+            if not isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            doc = ast.get_docstring(node, clean=False)
+            if doc and "\n" in doc.strip():
+                bad.append(f"{f}:{node.lineno} {node.name}")
+    if bad:
+        return ["multi-line docstring on a function or class in custom_components/ "
+                "(single-line required; module docstrings are exempt): " + "; ".join(bad[:3])], []
+    return [], []
+
+
+def check_commit_hook(repo: Repo) -> Result:
+    """Shipping the hook is not enabling it."""
+    hook = repo.root / ".githooks/commit-msg"
+    if not hook.is_file():
+        return [], ["no .githooks/commit-msg (terse-subject + AI-trailer rejection)"]
+    fails, warns = [], []
+    import os
+    if not os.access(hook, os.X_OK):
+        fails.append(".githooks/commit-msg is not executable (chmod +x)")
+    try:
+        configured = subprocess.run(["git", "config", "core.hooksPath"], cwd=repo.root,
+                                    capture_output=True, text=True, check=False).stdout.strip()
+        if configured != ".githooks":
+            warns.append("core.hooksPath is not .githooks — run: git config core.hooksPath .githooks")
+    except OSError:
+        pass
+    return fails, warns
+
+
+def check_brand_assets(repo: Repo) -> Result:
+    """A present icon.png with no @2x is the classic 'icon shows only sometimes' bug."""
+    if not repo.cc:
+        return [], []
+    import struct
+    brand = repo.cc / "brand"
+    if not brand.is_dir():
+        return [f"missing {brand.relative_to(repo.root)}/ (HACS check-brands fails without icon.png)"], []
+
+    def size(p: pathlib.Path):
+        b = p.read_bytes()
+        return struct.unpack(">II", b[16:24]) if b[:8] == b"\x89PNG\r\n\x1a\n" else None
+
+    bad = []
+    for name, expected in (("icon.png", (256, 256)), ("icon@2x.png", (512, 512))):
+        f = brand / name
+        if not f.is_file():
+            bad.append(f"missing {f.relative_to(repo.root)}")
+        elif size(f) != expected:
+            bad.append(f"{f.relative_to(repo.root)} is {size(f)}, expected {expected}")
+    bad += [f"missing {(brand / n).relative_to(repo.root)}"
+            for n in ("logo.png", "logo@2x.png") if not (brand / n).is_file()]
+    return ([f"brand assets missing or wrongly sized: {'; '.join(bad)}"] if bad else []), []
+
+
+def _template_dir(repo: Repo) -> pathlib.Path | None:
+    found = sorted(repo.root.glob("plugins/*/skills/*/templates"))
+    return found[0] if found else None
+
+
+def check_self_diff(repo: Repo) -> Result:
+    """When this IS the skill repo, its own .github must match what it ships."""
+    tmpl = _template_dir(repo)
+    if not tmpl or not (tmpl / ".github").is_dir():
+        return [], []
+    import yaml as _yaml
+    sanctioned = {"release_drafter.yml", "pr-checks.yml", "python_validate.yml"}
+    bad = []
+    for tf in sorted((tmpl / ".github").rglob("*.yml")):
+        rel = tf.relative_to(tmpl)
+        if rel.name in sanctioned:
+            continue
+        rf = repo.root / ".github" / rel.relative_to(".github") if str(rel).startswith(".github") else repo.root / rel
+        rf = repo.root / rel
+        if not rf.exists():
+            continue
+        try:
+            if _yaml.safe_load(tf.read_text()) != _yaml.safe_load(rf.read_text()):
+                bad.append(str(rel))
+        except Exception:
+            continue
+    if bad:
+        return ["this repo's .github/ diverges from its own templates/ (see Mode 4 sanctioned "
+                "adaptations): " + ", ".join(bad)], []
+    return [], []
+
+
+def check_template_pins(repo: Repo) -> Result:
+    """Dependabot cannot see templates/; this compares them against what it does bump."""
+    tmpl = _template_dir(repo)
+    if not tmpl or not (tmpl / ".github/workflows").is_dir():
+        return [], []
+    uses = re.compile(r"uses:\s*(?P<action>[^\s@#]+)@(?P<ref>[^\s#]+)\s*(?:#\s*(?P<ver>v?[\d.]+))?")
+
+    def pins(root: pathlib.Path) -> dict[str, tuple[str, str | None]]:
+        out: dict[str, tuple[str, str | None]] = {}
+        for wf in sorted(root.glob("*.y*ml")):
+            for m in uses.finditer(wf.read_text(errors="replace")):
+                out.setdefault(m.group("action"), (m.group("ref"), m.group("ver")))
+        return out
+
+    theirs, ours = pins(tmpl / ".github/workflows"), pins(repo.workflows)
+    bad = [f"{a}: templates pin {v or r[:12]}, this repo pins {ours[a][1] or ours[a][0][:12]}"
+           for a, (r, v) in sorted(theirs.items()) if a in ours and r != ours[a][0]]
+    if bad:
+        return ["template pins are behind this repo's (Dependabot bumped ours, not theirs): "
+                + "; ".join(bad)], []
+    return [], []
+
+
+def check_release_token(repo: Repo) -> Result:
+    """The opener needs a token whose PRs trigger workflows."""
+    if not repo.exists(".github/workflows/auto_draft_pr.yml"):
+        return [], []
+    try:
+        out = subprocess.run(["gh", "secret", "list", "--json", "name", "--jq", ".[].name"],
+                             cwd=repo.root, capture_output=True, text=True, check=False)
+    except OSError:
+        return [], ["cannot list secrets here — verify RELEASE_TOKEN exists, or draft PRs will not open"]
+    if out.returncode != 0:
+        return [], ["cannot list secrets here — verify RELEASE_TOKEN exists, or draft PRs will not open"]
+    if "RELEASE_TOKEN" not in out.stdout.split():
+        return ["auto_draft_pr.yml is present but the RELEASE_TOKEN secret is not set "
+                "(see SKILL.md, RELEASE_TOKEN)"], []
+    return [], []
+
+
+def check_required_status_checks(repo: Repo) -> Result:
+    """Every workflow is advisory until the default branch requires it."""
+    try:
+        name = subprocess.run(["gh", "repo", "view", "--json", "nameWithOwner", "--jq",
+                               ".nameWithOwner"], cwd=repo.root, capture_output=True,
+                              text=True, check=False)
+    except OSError:
+        return [], []
+    slug = name.stdout.strip()
+    if not slug:
+        return [], []
+    branch = subprocess.run(["gh", "api", f"repos/{slug}", "--jq", ".default_branch"],
+                            cwd=repo.root, capture_output=True, text=True, check=False).stdout.strip()
+    if not branch:
+        return [], []
+    rules = subprocess.run(["gh", "api", f"repos/{slug}/rules/branches/{branch}", "--jq",
+                            "[.[].type]"], cwd=repo.root, capture_output=True, text=True,
+                           check=False).stdout.strip()
+    if not rules:
+        return [], [f"could not read branch rules for {branch} (token lacks permission?) — "
+                    f"verify required status checks by hand"]
+    fails, warns = [], []
+    if "required_status_checks" not in rules:
+        fails.append(f"no required status checks on {branch} — every workflow in this stack is "
+                     f"advisory and a red PR can be merged")
+    if "non_fast_forward" not in rules:
+        warns.append(f"force-pushes to {branch} are not blocked")
+    return fails, warns
+
+
+CHECKS = (
+    check_canonical_files, check_no_tracked_artefacts, check_scripts_present,
+    check_scripts_wired, check_single_body_writer, check_previous_tag,
+    check_zip_release_patches_manifest, check_label_events, check_release_drafter_wiring,
+    check_classifier_not_inlined, check_claims_have_tests, check_action_pins,
+    check_pr_checks_shape, check_no_ignored_validations, check_sole_labeler,
+    check_pr_openers, check_antipatterns, check_quality_scale_and_manifest,
+    check_autolabeler_title_only, check_drafter_categories, check_docstrings,
+    check_commit_hook, check_brand_assets, check_self_diff, check_template_pins,
+    check_release_token, check_required_status_checks,
+)
+
+
+def audit(root: pathlib.Path) -> Result:
+    """Run every check against one repository."""
+    repo = Repo(root)
+    fails: list[str] = []
+    warns: list[str] = []
+    for check in CHECKS:
+        f, w = check(repo)
+        fails += f
+        warns += w
+    return fails, warns
+
+
+def main(argv: list[str] | None = None) -> int:
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--root", default=".", help="repository to audit")
+    args = ap.parse_args(argv)
+
+    root = pathlib.Path(args.root)
+    repo = Repo(root)
+    if not repo.cc:
+        print("ℹ️  no custom_components/ — skipping integration-only checks "
+              "(HACS, hassfest, zip release, HA test harness)")
+    fails, warns = audit(root)
+    for w in warns:
+        print(f"⚠️  WARN: {w}")
+    for f in fails:
+        print(f"❌ FAIL: {f}")
+    print("skill audit FAILED" if fails else "✅ skill audit passed")
+    return 1 if fails else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
