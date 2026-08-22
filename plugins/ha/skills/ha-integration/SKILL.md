@@ -24,7 +24,7 @@ Several load-bearing values in this skill are **snapshots**. They were right whe
 |---|---|---|---|---|
 | HA minimum Python | `3.14` (HA dev needs 3.14.2+) | 2026-06 | developers.home-assistant.io/docs/development_environment | `python_validate.yml` `python-version` · `pyproject.toml` ruff `target-version` + pylint `py-version` · `pyrightconfig.json` — all compared by `scripts/version_sync.py` |
 | Quality-scale canonical rule set | see *Quality scale* below | 2026-06 | developers.home-assistant.io/docs/core/integration-quality-scale/ | the rule lists below · every `quality_scale.yaml` |
-| GitHub action majors | checkout `v7` · setup-python `v7` · setup-uv `v5` · action-gh-release `v3` · semantic-pull-request `v6` · release-drafter `v7` · dependency-review `v4` · stale `v9` | 2026-08-07 | `gh api repos/<owner>/<repo>/releases/latest --jq .tag_name` | `templates/.github/workflows/*.yml` pins · the stale-pin patterns in `skill_audit.sh` |
+| GitHub action versions | checkout `v7.0.1` · setup-python `v7.0.0` · setup-node `v7.0.0` · setup-uv `v10.0.1` · action-gh-release `v3.0.2` · semantic-pull-request `v6.1.1` · release-drafter `v7.7.0` · dependency-review `v5.0.0` · stale `v11.0.0` | 2026-08-22 | `gh api repos/<owner>/<repo>/releases/latest --jq .tag_name`, then `gh api repos/<owner>/<repo>/git/ref/tags/<tag>` for the SHA | the SHA pins in `templates/.github/workflows/*.yml`, each with its version in the trailing comment |
 | `pytest-homeassistant-custom-component` → HA | `0.13.354` → HA `2026.8.0`, requires-python `>=3.14` | 2026-08-07 | pypi.org/project/pytest-homeassistant-custom-component | `templates/requirements.test.txt` pin · the HA-minimum-Python row above |
 | Brand assets served from inline `brand/` | since HA `2026.3.0`; HACS dashboard still reads the legacy CDN | 2026-06 | hacs/integration #5171, #5223 | the brand-assets note in Mode 1 |
 
@@ -274,9 +274,15 @@ dependency with a high-severity advisory, reading the PR's own diff. `stale.yml`
 issues and PRs untouched for 60 days and **never closes them** (`days-before-close: -1`)
 — a closed report is a lost report.
 
-Actions are pinned by tag here. Pinning by commit SHA with the version in a trailing
-comment is stronger, since a tag can be repointed at new code, and Dependabot updates
-both the SHA and the comment.
+Actions are pinned by commit SHA with the version in a trailing comment, because a tag
+is mutable — whoever owns the action can repoint it at new code, which then runs with the
+workflow's token. Dependabot updates both the SHA and the comment, and `skill_audit.sh`
+fails a workflow that uses a bare tag or a SHA with nothing saying what it is.
+
+⚠️ **Dependabot cannot see `templates/`.** Its `github-actions` ecosystem only scans
+`.github/workflows` at the repo root, so the pins this skill *ships* are never bumped for
+you. `skill_audit.sh` compares them against this repo's own pins — which Dependabot does
+update — and fails when the templates fall behind.
 
 #### Panel integrations (a custom panel served by the integration)
 

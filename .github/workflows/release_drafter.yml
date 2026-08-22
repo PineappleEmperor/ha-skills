@@ -18,7 +18,7 @@ jobs:
   update_release_draft:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         # release_notes.py walks a tag..HEAD range. The default depth-1 clone
         # has no history, so the range fails to resolve.
         with:
@@ -39,7 +39,7 @@ jobs:
           else
             echo "prerelease=false" >> "$GITHUB_OUTPUT"
           fi
-      - uses: release-drafter/release-drafter@v7
+      - uses: release-drafter/release-drafter@34d80673e067bdc0c24568d3af899c216adcfaa9 # v7.7.0
         if: github.event_name == 'push'
         with:
           version: ${{ steps.ver.outputs.version }}
