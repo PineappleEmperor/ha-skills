@@ -50,6 +50,7 @@ fi
 # malformed block shipped in several releases while every other gate stayed green.
 [ -f scripts/release_notes.py ]      || FAIL "missing scripts/release_notes.py (release notes would be grouped by PR label, filing fixes under Features)"
 [ -f scripts/check_release_notes.py ] || FAIL "missing scripts/check_release_notes.py (nothing would verify the release description renders)"
+[ -f scripts/version_sync.py ]        || FAIL "missing scripts/version_sync.py (nothing would compare the python version across the files that declare it)"
 
 # Both scripts shipped, both sat unused: release_drafter.yml ran the drafter and
 # stopped, so every release used $CHANGES while the audit passed on file presence.
@@ -71,7 +72,7 @@ if [ -d scripts ] && [ -d .github/workflows ]; then
 import pathlib, sys, yaml
 
 SHIPPED = {"manifest_gate.py", "commit_summary.py", "release_notes.py",
-           "check_release_notes.py", "skill_audit.sh"}
+           "check_release_notes.py", "skill_audit.sh", "version_sync.py"}
 
 runs = []
 for wf in pathlib.Path(".github/workflows").glob("*.y*ml"):
