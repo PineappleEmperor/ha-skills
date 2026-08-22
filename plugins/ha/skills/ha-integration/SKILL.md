@@ -253,6 +253,17 @@ Two ways to get it wrong, both of which block every PR permanently:
 
 > **For AI sessions.** An agent running with your `gh` credentials merges exactly as you do, and `bypass_actors` is evaluated by actor, so any bypass you hold it inherits. Two things make that silent: a broad allow-rule such as `Bash(gh pr *)` in `.claude/settings.local.json` pre-approves `gh pr merge` with no prompt, and an agent with admin can lift any rule it can see. Narrow the allow-rule to read-only verbs (`gh pr view`, `gh pr list`), and give the agent a credential without **Administration** if it genuinely should not edit rulesets or force-push. A restriction the agent can lift is friction, not a limit.
 
+#### Supply chain
+
+Two cheap workflows ship with the stack. `dependency_review.yml` fails a PR that adds a
+dependency with a high-severity advisory, reading the PR's own diff. `stale.yml` labels
+issues and PRs untouched for 60 days and **never closes them** (`days-before-close: -1`)
+— a closed report is a lost report.
+
+Actions are pinned by tag here. Pinning by commit SHA with the version in a trailing
+comment is stronger, since a tag can be repointed at new code, and Dependabot updates
+both the SHA and the comment.
+
 #### Panel integrations (a custom panel served by the integration)
 
 Only if the integration registers a panel. Three things are non-obvious and each fails silently.
