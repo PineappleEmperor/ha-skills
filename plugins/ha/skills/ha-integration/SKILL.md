@@ -250,6 +250,15 @@ the repo can carry, and each fails quietly until the first CI run.
 bash scripts/bootstrap_repo.sh "One-line description of the integration"
 ```
 
+**Two kinds of workflow, and only one is a gate.** A *check* runs on a pull request and can
+be required, so a red one blocks the merge — `CC labelling`, `CC label validation`,
+`Version validation`, `CC title validation`, `HACS validation`,
+`Hassfest manifest validation`, `Ruff, Pyright and Pytest`, and
+`ha-integration conformance check`. Everything else — `Auto draft PR`, `Auto release zip`,
+`Auto draft releases`, `Panel bundle staleness check` — is process automation firing on
+pushes and releases. It is not a weaker check; it is not a check at all, and requiring one
+would block every PR on a context that never reports.
+
 ⚠️ **Every workflow here is advisory by default.** GitHub will let a PR merge with all of it red, so without this step the gate stack is decorative. Copy `templates/ruleset.json` and apply it once:
 
 ```bash
