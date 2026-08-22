@@ -24,7 +24,7 @@ Several load-bearing values in this skill are **snapshots**. They were right whe
 |---|---|---|---|---|
 | HA minimum Python | `3.14` (HA dev needs 3.14.2+) | 2026-06 | developers.home-assistant.io/docs/development_environment | `python_validate.yml` matrix · `pyproject.toml` ruff `target-version` + pylint `py-version` · `pyrightconfig.json` |
 | Quality-scale canonical rule set | see *Quality scale* below | 2026-06 | developers.home-assistant.io/docs/core/integration-quality-scale/ | the rule lists below · every `quality_scale.yaml` |
-| GitHub action majors | checkout `v7` · setup-python `v7` · action-gh-release `v3` · semantic-pull-request `v6` · release-drafter `v7` | 2026-08-07 | `gh api repos/<owner>/<repo>/releases/latest --jq .tag_name` | `templates/.github/workflows/*.yml` pins · the stale-pin patterns in `skill_audit.sh` |
+| GitHub action majors | checkout `v7` · setup-python `v7` · setup-uv `v5` · action-gh-release `v3` · semantic-pull-request `v6` · release-drafter `v7` · dependency-review `v4` · stale `v9` | 2026-08-07 | `gh api repos/<owner>/<repo>/releases/latest --jq .tag_name` | `templates/.github/workflows/*.yml` pins · the stale-pin patterns in `skill_audit.sh` |
 | `pytest-homeassistant-custom-component` → HA | `0.13.354` → HA `2026.8.0`, requires-python `>=3.14` | 2026-08-07 | pypi.org/project/pytest-homeassistant-custom-component | `templates/requirements.test.txt` pin · the HA-minimum-Python row above |
 | Brand assets served from inline `brand/` | since HA `2026.3.0`; HACS dashboard still reads the legacy CDN | 2026-06 | hacs/integration #5171, #5223 | the brand-assets note in Mode 1 |
 

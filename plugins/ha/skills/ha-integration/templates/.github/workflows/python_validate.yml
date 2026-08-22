@@ -10,20 +10,37 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+
       - uses: actions/setup-python@v7
         with:
           python-version: "3.14"   # HA's minimum; a matrix here would rename the
                                  # check-run to `lint-and-type (3.14)` and the
                                  # ruleset's required context would never report
+
+      # uv resolves and installs the HA test stack in seconds where pip takes
+      # minutes — homeassistant plus pytest-homeassistant-custom-component pull
+      # several hundred packages, and every PR pays for it.
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          # Keyed on what actually decides the dependency set. A key over the whole
+          # repo re-resolves when a docstring changes; one that ignores these files
+          # serves a stale environment after an HA bump.
+          cache-dependency-glob: |
+            requirements.test.txt
+            pyproject.toml
+
       - name: Install
         run: |
-          python -m pip install --upgrade pip
-          pip install homeassistant ruff pyright
-          [ -f requirements.test.txt ] && pip install -r requirements.test.txt || true
+          uv pip install --system homeassistant ruff pyright
+          [ -f requirements.test.txt ] && uv pip install --system -r requirements.test.txt || true
+
       - name: Ruff
         run: ruff check custom_components/
+
       - name: Pyright
         run: python -m pyright custom_components/
+
       - name: Pytest
         run: |
           if [ ! -d tests ]; then
