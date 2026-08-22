@@ -314,11 +314,37 @@ fi
 #     echo "$r $(gh api repos/$r/releases/latest --jq .tag_name)"; done
 # and update BOTH the pattern here and the pin in the templates. See the
 # Freshness table in SKILL.md.
-grep -rnE 'actions/checkout@v[1-6]\b'                    .github/workflows/ && FAIL "stale actions/checkout (use v7)"
-grep -rnE 'actions/setup-python@v[1-6]\b'                .github/workflows/ && FAIL "stale actions/setup-python (use v7)"
-grep -rnE 'softprops/action-gh-release@v[12]\b'          .github/workflows/ && FAIL "stale action-gh-release (use v3)"
-grep -rnE 'amannn/action-semantic-pull-request@v[1-5]\b' .github/workflows/ && FAIL "stale semantic-pull-request (use v6)"
-grep -rnE 'release-drafter/release-drafter(/autolabeler)?@v[1-6]\b' .github/workflows/ && FAIL "stale release-drafter (use v7)"
+# Actions are pinned by commit SHA with the version in a trailing comment. A tag is
+# mutable: whoever owns the action can repoint it at new code, which then runs with
+# this workflow's token. Dependabot updates both the SHA and the comment.
+#
+# hacs/action and home-assistant/actions/hassfest are deliberately exempt — each
+# project documents a mutable ref, and pinning stops tracking their validation rules.
+if [ -d .github/workflows ]; then
+  python3 - <<'PYPIN' || fail=1
+import pathlib, re, sys
+
+EXEMPT = ("hacs/action", "home-assistant/actions")
+USES = re.compile(r"uses:\s*(?P<ref>[^\s#]+)\s*(?P<comment>#.*)?$")
+bad = []
+for wf in sorted(pathlib.Path(".github/workflows").glob("*.y*ml")):
+    for n, line in enumerate(wf.read_text().splitlines(), 1):
+        m = USES.search(line)
+        if not m:
+            continue
+        ref = m.group("ref")
+        if ref.startswith("./") or any(ref.startswith(e) for e in EXEMPT):
+            continue
+        sha = ref.rsplit("@", 1)[-1] if "@" in ref else ""
+        if not re.fullmatch(r"[0-9a-f]{40}", sha):
+            bad.append(f"{wf.name}:{n} {ref} is not pinned to a commit SHA")
+        elif not re.search(r"#\s*v?\d+\.\d+", m.group("comment") or ""):
+            bad.append(f"{wf.name}:{n} {ref} has no version comment (nothing says what this SHA is)")
+for b in bad:
+    print(f"    {b}")
+sys.exit(1 if bad else 0)
+PYPIN
+fi
 
 # --- Workflow correctness ---
 grep -q "Remove superseded" .github/workflows/pr-checks.yml 2>/dev/null \
@@ -698,6 +724,39 @@ if bad:
     sys.exit(1)
 sys.exit(0)
 PYDRAFTER
+fi
+
+# Dependabot cannot see the templates. Its github-actions ecosystem only scans
+# `.github/workflows` at the root ("The directory must be set to /"), so the pins this
+# skill SHIPS never get bumped — they would rot silently in every scaffolded repo while
+# this repo's own copies stay current. Comparing the two closes that loop with no
+# network and no schedule: Dependabot bumps ours, this fails until the templates follow.
+if [ -n "$TMPL" ] && [ -d "$TMPL/.github/workflows" ]; then
+  python3 - "$TMPL/.github/workflows" .github/workflows <<'PYPINS' || fail=1
+import pathlib, re, sys
+
+USES = re.compile(r"uses:\s*(?P<action>[^\s@#]+)@(?P<ref>[^\s#]+)\s*(?:#\s*(?P<ver>v?[\d.]+))?")
+
+def pins(root):
+    found = {}
+    for wf in pathlib.Path(root).glob("*.y*ml"):
+        for m in USES.finditer(wf.read_text()):
+            found.setdefault(m.group("action"), (m.group("ref"), m.group("ver")))
+    return found
+
+tmpl, repo = pins(sys.argv[1]), pins(sys.argv[2])
+bad = []
+for action, (ref, ver) in sorted(tmpl.items()):
+    if action not in repo:
+        continue
+    their_ref, their_ver = repo[action]
+    if ref != their_ref:
+        bad.append(f"{action}: templates pin {ver or ref[:12]}, this repo pins "
+                   f"{their_ver or their_ref[:12]} — Dependabot bumped ours, not theirs")
+for b in bad:
+    print(f"    {b}")
+sys.exit(1 if bad else 0)
+PYPINS
 fi
 
 [ "$fail" = 0 ] && { echo "✅ skill audit passed"; exit 0; } || { echo "skill audit FAILED"; exit 1; }
