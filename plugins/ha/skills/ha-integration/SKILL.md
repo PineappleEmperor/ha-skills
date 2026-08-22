@@ -338,6 +338,17 @@ For each canonical file: read the template, write it to the target path byte-for
 - **Writing a faithful-sounding paraphrase instead of copying the artefact.** Producing a workflow that does what the prose says is *not* copying the template. Fifteen files drifted this way and passed the audit clean.
 - **Multi-line docstrings.** The code style below says *short single-line* docstrings on all public functions and classes. Single line means single line.
 
+#### Workflows orchestrate; scripts decide
+
+A `run:` block may invoke a tool, pass data between steps, and guard on one condition.
+Anything that classifies, compares, or computes a value belongs in `scripts/`, where it
+has unit tests — logic inside a workflow can only be tested by running CI, so its first
+failure is a real PR. If a change to a template workflow needs a `case`, a loop, or a
+regex, write it in Python first and call it from the step.
+
+These templates are a dependency other repos inherit, so they are held to that standard
+even where a repo's own one-off workflow would not be.
+
 **Read `reference/github-actions.md` before changing any workflow** — it holds the must-preserve behaviours: the sole title-only labeler + removal-only superseded-label step, `$BODY` + bounded Dependabot `replacers`, the last-published-release version gate (with `dependabot[bot]` exempt and the unit-tested `manifest_gate.py`), the `pr-checks` job ordering, its `pull_request_target` safety rules and the marked-block contract, and the optional personal reminder-hook recipe.
 
 ---
