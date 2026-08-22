@@ -10,6 +10,7 @@ permissions:
 
 jobs:
   release:
+    name: Auto draft release
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -25,6 +26,10 @@ jobs:
           fi
       - uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
         with:
+          # A pushed tag DRAFTS; a human publishes. `draft` defaults to false, so
+          # omitting it published immediately and skipped the checkpoint every other
+          # path has.
+          draft: true
           # The body is written by release_notes.py on `release: published`.
           # Leaving this true made both write it, and on ha-lego's v1.0.0rc1 they
           # raced: the published notes carried GitHub's `What's Changed` beneath
