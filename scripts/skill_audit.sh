@@ -726,4 +726,37 @@ sys.exit(0)
 PYDRAFTER
 fi
 
+# Dependabot cannot see the templates. Its github-actions ecosystem only scans
+# `.github/workflows` at the root ("The directory must be set to /"), so the pins this
+# skill SHIPS never get bumped — they would rot silently in every scaffolded repo while
+# this repo's own copies stay current. Comparing the two closes that loop with no
+# network and no schedule: Dependabot bumps ours, this fails until the templates follow.
+if [ -n "$TMPL" ] && [ -d "$TMPL/.github/workflows" ]; then
+  python3 - "$TMPL/.github/workflows" .github/workflows <<'PYPINS' || fail=1
+import pathlib, re, sys
+
+USES = re.compile(r"uses:\s*(?P<action>[^\s@#]+)@(?P<ref>[^\s#]+)\s*(?:#\s*(?P<ver>v?[\d.]+))?")
+
+def pins(root):
+    found = {}
+    for wf in pathlib.Path(root).glob("*.y*ml"):
+        for m in USES.finditer(wf.read_text()):
+            found.setdefault(m.group("action"), (m.group("ref"), m.group("ver")))
+    return found
+
+tmpl, repo = pins(sys.argv[1]), pins(sys.argv[2])
+bad = []
+for action, (ref, ver) in sorted(tmpl.items()):
+    if action not in repo:
+        continue
+    their_ref, their_ver = repo[action]
+    if ref != their_ref:
+        bad.append(f"{action}: templates pin {ver or ref[:12]}, this repo pins "
+                   f"{their_ver or their_ref[:12]} — Dependabot bumped ours, not theirs")
+for b in bad:
+    print(f"    {b}")
+sys.exit(1 if bad else 0)
+PYPINS
+fi
+
 [ "$fail" = 0 ] && { echo "✅ skill audit passed"; exit 0; } || { echo "skill audit FAILED"; exit 1; }

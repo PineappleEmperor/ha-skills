@@ -279,6 +279,11 @@ is mutable — whoever owns the action can repoint it at new code, which then ru
 workflow's token. Dependabot updates both the SHA and the comment, and `skill_audit.sh`
 fails a workflow that uses a bare tag or a SHA with nothing saying what it is.
 
+⚠️ **Dependabot cannot see `templates/`.** Its `github-actions` ecosystem only scans
+`.github/workflows` at the repo root, so the pins this skill *ships* are never bumped for
+you. `skill_audit.sh` compares them against this repo's own pins — which Dependabot does
+update — and fails when the templates fall behind.
+
 #### Panel integrations (a custom panel served by the integration)
 
 Only if the integration registers a panel. Three things are non-obvious and each fails silently.
