@@ -43,7 +43,7 @@ jobs:
     name: Label from title
     runs-on: ubuntu-latest
     steps:
-      - uses: release-drafter/release-drafter/autolabeler@v7
+      - uses: release-drafter/release-drafter/autolabeler@34d80673e067bdc0c24568d3af899c216adcfaa9 # v7.7.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -85,7 +85,7 @@ jobs:
     steps:
       # checkout first: it clears the workspace, so it cannot run after a step
       # that wrote a file there. (skill_audit.sh enforces this.)
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.base.sha }}
           persist-credentials: false
@@ -181,7 +181,7 @@ jobs:
       PLUGIN_NAME: ha
     steps:
       # BASE, not the PR head: the token is writable under pull_request_target.
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.base.sha }}
           persist-credentials: false
@@ -269,7 +269,7 @@ jobs:
       # cannot be tested, and a wrong classifier corrupts release notes without
       # ever failing a build. It did: a version-bump filter ending in
       # `to v?\d+\.\d+` ate every semver dependency bump.
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.base.sha }}
           persist-credentials: false
