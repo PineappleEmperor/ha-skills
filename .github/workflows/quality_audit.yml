@@ -11,3 +11,6 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - run: bash scripts/skill_audit.sh
+      # The Python version is written in several files, each read by a different
+      # tool. This is the only thing that compares them.
+      - run: python3 scripts/version_sync.py
