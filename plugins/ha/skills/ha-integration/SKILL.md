@@ -236,6 +236,15 @@ private key is rotated the same way, and its tokens expire hourly regardless.
 > single-value matrix or put the suffixed name in the ruleset; never assume the
 > context equals the job name.
 
+**`scripts/bootstrap_repo.sh` does all of this once**, from the repo root after the first
+push: description, topics, issues, the ruleset, `core.hooksPath`, and the `RELEASE_TOKEN`
+secret (prompted, never an argument). Every item in it is a GitHub-side setting no file in
+the repo can carry, and each fails quietly until the first CI run.
+
+```bash
+bash scripts/bootstrap_repo.sh "One-line description of the integration"
+```
+
 ⚠️ **Every workflow here is advisory by default.** GitHub will let a PR merge with all of it red, so without this step the gate stack is decorative. Copy `templates/ruleset.json` and apply it once:
 
 ```bash
