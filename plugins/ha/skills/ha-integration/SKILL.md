@@ -22,7 +22,7 @@ Several load-bearing values in this skill are **snapshots**. They were right whe
 
 | Cached fact | Value | Captured | Re-derive with | Consumers to update together |
 |---|---|---|---|---|
-| HA minimum Python | `3.14` (HA dev needs 3.14.2+) | 2026-06 | developers.home-assistant.io/docs/development_environment | `python_validate.yml` matrix · `pyproject.toml` ruff `target-version` + pylint `py-version` · `pyrightconfig.json` |
+| HA minimum Python | `3.14` (HA dev needs 3.14.2+) | 2026-06 | developers.home-assistant.io/docs/development_environment | `python_validate.yml` `python-version` · `pyproject.toml` ruff `target-version` + pylint `py-version` · `pyrightconfig.json` — all compared by `scripts/version_sync.py` |
 | Quality-scale canonical rule set | see *Quality scale* below | 2026-06 | developers.home-assistant.io/docs/core/integration-quality-scale/ | the rule lists below · every `quality_scale.yaml` |
 | GitHub action majors | checkout `v7` · setup-python `v7` · setup-uv `v5` · action-gh-release `v3` · semantic-pull-request `v6` · release-drafter `v7` · dependency-review `v4` · stale `v9` | 2026-08-07 | `gh api repos/<owner>/<repo>/releases/latest --jq .tag_name` | `templates/.github/workflows/*.yml` pins · the stale-pin patterns in `skill_audit.sh` |
 | `pytest-homeassistant-custom-component` → HA | `0.13.354` → HA `2026.8.0`, requires-python `>=3.14` | 2026-08-07 | pypi.org/project/pytest-homeassistant-custom-component | `templates/requirements.test.txt` pin · the HA-minimum-Python row above |
@@ -37,7 +37,7 @@ the table above is still what says which value is current.
 
 ## When to use this skill
 
-Use it when the task touches any of: a `custom_components/<domain>/` package, a `manifest.json` with a `domain`, a config/options/reauth/reconfigure flow, a `DataUpdateCoordinator` or entity platform (`sensor.py`, `notify.py`, …), `services.yaml`/`quality_scale.yaml`, the integration's GitHub CI (the `pr-checks`/release-drafter/hassfest/HACS stack), or a Home Assistant log to triage. Symptoms that should pull you here: "add a sensor/platform", "config flow won't validate", "hassfest/HACS check failing", "what `state_class` for this `device_class`", "Dependabot keeps bumping actions", "this PR's version gate is red", "what's spamming my HA log".
+Use it when the task touches any of: a `custom_components/<domain>/` package, a `manifest.json` with a `domain`, a config/options/reauth/reconfigure flow, a `DataUpdateCoordinator` or entity platform (`sensor.py`, `notify.py`, …), `services.yaml`/`quality_scale.yaml`, the integration's GitHub CI (the `pr-checks`/release-drafter/hassfest/HACS stack), or a Home Assistant log to triage. Symptoms that should pull you here: "add a sensor/platform", "config flow won't validate", "hassfest/HACS check failing", "what `state_class` for this `device_class`", "Dependabot keeps bumping actions", "this PR's release version looks wrong", "what's spamming my HA log".
 
 **When NOT to use:** Home Assistant *panel / display UI* work (Lit/TS web component, CSS, layout) — that's the `ha-panel-design` skill. Generic Python/CI work in a repo that isn't an HA integration.
 
@@ -107,7 +107,7 @@ Check the current working directory:
   > consumers read (a plugin marketplace, a library) still has to commit the bump.
 - `pyproject.toml`
 - `pyrightconfig.json`
-- `requirements.test.txt` — **required**; `python_validate.yml` installs from it and runs `pytest`, so an integration without it has no test job. Copy `templates/requirements.test.txt`. Pin `pytest-homeassistant-custom-component` to the release matching the HA version in the CI matrix (it tracks HA releases 1:1 — a mismatched pin fails at import, not at test time).
+- `requirements.test.txt` — **required**; `python_validate.yml` installs from it and runs `pytest`, so an integration without it has no test job. Copy `templates/requirements.test.txt`. Pin `pytest-homeassistant-custom-component` to the release matching the HA version in `python_validate.yml` (it tracks HA releases 1:1 — a mismatched pin fails at import, not at test time).
 - `conftest.py` — **required, at the repo root, not in `tests/`**; copy `templates/conftest.py`. Its first import claims the name `custom_components` for this repo before `pytest-homeassistant-custom-component` binds it to the package it bundles; without that, HA cannot see the integration and every setup test fails with `Integration not found`. It also pulls in `enable_custom_integrations` autouse. `pyproject.toml` additionally needs `asyncio_mode = "auto"`. Both verified by ablation — full explanation in `reference/patterns.md`, read it before writing the first test.
 - `tests/` — one file per module under test, plus `test_manifest_gate.py` and `test_commit_summary.py` (below). See the testing rules in `reference/patterns.md`.
 - `README.md` — **include the AI-assistance disclaimer** as a GitHub `> [!NOTE]` admonition box. Link the skill name to its public repo. Template:
@@ -461,7 +461,7 @@ Common `exempt`s for a local-push MQTT device integration: `appropriate-polling`
 
 ### Conventional Commits, versioning & CI gating
 
-See **`reference/versioning.md`** — Conventional Commits → semver mapping, the **single bump as the last commit before merge** discipline, the prerelease/rc cycle, the **last-published-release** version gate, Dependabot, and the `GITHUB_TOKEN` workflow-suppression footgun.
+See **`reference/versioning.md`** — Conventional Commits → semver mapping, the bump discipline that applies where a committed version is what consumers read, the prerelease/rc cycle, the **last-published-release** version gate, Dependabot, and the `GITHUB_TOKEN` workflow-suppression footgun.
 
 ---
 
@@ -542,7 +542,7 @@ Identify the integration domain from `custom_components/`. Then ask what to add 
 - Add reauth flow (`async_step_reauth`)
 - Add or update `quality_scale.yaml`
 - Add GitHub workflows
-- Update manifest version
+- Cut a release (publish the rc draft, then the full one)
 - Other
 
 Apply the same patterns and code style as Mode 1.
@@ -587,11 +587,11 @@ Add `"scripts/*" = ["T20", "INP001"]` to ruff `per-file-ignores` if any audit he
   diff -u  "$T/tests/test_manifest_gate.py" tests/test_manifest_gate.py
   ```
   Expected output is the `release.yml` `<domain>` substitution and nothing else. Any other hunk is a finding — report it with the file and hunk, and restore from the template unless the diff is a deliberate, listed adaptation. If `templates/` can't be located, report the audit item as **not checked**; do not mark it passed.
-- **Workflows behave, not just exist:** `pr-checks` runs on `pull_request_target`; `title-check` and `version-gate` declare `needs: label`; no job checks out the PR head (the version gate pins `base.sha` and reads the PR manifest over the API); no `${{ }}` appears inside any `run:`; bot authors are skipped; `commit-summary` rewrites only the marked block; the only workflows opening PRs are `auto_draft_pr.yml` (draft-only, gated on `github.actor == github.repository_owner`) and `update_manifest_floors.yml`; `release_drafter` is push-only with no second autolabeler; `check-manifest-version` compares to the **last published release** and exempts `dependabot[bot]` on the *failing steps*.
+- **Workflows behave, not just exist:** `pr-checks` runs on `pull_request_target`; `title-check` declares `needs: label`, and `version-gate` skips itself where the release tag sets the version; no job checks out the PR head (the version gate pins `base.sha` and reads the PR manifest over the API); no `${{ }}` appears inside any `run:`; bot authors are skipped; `commit-summary` rewrites only the marked block; the only workflows opening PRs are `auto_draft_pr.yml` (draft-only, gated on `github.actor == github.repository_owner`) and `update_manifest_floors.yml`; `release_drafter` is push-only with no second autolabeler; the version gate compares to the **last published release** and exempts `dependabot[bot]` on the *failing steps*, and is advisory in a tag-driven repo.
 - **Patterns applied:** `runtime_data` (not `hass.data[DOMAIN][entry_id]`) for entry state; coordinator `async_shutdown()` on unload; `async_remove_config_entry_device` present if the integration creates a device; `DeviceInfo` TypedDict; `_attr_has_entity_name = True`; typed `ConfigEntry` alias; modern `NotifyEntity` (or a directly-registered service for custom `data`).
 - **`quality_scale.yaml` honest:** every canonical rule listed; every `exempt` carries a real `comment`; no optimistic `exempt` masking a gap (e.g. `stale-devices` exempt while a device *is* created); the `manifest.json` tier claimed only when every rule at/below it is `done`/`exempt`.
 - **Tests mock the boundary:** a real setup-entry `LOADED` test exists (not just `async_setup_component`); the transport is mocked, not the integration's own functions; a two-entry parallel `LOADED` test exists if multiple devices are allowed; parsers have unit tests.
-- **Commit/PR discipline:** subjects are single tight imperatives; the PR title uses a **labellable** type (`feat|fix|chore|docs`, `!` for breaking) — typed by a human, or derived from the commits by `auto_draft_pr.yml`; the version bumped once vs the last release per the type label.
+- **Commit/PR discipline:** subjects are single tight imperatives; the PR title uses a **labellable** type (`feat|fix|chore|docs`, `!` for breaking) — typed by a human, or derived from the commits by `auto_draft_pr.yml`; in an integration the release tag sets the version and no PR carries a bump, while a repo whose committed file is what consumers read bumps once, as the last commit.
 - **Cached facts still true.** Re-derive any row in the **Freshness** table (top of this skill) captured more than ~3 months ago, using the command in its *Re-derive with* column. Report each as still-current or stale-with-the-new-value, and update every consumer listed on that row in one pass. The stale-pin patterns in `skill_audit.sh` are themselves a cached fact — check them against the action majors, not just the templates against the patterns.
 
 **Report:** per-item pass/fail with `file:line` evidence · what the mechanical gate caught · remaining manual work. Fix findings before claiming the tier.
