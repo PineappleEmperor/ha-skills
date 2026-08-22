@@ -21,7 +21,7 @@ import sys
 
 Result = tuple[list[str], list[str]]  # (failures, warnings)
 
-CANONICAL = ("pr-checks", "release_drafter", "semantic_release", "lint_pr",
+CANONICAL = ("pr-checks", "release_drafter", "lint_pr",
              "python_validate", "quality_audit")
 INTEGRATION_ONLY = ("hacs_validate", "hassfest_validate", "release")
 SHIPPED_SCRIPTS = {"manifest_gate.py", "commit_summary.py", "release_notes.py",
