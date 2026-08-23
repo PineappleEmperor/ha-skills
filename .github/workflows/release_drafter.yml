@@ -24,6 +24,8 @@ jobs:
         # has no history, so the range fails to resolve.
         with:
           fetch-depth: 0
+          fetch-tags: true
+          persist-credentials: false
       - id: ver
         name: Read version from plugin manifest
         env:
@@ -73,7 +75,6 @@ jobs:
           PREV=$(gh release list --exclude-drafts --limit 30 --json tagName,isPrerelease \
             --jq '.[] | select(.isPrerelease == false) | .tagName' \
             | grep -vx "v$V" | head -1)
-          git fetch --tags --quiet
           # A repo's first release has no previous tag, so the range would be `..HEAD`
           # and every commit would be missed. Fall back to the root commit; the compare
           # link is dropped with it, since there is nothing to compare against.
