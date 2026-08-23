@@ -212,6 +212,15 @@ jobs:
           [ -n "$LAST" ] || LAST="0.0.0"
           NEXT=$(python3 scripts/manifest_gate.py --suggest --last-release "$LAST" --labels "$LABELS")
           echo "::notice::labels [$LABELS] imply the next release is ${NEXT} (currently v${LAST})"
+          # A notice alone only lands on the run page. The step summary renders on the
+          # PR's checks tab, which is where someone reading the PR will actually see it.
+          {
+            echo "### Next release"
+            echo
+            echo "| current | labels | implies |"
+            echo "|---|---|---|"
+            echo "| v${LAST} | ${LABELS:-none} | ${NEXT} |"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Gather versions and labels
         id: gather

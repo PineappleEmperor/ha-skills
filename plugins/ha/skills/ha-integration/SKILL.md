@@ -250,6 +250,11 @@ the repo can carry, and each fails quietly until the first CI run.
 bash scripts/bootstrap_repo.sh "One-line description of the integration"
 ```
 
+**A gate that cannot fail is not a gate.** `Version validation` skips its own steps in a
+tag-driven repo, so requiring it there guarantees a green check that proves nothing — it
+is not in `ruleset.json`. What it still does is useful and advisory: it writes the version
+the PR's labels imply into the job summary, where the checks tab shows it.
+
 **Two kinds of workflow, and only one is a gate.** A *check* runs on a pull request and can
 be required, so a red one blocks the merge — `CC labelling`, `CC label validation`,
 `Version validation`, `CC title validation`, `HACS validation`,
