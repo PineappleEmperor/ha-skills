@@ -144,3 +144,20 @@ def test_docs_may_name_a_workflow_that_is_gone(tmp_path) -> None:
     (skill / "reference/github-actions.md").write_text("")
     assert audit.check_docs_match_templates(audit.Repo(tmp_path)) == ([], [])
 
+
+def test_hook_without_the_subject_guards_fails(tmp_path) -> None:
+    """A hook that only measures length lets a well-formed empty subject through."""
+    hooks = tmp_path / ".githooks"
+    hooks.mkdir()
+    hook = hooks / "commit-msg"
+    hook.write_text("#!/usr/bin/env bash\n[ ${#1} -gt 72 ] && exit 1\nexit 0\n")
+    hook.chmod(0o755)
+
+    fails, _ = audit.check_commit_hook(audit.Repo(tmp_path))
+    assert any("Conventional Commit subject shape" in f for f in fails)
+    assert any("editorialising" in f for f in fails)
+
+    hook.write_text("case x in feat|fix|docs) ;; esac\n# editorialising subjects rejected\n")
+    hook.chmod(0o755)
+    fails, _ = audit.check_commit_hook(audit.Repo(tmp_path))
+    assert fails == []
