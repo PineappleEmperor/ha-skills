@@ -31,7 +31,7 @@ which is the whole requirement.
    (the whole `.pem` contents, including the BEGIN/END lines) → **Add secret**
 7. In `auto_draft_pr.yml`, mint the token before the step that needs it:
    ```yaml
-   - uses: actions/create-github-app-token@v2
+   - uses: actions/create-github-app-token@<sha>  # v2 — pin the SHA, a bare tag fails check_action_pins
      id: app-token
      with:
        app-id: ${{ secrets.APP_ID }}
@@ -87,7 +87,7 @@ private key is rotated the same way, and its tokens expire hourly regardless.
 > **A matrix renames the check.** GitHub names a matrix job's check-run
 > `<job> (<value>)`, so a job `Ruff, Pyright and Pytest` with `python-version: ["3.14"]`
 > reports as `lint-and-type (3.14)` and a ruleset requiring the bare name waits
-> forever. `templates/ruleset.json` shipped exactly this bug. Either drop a
+> forever. `templates/ruleset.json` once shipped exactly this bug; the template now has no matrix, so the bare context is correct. Either drop a
 > single-value matrix or put the suffixed name in the ruleset; never assume the
 > context equals the job name.
 
@@ -128,7 +128,7 @@ It requires the eight job-name contexts the templates produce and keeps deletion
 Two ways to get it wrong, both of which block every PR permanently:
 
 - **A context that never reports.** Requiring a check the repo doesn't produce (a repo without `quality_audit.yml` must drop `ha-integration conformance check`) leaves PRs waiting for a check that will never run.
-- **A path-filtered workflow.** `build` from `frontend_build.yml` is deliberately absent for this reason: it only triggers on `frontend/` changes, so requiring it would block every unrelated PR.
+- **A path-filtered workflow.** `Panel bundle staleness check` from `frontend_build.yml` is absent from the shipped `ruleset.json` for this reason: it only triggers on panel changes, so requiring it would block every unrelated PR.
 
 ⚠️ **`bypass_actors` must stay empty to mean anything.** A ruleset granting admins `bypass_mode: always` does not constrain anyone holding admin; the push reports `Bypassed rule violations` and proceeds. Overrule deliberately instead: set the ruleset's enforcement to `disabled`, merge, set it back, which leaves an audit-log entry.
 
@@ -179,6 +179,9 @@ For each canonical file: read the template, write it to the target path byte-for
 | `.github/workflows/release.yml` | `<domain>` → the integration's domain (3 occurrences) |
 | `.github/workflows/python_validate.yml` | `python-version`, **only** when HA's minimum Python has moved and the template is stale — fix the template too |
 | lint/format config (`pyproject.toml`, ruff) | exclusions needed to leave copied files unformatted |
+| any workflow | an action pin **newer** than the template's, where Dependabot has already bumped yours — keep the newer pin and update the template |
+
+**This table is the only list.** `reference/audit.md` and `reference/github-actions.md` point here; if they ever appear to disagree, this table wins.
 
 **Traps this section exists to close** (both have happened, with the reminder hook active and the agent believing it was complying):
 

@@ -1,4 +1,4 @@
-# Conventional Commits, versioning & CI gating
+# Versioning, labels & CI gating
 
 Reference for `ha-integration`. Loaded on demand.
 
@@ -7,7 +7,7 @@ Commit and PR-title conventions, and what the release notes are built from, are
 
 ⚠️ **One labeler, title-only — don't hand-roll a second one.** The autolabeler can only match title/body/branch/files (never commit subjects). Label off the **title** and keep it the *only* labeler. Pitfalls: (a) a second label step in any workflow **fights** the autolabeler → labels flap (add/remove every push); (b) `branch:` rules flap when the branch name disagrees with the commits (e.g. branch `chore/…`, commits `feat:`) — so use **title-only** rules. Resist re-adding custom bash to "label from commit subjects"; the title already encodes the winning type.
 
-⚠️ **Stale superseded labels — NOT rare in a squash + rc-cycle repo.** The autolabeler only *adds*, never removes. When a PR's title flips type mid-life (`fix:` → `feat:` as scope grows — routine on a long-lived `feat/rcN` branch), the **old type label lingers alongside the new one**. release-drafter is PR-granular and lists a PR under **every** matching label's category, so a double-labelled PR shows up under *two* headings (e.g. both `## 🚀 Features` and `## 🔧 Fixes`) with its full the same change listed under two release sections. The `version-resolver` still picks the highest for the bump, but the **release notes are wrong**. This is common — not "rare since a PR is usually one type"; rc-cycle PRs routinely accrue mixed types and a flipping title. Fix with a **removal-only** step after the autolabeler (removal-only can't flap — it only ever subtracts the non-winning labels, keyed on the same title the autolabeler reads):
+⚠️ **Stale superseded labels — NOT rare in a squash + rc-cycle repo.** The autolabeler only *adds*, never removes. When a PR's title flips type mid-life (`fix:` → `feat:` as scope grows — routine on a long-lived `feat/rcN` branch), the **old type label lingers alongside the new one**. release-drafter is PR-granular and lists a PR under **every** matching label's category, so a double-labelled PR shows up under *two* headings (e.g. both `## 🚀 Features` and `## 🔧 Fixes`) with the same change listed under two release sections. The `version-resolver` still picks the highest for the bump, but the **release notes are wrong**. This is common — not "rare since a PR is usually one type"; rc-cycle PRs routinely accrue mixed types and a flipping title. Fix with a **removal-only** step after the autolabeler (removal-only can't flap — it only ever subtracts the non-winning labels, keyed on the same title the autolabeler reads):
 ```yaml
 # pr-checks.yml `label` job, step AFTER autolabeler@v7
 - name: Remove superseded type labels
@@ -75,7 +75,7 @@ The same property makes a *new* `pull_request_target` workflow inert on the PR t
 
 ⚠️ **The suppression is not only about PR creation.** It fires for *any* event caused by the default token, so **a workflow that expects to be woken by another workflow's action is relying on an event that will not arrive.** Concretely: the autolabeler applies a label with `GITHUB_TOKEN`, so the resulting `labeled` event is swallowed and nothing keyed on it runs. **This is why every PR-time job that reads or writes labels lives in one workflow, `pr-checks.yml`, ordered with `needs:`.** Jobs within a workflow sequence deterministically; workflows never do. `title-check` learned this the hard way — as a separate workflow it raced the autolabeler, then polled for the label as a workaround, and only `needs: label` actually fixed it. If you find yourself polling for another workflow's side effect, put the work in the same workflow instead.
 
-**PRs are now opened by humans, so none of that applies:** a human-opened PR is not a token-caused event and every `pull_request` workflow runs on `opened`. Don't reach for a PAT — there is nothing left for it to fix here.
+**This no longer bites, because of how the opener is built:** a human-opened PR is not a token-caused event and every `pull_request` workflow runs on `opened`. `auto_draft_pr.yml` opens with `RELEASE_TOKEN` precisely so the events fire; a PR opened with the default token would be permanently unmergeable.
 
 The old advice also suggested a `push:` trigger on the version gate so it ran on branch pushes too. **Dropped:** the label-derived expected bump needs PR context, so the push path could only ever check the parts that don't depend on a label — and in practice the template's push trigger was a no-op, because every step was gated on `github.event_name == 'pull_request'`. The gate is a PR-time job now, which is the only context in which it can do its whole job.
 

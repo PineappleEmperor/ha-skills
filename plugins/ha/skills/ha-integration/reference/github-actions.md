@@ -2,7 +2,7 @@
 
 The **file bodies** live in the skill's `templates/` dir (mirrors the target repo: `templates/.github/workflows/*.yml`, `templates/.github/*.yml`, `templates/scripts/*`, `templates/tests/*`, `templates/hooks/*`, `templates/requirements.test.txt`). Copy them as-is — they are self-contained, no external repo. This file is the **why**: the behaviours each workflow must preserve. Read it before changing any workflow.
 
-⚠️ **This file does not substitute for the templates.** It describes required behaviour so you can *review* a workflow; a workflow written from these descriptions is a paraphrase, and paraphrases drift silently. Locate `templates/` per **Where `templates/` lives** in `reference/github-setup.md` and copy byte-for-byte; if you cannot locate it, stop and say so rather than authoring from prose. Only sanctioned adaptation: `<domain>` in `release.yml`.
+⚠️ **This file does not substitute for the templates.** It describes required behaviour so you can *review* a workflow; a workflow written from these descriptions is a paraphrase, and paraphrases drift silently. Locate `templates/` per **Where `templates/` lives** in `reference/github-setup.md` and copy byte-for-byte; if you cannot locate it, stop and say so rather than authoring from prose. Sanctioned adaptations are the table in `reference/github-setup.md` — nothing else.
 
 #### pr-checks.yml template (canonical — copy this, no external repo)
 
@@ -30,11 +30,21 @@ Must-preserve behaviours:
 
 #### Remaining workflow + config templates (canonical — copy these, no external repo)
 
-All paths assume one integration per repo: `custom_components/<domain>/manifest.json` is resolved with `ls custom_components/*/manifest.json | head -1`. Action majors are a snapshot — see the **Freshness** table in `reference/freshness.md` for the captured values, the date, and the command to re-derive them. Dependabot (`github-actions`) keeps the *tag-pinned* ones bumped in a consuming repo, but it cannot bump the pins in these templates, nor the mutable `@main`/`@master` refs on `hacs/action` and `Hassfest manifest validation` (deliberate — rationale in the workflow headers and the Freshness note). The full release path is: `release_drafter.yml` drafts notes on `main`, the release drafts cuts the release on the tag, and **`release.yml` (*Create Release ZIP*) attaches the `<domain>.zip` asset on publish** — the last is mandatory whenever `hacs.json` sets `zip_release: true` (omit it only on a repo that deliberately uses no `zip_release`).
+All paths assume one integration per repo: `custom_components/<domain>/manifest.json` is resolved with `ls custom_components/*/manifest.json | head -1`. Action majors are a snapshot — see the **Freshness** table in `reference/freshness.md` for the captured values, the date, and the command to re-derive them. Dependabot (`github-actions`) keeps the *tag-pinned* ones bumped in a consuming repo, but it cannot bump the pins in these templates, nor the mutable `@main`/`@master` refs on `hacs/action` and `Hassfest manifest validation` (deliberate — rationale in the workflow headers and the Freshness note). The full release path is: `release_drafter.yml` drafts notes on `main`, publishing that draft creates the tag, and **`release.yml` (*Create Release ZIP*) attaches the `<domain>.zip` asset on publish** — the last is mandatory whenever `hacs.json` sets `zip_release: true` (omit it only on a repo that deliberately uses no `zip_release`).
 
 **`.github/workflows/lint_pr.yml`** — semantic PR-title gate.
 
-**`.github/workflows/release_drafter.yml`** — drafts release notes on `main` only (labelling lives in the `label` job of `pr-checks.yml`, so no autolabeler job here). Reads the release version from the manifest.
+**`.github/workflows/auto_draft_pr.yml`** — the draft-PR opener; draft-only, actor-gated, uses `RELEASE_TOKEN` so checks actually run.
+
+**`.github/workflows/quality_audit.yml`** — runs `skill_audit.py` and `version_sync.py` on every PR; the conformance gate.
+
+**`.github/workflows/dependency_review.yml`** — blocks a PR introducing a dependency with a known advisory.
+
+**`.github/workflows/frontend_build.yml`** — *Panel bundle staleness check*; rebuilds the panel and diffs the committed bundle. Path-filtered, panel repos only.
+
+**`.github/workflows/stale.yml`** — marks stale issues; never closes them.
+
+**`.github/workflows/release_drafter.yml`** — drafts release notes on pushes to `main`, and writes the final body on `release: published` (labelling lives in the `label` job of `pr-checks.yml`, so no autolabeler job here). Reads the release version from the manifest.
 
 **`.github/release-drafter.yml`** (config) — title-only autolabeler rules (breaking `!` first), `$BODY` kept with bounded Dependabot `replacers`, label→semver `version-resolver`.
 
@@ -42,7 +52,7 @@ All paths assume one integration per repo: `custom_components/<domain>/manifest.
 
 **`.github/workflows/hassfest_validate.yml`** — HA manifest/services/quality-scale validation.
 
-**`.github/workflows/hacs_validate.yml`** — HACS 8-check validation. **No `ignore:` input** — ignoring any check disqualifies the repo from the default store.
+**`.github/workflows/hacs_validate.yml`** — HACS 9-check validation. **No `ignore:` input** — ignoring any check disqualifies the repo from the default store.
 
 **`.github/workflows/python_validate.yml`** + **`requirements.test.txt`** — ruff + pyright + **pytest** on HA's floor Python (keep the matrix in lockstep with `pyproject.toml` / `pyrightconfig.json`). **Tests run in CI, not local-only:** the quality scale requires a test per rule marked `done`, so a suite CI never runs lets those claims rot unverified. The pytest step fails the build on a red test, warns (doesn't fail) when `tests/` is absent so a fresh scaffold is loud rather than silently green, and hard-fails when `tests/` exists but `requirements.test.txt` doesn't — that combination means the suite was never actually installed. `pytest-homeassistant-custom-component` hard-pins `homeassistant==<matching release>`, so the pin in `requirements.test.txt` decides which HA the suite runs against; a mismatched pin fails at import, not at test time.
 

@@ -424,7 +424,7 @@ def check_sole_labeler(repo: Repo) -> Result:
     bad += [f"job '{n}' looks like a second labeler"
             for n in (doc.get("jobs") or {}) if "label" in n.lower()]
     if bad:
-        return ["release_drafter.yml must be push-only with no autolabeler job "
+        return ["release_drafter.yml may trigger only on push, workflow_dispatch or release with no autolabeler job "
                 "(pr-checks.yml is the sole labeler): " + "; ".join(bad)], []
     return [], []
 

@@ -24,8 +24,6 @@ Use it when the task touches any of: a `custom_components/<domain>/` package, a 
 
 ---
 
----
-
 ## Step 1 — Detect mode
 
 Check the working directory, pick a mode, then **read that mode's reference file before acting**.

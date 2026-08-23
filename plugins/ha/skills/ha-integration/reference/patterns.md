@@ -1,4 +1,4 @@
-# Implementation patterns, file structure, typing & testing
+# Implementation patterns, file structure and typing
 
 Reference for `ha-integration` Mode 1/2. Loaded on demand.
 

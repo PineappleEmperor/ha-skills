@@ -81,9 +81,9 @@ What to ask, what to generate, and the conventions the generated code follows. R
 
 > HACS `check-brands` fails if `custom_components/{domain}/brand/icon.png` is absent and the integration is not listed in the HA brands repo.
 
-**HACS validation — 8 checks**
+**HACS validation — 9 checks**
 
-⚠️ All checks must pass without ignoring any — the `ignore:` input in `hacs_validate.yml` must not be used at all — `skill_audit.py` fails on its presence, and ignoring any check disqualifies the repo from the HACS default store. Ignoring checks disqualifies the repo from the HACS default store.
+⚠️ All checks must pass without ignoring any — the `ignore:` input in `hacs_validate.yml` must not be used at all — `skill_audit.py` fails on its presence, and ignoring any check disqualifies the repo from the HACS default store.
 
 | Check | What's needed | Where to fix |
 |-------|--------------|--------------|
@@ -126,7 +126,7 @@ Always `domain` first, `name` second, then remaining keys alphabetically:
 
 ## Implementation patterns, file structure, typing & testing
 
-See **`reference/patterns.md`** — `__init__`/coordinator/entity/notify patterns, `entry.runtime_data`, `DeviceInfo`, the modern `NotifyEntity` path, `from __future__ import annotations` + typed-`ConfigEntry` rules, the file-split conventions, and the **mock-the-boundary** testing rules (real setup-entry `LOADED` test, two-entry parallel test, parser unit tests).
+See **`reference/patterns.md`** — `__init__`/coordinator/entity/notify patterns, `entry.runtime_data`, `DeviceInfo`, the modern `NotifyEntity` path, `from __future__ import annotations` + typed-`ConfigEntry` rules, the file-split conventions, with the **mock-the-boundary** testing rules in `reference/testing.md`.
 
 ---
 
