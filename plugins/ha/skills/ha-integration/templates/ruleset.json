@@ -30,9 +30,6 @@
             "context": "CC label validation"
           },
           {
-            "context": "Version validation"
-          },
-          {
             "context": "CC title validation"
           },
           {
@@ -46,6 +43,9 @@
           },
           {
             "context": "ha-integration conformance check"
+          },
+          {
+            "context": "Dependency review"
           }
         ]
       }
