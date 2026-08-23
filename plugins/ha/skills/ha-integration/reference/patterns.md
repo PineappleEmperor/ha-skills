@@ -307,6 +307,8 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 **2. `asyncio_mode = "auto"`** in `pyproject.toml`, or pytest-asyncio never runs the async tests (they error at collection).
 
+**3. A `config_flow.py` that imports, whenever `manifest.json` sets `"config_flow": true`.** HA imports the flow module *during entry setup*, not only when a user opens the flow, so a manifest claiming a config flow without the module fails the setup test with `Error importing platform config_flow from integration <domain>` — which reads as a test problem and is a wiring problem. Found by running the setup test against an integration whose `__init__.py` had no `async_setup_entry` at all.
+
 ```toml
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
