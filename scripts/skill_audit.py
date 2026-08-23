@@ -424,11 +424,15 @@ def check_pr_openers(repo: Repo) -> Result:
     if repo.exists(".github/workflows/create-dev-pr.yml"):
         fails.append("create-dev-pr.yml is superseded (use auto_draft_pr.yml, which is "
                      "draft-only and actor-gated)")
+    # The sanctioned openers are the ones a human cannot open for themselves: a bot
+    # that must propose its own change (floors, version sync), or the draft opener that
+    # exists so a title is never typed. Anything else opening a PR is a workflow acting
+    # as an author.
+    SANCTIONED = ("auto_draft_pr.yml", "update_manifest_floors.yml", "sync_plugin_version.yml")
     for wf in repo.workflow_files():
-        if "gh pr create" in wf.read_text(errors="replace") and \
-                wf.name not in ("auto_draft_pr.yml", "update_manifest_floors.yml"):
-            fails.append(f"{wf.name} opens PRs with 'gh pr create' (only auto_draft_pr.yml "
-                         f"and update_manifest_floors.yml may)")
+        if "gh pr create" in wf.read_text(errors="replace") and wf.name not in SANCTIONED:
+            fails.append(f"{wf.name} opens PRs with 'gh pr create' (only "
+                         + ", ".join(SANCTIONED) + " may)")
     opener = repo.text(".github/workflows/auto_draft_pr.yml")
     if opener:
         if "github.actor == github.repository_owner" not in opener:
@@ -639,7 +643,7 @@ DOCS_EXCUSED = re.compile(r"supersede|do not reinstate|removed|deleted|replaced 
 # Described on purpose without being shipped: the floor-bumper is an opt-in add-on
 # the reader builds when a manifest carries `>=` requirements, so the skill explains
 # it rather than scaffolding it into every repo.
-DOCS_OPTIONAL = {"update_manifest_floors.yml"}
+DOCS_OPTIONAL = {"update_manifest_floors.yml", "sync_plugin_version.yml"}
 
 
 def check_reference_links(repo: Repo) -> Result:

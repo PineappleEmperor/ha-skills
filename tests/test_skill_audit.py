@@ -232,3 +232,17 @@ def test_backticked_reference_counts_as_a_link(tmp_path) -> None:
     ref.mkdir()
     (ref / "patterns.md").write_text("content\n")
     assert audit.check_reference_links(audit.Repo(tmp_path)) == ([], [])
+
+
+def test_a_third_pr_opener_is_still_refused(repo) -> None:
+    """The sanctioned list is short on purpose: a workflow opening a PR acts as an author."""
+    _wf(repo, "helpful.yml", "jobs:\n  x:\n    steps:\n      - run: gh pr create --title hi\n")
+    fails, _ = audit.check_pr_openers(audit.Repo(repo))
+    assert any("helpful.yml opens PRs" in f for f in fails)
+
+
+def test_the_version_sync_may_open_its_own_pr(repo) -> None:
+    """It proposes a change to a protected branch; the alternative is standing write access."""
+    _wf(repo, "sync_plugin_version.yml", "jobs:\n  x:\n    steps:\n      - run: gh pr create --title v\n")
+    fails, _ = audit.check_pr_openers(audit.Repo(repo))
+    assert not any("sync_plugin_version.yml" in f for f in fails)
