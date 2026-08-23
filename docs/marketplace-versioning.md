@@ -4,35 +4,42 @@ Repo-local, deliberately outside `plugins/`: it describes how **this** repositor
 not anything a scaffolded integration does. An integration's version rides the release
 zip and never touches its repo; none of the below applies there.
 
-## Declare the version in `plugin.json`, nowhere else
+## No version is declared anywhere
 
-From the [plugin marketplace reference](https://code.claude.com/docs/en/plugin-marketplaces):
+`plugin.json` has no `version` field and neither does the marketplace entry. From the
+[plugin marketplace reference](https://code.claude.com/docs/en/plugin-marketplaces):
 
-> Avoid setting `version` in both `plugin.json` and the marketplace entry. Claude Code
-> always uses the `plugin.json` value without warning, so a stale manifest version can
-> mask a version you set in `marketplace.json`.
+> For git-based sources, if you omit `version`, Claude Code uses the source's resolved
+> commit SHA, so users get an update whenever that commit changes; this is the simplest
+> setup for internal or actively developed plugins.
 
-This repo carried it in both for months, and `pr-checks.yml` had a required step
-enforcing that the two agreed — comparing a value Claude Code reads against one it
-discards. Both are gone: `marketplace.json` declares no version.
+So the plugin's version **is** the commit on `main`, and users pick up changes as they
+land. Releases and tags still exist — they carry the changelog and mark what shipped —
+they simply no longer gate who receives what.
 
-## The declared version is the update signal
+## Why not semantic versions
 
-Users receive a new copy only when that string changes. A hundred commits under an
-unchanged version leave every existing user on the cached copy. Omitting it instead makes
-a git source fall back to the resolved commit SHA, so users track the branch — the docs
-call that the simplest setup for an actively developed plugin.
+A declared version pins updates: users receive a new copy only when that string changes,
+so the string has to be written into a committed file by *someone*. Every way of doing
+that costs something:
 
-**This repo declares it**, because releases are the unit we ship and users should land on
-a released state, not on whatever `main` holds mid-cycle.
+| Writer | Cost |
+|---|---|
+| A human, once per cycle | a manual step in a release process built to have none |
+| CI, by opening a PR | a bot PR per release, and a jam when two releases land close together |
+| CI, pushing to `main` | a standing bypass of branch protection for the release token |
 
-## Nothing is bumped by hand
+The last was rejected on a specific ground worth recording: a permanent bypass is
+available at exactly the moment someone is under pressure to land a red PR. The guard
+against using it is not having it.
 
-`sync_plugin_version.yml` writes the published tag into `plugin.json` and opens a PR that
-auto-merge lands. The tag is the input, so a hand-pushed tag overrides. Pushing to `main`
-directly would need either a permanent ruleset bypass for `RELEASE_TOKEN` or the
-protection disabled at every release; a PR keeps every rule enforced and still needs
-nothing typed.
+Semantic versions are nicer to read. They are not worth a machine that writes to `main`,
+and this repo is developed continuously rather than in discrete supported releases, which
+is the case the SHA fallback is designed for.
 
-Known limit: two releases published close together produce two sync PRs, and the second
-conflicts. It stops visibly rather than silently.
+## What this removed
+
+`sync_plugin_version.yml`, `scripts/sync_plugin_version.py` and its tests, the
+`Manifests agree` gate step, the version comparison in `version-gate`, and the hand-bump
+convention. `Version validation` survives as an advisory that prints what the merged
+labels imply for the next release tag; it cannot fail.
