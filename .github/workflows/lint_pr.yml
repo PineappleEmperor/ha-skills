@@ -8,6 +8,9 @@ on:
       - synchronize
       - reopened
 
+# Nothing at workflow level: the job asks for the one scope it needs.
+permissions: {}
+
 jobs:
   main:
     name: CC title validation
