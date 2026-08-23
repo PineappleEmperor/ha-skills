@@ -642,6 +642,44 @@ DOCS_EXCUSED = re.compile(r"supersede|do not reinstate|removed|deleted|replaced 
 DOCS_OPTIONAL = {"update_manifest_floors.yml"}
 
 
+def check_skill_frontmatter(repo: Repo) -> Result:
+    """Each SKILL.md must carry the frontmatter the skill spec requires.
+
+    `name` and `description` are the two required fields, the block is capped at 1024
+    characters, and the description states WHEN to reach for the skill. ha-panel-design
+    shipped seven releases with no `name` at all, and a description that summarised what
+    the skill does — which is the documented way to get an agent to act on the summary
+    instead of reading the skill.
+    """
+    fails, warns = [], []
+    for skill in sorted(repo.root.glob("plugins/*/skills/*/SKILL.md")):
+        text = skill.read_text()
+        parts = text.split("---", 2)
+        if len(parts) < 3 or parts[0].strip():
+            fails.append(f"{skill.parent.name}/SKILL.md has no frontmatter block")
+            continue
+        fm = parts[1]
+        fields = dict(re.findall(r"^([a-z-]+):\s*(.*)$", fm, re.M))
+        if "name" not in fields:
+            fails.append(f"{skill.parent.name}/SKILL.md frontmatter has no name field")
+        elif fields["name"].strip() != skill.parent.name:
+            fails.append(f"{skill.parent.name}/SKILL.md name field is {fields['name'].strip()!r}")
+        if "description" not in fields:
+            fails.append(f"{skill.parent.name}/SKILL.md frontmatter has no description field")
+        elif not fields["description"].lstrip().startswith("Use when"):
+            fails.append(f"{skill.parent.name}/SKILL.md description must start with 'Use when' "
+                         "and state triggers, not what the skill does")
+        if len(fm) > 1024:
+            fails.append(f"{skill.parent.name}/SKILL.md frontmatter is {len(fm)} chars (max 1024)")
+        # Token budget: a skill loads in full once triggered. Past a few thousand words the
+        # heavy sections belong in reference/ files, loaded only when the mode needs them.
+        words = len(parts[2].split())
+        if words > 5000:
+            warns.append(f"{skill.parent.name}/SKILL.md is {words} words — move heavy sections "
+                         "to reference/ files and leave pointers")
+    return fails, warns
+
+
 def check_docs_match_templates(repo: Repo) -> Result:
     """Every workflow and job the skill's docs name must exist in templates/."""
     tmpl = _template_dir(repo)
@@ -753,7 +791,7 @@ CHECKS = (
     check_pr_openers, check_antipatterns, check_quality_scale_and_manifest,
     check_autolabeler_title_only, check_drafter_categories, check_docstrings,
     check_commit_hook, check_brand_assets, check_self_diff, check_template_pins,
-    check_docs_match_templates,
+    check_docs_match_templates, check_skill_frontmatter,
     check_release_token, check_required_status_checks,
 )
 
@@ -773,7 +811,16 @@ def audit(root: pathlib.Path) -> Result:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--root", default=".", help="repository to audit")
+    # The skill used to enumerate these rules in prose, which went stale the moment the
+    # pin check moved from version floors to commit SHAs. The registry is the list.
+    ap.add_argument("--list", action="store_true", help="print the checks and exit")
     args = ap.parse_args(argv)
+
+    if args.list:
+        for check in CHECKS:
+            summary = (check.__doc__ or "").strip().splitlines()[0]
+            print(f"{check.__name__[len('check_'):]:28} {summary}")
+        return 0
 
     root = pathlib.Path(args.root)
     repo = Repo(root)
