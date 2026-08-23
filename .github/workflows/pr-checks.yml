@@ -181,7 +181,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PLUGIN_MANIFEST: plugins/ha/.claude-plugin/plugin.json
-      MARKETPLACE: .claude-plugin/marketplace.json
       PLUGIN_NAME: ha
     steps:
       # BASE, not the PR head: the token is writable under pull_request_target.
@@ -201,10 +200,7 @@ jobs:
           # The PR's manifests are read as DATA over the API — never checked out.
           gh api "repos/$GH_REPO/contents/$PLUGIN_MANIFEST?ref=$HEAD_SHA" --jq '.content' \
             | base64 -d > pr_plugin.json
-          gh api "repos/$GH_REPO/contents/$MARKETPLACE?ref=$HEAD_SHA" --jq '.content' \
-            | base64 -d > pr_marketplace.json
           echo "pr_version=$(jq -r '.version' pr_plugin.json)" >> "$GITHUB_OUTPUT"
-          echo "pr_mp_version=$(jq -r --arg n "$PLUGIN_NAME" '.plugins[]|select(.name==$n)|.version' pr_marketplace.json)" >> "$GITHUB_OUTPUT"
           # manifest_gate.py compares against the last PUBLISHED release and uses the
           # base branch's version only as a ceiling. The previous inline gate compared
           # against the base branch alone, so these names differ; emitting the old
@@ -214,22 +210,6 @@ jobs:
           TAG=$(gh release list --exclude-drafts --limit 1 --json tagName --jq '.[0].tagName')
           echo "last_release=${TAG#v}" >> "$GITHUB_OUTPUT"
           echo "labels=$(gh pr view "$PR" --json labels -q '[.labels[].name]|join(",")')" >> "$GITHUB_OUTPUT"
-
-      # Decision logic in Python, not inline bash: an untested inline gate shipped a
-      # real bug once (strict equality rejected a valid in-cycle version).
-      # Untrusted values reach it via env, never `${{ }}` inside run:.
-      # This repo carries the version in two files. manifest_gate.py is deliberately
-      # single-version (an HA integration has one manifest.json), so the agreement
-      # check lives here rather than diverging the shared gate step.
-      - name: Manifests agree
-        env:
-          PR_VERSION: ${{ steps.gather.outputs.pr_version }}
-          PR_MP_VERSION: ${{ steps.gather.outputs.pr_mp_version }}
-        run: |
-          if [ "$PR_VERSION" != "$PR_MP_VERSION" ]; then
-            echo "::error::plugin.json ($PR_VERSION) != marketplace.json ($PR_MP_VERSION). Bump both together."
-            exit 1
-          fi
 
       # Advisory only. The release tag owns the version and `sync_plugin_version.yml`
       # writes it into the manifests at publish, so no PR carries a bump and there is

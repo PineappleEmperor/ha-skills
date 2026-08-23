@@ -7,8 +7,7 @@
     {
       "name": "ha",
       "source": "./plugins/ha",
-      "description": "Home Assistant skills: integration development (ha-integration), custom panel design (ha-panel-design), log triage (ha-log-triage).",
-      "version": "7.3.0rc2"
+      "description": "Home Assistant skills: integration development (ha-integration), custom panel design (ha-panel-design), log triage (ha-log-triage)."
     }
   ]
 }

@@ -1,11 +1,17 @@
 #!/usr/bin/env python3
-"""Write a release tag's version into the plugin manifests.
+"""Write a release tag's version into plugin.json.
 
 An integration is installed from the release zip, so `release.yml` patches
 `manifest.json` into that artefact and the committed value stays a placeholder. A
-plugin marketplace has no artefact in the path: Claude Code reads
-`.claude-plugin/marketplace.json` from the repository tree. The number therefore has
-to be committed — so the tag still owns the version, and this writes it back.
+plugin marketplace has no artefact: Claude Code reads the plugin from the repository
+tree, and a declared version is what gates updates — users receive a new copy only
+when that string changes. The tag still owns the number; this writes it back.
+
+Only `plugin.json` carries it. Per the marketplace reference: "Avoid setting `version`
+in both `plugin.json` and the marketplace entry. Claude Code always uses the
+`plugin.json` value without warning, so a stale manifest version can mask a version you
+set in `marketplace.json`." A version in the marketplace entry is therefore a defect,
+and `--check` reports it.
 
 Usage:
     sync_plugin_version.py --version 7.4.0 [--plugin ha] [--check]
@@ -24,31 +30,30 @@ PLUGIN_MANIFEST = "plugins/{plugin}/.claude-plugin/plugin.json"
 MARKETPLACE = ".claude-plugin/marketplace.json"
 
 
-def patch(root: pathlib.Path, version: str, plugin: str) -> list[str]:
-    """Set `version` in both manifests. Returns the files that changed."""
-    changed = []
-
-    manifest = root / PLUGIN_MANIFEST.format(plugin=plugin)
-    if not manifest.is_file():
-        sys.exit(f"no manifest at {manifest}: is {plugin!r} the right plugin name?")
-    data = json.loads(manifest.read_text())
-    if data.get("version") != version:
-        data["version"] = version
-        manifest.write_text(json.dumps(data, indent=2) + "\n")
-        changed.append(str(manifest.relative_to(root)))
-
+def shadowed(root: pathlib.Path, plugin: str) -> bool:
+    """True when the marketplace entry declares a version plugin.json will shadow."""
     market = root / MARKETPLACE
     data = json.loads(market.read_text())
     entries = [p for p in data.get("plugins", []) if p.get("name") == plugin]
     if not entries:
         sys.exit(f"{MARKETPLACE} lists no plugin named {plugin!r}")
-    if any(p.get("version") != version for p in entries):
-        for p in entries:
-            p["version"] = version
-        market.write_text(json.dumps(data, indent=2) + "\n")
-        changed.append(str(market.relative_to(root)))
+    return any("version" in p for p in entries)
 
-    return changed
+
+def patch(root: pathlib.Path, version: str, plugin: str) -> list[str]:
+    """Set `version` in plugin.json. Returns the files that changed."""
+    manifest = root / PLUGIN_MANIFEST.format(plugin=plugin)
+    if not manifest.is_file():
+        sys.exit(f"no manifest at {manifest}: is {plugin!r} the right plugin name?")
+    if shadowed(root, plugin):
+        sys.exit(f"{MARKETPLACE} declares a version for {plugin!r}; plugin.json silently "
+                 "wins, so remove it there")
+    data = json.loads(manifest.read_text())
+    if data.get("version") == version:
+        return []
+    data["version"] = version
+    manifest.write_text(json.dumps(data, indent=2) + "\n")
+    return [str(manifest.relative_to(root))]
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -65,11 +70,17 @@ def main(argv: list[str] | None = None) -> int:
 
     root = pathlib.Path(args.root)
     if args.check:
+        problems = []
         manifest = json.loads((root / PLUGIN_MANIFEST.format(plugin=args.plugin)).read_text())
         if manifest.get("version") != version:
-            print(f"drift: plugin.json is {manifest.get('version')}, tag says {version}")
+            problems.append(f"plugin.json is {manifest.get('version')}, tag says {version}")
+        if shadowed(root, args.plugin):
+            problems.append(f"{MARKETPLACE} declares a version that plugin.json shadows")
+        for p in problems:
+            print(f"drift: {p}")
+        if problems:
             return 1
-        print(f"manifests match {version}")
+        print(f"plugin.json matches {version}")
         return 0
 
     changed = patch(root, version, args.plugin)

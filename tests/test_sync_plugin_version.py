@@ -27,21 +27,33 @@ def repo(tmp_path):
     (tmp_path / "plugins/ha/.claude-plugin/plugin.json").write_text(
         json.dumps({"name": "ha", "version": "1.0.0"}, indent=2) + "\n")
     (tmp_path / ".claude-plugin/marketplace.json").write_text(
-        json.dumps({"plugins": [{"name": "ha", "version": "1.0.0"}]}, indent=2) + "\n")
+        json.dumps({"plugins": [{"name": "ha", "source": "./plugins/ha"}]}, indent=2) + "\n")
     return tmp_path
 
 
-def _versions(repo):
-    a = json.loads((repo / "plugins/ha/.claude-plugin/plugin.json").read_text())["version"]
-    b = json.loads((repo / ".claude-plugin/marketplace.json").read_text())["plugins"][0]["version"]
-    return a, b
+def _version(repo):
+    return json.loads((repo / "plugins/ha/.claude-plugin/plugin.json").read_text())["version"]
 
 
-def test_both_manifests_take_the_tag_version(repo) -> None:
-    """One tag, two files — a sync that updates only one is the drift it exists to stop."""
+def test_plugin_manifest_takes_the_tag_version(repo) -> None:
+    """plugin.json is the only declared version; the marketplace entry must not carry one."""
     changed = sync.patch(repo, "2.1.0", "ha")
-    assert _versions(repo) == ("2.1.0", "2.1.0")
-    assert len(changed) == 2
+    assert _version(repo) == "2.1.0"
+    assert changed == ["plugins/ha/.claude-plugin/plugin.json"]
+
+
+def test_a_version_in_the_marketplace_entry_is_refused(repo) -> None:
+    """Claude Code reads plugin.json and ignores it, so a value there is silent drift.
+
+    Documented: "Avoid setting version in both plugin.json and the marketplace entry.
+    Claude Code always uses the plugin.json value without warning."
+    """
+    market = repo / ".claude-plugin/marketplace.json"
+    data = json.loads(market.read_text())
+    data["plugins"][0]["version"] = "1.0.0"
+    market.write_text(json.dumps(data, indent=2) + "\n")
+    with pytest.raises(SystemExit):
+        sync.patch(repo, "2.1.0", "ha")
 
 
 def test_rerunning_changes_nothing(repo) -> None:
@@ -61,7 +73,7 @@ def test_json_shape_survives(repo) -> None:
 def test_prerelease_versions_are_accepted(repo) -> None:
     """An rc tag is a legitimate override; the marketplace repo just doesn't cut them itself."""
     assert sync.main(["--version", "v2.0.0rc1", "--root", str(repo)]) == 0
-    assert _versions(repo) == ("2.0.0rc1", "2.0.0rc1")
+    assert _version(repo) == "2.0.0rc1"
 
 
 def test_a_tag_that_is_not_a_version_is_refused(repo) -> None:
@@ -72,7 +84,7 @@ def test_a_tag_that_is_not_a_version_is_refused(repo) -> None:
 
 def test_check_mode_reports_drift_without_writing(repo) -> None:
     assert sync.main(["--version", "9.9.9", "--root", str(repo), "--check"]) == 1
-    assert _versions(repo) == ("1.0.0", "1.0.0")
+    assert _version(repo) == "1.0.0"
 
 
 def test_unknown_plugin_name_fails_loudly(repo) -> None:
