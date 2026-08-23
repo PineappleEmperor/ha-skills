@@ -91,6 +91,8 @@ private key is rotated the same way, and its tokens expire hourly regardless.
 > single-value matrix or put the suffixed name in the ruleset; never assume the
 > context equals the job name.
 
+⚠️ **`Dependency review` needs the repository's dependency graph enabled** (Settings → Advanced Security). With it off the action does not skip — it fails, so the check is red on every PR forever. Verified on a test repo: seven workflows green, this one red alone.
+
 **`scripts/bootstrap_repo.sh` does all of this once**, from the repo root after the first
 push: description, topics, issues, the ruleset, `core.hooksPath`, and the `RELEASE_TOKEN`
 secret (prompted, never an argument). Every item in it is a GitHub-side setting no file in
