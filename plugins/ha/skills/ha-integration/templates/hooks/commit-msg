@@ -11,6 +11,26 @@ if [ "${#subject}" -gt 72 ]; then
 fi
 case "$subject" in "Merge "*|"Revert "*|"fixup! "*|"squash! "*) exit 0 ;; esac
 
+# The subject must be a Conventional Commit: a mapped type, lowercase after the colon,
+# one imperative clause, no trailing period. lint_pr enforces this on the PR title; the
+# release notes are built from these subjects, so an unmapped one lands in the wrong
+# section of what users read.
+if ! printf '%s' "$subject" | grep -Eq '^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-z0-9._/-]+\))?!?: [a-z]'; then
+  echo "commit-msg: subject must be '<type>(<scope>)!: <lowercase imperative>'" >&2
+  echo "    types: feat fix docs style refactor perf test build ci chore revert" >&2
+  exit 1
+fi
+case "$subject" in *.) echo "commit-msg: subject must not end in a period." >&2; exit 1 ;; esac
+
+# Editorialising words. A subject can pass every shape rule above and still say nothing
+# a reader can act on — "catch prose naming a job nobody ships" is well formed, and does
+# not name the thing it changed. These words are where that creeps in.
+if printf '%s' "$subject" | grep -Eqi '\b(actually|really|properly|simply|just|finally|nobody|somehow|stuff|magic|nice)\b'; then
+  echo "commit-msg: editorialising subject — say what changed, not how you feel about it." >&2
+  echo "    $subject" >&2
+  exit 1
+fi
+
 # Reject harness-injected AI-attribution trailers (this skill bans them). A real human
 # Co-Authored-By is still fine.
 if grep -v '^#' "$msg_file" | grep -Eqi '^Co-authored-by:[[:space:]]*Claude|^Claude-Session:|Generated with .*(Claude|Anthropic)'; then

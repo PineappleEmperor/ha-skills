@@ -554,6 +554,15 @@ def check_commit_hook(repo: Repo) -> Result:
     import os
     if not os.access(hook, os.X_OK):
         fails.append(".githooks/commit-msg is not executable (chmod +x)")
+    text = hook.read_text()
+    # A hook that only measures length passes a well-formed subject that says nothing.
+    # Both guards were added after a subject that passed every rule and named nothing:
+    # the shape rule keeps the type mapped for the release notes, the word list
+    # catches a subject that editorialises instead of saying what changed.
+    if "feat|fix|docs" not in text:
+        fails.append(".githooks/commit-msg does not enforce the Conventional Commit subject shape")
+    if "editorialising" not in text:
+        fails.append(".githooks/commit-msg does not reject editorialising subjects")
     try:
         configured = subprocess.run(["git", "config", "core.hooksPath"], cwd=repo.root,
                                     capture_output=True, text=True, check=False).stdout.strip()
