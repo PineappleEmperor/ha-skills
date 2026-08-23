@@ -14,6 +14,10 @@ name: Frontend Build
 on:
   push:
     branches: [main]
+    paths:
+      - 'frontend/**'
+      - 'custom_components/*/panel/**'
+      - '.github/workflows/frontend_build.yml'
   pull_request:
     paths:
       - 'frontend/**'
