@@ -19,6 +19,18 @@ The audit items a grep cannot decide. `scripts/skill_audit.py --list` covers the
 - **Commit/PR discipline:** subjects are single tight imperatives; the PR title uses a **labellable** type (`feat|fix|chore|docs`, `!` for breaking) — typed by a human, or derived from the commits by `auto_draft_pr.yml`; in an integration the release tag sets the version and no PR carries a bump, while a repo whose committed file is what consumers read bumps once, as the last commit.
 - **Cached facts still true.** Re-derive any row in the **Freshness** table (`reference/freshness.md`) captured more than ~3 months ago, using the command in its *Re-derive with* column. Report each as still-current or stale-with-the-new-value, and update every consumer listed on that row in one pass. The stale-pin patterns in `skill_audit.py` are themselves a cached fact — check them against the action majors, not just the templates against the patterns.
 
+**A green gate is not a green suite.** `skill_audit.py` checks that the wiring exists and
+matches; it never runs the repo's tests. Eval 05 reached a passing audit while
+`tests/test_version_sync.py` was still failing — from a stale template copy — and only
+running `pytest` found it. Run what CI runs (`ruff`, `pyright`, `pytest`, `version_sync.py`)
+before reporting an audit clean, and treat a failing test in a *copied* file as your copy
+being stale, not as a skill bug to hand back.
+
+**Verify copies per file, not per directory.** `diff -ru` on a tree still being assembled
+can read as identical while individual files differ; `cmp` each copied file against its
+template. Eval 05 found two additional drifted files this way after a directory diff had
+already reported the copy clean.
+
 **Report:** per-item pass/fail with `file:line` evidence · what the mechanical gate caught · remaining manual work. Fix findings before claiming the tier.
 
 ---
