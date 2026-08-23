@@ -161,3 +161,45 @@ def test_hook_without_the_subject_guards_fails(tmp_path) -> None:
     hook.chmod(0o755)
     fails, _ = audit.check_commit_hook(audit.Repo(tmp_path))
     assert fails == []
+
+
+def _skill(root, name, frontmatter, body="body\n"):
+    d = root / "plugins/ha/skills" / name
+    d.mkdir(parents=True, exist_ok=True)
+    (d / "SKILL.md").write_text(f"---\n{frontmatter}\n---\n\n{body}")
+
+
+def test_skill_without_a_name_field_fails(tmp_path) -> None:
+    """ha-panel-design shipped seven releases with no name in its frontmatter."""
+    _skill(tmp_path, "ha-panel-design", "description: Use when changing a panel")
+    fails, _ = audit.check_skill_frontmatter(audit.Repo(tmp_path))
+    assert any("no name field" in f for f in fails)
+
+
+def test_description_summarising_the_skill_fails(tmp_path) -> None:
+    """A description that says what the skill does gets followed instead of the skill."""
+    _skill(tmp_path, "ha-thing", "name: ha-thing\ndescription: Material 3 type scale and tokens")
+    fails, _ = audit.check_skill_frontmatter(audit.Repo(tmp_path))
+    assert any("must start with 'Use when'" in f for f in fails)
+
+
+def test_name_must_match_its_directory(tmp_path) -> None:
+    _skill(tmp_path, "ha-thing", "name: ha-other\ndescription: Use when doing a thing")
+    fails, _ = audit.check_skill_frontmatter(audit.Repo(tmp_path))
+    assert any("name field is 'ha-other'" in f for f in fails)
+
+
+def test_valid_frontmatter_passes_and_size_only_warns(tmp_path) -> None:
+    _skill(tmp_path, "ha-thing", "name: ha-thing\ndescription: Use when doing a thing",
+           body="word " * 5001)
+    fails, warns = audit.check_skill_frontmatter(audit.Repo(tmp_path))
+    assert fails == []
+    assert any("move heavy sections" in w for w in warns)
+
+
+def test_list_mode_names_every_check(capsys) -> None:
+    """The skill points readers at --list instead of enumerating rules that go stale."""
+    assert audit.main(["--list"]) == 0
+    out = capsys.readouterr().out.splitlines()
+    assert len(out) == len(audit.CHECKS)
+    assert all(line.split()[0] for line in out)
