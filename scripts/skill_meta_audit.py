@@ -148,19 +148,20 @@ def check_paragraph_length(repo: Repo) -> Result:
     exactly how the manual-bump instruction survived the move to tag-driven releases.
     """
     warns = []
-    for skill in sorted(repo.root.glob("plugins/*/skills/*/")):
-        if skill.name.startswith("."):
-            continue
-        for doc in sorted(skill.rglob("*.md")):
-            # A dot-directory under skills/ is tooling, not content, and may not even be
-            # readable — an unreadable file must not crash an audit.
-            if any(part.startswith(".") for part in doc.parts) or \
-                    "evals" in doc.parts or "templates" in doc.parts:
+    # A skill is a directory holding a SKILL.md. Globbing `skills/*/` also matched
+    # `skills/.claude/`, a sibling that is not a skill at all, and the crash that caused
+    # was fixed once by skipping dot-directories — which would have hidden a real skill
+    # whose reference file happened to sit under one. Identify skills by their manifest
+    # instead, and let anything unreadable inside one be reported rather than skipped.
+    for manifest in sorted(repo.root.glob("plugins/*/skills/*/SKILL.md")):
+        for doc in sorted(manifest.parent.rglob("*.md")):
+            if "evals" in doc.parts or "templates" in doc.parts:
                 continue
             try:
                 text = doc.read_text()
             except OSError as exc:
-                warns.append(f"{doc}: unreadable ({exc.strerror})")
+                warns.append(f"{doc}: unreadable ({exc.strerror}) — an audit cannot "
+                             "vouch for a file it could not open")
                 continue
             for para in re.split(r"\n\s*\n", text):
                 if para.strip().startswith("```") or para.lstrip().startswith("|"):

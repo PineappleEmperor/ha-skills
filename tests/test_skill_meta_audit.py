@@ -115,3 +115,30 @@ def test_backticked_reference_counts_as_a_link(tmp_path) -> None:
     (ref / "patterns.md").write_text("content\n")
     assert audit.check_reference_links(audit.Repo(tmp_path)) == ([], [])
 
+
+def test_a_non_skill_sibling_directory_is_not_audited(tmp_path) -> None:
+    """`skills/.claude/` is tooling, not a skill — and skipping dot-paths by name would
+    hide a real skill's reference file that happened to live under one. A skill is a
+    directory with a SKILL.md."""
+    skills = tmp_path / "plugins/ha/skills"
+    (skills / ".claude").mkdir(parents=True)
+    (skills / ".claude/loop.md").write_text("word " * 300)
+    _skill(tmp_path, "ha-thing", "name: ha-thing\ndescription: Use when doing a thing")
+    fails, warns = audit.check_paragraph_length(audit.Repo(tmp_path))
+    assert fails == []
+    assert not any("loop.md" in w for w in warns)
+
+
+def test_an_unreadable_file_inside_a_skill_is_reported(tmp_path) -> None:
+    """An audit that cannot open a file must say so, not pass over it."""
+    _skill(tmp_path, "ha-thing", "name: ha-thing\ndescription: Use when doing a thing")
+    doc = tmp_path / "plugins/ha/skills/ha-thing/reference"
+    doc.mkdir()
+    f = doc / "locked.md"
+    f.write_text("content\n")
+    f.chmod(0o000)
+    try:
+        _, warns = audit.check_paragraph_length(audit.Repo(tmp_path))
+        assert any("locked.md" in w and "unreadable" in w for w in warns)
+    finally:
+        f.chmod(0o644)
