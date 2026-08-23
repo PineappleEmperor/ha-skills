@@ -58,3 +58,29 @@ def test_absent_files_are_not_a_disagreement(tmp_path) -> None:
     (tmp_path / ".github/workflows/python_validate.yml").write_text(
         'jobs:\n  lint:\n    steps:\n      - with:\n          python-version: "3.14"\n')
     assert vs.problems(tmp_path) == []
+
+
+def test_a_single_declaration_warns_rather_than_passing_silently(tmp_path) -> None:
+    """One value cannot disagree with anything; a green tick there is work not done.
+
+    This repo printed "declared python versions agree" while declaring exactly one
+    version, having neither pyproject.toml nor pyrightconfig.json.
+    """
+    (tmp_path / ".github/workflows").mkdir(parents=True)
+    (tmp_path / ".github/workflows/python_validate.yml").write_text(
+        "jobs:\n  t:\n    steps:\n      - uses: actions/setup-python@v6\n"
+        "        with:\n          python-version: '3.14'\n")
+    assert vs.problems(tmp_path) == []
+    warns = vs.thin(tmp_path)
+    assert len(warns) == 1 and "nothing to compare" in warns[0]
+    assert "pyrightconfig.json" in warns[0]
+
+
+def test_two_declarations_are_compared_not_warned(tmp_path) -> None:
+    (tmp_path / ".github/workflows").mkdir(parents=True)
+    (tmp_path / ".github/workflows/python_validate.yml").write_text(
+        "jobs:\n  t:\n    steps:\n      - uses: actions/setup-python@v6\n"
+        "        with:\n          python-version: '3.14'\n")
+    (tmp_path / "pyrightconfig.json").write_text('{"pythonVersion": "3.13"}\n')
+    assert vs.thin(tmp_path) == []
+    assert any("disagrees" in p for p in vs.problems(tmp_path))
