@@ -139,6 +139,75 @@ def check_reference_links(repo: Repo) -> Result:
     return fails, []
 
 
+def check_named_sections(repo: Repo) -> Result:
+    """A pointer to a *section* by name is invisible to a link check.
+
+    Three of this skill's worst defects were cross-references of the form
+    "*Merge discipline* in `SKILL.md`" pointing at a heading that had moved. The link
+    check passed throughout, because the file existed — only the section did not.
+    """
+    fails = []
+    ref = re.compile(r"\*([A-Z][^*\n]{3,60}?)\* in [`\[]+(?:reference/)?([A-Za-z0-9._-]+\.md)")
+    for manifest in sorted(repo.root.glob("plugins/*/skills/*/SKILL.md")):
+        skill = manifest.parent
+        for doc in sorted(skill.rglob("*.md")):
+            if "evals" in doc.parts or "templates" in doc.parts:
+                continue
+            for section, target in ref.findall(doc.read_text()):
+                path = skill / "reference" / target if target != "SKILL.md" else manifest
+                if not path.is_file():
+                    fails.append(f"{doc.name} points at {target}, which does not exist")
+                    continue
+                headings = [l.lstrip("# ").strip().lower()
+                            for l in path.read_text().splitlines() if l.startswith("#")]
+                if not any(section.strip().lower() in h for h in headings):
+                    fails.append(f"{doc.name} points at '{section}' in {target}, "
+                                 "which has no such heading")
+    return fails, []
+
+
+def check_required_contexts_documented(repo: Repo) -> Result:
+    """The prose list of required checks and `ruleset.json` must agree, both ways.
+
+    The docs named a context the ruleset omits (`Version validation`) and omitted one it
+    requires (`Dependency review`), while a nearby sentence claimed a different count.
+    A reader reconciling them adds a check that can never report.
+    """
+    tmpl = _template_dir(repo)
+    if not tmpl or not (tmpl / "ruleset.json").is_file():
+        return [], []
+    import json
+    data = json.loads((tmpl / "ruleset.json").read_text())
+    contexts = [c["context"] for r in data.get("rules", [])
+                if r.get("type") == "required_status_checks"
+                for c in r["parameters"]["required_status_checks"]]
+    prose = "".join(p.read_text() for p in sorted((tmpl.parent / "reference").glob("*.md")))
+    fails = [f"required context {c!r} is in ruleset.json but named in no reference file"
+             for c in contexts if f"`{c}`" not in prose]
+    for count in re.findall(r"the (\w+) job-name contexts", prose):
+        words = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6,
+                 "seven": 7, "eight": 8, "nine": 9, "ten": 10}
+        n = words.get(count.lower(), None if not count.isdigit() else int(count))
+        if n is not None and n != len(contexts):
+            fails.append(f"the docs claim {count} required contexts; ruleset.json has {len(contexts)}")
+    return fails, []
+
+
+def check_shipped_workflows_documented(repo: Repo) -> Result:
+    """Every workflow the scaffold ships must be described somewhere a reader will look.
+
+    The workflow reference claimed to enumerate the templates and named six of twelve —
+    so half the shipped stack had no documented contract to review against.
+    """
+    tmpl = _template_dir(repo)
+    if not tmpl or not (tmpl / ".github/workflows").is_dir():
+        return [], []
+    prose = "".join(p.read_text() for p in sorted((tmpl.parent / "reference").glob("*.md")))
+    missing = [w.name for w in sorted((tmpl / ".github/workflows").glob("*.yml"))
+               if w.name not in prose]
+    return [f"shipped workflow {m} is documented nowhere in reference/" for m in missing], []
+
+
 def check_paragraph_length(repo: Repo) -> Result:
     """A 400-word paragraph is a wall, and a reader skims walls.
 
@@ -174,7 +243,8 @@ def check_paragraph_length(repo: Repo) -> Result:
 
 
 CHECKS = (check_docs_match_templates, check_skill_frontmatter, check_reference_links,
-          check_paragraph_length)
+          check_named_sections, check_required_contexts_documented,
+          check_shipped_workflows_documented, check_paragraph_length)
 
 
 def audit(root: pathlib.Path) -> Result:

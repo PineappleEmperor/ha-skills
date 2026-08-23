@@ -142,3 +142,61 @@ def test_an_unreadable_file_inside_a_skill_is_reported(tmp_path) -> None:
         assert any("locked.md" in w and "unreadable" in w for w in warns)
     finally:
         f.chmod(0o644)
+
+
+def _templates(root, ruleset_contexts=(), workflows=()):
+    t = root / "plugins/ha/skills/ha-thing/templates"
+    (t / ".github/workflows").mkdir(parents=True)
+    for w in workflows:
+        (t / ".github/workflows" / w).write_text("jobs: {}\n")
+    import json
+    (t / "ruleset.json").write_text(json.dumps({"rules": [
+        {"type": "required_status_checks", "parameters": {
+            "required_status_checks": [{"context": c} for c in ruleset_contexts]}}]}))
+    (root / "plugins/ha/skills/ha-thing/reference").mkdir(parents=True, exist_ok=True)
+    return t
+
+
+def test_a_pointer_to_a_moved_section_fails(tmp_path) -> None:
+    """The exact defect: "*Merge discipline* in `SKILL.md`" after it moved to discipline.md."""
+    _skill(tmp_path, "ha-thing", "name: ha-thing\ndescription: Use when doing a thing",
+           body="The full rule is *Merge discipline* in `reference/discipline.md`.\n")
+    ref = tmp_path / "plugins/ha/skills/ha-thing/reference"
+    ref.mkdir(exist_ok=True)
+    (ref / "discipline.md").write_text("# Something else\n\ntext\n")
+    fails, _ = audit.check_named_sections(audit.Repo(tmp_path))
+    assert any("no such heading" in f for f in fails)
+
+    (ref / "discipline.md").write_text("# Discipline\n\n## Merge discipline\n\ntext\n")
+    assert audit.check_named_sections(audit.Repo(tmp_path)) == ([], [])
+
+
+def test_a_required_context_documented_nowhere_fails(tmp_path) -> None:
+    """`Dependency review` was required by the ruleset and named in no reference file."""
+    _skill(tmp_path, "ha-thing", "name: ha-thing\ndescription: Use when doing a thing")
+    _templates(tmp_path, ruleset_contexts=("CC labelling", "Dependency review"))
+    ref = tmp_path / "plugins/ha/skills/ha-thing/reference"
+    (ref / "github-setup.md").write_text("Required: `CC labelling`.\n")
+    fails, _ = audit.check_required_contexts_documented(audit.Repo(tmp_path))
+    assert any("Dependency review" in f for f in fails)
+
+
+def test_a_wrong_context_count_fails(tmp_path) -> None:
+    """The docs said "nine job-name contexts"; the ruleset had eight."""
+    _skill(tmp_path, "ha-thing", "name: ha-thing\ndescription: Use when doing a thing")
+    _templates(tmp_path, ruleset_contexts=("A", "B"))
+    ref = tmp_path / "plugins/ha/skills/ha-thing/reference"
+    (ref / "github-setup.md").write_text("`A` and `B`. It requires the nine job-name contexts.\n")
+    fails, _ = audit.check_required_contexts_documented(audit.Repo(tmp_path))
+    assert any("claim nine required contexts" in f for f in fails)
+
+
+def test_an_undocumented_shipped_workflow_fails(tmp_path) -> None:
+    """The workflow reference named six of twelve shipped workflows."""
+    _skill(tmp_path, "ha-thing", "name: ha-thing\ndescription: Use when doing a thing")
+    _templates(tmp_path, workflows=("pr-checks.yml", "stale.yml"))
+    ref = tmp_path / "plugins/ha/skills/ha-thing/reference"
+    (ref / "github-actions.md").write_text("We ship `pr-checks.yml`.\n")
+    fails, _ = audit.check_shipped_workflows_documented(audit.Repo(tmp_path))
+    assert any("stale.yml" in f for f in fails)
+    assert not any("pr-checks.yml" in f for f in fails)
