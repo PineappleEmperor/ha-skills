@@ -73,12 +73,31 @@ def problems(root: pathlib.Path) -> list[str]:
     return out
 
 
+def thin(root: pathlib.Path) -> list[str]:
+    """Warnings: the check ran but had little or nothing to compare.
+
+    A single declaration cannot disagree with anything, so printing "versions agree" is a
+    green tick for work not done. An integration is expected to declare all three; a repo
+    that only runs pytest legitimately declares one, so this warns rather than fails.
+    """
+    found = collect(root)
+    missing = [k for k, v in found.items() if v is None]
+    declared = {k: v for k, v in found.items() if v is not None}
+    if len(declared) < 2:
+        return [f"only {len(declared)} python version declared; nothing to compare "
+                f"(absent: {', '.join(missing)})"]
+    return []
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--root", default=".", help="repository root to inspect")
     args = ap.parse_args(argv)
 
-    found = problems(pathlib.Path(args.root))
+    root = pathlib.Path(args.root)
+    found = problems(root)
+    for w in thin(root):
+        print(f"⚠️  WARN: {w}")
     for p in found:
         print(f"❌ FAIL: {p}")
     if not found:
