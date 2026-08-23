@@ -36,10 +36,12 @@ Check the working directory, pick a mode, then **read that mode's reference file
 | **Modify** | `custom_components/` exists and something is being added or changed | `reference/patterns.md` |
 | **Test** | writing or fixing tests for an integration | `reference/patterns.md` — the testing sections; the root `conftest.py` and `asyncio_mode` prerequisites decide whether the suite runs at all |
 | **Lint** | hygiene pass over existing code | this file, *Mode 3* below |
-| **Audit** | verify the skill was actually followed | `scripts/skill_audit.py --list`, then `reference/audit.md` |
-
-The audit script lives at `scripts/skill_audit.py` in a repo that copied the templates. Auditing a repo that never did — the case where the audit matters most — means running the skill's own copy at `templates/scripts/skill_audit.py` against the repo root.
+| **Audit** | verify the skill was actually followed | `scripts/skill_audit.py --list` (or the skill's `templates/scripts/skill_audit.py` if the repo never copied it), then `reference/audit.md` |
 | **Release / repo setup** | first release, tokens, required checks | `reference/github-setup.md` first (tokens and required checks are prerequisites), then `reference/versioning.md` |
+
+The audit script lives at `scripts/skill_audit.py` in a repo that copied the templates.
+Auditing a repo that never did — the case where the audit matters most — means running the
+skill's own copy at `templates/scripts/skill_audit.py` against the repo root.
 
 Reading a Home Assistant log is a different skill — `ha-log-triage`. How a panel **looks**
 (type scale, colour, spacing, touch targets) is `ha-panel-design`. How a panel is **built and

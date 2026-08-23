@@ -5,6 +5,8 @@ description: Use when reading a Home Assistant log — a `home-assistant.log`, a
 
 # Home Assistant Log Triage
 
+This skill is self-contained: everything is in this file, and there is no `reference/` directory to open.
+
 Turn thousands of log lines into a short ranked list of *actionable* issues, separating real
 faults from the background noise HA emits constantly.
 
@@ -71,7 +73,7 @@ Collapse each logger cluster to one row. Then read **one representative line** p
 - **`Action notify.mobile_app_* not found`** / **`Service … not found`** → a referenced entity/service was renamed or its device removed (re-onboarded phone, deleted integration). Update the automation/Alarmo action to the current slug.
 - **Z-Wave `NotFoundError: Value N-CC-… not found on node Node(node_id=N)`** → a `zwave_js.set_value` targets a value id the node no longer exposes (re-interview, firmware change, wrong endpoint). Resolve `node_id` via the map, re-check the value id in the device's Z-Wave page.
 - **`Bad credentials` / auth errors** (`github`, etc.) → expired token/PAT. Reconfigure that integration.
-- **Anything under `custom_components.<your_domain>`** → your code. Trace it (publish→subscribe→handler) per the Debugging discipline section; this is the only cluster the rest of this skill directly acts on.
+- **Anything under `custom_components.<your_domain>`** → your code. Trace it (publish→subscribe→handler) per *Debugging discipline* in the `ha-integration` skill (`ha-integration/reference/discipline.md`); this is the only cluster the rest of this skill directly acts on.
 
 ### Step 4 — Report
 

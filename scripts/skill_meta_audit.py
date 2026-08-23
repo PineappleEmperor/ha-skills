@@ -149,10 +149,20 @@ def check_paragraph_length(repo: Repo) -> Result:
     """
     warns = []
     for skill in sorted(repo.root.glob("plugins/*/skills/*/")):
+        if skill.name.startswith("."):
+            continue
         for doc in sorted(skill.rglob("*.md")):
-            if "evals" in doc.parts or "templates" in doc.parts:
+            # A dot-directory under skills/ is tooling, not content, and may not even be
+            # readable — an unreadable file must not crash an audit.
+            if any(part.startswith(".") for part in doc.parts) or \
+                    "evals" in doc.parts or "templates" in doc.parts:
                 continue
-            for para in re.split(r"\n\s*\n", doc.read_text()):
+            try:
+                text = doc.read_text()
+            except OSError as exc:
+                warns.append(f"{doc}: unreadable ({exc.strerror})")
+                continue
+            for para in re.split(r"\n\s*\n", text):
                 if para.strip().startswith("```") or para.lstrip().startswith("|"):
                     continue
                 n = len(para.split())

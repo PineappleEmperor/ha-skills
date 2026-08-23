@@ -430,7 +430,7 @@ def check_pr_openers(repo: Repo) -> Result:
     # different delivery model declares its own with a marker rather than being named
     # here — this file ships to every scaffolded integration and should not carry the
     # filenames of repos it never runs in.
-    SANCTIONED = ("auto_draft_pr.yml", "update_manifest_floors.yml")
+    SANCTIONED = ("auto_draft_pr.yml",)
     for wf in repo.workflow_files():
         text = wf.read_text(errors="replace")
         if "gh pr create" in text and wf.name not in SANCTIONED \

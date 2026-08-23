@@ -5,6 +5,8 @@ description: Use when changing how a Home Assistant custom panel looks — a Lit
 
 # HA Custom Panel Design
 
+This skill is self-contained: everything is in this file, and there is no `reference/` directory to open.
+
 Size, type, spacing, and colour for **Home Assistant custom panels** (Lit/TS web components
 served by an integration). Make the panel look native to HA and follow Material 3 — not
 hand-eyeballed pixel values.
@@ -111,6 +113,11 @@ dimension, then name. State the sort in a hint if non-obvious.
 ---
 
 ## Panels built from a source bundle
+
+The full contract for shipping a panel from an integration — the bundle staleness check,
+cache-busting the module URL, and the `home-assistant-frontend` pin, each of which fails
+silently — is `ha-integration/reference/panels.md`. What follows is only
+what a design change must not break.
 
 - One Lit/TS source file builds to a committed bundle the integration serves; CI diffs the
   committed artefact against a fresh build, so rebuild and commit in the same PR. The built
