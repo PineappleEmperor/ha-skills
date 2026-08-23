@@ -621,6 +621,50 @@ def check_self_diff(repo: Repo) -> Result:
     return [], []
 
 
+# A workflow or job named in the docs but absent from templates/. The
+# `commit-summary` job was deleted from pr-checks.yml, and six passages went on
+# describing it as the thing that writes the PR body — including the table a
+# reader consults first. Documenting a job the scaffold does not ship is worse than
+# documenting nothing: it gets followed.
+DOCS_EXCUSED = re.compile(r"supersede|do not reinstate|removed|deleted|replaced by|historical", re.I)
+# Described on purpose without being shipped: the floor-bumper is an opt-in add-on
+# the reader builds when a manifest carries `>=` requirements, so the skill explains
+# it rather than scaffolding it into every repo.
+DOCS_OPTIONAL = {"update_manifest_floors.yml"}
+
+
+def check_docs_match_templates(repo: Repo) -> Result:
+    """Every workflow and job the skill's docs name must exist in templates/."""
+    tmpl = _template_dir(repo)
+    if not tmpl or not (tmpl / ".github/workflows").is_dir():
+        return [], []
+    import yaml as _yaml
+
+    shipped = {p.name for p in (tmpl / ".github").rglob("*.yml")}
+    jobs: set[str] = set()
+    for wf in (tmpl / ".github/workflows").glob("*.yml"):
+        try:
+            data = _yaml.safe_load(wf.read_text()) or {}
+        except Exception:
+            continue
+        jobs |= set((data.get("jobs") or {}).keys())
+
+    fails = []
+    for doc in sorted((tmpl.parent).glob("SKILL.md")) + sorted((tmpl.parent / "reference").glob("*.md")):
+        for n, line in enumerate(doc.read_text().splitlines(), 1):
+            if DOCS_EXCUSED.search(line):
+                continue
+            for name in re.findall(r"`([a-z0-9_.-]+\.yml)`", line):
+                if name not in shipped and name not in DOCS_OPTIONAL:
+                    fails.append(f"{doc.name}:{n} names a workflow that is not shipped: {name}")
+            # The job table in the workflow reference, identified by its `needs:`
+            # column so that a settings table elsewhere is not read as job names.
+            if doc.name == "github-actions.md" and (
+                    m := re.match(r"\|\s*`([a-z0-9-]+)`\s*\|\s*(?:—|`[a-z0-9-]+`)\s*\|", line)):
+                if m.group(1) not in jobs:
+                    fails.append(f"{doc.name}:{n} documents a job that no workflow defines: {m.group(1)}")
+    return fails, []
+
 def check_template_pins(repo: Repo) -> Result:
     """Dependabot cannot see templates/; this compares them against what it does bump."""
     tmpl = _template_dir(repo)
@@ -700,6 +744,7 @@ CHECKS = (
     check_pr_openers, check_antipatterns, check_quality_scale_and_manifest,
     check_autolabeler_title_only, check_drafter_categories, check_docstrings,
     check_commit_hook, check_brand_assets, check_self_diff, check_template_pins,
+    check_docs_match_templates,
     check_release_token, check_required_status_checks,
 )
 

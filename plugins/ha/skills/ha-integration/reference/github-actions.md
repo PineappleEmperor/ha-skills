@@ -13,7 +13,6 @@ The **file bodies** live in the skill's `templates/` dir (mirrors the target rep
 | `label` | — | sole labeler: autolabeler + removal-only superseded step |
 | `title-check` | `label` | comments when the title maps to no label; suggests a type from the commits; withdraws itself when fixed |
 | `version-gate` | `label` | last-published-release version gate via `scripts/manifest_gate.py`; skips itself in a tag-driven repo, where `release.yml` sets the version |
-| `commit-summary` | — | maintains the marked commit-list block feeding `$BODY` |
 
 Must-preserve behaviours:
 
@@ -21,7 +20,7 @@ Must-preserve behaviours:
 - **`pull_request_target`, and no PR-authored code ever runs.** A fork PR under plain `pull_request` gets a read-only token — it cannot be labelled, commented on, or have its body updated, which is the entire purpose of these jobs. `pull_request_target` supplies a writable token but runs in the base repo's context, so: `label` and the comment/body jobs check out **nothing**; `version-gate` checks out `base.sha` **explicitly** (never the head) and reads the PR's manifest **as data over the API**.
 - **No `${{ }}` inside any `run:`.** Untrusted strings — the PR title, and the PR's own `manifest.json` version — reach the shell through `env:`. A fork PR controls its manifest `version` string completely; interpolated into a command line that is shell injection against a writable token. `skill_audit.py` enforces this mechanically.
 - **`title-check` decides from the PR's real labels**, never a copy of the autolabeler's regexes — a duplicate drifts from `.github/release-drafter.yml`, and a checker that disagrees with the thing it checks is worse than none. It **suggests**; it never edits the title.
-- **`commit-summary` rewrites only the marked block**, so a human description survives; it is a no-op when already current, and skips bot authors.
+- **No job writes the PR body.** `auto_draft_pr.yml` opens a draft with a title derived from the commits and an empty body; the changelog is built from commit subjects at release time, so a generated body would only duplicate it and clobber whatever a human wrote.
 
 > **Superseded — do not reinstate.** `create-dev-pr.yml` auto-opened a draft PR on every push to a non-main branch and derived the title from the commits. Four problems, the first fatal: it **cannot serve fork-based contributions** (a `push` workflow never fires for a contributor pushing to their own fork, and a fork's `pull_request` token is read-only), so the convention only ever worked for people with write access. It also auto-opened a PR for every WIP branch, clobbered human-edited titles, and tripped the `GITHUB_TOKEN` `opened`-suppression rule so no checks ran on first open.
 >
