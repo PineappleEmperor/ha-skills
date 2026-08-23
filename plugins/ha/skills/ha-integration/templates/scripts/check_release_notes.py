@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
-"""Render release notes as GitHub does and fail on a malformed entry.
+"""Check the release body a reader actually gets.
 
-The release description is the artefact users read, and nothing checked it. Every
-earlier verification of the commit-summary block inspected the source text, or
-rendered it with python-markdown, which requires four spaces to nest a list where
-CommonMark needs two. Both agreed the block was fine while GitHub showed it broken.
+The release description is the artefact users read, and nothing checked it until
+v7.2.0 shipped a 25-character body over a range of nine commits. Every check ran
+green, because they all inspected the shape of the text rather than asking whether
+the text was the changelog at all. What is asserted here is that it is:
 
-This renders with markdown-it in CommonMark mode, which is what GitHub uses, and
-asserts the structure a reader depends on:
-
-  - every commit bullet sits inside a nested list under its PR entry
-  - a group label heads its own list item and is never glued onto a sibling
-  - no bullet merely restates the PR title it sits under
+  - not the empty-range sentinel, which means the whole changelog was dropped
+  - not the `pending` placeholder a draft is created with
+  - not release-drafter's own PR-per-line body, which means the type-grouped
+    generator never overwrote it
+  - a major release states what broke
+  - no bullet merely repeats the heading it sits under
 
 Usage:
     check_release_notes.py --tag v1.2.3        # a published or draft release
@@ -28,15 +28,6 @@ import sys
 
 ENTRY = re.compile(r"^- (?P<title>.+?) @\S+ \(#(?P<pr>\d+)\)\s*$")
 TYPE_PREFIX = re.compile(r"^[a-zA-Z]+(\([^)]*\))?!?:\s*")
-
-
-def render(md: str) -> str:
-    """CommonMark HTML, as GitHub produces it."""
-    try:
-        from markdown_it import MarkdownIt
-    except ImportError:
-        sys.exit("markdown-it-py is required: pip install markdown-it-py")
-    return MarkdownIt("commonmark").render(md)
 
 
 def check(notes: str, version: str | None = None) -> list[str]:
@@ -64,16 +55,19 @@ def check(notes: str, version: str | None = None) -> list[str]:
             "release body is the empty-range sentinel; the previous tag resolved to the "
             "release being written, so the whole changelog was dropped")
 
-    html = render(notes)
+    # The placeholder a draft is created with. Publishing a draft that no push has
+    # updated ships this verbatim.
+    if notes.strip() in {"", "pending"}:
+        problems.append("release body is the draft placeholder; no push ever wrote notes to it")
 
-    # A label glued to the end of a sibling bullet instead of heading its own item.
-    # In CommonMark that shows up as <strong> closing an <li> that began with text.
-    for m in re.finditer(r"<li>(?P<body>(?:(?!</li>).)*?)</li>", html, re.S):
-        body = m.group("body")
-        if "<strong>" in body and not body.lstrip().startswith("<strong>"):
-            if "<ul>" not in body:  # a nested list legitimately follows the text
-                first = re.sub(r"<[^>]+>", "", body).strip().splitlines()[0][:60]
-                problems.append(f"label glued onto a bullet: {first!r}")
+    # release-drafter's own body, one line per PR with an @author. The drafter owns
+    # the draft and its version; the type-grouped body is written over the top in a
+    # later step. Seeing the drafter's shape here means that step never ran, so the
+    # release lists PR titles filed under whichever label the PR happened to carry.
+    if any(ENTRY.match(line.strip()) for line in notes.splitlines()):
+        problems.append(
+            "release body is release-drafter's PR-per-line output; the type-grouped "
+            "generator never overwrote it")
 
     # A bullet repeating the section heading it sits under. This shipped for two
     # versions because the design note called the case "rare" and nobody measured
@@ -87,18 +81,6 @@ def check(notes: str, version: str | None = None) -> list[str]:
         plain = re.sub(r"[*_`]", "", text).strip().lower()
         if section and plain and plain == section:
             problems.append(f"bullet repeats its section heading: {text!r}")
-
-    # A bullet that restates the PR title it belongs to.
-    current: str | None = None
-    for line in notes.splitlines():
-        if m := ENTRY.match(line.strip()):
-            current = TYPE_PREFIX.sub("", m.group("title")).strip()
-            continue
-        text = line.strip()
-        if current and text.startswith("- "):
-            bullet = TYPE_PREFIX.sub("", text[2:]).strip()
-            if bullet and bullet.lower() == current.lower():
-                problems.append(f"bullet restates its PR title: {bullet!r}")
 
     return problems
 
