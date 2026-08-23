@@ -68,6 +68,16 @@ def test_no_changes_says_so(monkeypatch) -> None:
     assert rn.build("v1..HEAD").strip() == "_No user-facing changes._"
 
 
+def _crn():
+    """The notes checker, loaded from scripts/ like the other single-file tools."""
+    import importlib.util as _il
+    spec = _il.spec_from_file_location("check_release_notes", _SCRIPTS / "check_release_notes.py")
+    mod = _il.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(mod)
+    return mod
+
+
 def test_empty_range_sentinel_is_flagged() -> None:
     """A published body of `_No user-facing changes._` means the range was wrong.
 
@@ -75,14 +85,29 @@ def test_empty_range_sentinel_is_flagged() -> None:
     resolved to the release being written. Everything else about the body was valid,
     so only a check for the sentinel itself catches it.
     """
-    import importlib.util as _il
-    spec = _il.spec_from_file_location("check_release_notes", _SCRIPTS / "check_release_notes.py")
-    crn = _il.module_from_spec(spec)
-    assert spec.loader is not None
-    spec.loader.exec_module(crn)
-
+    crn = _crn()
     assert any("empty-range sentinel" in p for p in crn.check("_No user-facing changes._"))
     assert not any("empty-range sentinel" in p for p in crn.check("## 🔧 Fixes\n\n- a real change"))
+
+
+def test_draft_placeholder_is_flagged() -> None:
+    """A draft is created with `pending`; publishing one no push touched ships that."""
+    crn = _crn()
+    assert any("draft placeholder" in p for p in crn.check("pending"))
+    assert any("draft placeholder" in p for p in crn.check("   \n"))
+
+
+def test_drafter_body_means_the_generator_never_ran() -> None:
+    """release-drafter writes one line per PR; the type-grouped body replaces it.
+
+    If that replacement step never runs the release still has a body, so every
+    text-shape check passes while the notes group fixes under whichever label the
+    PR carried — the exact defect the generator exists to avoid.
+    """
+    crn = _crn()
+    drafter = "## Fixes\n\n- fix: close the session @dev (#12)\n"
+    assert any("release-drafter" in p for p in crn.check(drafter))
+    assert not any("release-drafter" in p for p in crn.check("## 🔧 Fixes\n\n- close the session ([#12](u))\n"))
 
 
 GH_NOTES = "\n".join([
