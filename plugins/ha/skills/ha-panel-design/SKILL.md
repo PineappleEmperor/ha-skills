@@ -1,5 +1,6 @@
 ---
-description: Size, type, spacing, and colour for Home Assistant custom panels (Lit/TS web components served by an integration). Material 3 type scale, 48px touch targets, HA theme CSS custom properties — tokens over hardcoded literals. Use before changing any panel CSS/markup; re-invoke after /compact.
+name: ha-panel-design
+description: Use when changing how a Home Assistant custom panel looks — a Lit/TS panel web component, its built bundle, or any CSS/markup affecting sizing, typography, colour, spacing, or layout. Reach for it on symptoms too: a panel that looks foreign next to HA's own pages, text that does not scale, hardcoded hex colours that break in dark mode, or tap targets too small on a tablet. NOT for integration backend Python, Lovelace cards, or YAML dashboards. Invoke before changing panel CSS/markup; re-invoke after /compact.
 ---
 
 # HA Custom Panel Design
@@ -109,10 +110,11 @@ dimension, then name. State the sort in a hint if non-obvious.
 
 ---
 
-## This repo (Pimoroni Unicorn panel)
+## Panels built from a source bundle
 
-- Single Lit file `frontend/src/panel.ts` → built to committed `custom_components/pimoroni_unicorn/panel/editor.js`
-  (`cd frontend && npm run build`; CI diffs the committed bundle). The `.js` is display-only.
-- Existing classes: `.stitle` (section title), `.chev` (arrow), `.thumb` (100×64 widget), `.iconthumb`
-  (loaded icon). Retune these against the scale above, not by nudging single px.
-- Keep render logic in the Python backend; panel stays presentation.
+- One Lit/TS source file builds to a committed bundle the integration serves; CI diffs the
+  committed artefact against a fresh build, so rebuild and commit in the same PR. The built
+  file is display-only — never hand-edit it.
+- Existing class names (section title, disclosure arrow, thumbnail) get retuned against the
+  scale above, not nudged a pixel at a time.
+- Render logic stays in the Python backend; the panel stays presentation.
