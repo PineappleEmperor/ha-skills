@@ -143,10 +143,12 @@ is mutable — whoever owns the action can repoint it at new code, which then ru
 workflow's token. Dependabot updates both the SHA and the comment, and `skill_audit.py`
 fails a workflow that uses a bare tag or a SHA with nothing saying what it is.
 
-⚠️ **Dependabot cannot see `templates/`.** Its `github-actions` ecosystem only scans
-`.github/workflows` at the repo root, so the pins this skill *ships* are never bumped for
-you. `skill_audit.py` compares them against this repo's own pins — which Dependabot does
-update — and fails when the templates fall behind.
+⚠️ **Dependabot keeps your workflows current, not the skill's copies.** Its
+`github-actions` ecosystem only scans `.github/workflows` at the repo root. Your workflows
+are therefore bumped for you once `dependabot.yml` is in place; the skill's `templates/`
+are maintained separately, in the skill's own repo. **Consequence for you:** re-copying
+from `templates/` can move a pin *backwards* if the skill's copies are older than what
+Dependabot has already given you. Diff before overwriting, and keep the newer pin.
 
 ## GitHub CI templates
 

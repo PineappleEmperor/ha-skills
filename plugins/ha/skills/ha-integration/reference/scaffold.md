@@ -50,9 +50,8 @@ What to ask, what to generate, and the conventions the generated code follows. R
   > in a PR and the asset users install always matches the release they installed it
   > from. The committed value is a placeholder between releases. [frenck/spook](https://github.com/frenck/spook)
   > patches from the same event; `skill_audit.py` fails a `zip_release` repo whose
-  > `release.yml` doesn't. Overriding a bump is choosing the tag. This applies to
-  > integrations HACS installs as a zip — a repo whose *committed* file is what
-  > consumers read (a plugin marketplace, a library) still has to commit the bump.
+  > `release.yml` doesn't. Overriding a bump is choosing the tag. The committed
+  > value is a placeholder between releases and nothing reads it.
 - `pyproject.toml`
 - `pyrightconfig.json`
 - `requirements.test.txt` — **required**; `python_validate.yml` installs from it and runs `pytest`, so an integration without it has no test job. Copy `templates/requirements.test.txt`. Pin `pytest-homeassistant-custom-component` to the release matching the HA version in `python_validate.yml` (it tracks HA releases 1:1 — a mismatched pin fails at import, not at test time).
