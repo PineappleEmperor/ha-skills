@@ -424,15 +424,20 @@ def check_pr_openers(repo: Repo) -> Result:
     if repo.exists(".github/workflows/create-dev-pr.yml"):
         fails.append("create-dev-pr.yml is superseded (use auto_draft_pr.yml, which is "
                      "draft-only and actor-gated)")
-    # The sanctioned openers are the ones a human cannot open for themselves: a bot
-    # that must propose its own change (floors, version sync), or the draft opener that
-    # exists so a title is never typed. Anything else opening a PR is a workflow acting
-    # as an author.
-    SANCTIONED = ("auto_draft_pr.yml", "update_manifest_floors.yml", "sync_plugin_version.yml")
+    # The sanctioned openers are the ones a human cannot open for themselves: a bot that
+    # must propose its own change, or the draft opener that exists so a title is never
+    # typed. Anything else opening a PR is a workflow acting as an author. A repo with a
+    # different delivery model declares its own with a marker rather than being named
+    # here — this file ships to every scaffolded integration and should not carry the
+    # filenames of repos it never runs in.
+    SANCTIONED = ("auto_draft_pr.yml", "update_manifest_floors.yml")
     for wf in repo.workflow_files():
-        if "gh pr create" in wf.read_text(errors="replace") and wf.name not in SANCTIONED:
+        text = wf.read_text(errors="replace")
+        if "gh pr create" in text and wf.name not in SANCTIONED \
+                and "# skill-audit: sanctioned-opener" not in text:
             fails.append(f"{wf.name} opens PRs with 'gh pr create' (only "
-                         + ", ".join(SANCTIONED) + " may)")
+                         + ", ".join(SANCTIONED) + " may, or mark it "
+                         "'# skill-audit: sanctioned-opener' with a reason)")
     opener = repo.text(".github/workflows/auto_draft_pr.yml")
     if opener:
         if "github.actor == github.repository_owner" not in opener:

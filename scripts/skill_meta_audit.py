@@ -42,7 +42,7 @@ DOCS_EXCUSED = re.compile(r"supersede|do not reinstate|removed|deleted|replaced 
 # Described on purpose without being shipped: the floor-bumper is an opt-in add-on
 # the reader builds when a manifest carries `>=` requirements, so the skill explains
 # it rather than scaffolding it into every repo.
-DOCS_OPTIONAL = {"update_manifest_floors.yml", "sync_plugin_version.yml"}
+DOCS_OPTIONAL = {"update_manifest_floors.yml"}
 
 
 def check_docs_match_templates(repo: Repo) -> Result:

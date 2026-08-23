@@ -79,46 +79,14 @@ The `!`-breaking branch must come first (else `feat!` matches the `feat` arm). T
 
 ⚠️ **Type-vocab gap (narrower than it looks — verify against the config, not from memory).** The autolabeler maps `feat`/`feature` → **feature**, `fix` → **fix**, `chore`/`docs`/`refactor`/`perf`/`test`/`build`/`ci`/`style` → **chore**, and any `type!:` → **xfeat**. So `ci:`, `refactor:`, `perf:`, `build:`, `style:` and `test:` **are** labelled (as `chore` → 🧰 Maintenance → patch). The real gap is **`revert:`**, which `lint_pr` accepts and the autolabeler maps to nothing → no label → no release-drafter category. **This matters more now a human types the title.** A `revert:` PR — or any non-Conventional title — passes `lint_pr` and still ends up unlabelled, hence uncategorised and invisible to the version gate. The `title-check` job in `pr-checks.yml` catches it: it reads the PR's **actual labels** (ground truth, so it can't drift from this config), and `needs: label` guarantees the autolabeler has already run and comments with a suggested title type derived from the commits. It does not edit the title; that's the author's call. Don't hand-patch the label either — the autolabeler rewrites it on the next `synchronize`.
 
-## Which model a repo is on — decide this first
-
-Two delivery paths, and they take opposite approaches. Getting this wrong is where hand-bump
-instructions end up in a repo that shouldn't have them.
-
-| | HACS integration | Claude Code plugin / marketplace |
-|---|---|---|
-| What users install | the release zip | the repository tree at a ref |
-| Where the version must be right | inside the zip | in `plugin.json`, committed |
-| Who writes it | `release.yml`, at publish | `sync_plugin_version.yml`, at publish |
-| Committed value between releases | placeholder | last released version |
-| Hand-written bump | never | never |
-
-**Declare the version in `plugin.json` only.** Per the marketplace reference: *"Avoid setting
-`version` in both `plugin.json` and the marketplace entry. Claude Code always uses the
-`plugin.json` value without warning, so a stale manifest version can mask a version you set in
-`marketplace.json`."* A version in the marketplace entry is dead weight that reads as
-authoritative.
-
-**Declaring a version pins updates.** Users receive a new copy only when that string changes —
-push a hundred commits without touching it and every existing user keeps the cached copy. Omit
-it entirely and a git source falls back to the resolved commit SHA, so users track the branch
-instead; the docs call that the simplest setup for an actively developed plugin. Choose by the
-cadence you want users on: **releases** (declare it) or **main** (omit it).
-
-**Where the committed version is a placeholder — every HACS integration — nothing is bumped by hand at all.** The rest of this section applies only to a repo whose committed file is what consumers read; the bump discipline below says which is which. Read that before acting on any of it.
-
-⚠️ **Bump discipline — only where the committed version is what consumers read.** An integration installed from a zip is **tag-driven**: `release.yml` writes `manifest.json` from the release tag at publish, the committed value is a placeholder, no PR carries a bump, and `version-gate` detects this and skips. What follows applies to a repo whose *committed* file is read directly — a plugin marketplace, a library. There, the manifest bump is the **single, last commit of a PR before it merges** — not a per-push act. **Before even suggesting a bump, check whether the same PR is still being iterated; if so, don't bump.** A red `version-gate` while a PR is in progress is expected and fine — it goes green when you add the one bump commit at the end. The bump **value is the version the PR will be published as** (the next release), and it gets set **once**; don't re-bump it on later pushes to the same PR. When you do set it: `git fetch origin` **first** (the local `origin/main` ref goes stale as PRs merge), compare to `origin/main`'s version, and match the level to the PR's type label (the gate keys its expected version off the label): `feat`→minor, `fix`/`chore`/`test`→patch, breaking→major. The exception that *does* re-bump mid-PR: the PR's type escalates (`fix`→`feat`→`feat!`), changing the label-derived expected version.
-
 **Prerelease (rc) cycle:** release candidates are published via the GitHub **prerelease flag** + a `v…-rcN` tag; the manifest carries a matching **PEP440 prerelease** (`2.0.0rc1`) which `AwesomeVersion`/hassfest/HACS accept (`2.0.0 > 2.0.0rc1`). Two rules:
 - **rc numbers track *published* candidates, not PRs.** You only increment `rc1`→`rc2` when you actually cut a new published rc; you do **not** invent `rc2`/`rc3` per-PR to satisfy the gate. The version stays frozen at the current rc across iteration; it changes only as the pre-merge bump to the version being published.
 - **A prerelease deliberately changes gate behaviour:** a prerelease version only needs to *differ from base* — so the gate must **skip** the label-derived "incorrect version" suggestion when the PR version matches `(rc|alpha|beta|a|b|dev)[0-9]*$` (otherwise a `feature`-labelled `2.0.0rc1` PR fails, demanding `v2.1.0`). Also de-anchor the base parse (`^([0-9]+)\.([0-9]+)\.([0-9]+)` without `$`) so a base that already carries `rcN` still parses. This is the *only* prerelease gate change needed — do **not** add per-PR rc-increment logic or relax the "differ from base" rule.
 - **Graduating off rc to the same-number final is a legitimate bump the gate must allow.** Coming off the rc line (`2.0.0rc19` → **`2.0.0`** final) is the natural cycle close, but the de-anchored parse makes `2.0.0rc19` and `2.0.0` both `(2,0,0)`, so a naive `pr == base` check (and a `feature` label demanding `v2.1.0`) **wrongly rejects the graduation** — even though `AwesomeVersion` knows `2.0.0 > 2.0.0rc19`. The gate special-cases it: when the PR version is final, equals the base tuple, **and** the last release was a prerelease, pass it ("final graduates its own prerelease"); a `pr == base` where the last release was already *final* still fails (real unchanged version). Covered by `test_final_graduates_prerelease`.
 
-**In a tag-driven repo none of this runs.** `release.yml` writes `manifest.json` from the
-release tag at publish, so no PR carries a bump, `version-gate` detects that and skips,
-and the advisory step says what the labels imply instead. What follows applies where the
-committed file is what consumers read.
-
-**Compare the gate against the last published *release*, not `main` HEAD.** Comparing to `main` forces **every** PR to bump beyond the previous merged PR, so versions inflate per-PR (rc4, rc5, rc6…) with no release between them. Instead resolve the base from the latest published release tag — `gh release list --exclude-drafts --limit 1 --json tagName --jq '.[0].tagName'`, strip the leading `v` — and pass only when the manifest version **differs from that**. Now several unreleased PRs can sit at the same in-progress version (the first PR of a cycle bumps `main` once; later PRs ride it), and the single bump folds into whatever release is cut next. A PR that doesn't change the manifest still passes as long as `main` is already ahead of the last release — which it is, mid-cycle.
+**Nothing is ever bumped by hand.** `release.yml` writes `manifest.json` from the release
+tag at publish, so no PR carries a bump, `version-gate` skips itself, and the advisory step
+says what the labels imply. The committed value is a placeholder between releases.
 
 **Exempt Dependabot from the version gate.** Dependabot PRs never touch `manifest.json`, and right after a release (`main` == last release) a no-bump PR equals the released version → the gate's "unchanged" rule trips. Exempt it with a **job-level** `if:` — `github.event.pull_request.user.login != 'dependabot[bot]'`. A skipped job satisfies a required status check, which GitHub states plainly and which this repo has since confirmed, so the merge is not blocked and the check reads "Skipped" rather than a green that proves nothing. The push-context run already passes (the failing steps are `pull_request`-only). With this, Dependabot PRs fold into the next release with no bump, exactly as intended.
 

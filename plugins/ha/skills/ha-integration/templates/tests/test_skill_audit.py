@@ -143,8 +143,13 @@ def test_a_third_pr_opener_is_still_refused(repo) -> None:
     assert any("helpful.yml opens PRs" in f for f in fails)
 
 
-def test_the_version_sync_may_open_its_own_pr(repo) -> None:
-    """It proposes a change to a protected branch; the alternative is standing write access."""
-    _wf(repo, "sync_plugin_version.yml", "jobs:\n  x:\n    steps:\n      - run: gh pr create --title v\n")
+def test_a_marked_opener_states_its_own_reason(repo) -> None:
+    """A repo with a different delivery model declares its exception in its own file.
+
+    The shipped audit should not carry the filenames of repos it never runs in.
+    """
+    _wf(repo, "sync_plugin_version.yml",
+        "# skill-audit: sanctioned-opener — the version lives in a committed file\n"
+        "jobs:\n  x:\n    steps:\n      - run: gh pr create --title v\n")
     fails, _ = audit.check_pr_openers(audit.Repo(repo))
-    assert not any("sync_plugin_version.yml" in f for f in fails)
+    assert fails == []

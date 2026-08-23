@@ -13,6 +13,8 @@ name: Sync Plugin Version
 # protected branch, for a saving of one click a month — or the rule disabled by hand at
 # every release, which is a manual step in a mechanism whose whole purpose is that there
 # isn't one. The PR route keeps every rule enforced and still needs no human typing.
+# skill-audit: sanctioned-opener — a marketplace repo's version lives in a committed
+# file, so the only alternative to this PR is write access to a protected branch.
 on:
   release:
     types: [published]
