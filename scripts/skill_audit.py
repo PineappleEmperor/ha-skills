@@ -634,110 +634,6 @@ def check_self_diff(repo: Repo) -> Result:
     return [], []
 
 
-# A workflow or job named in the docs but absent from templates/. The
-# `commit-summary` job was deleted from pr-checks.yml, and six passages went on
-# describing it as the thing that writes the PR body — including the table a
-# reader consults first. Documenting a job the scaffold does not ship is worse than
-# documenting nothing: it gets followed.
-DOCS_EXCUSED = re.compile(r"supersede|do not reinstate|removed|deleted|replaced by|historical", re.I)
-# Described on purpose without being shipped: the floor-bumper is an opt-in add-on
-# the reader builds when a manifest carries `>=` requirements, so the skill explains
-# it rather than scaffolding it into every repo.
-DOCS_OPTIONAL = {"update_manifest_floors.yml", "sync_plugin_version.yml"}
-
-
-def check_reference_links(repo: Repo) -> Result:
-    """A SKILL.md that routes to reference files must link every one, and only real ones.
-
-    Splitting a skill into on-demand files trades one big document for a router. The
-    router rots in two directions: a link to a file that was renamed sends the agent
-    nowhere, and a reference file nothing links to is never read again.
-    """
-    fails = []
-    for skill in sorted(repo.root.glob("plugins/*/skills/*/SKILL.md")):
-        ref_dir = skill.parent / "reference"
-        text = skill.read_text()
-        linked = set(re.findall(r"\]\((reference/[A-Za-z0-9._-]+\.md)\)", text))
-        linked |= set(re.findall(r"`(reference/[A-Za-z0-9._-]+\.md)`", text))
-        for target in sorted(linked):
-            if not (skill.parent / target).is_file():
-                fails.append(f"{skill.parent.name}/SKILL.md links {target}, which does not exist")
-        if ref_dir.is_dir():
-            for f in sorted(ref_dir.glob("*.md")):
-                if f"reference/{f.name}" not in linked:
-                    fails.append(f"{skill.parent.name}/reference/{f.name} is linked from nothing")
-    return fails, []
-
-
-def check_skill_frontmatter(repo: Repo) -> Result:
-    """Each SKILL.md must carry the frontmatter the skill spec requires.
-
-    `name` and `description` are the two required fields, the block is capped at 1024
-    characters, and the description states WHEN to reach for the skill. ha-panel-design
-    shipped seven releases with no `name` at all, and a description that summarised what
-    the skill does — which is the documented way to get an agent to act on the summary
-    instead of reading the skill.
-    """
-    fails, warns = [], []
-    for skill in sorted(repo.root.glob("plugins/*/skills/*/SKILL.md")):
-        text = skill.read_text()
-        parts = text.split("---", 2)
-        if len(parts) < 3 or parts[0].strip():
-            fails.append(f"{skill.parent.name}/SKILL.md has no frontmatter block")
-            continue
-        fm = parts[1]
-        fields = dict(re.findall(r"^([a-z-]+):\s*(.*)$", fm, re.M))
-        if "name" not in fields:
-            fails.append(f"{skill.parent.name}/SKILL.md frontmatter has no name field")
-        elif fields["name"].strip() != skill.parent.name:
-            fails.append(f"{skill.parent.name}/SKILL.md name field is {fields['name'].strip()!r}")
-        if "description" not in fields:
-            fails.append(f"{skill.parent.name}/SKILL.md frontmatter has no description field")
-        elif not fields["description"].lstrip().startswith("Use when"):
-            fails.append(f"{skill.parent.name}/SKILL.md description must start with 'Use when' "
-                         "and state triggers, not what the skill does")
-        if len(fm) > 1024:
-            fails.append(f"{skill.parent.name}/SKILL.md frontmatter is {len(fm)} chars (max 1024)")
-        # Token budget: a skill loads in full once triggered. Past a few thousand words the
-        # heavy sections belong in reference/ files, loaded only when the mode needs them.
-        words = len(parts[2].split())
-        if words > 5000:
-            warns.append(f"{skill.parent.name}/SKILL.md is {words} words — move heavy sections "
-                         "to reference/ files and leave pointers")
-    return fails, warns
-
-
-def check_docs_match_templates(repo: Repo) -> Result:
-    """Every workflow and job the skill's docs name must exist in templates/."""
-    tmpl = _template_dir(repo)
-    if not tmpl or not (tmpl / ".github/workflows").is_dir():
-        return [], []
-    import yaml as _yaml
-
-    shipped = {p.name for p in (tmpl / ".github").rglob("*.yml")}
-    jobs: set[str] = set()
-    for wf in (tmpl / ".github/workflows").glob("*.yml"):
-        try:
-            data = _yaml.safe_load(wf.read_text()) or {}
-        except Exception:
-            continue
-        jobs |= set((data.get("jobs") or {}).keys())
-
-    fails = []
-    for doc in sorted((tmpl.parent).glob("SKILL.md")) + sorted((tmpl.parent / "reference").glob("*.md")):
-        for n, line in enumerate(doc.read_text().splitlines(), 1):
-            if DOCS_EXCUSED.search(line):
-                continue
-            for name in re.findall(r"`([a-z0-9_.-]+\.yml)`", line):
-                if name not in shipped and name not in DOCS_OPTIONAL:
-                    fails.append(f"{doc.name}:{n} names a workflow that is not shipped: {name}")
-            # The job table in the workflow reference, identified by its `needs:`
-            # column so that a settings table elsewhere is not read as job names.
-            if doc.name == "github-actions.md" and (
-                    m := re.match(r"\|\s*`([a-z0-9-]+)`\s*\|\s*(?:—|`[a-z0-9-]+`)\s*\|", line)):
-                if m.group(1) not in jobs:
-                    fails.append(f"{doc.name}:{n} documents a job that no workflow defines: {m.group(1)}")
-    return fails, []
 
 def check_template_pins(repo: Repo) -> Result:
     """Dependabot cannot see templates/; this compares them against what it does bump."""
@@ -818,7 +714,6 @@ CHECKS = (
     check_pr_openers, check_antipatterns, check_quality_scale_and_manifest,
     check_autolabeler_title_only, check_drafter_categories, check_docstrings,
     check_commit_hook, check_brand_assets, check_self_diff, check_template_pins,
-    check_docs_match_templates, check_skill_frontmatter, check_reference_links,
     check_release_token, check_required_status_checks,
 )
 

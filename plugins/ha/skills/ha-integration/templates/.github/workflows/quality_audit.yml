@@ -20,3 +20,8 @@ jobs:
       # The Python version is written in several files, each read by a different
       # tool. This is the only thing that compares them.
       - run: python3 scripts/version_sync.py
+      # Authoring checks for the skills in this repository — frontmatter, router links,
+      # docs that match the templates. A scaffolded repo has no `plugins/*/skills/`, so
+      # the script is not shipped and this step no-ops there.
+      - if: hashFiles('scripts/skill_meta_audit.py') != ''
+        run: python3 scripts/skill_meta_audit.py
