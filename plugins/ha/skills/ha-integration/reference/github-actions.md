@@ -6,7 +6,7 @@ The **file bodies** live in the skill's `templates/` dir (mirrors the target rep
 
 #### pr-checks.yml template (canonical — copy this, no external repo)
 
-**PRs are opened by humans.** No workflow opens one. `pr-checks.yml` holds every PR-time job that reads or writes labels, in **one** workflow, ordered with `needs:`.
+**PRs are opened by humans and by `auto_draft_pr.yml`** — draft-only, gated on the actor being the repo owner, and the only workflow permitted to open one. `pr-checks.yml` holds every PR-time job that reads or writes labels, in **one** workflow, ordered with `needs:`.
 
 | Job | `needs:` | Does |
 |---|---|---|
@@ -30,15 +30,13 @@ Must-preserve behaviours:
 
 #### Remaining workflow + config templates (canonical — copy these, no external repo)
 
-All paths assume one integration per repo: `custom_components/<domain>/manifest.json` is resolved with `ls custom_components/*/manifest.json | head -1`. Action majors are a snapshot — see the **Freshness** table at the top of `SKILL.md` for the captured values, the date, and the command to re-derive them. Dependabot (`github-actions`) keeps the *tag-pinned* ones bumped in a consuming repo, but it cannot bump the pins in these templates, nor the mutable `@main`/`@master` refs on `hacs/action` and `Hassfest manifest validation` (deliberate — rationale in the workflow headers and the Freshness note). The full release path is: `release_drafter.yml` drafts notes on `main`, the release drafts cuts the release on the tag, and **`release.yml` (*Create Release ZIP*) attaches the `<domain>.zip` asset on publish** — the last is mandatory whenever `hacs.json` sets `zip_release: true` (omit it only on a repo that deliberately uses no `zip_release`).
+All paths assume one integration per repo: `custom_components/<domain>/manifest.json` is resolved with `ls custom_components/*/manifest.json | head -1`. Action majors are a snapshot — see the **Freshness** table in `reference/freshness.md` for the captured values, the date, and the command to re-derive them. Dependabot (`github-actions`) keeps the *tag-pinned* ones bumped in a consuming repo, but it cannot bump the pins in these templates, nor the mutable `@main`/`@master` refs on `hacs/action` and `Hassfest manifest validation` (deliberate — rationale in the workflow headers and the Freshness note). The full release path is: `release_drafter.yml` drafts notes on `main`, the release drafts cuts the release on the tag, and **`release.yml` (*Create Release ZIP*) attaches the `<domain>.zip` asset on publish** — the last is mandatory whenever `hacs.json` sets `zip_release: true` (omit it only on a repo that deliberately uses no `zip_release`).
 
 **`.github/workflows/lint_pr.yml`** — semantic PR-title gate.
 
 **`.github/workflows/release_drafter.yml`** — drafts release notes on `main` only (labelling lives in the `label` job of `pr-checks.yml`, so no autolabeler job here). Reads the release version from the manifest.
 
 **`.github/release-drafter.yml`** (config) — title-only autolabeler rules (breaking `!` first), `$BODY` kept with bounded Dependabot `replacers`, label→semver `version-resolver`.
-
-**`.github/workflows/release_drafter.yml`** — cuts the GitHub release on a `v*.*.*` tag; `rc/alpha/beta` tags marked prerelease.
 
 **`.github/workflows/release.yml`** — *Create Release ZIP*. Required when `hacs.json` has `zip_release: true`: builds `<domain>.zip` (integration files at the **zip root**) and attaches it to the published release, so HACS has the asset to download. `cd` into the package before zipping so paths are root-relative (not `custom_components/<domain>/…`). Uses the `gh` CLI to upload (the old `actions/upload-release-asset@v1` is archived — don't reinstate it).
 

@@ -372,14 +372,25 @@ def check_pr_checks_shape(repo: Repo) -> Result:
     for jn in late:
         fails.append(f"pr-checks.yml: actions/checkout must be the FIRST step of job '{jn}' "
                      f"(it clears the workspace)")
-    # untrusted strings must arrive via env, never interpolation
-    interpolated = [(jn, s.get("name"), m)
-                    for jn, steps in _jobs_steps(repo, rel).items() for s in steps
-                    for m in re.findall(r"\$\{\{\s*([^}]+?)\s*\}\}", str(s.get("run", "")))]
-    for jn, name, expr in interpolated:
-        fails.append(f"pr-checks.yml interpolates ${{{{ {expr} }}}} inside a run: block in "
-                     f"'{name or jn}' (use env:)")
     return fails, warns
+
+
+def check_no_run_interpolation(repo: Repo) -> Result:
+    """`${{ }}` inside a `run:` is substituted as text before the shell sees it.
+
+    The skill states this as a rule for every workflow, and the check enforced it in
+    `pr-checks.yml` alone — so `release_drafter.yml` interpolated a version string into a
+    shell command for months while the gate stayed green and the prose claimed mechanical
+    enforcement. A rule enforced in one file is a rule that reads as enforced everywhere.
+    """
+    fails = []
+    for wf in repo.workflow_files():
+        for jn, steps in _jobs_steps(repo, f".github/workflows/{wf.name}").items():
+            for s in steps:
+                for expr in re.findall(r"\$\{\{\s*([^}]+?)\s*\}\}", str(s.get("run", ""))):
+                    fails.append(f"{wf.name} interpolates ${{{{ {expr} }}}} inside a run: block "
+                                 f"in '{s.get('name') or jn}' (pass it through env:)")
+    return fails, []
 
 
 def _jobs_steps(repo: Repo, rel: str) -> dict[str, list[dict]]:
@@ -715,7 +726,8 @@ CHECKS = (
     check_scripts_wired, check_single_body_writer, check_previous_tag,
     check_zip_release_patches_manifest, check_label_events, check_release_drafter_wiring,
     check_classifier_not_inlined, check_claims_have_tests, check_action_pins,
-    check_pr_checks_shape, check_no_ignored_validations, check_sole_labeler,
+    check_pr_checks_shape, check_no_run_interpolation, check_no_ignored_validations,
+    check_sole_labeler,
     check_pr_openers, check_antipatterns, check_quality_scale_and_manifest,
     check_autolabeler_title_only, check_drafter_categories, check_docstrings,
     check_commit_hook, check_brand_assets, check_self_diff, check_template_pins,

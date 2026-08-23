@@ -142,6 +142,6 @@ jobs:
       - name: Release notes render correctly
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          V: ${{ steps.ver.outputs.version }}
         run: |
-          python3 scripts/check_release_notes.py --tag "v${{ steps.ver.outputs.version }}" \
-            --version "${{ steps.ver.outputs.version }}"
+          python3 scripts/check_release_notes.py --tag "v$V" --version "$V"

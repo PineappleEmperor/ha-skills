@@ -106,13 +106,16 @@ is not in `ruleset.json`. What it still does is useful and advisory: it writes t
 the PR's labels imply into the job summary, where the checks tab shows it.
 
 **Two kinds of workflow, and only one is a gate.** A *check* runs on a pull request and can
-be required, so a red one blocks the merge — `CC labelling`, `CC label validation`,
-`Version validation`, `CC title validation`, `HACS validation`,
-`Hassfest manifest validation`, `Ruff, Pyright and Pytest`, and
-`ha-integration conformance check`. Everything else — `Auto draft PR`, `Auto release zip`,
-`Auto draft releases`, `Panel bundle staleness check` — is process automation firing on
-pushes and releases. It is not a weaker check; it is not a check at all, and requiring one
-would block every PR on a context that never reports.
+be required, so a red one blocks the merge. The eight in `ruleset.json`: `CC labelling`,
+`CC label validation`, `CC title validation`, `HACS validation`,
+`Hassfest manifest validation`, `Ruff, Pyright and Pytest`,
+`ha-integration conformance check`, and `Dependency review`. `Version validation` is
+deliberately absent — see above. `Panel bundle staleness check` also runs on pull requests
+and can be required in a repo that ships a panel; it is path-filtered, so it reports only
+when the panel changed. Everything else — `Auto draft PR`, `Auto release zip`,
+`Auto draft releases` — is process automation firing on pushes and releases. It is not a
+weaker check; it is not a check at all, and requiring one would block every PR on a context
+that never reports.
 
 ⚠️ **Every workflow here is advisory by default.** GitHub will let a PR merge with all of it red, so without this step the gate stack is decorative. Copy `templates/ruleset.json` and apply it once:
 
@@ -120,7 +123,7 @@ would block every PR on a context that never reports.
 gh api -X POST repos/<owner>/<repo>/rulesets --input ruleset.json
 ```
 
-It requires the nine job-name contexts the templates produce and keeps deletions and force-pushes blocked. `skill_audit.py` FAILs a repo whose default branch has no required checks, so skipping this shows up rather than going unnoticed.
+It requires the eight job-name contexts the templates produce and keeps deletions and force-pushes blocked. `skill_audit.py` FAILs a repo whose default branch has no required checks, so skipping this shows up rather than going unnoticed.
 
 Two ways to get it wrong, both of which block every PR permanently:
 

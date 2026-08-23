@@ -7,6 +7,7 @@ description: Use when reading a Home Assistant log — a `home-assistant.log`, a
 
 This skill is self-contained: everything is in this file, and there is no `reference/` directory to open.
 
+Input is a `home-assistant.log`, a **Settings → System → Logs** download, or a pasted dump.
 Turn thousands of log lines into a short ranked list of *actionable* issues, separating real
 faults from the background noise HA emits constantly.
 
@@ -16,8 +17,6 @@ typo emits one. Rank by distinct root cause, never by line count.
 Most of what a log reports is config, automation or external-device trouble rather than
 integration code. When a cluster does land under `custom_components.<domain>`, hand off to the
 `ha-integration` skill.
-
-Triage a Home Assistant log (`home-assistant.log`, a copied `.md`/`.txt` dump, or the **Settings → System → Logs** download). Goal: turn thousands of lines into a short ranked list of *actionable* issues, separating real bugs from the constant background noise HA emits. **A raw error count is meaningless** — one slow client can emit 1000+ identical lines; one config typo emits one. Rank by distinct root cause, not by line count.
 
 ### Step 1 — Build (or load) the device inventory FIRST
 

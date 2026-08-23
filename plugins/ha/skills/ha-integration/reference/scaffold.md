@@ -43,7 +43,7 @@ What to ask, what to generate, and the conventions the generated code follows. R
   `/compact`, since compaction can drop the skill's guidance from context.
   ```
   (A user may *additionally* wire personal `SessionStart` + `UserPromptSubmit` hooks in their own `~/.claude/settings.json` to re-arm the rule and anchor the CI conventions per-turn — see `reference/github-actions.md` (reminder-hook recipe) for the full recipe. That's a personal convenience; the canonical, shareable enforcement still lives in the repo's `CLAUDE.md`.)
-- `hacs.json` — `name` is the only strict requirement, but the canonical setup ships a **zip release**: `{"name": "My Integration", "content_in_root": false, "zip_release": true, "filename": "<domain>.zip"}` (add `"homeassistant": "2024.1.0"` for a minimum HA version). `zip_release` makes HACS download a release **asset** named `<filename>` instead of the tag source archive — so it **requires** the `release.yml` *Create Release ZIP* workflow (`templates/.github/workflows/release.yml`) to build and attach that asset on every published release. **Without that workflow, HACS install fails with `Could not download`** (the symptom of a `zip_release` repo whose release has no attached zip). Drop `zip_release`/`filename` only if you deliberately want HACS to pull the whole tagged repo archive instead.
+- `hacs.json` — `name` is the only strict requirement, but the canonical setup ships a **zip release**: `{"name": "My Integration", "content_in_root": false, "zip_release": true, "filename": "<domain>.zip"}` (add `"homeassistant": "<oldest HA you actually test>"`; `runtime_data` alone needs 2024.2+, so do not copy an older floor from an example). `zip_release` makes HACS download a release **asset** named `<filename>` instead of the tag source archive — so it **requires** the `release.yml` *Create Release ZIP* workflow (`templates/.github/workflows/release.yml`) to build and attach that asset on every published release. **Without that workflow, HACS install fails with `Could not download`** (the symptom of a `zip_release` repo whose release has no attached zip). Drop `zip_release`/`filename` only if you deliberately want HACS to pull the whole tagged repo archive instead.
 
   > **The tag is the version, not the committed manifest.** `release.yml` rewrites
   > `manifest.json` from the release tag before zipping, so nobody hand-bumps a version
@@ -55,7 +55,7 @@ What to ask, what to generate, and the conventions the generated code follows. R
 - `pyproject.toml`
 - `pyrightconfig.json`
 - `requirements.test.txt` — **required**; `python_validate.yml` installs from it and runs `pytest`, so an integration without it has no test job. Copy `templates/requirements.test.txt`. Pin `pytest-homeassistant-custom-component` to the release matching the HA version in `python_validate.yml` (it tracks HA releases 1:1 — a mismatched pin fails at import, not at test time).
-- `conftest.py` — **required, at the repo root, not in `tests/`**; copy `templates/conftest.py`. Its first import claims the name `custom_components` for this repo before `pytest-homeassistant-custom-component` binds it to the package it bundles; without that, HA cannot see the integration and every setup test fails with `Integration not found`. It also pulls in `enable_custom_integrations` autouse. `pyproject.toml` additionally needs `asyncio_mode = "auto"`. Both verified by ablation — full explanation in `reference/patterns.md`, read it before writing the first test.
+- `conftest.py` — **required, at the repo root, not in `tests/`**; copy `templates/conftest.py`. Its first import claims the name `custom_components` for this repo before `pytest-homeassistant-custom-component` binds it to the package it bundles; without that, HA cannot see the integration and every setup test fails with `Integration not found`. It also pulls in `enable_custom_integrations` autouse. `pyproject.toml` additionally needs `asyncio_mode = "auto"`. Both verified by ablation — full explanation in `reference/testing.md`, read it before writing the first test.
 - `tests/` — one file per module under test, plus `test_manifest_gate.py` and `test_commit_summary.py` (below). See the testing rules in `reference/testing.md`.
 - `README.md` — **include the AI-assistance disclaimer** as a GitHub `> [!NOTE]` admonition box. Link the skill name to its public repo. Template:
   ```markdown
@@ -83,7 +83,7 @@ What to ask, what to generate, and the conventions the generated code follows. R
 
 **HACS validation — 8 checks**
 
-⚠️ All checks must pass without ignoring any — the `ignore:` input in `hacs_validate.yml` exists for debugging only. Ignoring checks disqualifies the repo from the HACS default store.
+⚠️ All checks must pass without ignoring any — the `ignore:` input in `hacs_validate.yml` must not be used at all — `skill_audit.py` fails on its presence, and ignoring any check disqualifies the repo from the HACS default store. Ignoring checks disqualifies the repo from the HACS default store.
 
 | Check | What's needed | Where to fix |
 |-------|--------------|--------------|
@@ -140,8 +140,8 @@ See **`reference/patterns.md`** — `__init__`/coordinator/entity/notify pattern
 
 ---
 
-## Conventional Commits, versioning & CI gating
+## Commit conventions, versioning & CI gating
 
-See **`reference/versioning.md`** — Conventional Commits → semver mapping, the bump discipline that applies where a committed version is what consumers read, the prerelease/rc cycle, the **last-published-release** version gate, Dependabot, and the `GITHUB_TOKEN` workflow-suppression footgun.
+See **`reference/commits.md`** for commit subjects and what the notes are built from, and **`reference/versioning.md`** for the semver mapping, the prerelease/rc cycle, the **last-published-release** version gate, Dependabot, and the `GITHUB_TOKEN` workflow-suppression footgun.
 
 ---
