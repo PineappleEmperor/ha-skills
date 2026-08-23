@@ -65,6 +65,7 @@ Reading a Home Assistant log is a different skill — `ha-log-triage`. Panel/dis
 | `reference/github-setup.md` | RELEASE_TOKEN, required checks, CI templates, supply chain |
 | `reference/github-actions.md` | what each workflow and job must do, and must not |
 | `reference/versioning.md` | tag-driven releases, labels, the draft model, commit hook |
+| `reference/dependabot.md` | what it bumps, what it cannot reach, its effect on the gate |
 | `reference/quality-scale.md` | the canonical rule set and what each tier demands |
 | `reference/panels.md` | integrations that serve a custom panel |
 | `reference/discipline.md` | commit, PR, merge and debugging discipline |
