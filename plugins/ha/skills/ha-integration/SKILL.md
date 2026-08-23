@@ -34,7 +34,7 @@ Check the working directory, pick a mode, then **read that mode's reference file
 |---|---|---|
 | **Scaffold** | no `custom_components/`, or the user wants a new integration | `reference/scaffold.md`, then `reference/patterns.md` |
 | **Modify** | `custom_components/` exists and something is being added or changed | `reference/patterns.md` |
-| **Test** | writing or fixing tests for an integration | `reference/patterns.md` — the testing sections; the root `conftest.py` and `asyncio_mode` prerequisites decide whether the suite runs at all |
+| **Test** | writing or fixing tests for an integration | `reference/testing.md` — the root `conftest.py` and `asyncio_mode` prerequisites decide whether the suite runs at all |
 | **Lint** | hygiene pass over existing code | this file, *Mode 3* below |
 | **Audit** | verify the skill was actually followed | `scripts/skill_audit.py --list` (or the skill's `templates/scripts/skill_audit.py` if the repo never copied it), then `reference/audit.md` |
 | **Release / repo setup** | first release, tokens, required checks | `reference/github-setup.md` first (tokens and required checks are prerequisites), then `reference/versioning.md` |
@@ -68,10 +68,12 @@ served** — the committed bundle, its staleness check, registration and cache-b
 | File | Holds |
 |---|---|
 | `reference/scaffold.md` | what to ask, what to generate, manifest key order, code style |
-| `reference/patterns.md` | the code patterns every mode applies, plus typing and the **testing** prerequisites and boundary rules |
+| `reference/patterns.md` | the code patterns every mode applies, plus file structure and typing |
+| `reference/testing.md` | harness prerequisites, and mocking the boundary rather than your own code |
+| `reference/commits.md` | commit subjects, why the PR body stays empty, what the notes are built from |
 | `reference/github-setup.md` | RELEASE_TOKEN, required checks, CI templates, supply chain |
 | `reference/github-actions.md` | what each workflow and job must do, and must not |
-| `reference/versioning.md` | tag-driven releases, labels, the draft model, commit hook |
+| `reference/versioning.md` | tag-driven releases, labels, the draft model, the version gate |
 | `reference/dependabot.md` | what it bumps, what it cannot reach, its effect on the gate |
 | `reference/quality-scale.md` | the canonical rule set and what each tier demands |
 | `reference/panels.md` | integrations that serve a custom panel |
@@ -94,7 +96,7 @@ Identify the integration domain from `custom_components/`. Then ask what to add 
 - Add new platform
 - Add/update translations
 - Add options flow
-- Add or fix tests (start from the testing sections of `reference/patterns.md`)
+- Add or fix tests (start from `reference/testing.md`)
 - Add reconfigure flow (`async_step_reconfigure`)
 - Add reauth flow (`async_step_reauth`)
 - Add or update `quality_scale.yaml`
