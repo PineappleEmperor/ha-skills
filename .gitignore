@@ -3,3 +3,11 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 .venv/
+
+# Shell/editor dotfiles that land in the workspace root. The project's own dotted
+# paths are re-included, so a new one has to be named here to be tracked.
+/.*
+!/.github/
+!/.githooks/
+!/.claude-plugin/
+!/.gitignore

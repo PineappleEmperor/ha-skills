@@ -143,6 +143,5 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          pip install --quiet markdown-it-py
           python3 scripts/check_release_notes.py --tag "v${{ steps.ver.outputs.version }}" \
             --version "${{ steps.ver.outputs.version }}"

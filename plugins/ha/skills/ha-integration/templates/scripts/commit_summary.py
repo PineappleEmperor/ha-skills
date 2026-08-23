@@ -95,38 +95,6 @@ def group(subjects: list[str]) -> dict[str, list[str]]:
     return groups
 
 
-def render(subjects: list[str], title: str | None = None) -> str:
-    """The marked-block body, or "" when it would add nothing.
-
-    A single bullet is always the PR title minus its type prefix, so the block
-    just restates the heading above it. Measured on three published releases:
-    every one carried at least one such block and none carried the multi-type
-    case the sub-heads exist for. Emit nothing and let the caller drop the block.
-    """
-    groups = group(subjects)
-
-    # Drop any bullet that merely restates the PR title. The title is meant to be
-    # the winning commit subject, so on most PRs one bullet duplicates the heading
-    # it sits under. Release notes then say the same thing twice.
-    if title:
-        want = _strip_type(title)
-        for k in groups:
-            groups[k] = [d for d in groups[k] if d.strip().lower() != want]
-
-    used = [k for k in ORDER if groups[k]]
-    if not used:
-        return ""
-    # Without a title we fall back to a heuristic: a lone bullet is almost always
-    # the title minus its prefix. With a title the check above is exact, so a
-    # surviving single bullet says something the title does not and is kept.
-    if title is None and sum(len(groups[k]) for k in used) == 1:
-        return ""
-    lines: list[str] = []
-    for key in used:
-        lines += [f"  - {d}" for d in groups[key]]
-    return "\n".join(lines)
-
-
 def winning(subjects: list[str]) -> str:
     """Highest-impact group present — the title type a PR's commits imply."""
     groups = group(subjects)
@@ -171,18 +139,15 @@ def title_for(subjects: list[str]) -> str:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--mode", choices=("render", "winning", "title"), default="render")
+    ap.add_argument("--mode", choices=("winning", "title"), default="title")
     ap.add_argument("--subjects", default="-", help="file of commit subjects, or - for stdin")
-    ap.add_argument("--title", help="PR title; bullets that merely restate it are dropped")
     args = ap.parse_args()
 
     src = sys.stdin if args.subjects == "-" else open(args.subjects, encoding="utf-8")
     with src as fh:
         subjects = fh.read().splitlines()
 
-    if args.mode == "render":
-        print(render(subjects, args.title))
-    elif args.mode == "title":
+    if args.mode == "title":
         print(title_for(subjects))
     else:
         print(winning(subjects))

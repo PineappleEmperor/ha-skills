@@ -157,7 +157,7 @@ The `description`, `issues`, `topics` and `license` checks fail silently until t
 ⚠️ **One secret, once per repo, or `auto_draft_pr.yml` cannot open a PR that checks can
 run on.** GitHub suppresses workflow events caused by `GITHUB_TOKEN`, so a PR opened with
 it fires no `pull_request_target`: no checks run, the required ones never report, and the
-PR is permanently unmergeable. That is how `create-dev-pr.yml` died. The opener fails
+PR is permanently unmergeable. That is how `create-dev-pr.yml` was removed. The opener fails
 loudly instead, and `skill_audit.py` fails a repo that ships it without the secret.
 
 The **release** path needs no token: both the full release and its next rc are kept as
@@ -179,7 +179,7 @@ which is the whole requirement.
 6. In each repo: Settings → **Secrets and variables** → **Actions** → **Secrets** tab →
    **New repository secret** → `APP_ID` (the numeric ID), then again for `APP_PRIVATE_KEY`
    (the whole `.pem` contents, including the BEGIN/END lines) → **Add secret**
-7. In `cut_rc.yml`, mint the token before the release step:
+7. In `auto_draft_pr.yml`, mint the token before the step that needs it:
    ```yaml
    - uses: actions/create-github-app-token@v2
      id: app-token
@@ -485,16 +485,16 @@ See **`reference/versioning.md`** — Conventional Commits → semver mapping, t
 
 ---
 
-## PR discipline — the body is generated, don't write one
+## PR discipline — the commit subjects are the changelog
 
-**The commit subjects are the PR body.** The `commit-summary` job accumulates them into the marked block; `$BODY` inlines that into the release notes. A description is either **empty** (single commit, the title says it) or **the generated block**, and nothing else.
+**The release notes are built from the commits, not from the PR body.** `scripts/release_notes.py` classifies each subject and groups it; `auto_draft_pr.yml` opens the draft with an empty body. So a body is optional context for reviewers, and writing the changelog into it just says the same thing twice, in a place users never read.
 
-Reasoning, alternatives, verification evidence: those go in the PR **conversation**, where reviewers read them and `$BODY` does not.
+Reasoning, alternatives, verification evidence: those go in the PR **conversation**, where reviewers read them and the notes do not.
 
 | Excuse | Reality |
 |---|---|
 | "This change is complex, it needs explaining" | Then it needs splitting, or better commit subjects. The subjects are the changelog. |
-| "Reviewers need the reasoning" | Reviewers read the conversation. `$BODY` is republished to users who did not review it. |
+| "Reviewers need the reasoning" | Reviewers read the conversation. What users get is the commit subjects, so put the change in those. |
 | "The verification belongs with the change" | It belongs in a comment. A description is not a lab notebook. |
 | "I wrapped it in `<details>` so it's stripped" | The fold is for Dependabot's own output, not a licence to write an essay. |
 | "It's only a few paragraphs" | Measured across eight PRs it was 2,728 words, all republished under the repo owner's byline. |
@@ -589,7 +589,7 @@ Apply the same patterns and code style as Mode 1.
 
 ### Mechanical gate — `scripts/skill_audit.py`
 
-The full script is **`templates/scripts/skill_audit.py`** (copy to `scripts/`, `chmod +x`). It fails (exit 1) on: a missing canonical workflow; a stale action pin (checkout < v7, setup-python < v6, action-gh-release < v3, semantic-pull-request < v6); an antipattern in `custom_components/` (`discovery.async_load_platform`, `BaseNotificationService`, `update_before_add=True`, `OptionsFlowHandler`, `PlatformNotReady`, f-string logging, bare `# type: ignore`); a missing `quality_scale.yaml` / `integration_type` / `issue_tracker`; or a `tests/` dir with no `requirements.test.txt` or no pytest step in `python_validate.yml` (a suite CI can't install is a suite CI doesn't run). It **warns** on an absent `tests/` dir and on an unpinned `pytest-homeassistant-custom-component`. Keep its rules in lockstep with this skill — when you add an antipattern or canonical workflow here, add the check there.
+The full script is **`templates/scripts/skill_audit.py`** (copy to `scripts/`, `chmod +x`). It ships 29 checks and `scripts/skill_audit.py --list` prints every one with its rationale — read that rather than a list here, which goes stale the moment a check changes (this section once described version-floor pin checks for months after SHA pinning replaced them). Broadly: the canonical workflows exist and are wired to the scripts they call, actions are pinned to commit SHAs, `custom_components/` is free of the deprecated APIs, `quality_scale.yaml` is honest, and a `tests/` dir CI cannot install fails. Keep its rules in lockstep with this skill — when you add an antipattern or canonical workflow here, add the check there.
 
 ⚠️ **The gate checks each canonical workflow *exists*, not that it *matches* the template** — a consuming repo has no copy of `templates/` to diff against. Content fidelity is the first item of the judgement checklist below, where the agent *does* have the skill on disk. Green CI is not evidence the templates were copied.
 
@@ -607,7 +607,7 @@ Add `"scripts/*" = ["T20", "INP001"]` to ruff `per-file-ignores` — the audit a
   diff -u  "$T/tests/test_manifest_gate.py" tests/test_manifest_gate.py
   ```
   Expected output is the `release.yml` `<domain>` substitution and nothing else. Any other hunk is a finding — report it with the file and hunk, and restore from the template unless the diff is a deliberate, listed adaptation. If `templates/` can't be located, report the audit item as **not checked**; do not mark it passed.
-- **Workflows behave, not just exist:** `pr-checks` runs on `pull_request_target`; `title-check` declares `needs: label`, and `version-gate` skips itself where the release tag sets the version; no job checks out the PR head (the version gate pins `base.sha` and reads the PR manifest over the API); no `${{ }}` appears inside any `run:`; bot authors are skipped; `commit-summary` rewrites only the marked block; the only workflows opening PRs are `auto_draft_pr.yml` (draft-only, gated on `github.actor == github.repository_owner`) and `update_manifest_floors.yml`; `release_drafter` is push-only with no second autolabeler; the version gate compares to the **last published release** and exempts `dependabot[bot]` on the *failing steps*, and is advisory in a tag-driven repo.
+- **Workflows behave, not just exist:** `pr-checks` runs on `pull_request_target`; `title-check` declares `needs: label`, and `version-gate` skips itself where the release tag sets the version; no job checks out the PR head (the version gate pins `base.sha` and reads the PR manifest over the API); no `${{ }}` appears inside any `run:`; bot authors are skipped; the only workflows opening PRs are `auto_draft_pr.yml` (draft-only, gated on `github.actor == github.repository_owner`) and `update_manifest_floors.yml`; `release_drafter` is push-only with no second autolabeler; the version gate compares to the **last published release** and exempts `dependabot[bot]` on the *failing steps*, and is advisory in a tag-driven repo.
 - **Patterns applied:** `runtime_data` (not `hass.data[DOMAIN][entry_id]`) for entry state; coordinator `async_shutdown()` on unload; `async_remove_config_entry_device` present if the integration creates a device; `DeviceInfo` TypedDict; `_attr_has_entity_name = True`; typed `ConfigEntry` alias; modern `NotifyEntity` (or a directly-registered service for custom `data`).
 - **`quality_scale.yaml` honest:** every canonical rule listed; every `exempt` carries a real `comment`; no optimistic `exempt` masking a gap (e.g. `stale-devices` exempt while a device *is* created); the `manifest.json` tier claimed only when every rule at/below it is `done`/`exempt`.
 - **Tests mock the boundary:** a real setup-entry `LOADED` test exists (not just `async_setup_component`); the transport is mocked, not the integration's own functions; a two-entry parallel `LOADED` test exists if multiple devices are allowed; parsers have unit tests.
