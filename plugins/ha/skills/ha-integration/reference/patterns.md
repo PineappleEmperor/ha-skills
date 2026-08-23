@@ -62,7 +62,7 @@ if not hass.services.has_service(NOTIFY_DOMAIN, device_id):
 if hass.services.has_service(NOTIFY_DOMAIN, device_id):
     hass.services.async_remove(NOTIFY_DOMAIN, device_id)
 ```
-This creates `notify.{device_id}` (e.g. `notify.pimoroni_unicorn_studio`) with full data support.
+This creates `notify.{device_id}` (e.g. `notify.living_room_display`) with full data support.
 
 **`config_flow.py`**
 - `class MyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):` — `domain=` is a keyword arg, not a class attribute
