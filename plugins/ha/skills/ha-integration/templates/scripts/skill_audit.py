@@ -642,6 +642,29 @@ DOCS_EXCUSED = re.compile(r"supersede|do not reinstate|removed|deleted|replaced 
 DOCS_OPTIONAL = {"update_manifest_floors.yml"}
 
 
+def check_reference_links(repo: Repo) -> Result:
+    """A SKILL.md that routes to reference files must link every one, and only real ones.
+
+    Splitting a skill into on-demand files trades one big document for a router. The
+    router rots in two directions: a link to a file that was renamed sends the agent
+    nowhere, and a reference file nothing links to is never read again.
+    """
+    fails = []
+    for skill in sorted(repo.root.glob("plugins/*/skills/*/SKILL.md")):
+        ref_dir = skill.parent / "reference"
+        text = skill.read_text()
+        linked = set(re.findall(r"\]\((reference/[A-Za-z0-9._-]+\.md)\)", text))
+        linked |= set(re.findall(r"`(reference/[A-Za-z0-9._-]+\.md)`", text))
+        for target in sorted(linked):
+            if not (skill.parent / target).is_file():
+                fails.append(f"{skill.parent.name}/SKILL.md links {target}, which does not exist")
+        if ref_dir.is_dir():
+            for f in sorted(ref_dir.glob("*.md")):
+                if f"reference/{f.name}" not in linked:
+                    fails.append(f"{skill.parent.name}/reference/{f.name} is linked from nothing")
+    return fails, []
+
+
 def check_skill_frontmatter(repo: Repo) -> Result:
     """Each SKILL.md must carry the frontmatter the skill spec requires.
 
@@ -791,7 +814,7 @@ CHECKS = (
     check_pr_openers, check_antipatterns, check_quality_scale_and_manifest,
     check_autolabeler_title_only, check_drafter_categories, check_docstrings,
     check_commit_hook, check_brand_assets, check_self_diff, check_template_pins,
-    check_docs_match_templates, check_skill_frontmatter,
+    check_docs_match_templates, check_skill_frontmatter, check_reference_links,
     check_release_token, check_required_status_checks,
 )
 

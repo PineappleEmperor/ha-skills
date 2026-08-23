@@ -203,3 +203,32 @@ def test_list_mode_names_every_check(capsys) -> None:
     out = capsys.readouterr().out.splitlines()
     assert len(out) == len(audit.CHECKS)
     assert all(line.split()[0] for line in out)
+
+
+def test_reference_link_to_a_missing_file_fails(tmp_path) -> None:
+    """A renamed reference file leaves the router pointing at nothing."""
+    _skill(tmp_path, "ha-thing", "name: ha-thing\ndescription: Use when doing a thing",
+           body="Read [scaffold](reference/scaffold.md) first.\n")
+    fails, _ = audit.check_reference_links(audit.Repo(tmp_path))
+    assert any("links reference/scaffold.md" in f for f in fails)
+
+
+def test_orphan_reference_file_fails(tmp_path) -> None:
+    """A reference file nothing links to is never read again."""
+    _skill(tmp_path, "ha-thing", "name: ha-thing\ndescription: Use when doing a thing",
+           body="No links here.\n")
+    ref = tmp_path / "plugins/ha/skills/ha-thing/reference"
+    ref.mkdir()
+    (ref / "orphan.md").write_text("content\n")
+    fails, _ = audit.check_reference_links(audit.Repo(tmp_path))
+    assert any("orphan.md is linked from nothing" in f for f in fails)
+
+
+def test_backticked_reference_counts_as_a_link(tmp_path) -> None:
+    """The skill cites some references in backticks rather than as markdown links."""
+    _skill(tmp_path, "ha-thing", "name: ha-thing\ndescription: Use when doing a thing",
+           body="See `reference/patterns.md` for the rules.\n")
+    ref = tmp_path / "plugins/ha/skills/ha-thing/reference"
+    ref.mkdir()
+    (ref / "patterns.md").write_text("content\n")
+    assert audit.check_reference_links(audit.Repo(tmp_path)) == ([], [])
