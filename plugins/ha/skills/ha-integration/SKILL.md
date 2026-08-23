@@ -34,12 +34,17 @@ Check the working directory, pick a mode, then **read that mode's reference file
 |---|---|---|
 | **Scaffold** | no `custom_components/`, or the user wants a new integration | `reference/scaffold.md`, then `reference/patterns.md` |
 | **Modify** | `custom_components/` exists and something is being added or changed | `reference/patterns.md` |
+| **Test** | writing or fixing tests for an integration | `reference/patterns.md` — the testing sections; the root `conftest.py` and `asyncio_mode` prerequisites decide whether the suite runs at all |
 | **Lint** | hygiene pass over existing code | this file, *Mode 3* below |
 | **Audit** | verify the skill was actually followed | `scripts/skill_audit.py --list`, then `reference/audit.md` |
-| **Release / repo setup** | first release, tokens, required checks | `reference/github-setup.md` and `reference/versioning.md` |
 
-Reading a Home Assistant log is a different skill — `ha-log-triage`. Panel/display work is
-`ha-panel-design`.
+The audit script lives at `scripts/skill_audit.py` in a repo that copied the templates. Auditing a repo that never did — the case where the audit matters most — means running the skill's own copy at `templates/scripts/skill_audit.py` against the repo root.
+| **Release / repo setup** | first release, tokens, required checks | `reference/github-setup.md` first (tokens and required checks are prerequisites), then `reference/versioning.md` |
+
+Reading a Home Assistant log is a different skill — `ha-log-triage`. How a panel **looks**
+(type scale, colour, spacing, touch targets) is `ha-panel-design`. How a panel is **built and
+served** — the committed bundle, its staleness check, registration and cache-busting, the
+`home-assistant-frontend` pin — stays here, in `reference/panels.md`.
 
 ## Invariants — true in every mode
 
@@ -61,7 +66,7 @@ Reading a Home Assistant log is a different skill — `ha-log-triage`. Panel/dis
 | File | Holds |
 |---|---|
 | `reference/scaffold.md` | what to ask, what to generate, manifest key order, code style |
-| `reference/patterns.md` | the code patterns every mode applies |
+| `reference/patterns.md` | the code patterns every mode applies, plus typing and the **testing** prerequisites and boundary rules |
 | `reference/github-setup.md` | RELEASE_TOKEN, required checks, CI templates, supply chain |
 | `reference/github-actions.md` | what each workflow and job must do, and must not |
 | `reference/versioning.md` | tag-driven releases, labels, the draft model, commit hook |
@@ -87,6 +92,7 @@ Identify the integration domain from `custom_components/`. Then ask what to add 
 - Add new platform
 - Add/update translations
 - Add options flow
+- Add or fix tests (start from the testing sections of `reference/patterns.md`)
 - Add reconfigure flow (`async_step_reconfigure`)
 - Add reauth flow (`async_step_reauth`)
 - Add or update `quality_scale.yaml`

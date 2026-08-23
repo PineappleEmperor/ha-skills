@@ -4,7 +4,7 @@ The audit items a grep cannot decide. `scripts/skill_audit.py --list` covers the
 
 ## Judgement checklist (read the code — a grep can't decide these)
 
-- **Templates copied, not paraphrased.** Diff `.github/` and `scripts/` against this skill's `templates/` (locate it per *Where `templates/` lives* in Mode 1). Every difference must appear in the sanctioned-adaptations table there. Files that merely *look* equivalent are not equivalent — `skill_audit.py` checks each canonical workflow **exists**, never that it **matches**, so fifteen hand-written files once passed it clean. Run:
+- **Templates copied, not paraphrased.** Diff `.github/` and `scripts/` against this skill's `templates/` (locate it per *Where `templates/` lives* in `reference/github-setup.md`). Every difference must appear in the sanctioned-adaptations table there. Files that merely *look* equivalent are not equivalent — `skill_audit.py` checks each canonical workflow **exists**, never that it **matches**, so fifteen hand-written files once passed it clean. Run:
   ```bash
   T=<skill>/templates   # from the skill's announced base directory
   diff -ru "$T/.github" .github
