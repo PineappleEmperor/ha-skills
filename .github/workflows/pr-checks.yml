@@ -170,6 +170,10 @@ jobs:
 
   # ---------------------------------------------------------- version-gate ----
   # Reads labels to derive the expected bump, so it must follow `label` too.
+  # Tag-driven, as in every scaffolded repo: the release tag owns the version and
+  # `sync_plugin_version.yml` writes it into the manifests when the release publishes.
+  # No PR carries a bump, so the gate has nothing to check — it stays as a required
+  # context (a skipped job satisfies one) and reports what the labels imply instead.
   version-gate:
     name: Version validation
     needs: label
@@ -227,28 +231,19 @@ jobs:
             exit 1
           fi
 
-      - name: Version gate
-        # Via env, never `${{ }}` inside run: `pr_version` is read from the PR's own
-        # manifest.json, so a fork PR controls that string entirely. Interpolated into
-        # the command line it would be shell injection against a writable token.
+      # Advisory only. The release tag owns the version and `sync_plugin_version.yml`
+      # writes it into the manifests at publish, so no PR carries a bump and there is
+      # nothing to fail on. What the labels imply is still worth saying out loud, so a
+      # release that lands on the wrong number is visible before it is cut.
+      - name: Say what version the labels imply
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
           LAST_RELEASE: ${{ steps.gather.outputs.last_release }}
-          MAIN_VERSION: ${{ steps.gather.outputs.main_version }}
-          PR_VERSION: ${{ steps.gather.outputs.pr_version }}
           LABELS: ${{ steps.gather.outputs.labels }}
         run: |
-          # The count is computed here, not in manifest_gate.py: the gate runs from
-          # the trusted base checkout and must not run `git log` over PR-controlled
-          # refs. `gh` returns data only, and jq emits an integer.
-          BRK=$(gh pr view "$PR_NUMBER" --json commits \
-                --jq '[.commits[].messageHeadline | select(test("^[a-zA-Z]+(\\([^)]*\\))?!:"))] | length')
           python3 scripts/manifest_gate.py \
             --last-release "$LAST_RELEASE" \
-            --main-version "$MAIN_VERSION" \
-            --pr-version "$PR_VERSION" \
             --labels "$LABELS" \
-            --breaking-commits "$BRK"
+            --suggest >> "$GITHUB_STEP_SUMMARY"
 

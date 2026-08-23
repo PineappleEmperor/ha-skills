@@ -1,0 +1,47 @@
+name: Sync Plugin Version
+
+# The marketplace equivalent of `release.yml` in a scaffolded integration. There, the
+# tag is written into `manifest.json` inside the zip HACS installs, and the committed
+# value never matters. Here Claude Code reads `.claude-plugin/marketplace.json` from the
+# repository itself, so the number has to exist in the tree — this writes the tag back
+# to `main` so nothing is ever typed by hand, and a hand-pushed tag still overrides.
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    name: Sync plugin version to the tag
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          # RELEASE_TOKEN, not GITHUB_TOKEN: this pushes to a protected branch, and a
+          # push made with the default token fires no events at all.
+          token: ${{ secrets.RELEASE_TOKEN }}
+
+      - name: Write the tag version into both manifests
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          python3 scripts/sync_plugin_version.py --version "$RELEASE_TAG"
+
+      # A prerelease is a candidate, not what the marketplace should serve, so only a
+      # full release moves the committed number.
+      - name: Commit and push
+        if: github.event.release.prerelease == false
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          if git diff --quiet; then
+            echo "::notice::manifests already at $RELEASE_TAG"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "chore: sync the plugin version to the release tag"
+          git push origin HEAD:main
