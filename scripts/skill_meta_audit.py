@@ -208,6 +208,45 @@ def check_shipped_workflows_documented(repo: Repo) -> Result:
     return [f"shipped workflow {m} is documented nowhere in reference/" for m in missing], []
 
 
+def check_invariants(repo: Repo) -> Result:
+    """Prose may not contradict a declared invariant.
+
+    Four review passes each found the same versioning fact restated wrongly in a file
+    nobody had re-read — "bump manifest.json to the next rcN" three lines from "nothing is
+    ever bumped by hand". Structural checks cannot see that: the link resolves, the file
+    exists, the count is right, and the sentence is false.
+
+    So the facts are declared once in `invariants.yml`, with the phrasings that can only
+    appear when someone is asserting the opposite. A line that must keep one — a
+    historical note, a description of what a superseded stack did — opts out inline with
+    `<!-- allow: <id> -->`.
+    """
+    fails: list[str] = []
+    for manifest in sorted(repo.root.glob("plugins/*/skills/*/SKILL.md")):
+        spec = manifest.parent / "invariants.yml"
+        if not spec.is_file():
+            continue
+        import yaml as _yaml
+        invariants = _yaml.safe_load(spec.read_text()) or []
+        owners = {i["id"]: i.get("owner") for i in invariants}
+        for doc in sorted(manifest.parent.rglob("*.md")):
+            if "evals" in doc.parts:
+                continue
+            rel = doc.relative_to(manifest.parent)
+            for n, line in enumerate(doc.read_text().splitlines(), 1):
+                for inv in invariants:
+                    if f"<!-- allow: {inv['id']} -->" in line:
+                        continue
+                    for phrase in inv["forbidden"]:
+                        if phrase.lower() in line.lower():
+                            fails.append(
+                                f"{rel}:{n} contradicts invariant '{inv['id']}' "
+                                f"({phrase!r}) — the fact is owned by {owners[inv['id']]}; "
+                                "state it there, or mark this line "
+                                f"<!-- allow: {inv['id']} --> if it is deliberately historical")
+    return fails, []
+
+
 def check_paragraph_length(repo: Repo) -> Result:
     """A 400-word paragraph is a wall, and a reader skims walls.
 
@@ -263,7 +302,8 @@ def check_paragraph_length(repo: Repo) -> Result:
 
 CHECKS = (check_docs_match_templates, check_skill_frontmatter, check_reference_links,
           check_named_sections, check_required_contexts_documented,
-          check_shipped_workflows_documented, check_paragraph_length)
+          check_shipped_workflows_documented, check_invariants,
+          check_paragraph_length)
 
 
 def audit(root: pathlib.Path) -> Result:

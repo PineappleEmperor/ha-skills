@@ -225,3 +225,51 @@ def test_a_wall_of_prose_is_flagged_but_a_long_list_is_not(tmp_path) -> None:
     (ref / "wall.md").write_text("# W\n\n```python\n" + "x = 1  # a comment with words\n" * 60 + "```\n")
     _, warns = audit.check_paragraph_length(audit.Repo(tmp_path))
     assert not any("prose run" in w for w in warns)
+
+
+def _invariant_skill(root, prose):
+    """A skill carrying the real invariants.yml, with one line of prose to test."""
+    import shutil
+    src = pathlib.Path("/home/juicebox/claude-skills/plugins/ha/skills/ha-integration/invariants.yml")
+    skill = root / "plugins/ha/skills/ha-integration"
+    (skill / "reference").mkdir(parents=True, exist_ok=True)
+    shutil.copy(src, skill / "invariants.yml")
+    (skill / "SKILL.md").write_text("---\nname: ha-integration\ndescription: Use when x\n---\n\nrouter\n")
+    (skill / "reference/probe.md").write_text(f"# P\n\n{prose}\n")
+    return root
+
+
+@pytest.mark.parametrize(
+    ("prose", "invariant"),
+    [
+        ("bump `manifest.json` to the next `rcN` and push", "version-model"),
+        ("the version must be bumped manually before merging", "version-model"),
+        ("in this marketplace repo bump `plugin.json` once", "version-model"),
+        ("**PRs are opened by humans.** No workflow opens one.", "pr-openers"),
+        ("Since no workflow opens PRs generally, this one must do it itself", "pr-openers"),
+        ("release_drafter.yml Reads the release version from the manifest.", "drafter-version-source"),
+        ("rulesets require this context by name", "required-contexts"),
+        ("The push-context run already passes.", "pr-checks-triggers"),
+        ("set the ruleset's enforcement to `disabled`, merge, set it back", "merge-discipline"),
+    ],
+)
+def test_every_defect_this_session_shipped_is_now_blocked(tmp_path, prose, invariant) -> None:
+    """Each case is a sentence that actually shipped in this skill and was wrong.
+
+    Four review passes kept finding the same facts restated wrongly in whichever file
+    nobody had re-read. Structural checks cannot see it: the link resolves, the file
+    exists, the count is right, and the sentence is false.
+    """
+    fails, _ = audit.check_invariants(audit.Repo(_invariant_skill(tmp_path, prose)))
+    assert any(f"'{invariant}'" in f for f in fails), f"{invariant} not caught: {prose}"
+
+
+def test_a_deliberately_historical_line_can_opt_out(tmp_path) -> None:
+    """Superseded stacks must still be describable, or the check becomes unusable."""
+    root = _invariant_skill(tmp_path, "Historically it was bumped manually. <!-- allow: version-model -->")
+    assert audit.check_invariants(audit.Repo(root)) == ([], [])
+
+
+def test_correct_prose_passes(tmp_path) -> None:
+    root = _invariant_skill(tmp_path, "The release tag sets the version; nothing carries it in the branch.")
+    assert audit.check_invariants(audit.Repo(root)) == ([], [])
