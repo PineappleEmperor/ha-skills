@@ -1,5 +1,25 @@
 # Implementation patterns, file structure and typing
 
+**Read the entry you need, not the file.** Each entry below is a self-contained pattern —
+`grep -n` for the heading and read that slice. The whole file is ~2,300 words; a single
+pattern is 40-200.
+
+| Pattern | For |
+|---|---|
+| `` `__init__.py` `` | entry setup/unload, `runtime_data`, platform forward |
+| Notify platform | the modern `NotifyEntity` path, not `BaseNotificationService` |
+| `` `config_flow.py` `` | user/reauth/reconfigure steps, unique-id aborts |
+| Entity platform files | `CoordinatorEntity`, `DeviceInfo`, naming, availability |
+| `` `UpdateEntity` `` | firmware/OTA install |
+| `` `DataUpdateCoordinator` `` | polling, backoff, shutdown |
+| Entity push subscriptions | subscribe/unsubscribe lifecycle |
+| `` `ConfigEntry` mutation | options updates without a reload loop |
+| Logging | Silver `log-when-unavailable`, HA conventions |
+| Custom services | registration, schema, `services.yaml` + `strings.json` |
+| Typing | `from __future__ import annotations`, `TYPE_CHECKING` |
+
+Panel code is `reference/panels.md`; tests are `reference/testing.md`.
+
 Reference for `ha-integration` Mode 1/2. Loaded on demand.
 
 ### Implementation patterns
