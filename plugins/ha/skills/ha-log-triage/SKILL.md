@@ -18,6 +18,20 @@ Most of what a log reports is config, automation or external-device trouble rath
 integration code. When a cluster does land under `custom_components.<domain>`, hand off to the
 `ha-integration` skill.
 
+## Cached facts — re-derive before trusting
+
+Every row below was verified against `home-assistant/core@dev` and the companion-app docs
+on **2026-08-24**. They are the claims most likely to rot; check any older than ~3 months
+before acting on one.
+
+| Fact | Value | Verify at |
+|---|---|---|
+| `color_temp` / `kelvin` removed from `light.turn_on` | HA **2026.3**; state attributes `color_temp`, `min_mireds`, `max_mireds` went too | developers.home-assistant.io/blog/2026/02/23/remove-deprecate-light-features |
+| websocket pending-message limit | `MAX_PENDING_MSG = 4096`, peak warning at 1024 held 10s | `websocket_api/const.py` |
+| log line format | `%(asctime)s.%(msecs)03d %(levelname)s (%(threadName)s) [%(name)s] %(message)s` | `homeassistant/bootstrap.py` |
+| notification size caps | image 10 MB both platforms · video 50 MB both · audio 5 MB iOS | companion.home-assistant.io/docs/notifications/notification-attachments |
+| `/local` cache header | `Cache-Control: public, max-age=2678400` (31 days) | `homeassistant/components/http/static.py` |
+
 ### Step 1 — Build (or load) the device inventory FIRST
 
 Logs identify clients/devices by **opaque tokens** — an IP, a browser user-agent, a Z-Wave `node_id`, a `notify.mobile_app_*` slug, a UniFi/camera hostname. Triage stalls every time on "what *is* `192.168.1.42`?". Resolve it **once**, up front, into a persistent map so every future triage is instant.
