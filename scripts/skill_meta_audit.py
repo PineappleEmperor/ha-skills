@@ -63,8 +63,15 @@ def check_docs_match_templates(repo: Repo) -> Result:
 
     fails = []
     for doc in sorted((tmpl.parent).glob("SKILL.md")) + sorted((tmpl.parent / "reference").glob("*.md")):
+        section = ""
         for n, line in enumerate(doc.read_text().splitlines(), 1):
-            if DOCS_EXCUSED.search(line):
+            if line.startswith("#"):
+                section = line
+            # An excuse applies to its whole section, not just the line carrying the word.
+            # Giving wall-of-text paragraphs real headings moved "Superseded — do not
+            # reinstate" into a heading, and a line-only check then flagged the section it
+            # was excusing.
+            if DOCS_EXCUSED.search(line) or DOCS_EXCUSED.search(section):
                 continue
             for name in re.findall(r"`([a-z0-9_.-]+\.yml)`", line):
                 if name not in shipped and name not in DOCS_OPTIONAL:

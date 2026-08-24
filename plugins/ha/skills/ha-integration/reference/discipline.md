@@ -2,13 +2,23 @@
 
 Two behavioural rules with no artefact of their own: what to do when a check is red, and what to do before naming a root cause. Commit and PR-body format is `reference/commits.md`.
 
+**Read the section you need.** `grep -n '^#' reference/discipline.md` for the list, then read that slice.
+
+- Merge discipline — never merge a red check
+- One exception, and it is narrow
+- Red flags — stop
+- Observed
+- Debugging discipline
+
 ## Merge discipline — never merge a red check
 
 **A failing check is the gate working. Merging past it is not a judgement call.**
 
 Violating the letter of this rule is violating the spirit of it. The gate stack in this skill exists to stop bad merges; an agent that reasons its way past a red check has removed the only thing standing between a mistake and `main`.
 
-**One exception, and it is narrow.** A `pull_request_target` workflow loads its definition from the **base** branch, so a PR fixing that workflow is always checked by the broken copy and can never go green on its own. That is the only sanctioned case. It covers **one job, on one PR, whose own definition the PR changes**. To use it you must first prove it with a diff (`git show origin/main:.github/workflows/pr-checks.yml` against the branch's), say in the PR that the failure is the bug being fixed, and verify on the next PR.
+### One exception, and it is narrow
+
+A `pull_request_target` workflow loads its definition from the **base** branch, so a PR fixing that workflow is always checked by the broken copy and can never go green on its own. That is the only sanctioned case. It covers **one job, on one PR, whose own definition the PR changes**. To use it you must first prove it with a diff (`git show origin/main:.github/workflows/pr-checks.yml` against the branch's), say in the PR that the failure is the bug being fixed, and verify on the next PR.
 
 | Excuse | Reality |
 |---|---|
@@ -30,7 +40,9 @@ Violating the letter of this rule is violating the spirit of it. The gate stack 
 
 **All of these mean: stop, read the log, fix or explain in writing first.** Which checks are required, and why one of them is deliberately absent, is `reference/github-setup.md`.
 
-> **Observed.** This rule exists because it was broken in this skill's own repo. The `pull_request_target` exception was written, then reused a few hours later on a PR it did not cover: the version gate had correctly failed because the PR carried no label, and the merge went through with the failure undiagnosed. Two conditions made it silent — an allow-rule of `Bash(gh pr *)` pre-approving `gh pr merge`, and no required checks on the branch (listed in `reference/github-setup.md`).
+### Observed
+
+This rule exists because it was broken in this skill's own repo. The `pull_request_target` exception was written, then reused a few hours later on a PR it did not cover: the version gate had correctly failed because the PR carried no label, and the merge went through with the failure undiagnosed. Two conditions made it silent — an allow-rule of `Bash(gh pr *)` pre-approving `gh pr merge`, and no required checks on the branch (listed in `reference/github-setup.md`).
 
 ---
 

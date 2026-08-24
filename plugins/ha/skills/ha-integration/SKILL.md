@@ -35,7 +35,7 @@ Check the working directory, pick a mode, then **read that mode's reference file
 | **Test** | writing or fixing tests for an integration | `reference/testing.md` — the root `conftest.py` and `asyncio_mode` prerequisites decide whether the suite runs at all |
 | **Lint** | hygiene pass over existing code | this file, *Mode 3* below |
 | **Audit** | verify the skill was actually followed | `scripts/skill_audit.py --list` (or the skill's `templates/scripts/skill_audit.py` if the repo never copied it), then `reference/audit.md` |
-| **Release / repo setup** | first release, tokens, required checks | `reference/github-setup.md` first (tokens and required checks are prerequisites), then `reference/versioning.md` |
+| **Release / repo setup** | first release, tokens, required checks | `reference/github-setup.md` — token, ruleset, dependency graph, required contexts. Then `reference/versioning.md` for how the version is decided, `reference/commits.md` for what the notes are built from, `reference/github-actions.md` for what each workflow must do |
 
 The audit script lives at `scripts/skill_audit.py` in a repo that copied the templates.
 Auditing a repo that never did — the case where the audit matters most — means running the

@@ -2,6 +2,17 @@
 
 One-time setup that lives in GitHub's settings rather than in the repo: the release token, the required checks, the CI templates and the supply-chain guards. `scripts/bootstrap_repo.sh` does most of it in one command.
 
+**Read the section you need.** `grep -n '^#' reference/github-setup.md` for the list, then read that slice.
+
+- `RELEASE_TOKEN` — set this up before the first release
+- Make the checks REQUIRED — a workflow is not a gate until it can block a merge
+- Bypass configuration, and why it must stay empty, is `reference/discipline.md`
+- For AI sessions
+- Supply chain
+- GitHub CI templates
+- If none of those find it, stop and say so
+- Workflows orchestrate; scripts decide
+
 ## `RELEASE_TOKEN` — set this up before the first release
 
 ⚠️ **One secret, once per repo, or `auto_draft_pr.yml` cannot open a PR that checks can
@@ -132,9 +143,13 @@ Two ways to get it wrong, both of which block every PR permanently:
 - **A context that never reports.** Requiring a check the repo doesn't produce (a repo without `quality_audit.yml` must drop `ha-integration conformance check`) leaves PRs waiting for a check that will never run.
 - **A path-filtered workflow.** `Panel bundle staleness check` from `frontend_build.yml` is absent from the shipped `ruleset.json` for this reason: it only triggers on panel changes, so requiring it would block every unrelated PR.
 
-⚠️ **Bypass configuration, and why it must stay empty, is `reference/discipline.md`.** In short: A ruleset granting admins `bypass_mode: always` does not constrain anyone holding admin; the push reports `Bypassed rule violations` and proceeds. If you ever genuinely must overrule — and *Merge discipline* in `reference/discipline.md` gives exactly one sanctioned reason, proven by diff — disable the ruleset, merge, and re-enable it. Doing it that way is deliberate, reversible and leaves an audit-log entry.
+### Bypass configuration, and why it must stay empty, is `reference/discipline.md`
 
-> **For AI sessions.** An agent running with your `gh` credentials merges exactly as you do, and bypass entries are evaluated by actor (`reference/discipline.md`), so any bypass you hold it inherits. Two things make that silent: a broad allow-rule such as `Bash(gh pr *)` in `.claude/settings.local.json` pre-approves `gh pr merge` with no prompt, and an agent with admin can lift any rule it can see. Narrow the allow-rule to read-only verbs (`gh pr view`, `gh pr list`), and give the agent a credential without **Administration** if it genuinely should not edit rulesets or force-push. A restriction the agent can lift is friction, not a limit.
+⚠️ In short: A ruleset granting admins `bypass_mode: always` does not constrain anyone holding admin; the push reports `Bypassed rule violations` and proceeds. If you ever genuinely must overrule — and *Merge discipline* in `reference/discipline.md` gives exactly one sanctioned reason, proven by diff — disable the ruleset, merge, and re-enable it. Doing it that way is deliberate, reversible and leaves an audit-log entry.
+
+### For AI sessions
+
+An agent running with your `gh` credentials merges exactly as you do, and bypass entries are evaluated by actor (`reference/discipline.md`), so any bypass you hold it inherits. Two things make that silent: a broad allow-rule such as `Bash(gh pr *)` in `.claude/settings.local.json` pre-approves `gh pr merge` with no prompt, and an agent with admin can lift any rule it can see. Narrow the allow-rule to read-only verbs (`gh pr view`, `gh pr list`), and give the agent a credential without **Administration** if it genuinely should not edit rulesets or force-push. A restriction the agent can lift is friction, not a limit.
 
 ## Supply chain
 
@@ -168,7 +183,9 @@ The full, self-contained CI stack ships in the skill's **`templates/`** dir (mir
 3. **Personal or repo skill:** `~/.claude/skills/ha-integration/templates/`, or `plugins/ha/skills/ha-integration/templates/` inside a checkout of the skill repo.
 4. **Last resort — search:** `find ~/.claude ~/.agents . -type d -path '*ha-integration/templates' 2>/dev/null`
 
-**If none of those find it, stop and say so.** Report which paths you checked and ask for the skill's location. Do **not** author the workflows, `skill_audit.py`, `manifest_gate.py`, `dependabot.yml`, `release-drafter.yml` or `pr-checks.yml` from this document — the prose *describes* the templates, it does not *replace* them. A hand-written CI stack passes a hand-written audit, and every divergence stays invisible until something breaks in production.
+### If none of those find it, stop and say so
+
+Report which paths you checked and ask for the skill's location. Do **not** author the workflows, `skill_audit.py`, `manifest_gate.py`, `dependabot.yml`, `release-drafter.yml` or `pr-checks.yml` from this document — the prose *describes* the templates, it does not *replace* them. A hand-written CI stack passes a hand-written audit, and every divergence stays invisible until something breaks in production.
 
 ##### Copying the templates
 

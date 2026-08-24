@@ -2,6 +2,12 @@
 
 Traps specific to shipping a Lit/TS panel from an integration. For how the panel should look, use the `ha-panel-design` skill.
 
+**Read the section you need.** `grep -n '^#' reference/panels.md` for the list, then read that slice.
+
+- Panel integrations (a custom panel served by the integration)
+- 1. The bundle must be committed
+- 2. `home-assistant-frontend` must be pinned in `requirements.test.txt`
+
 ## Panel integrations (a custom panel served by the integration)
 
 Only if the integration registers a panel. Three things are non-obvious and each fails silently.
@@ -27,9 +33,13 @@ Only if the integration registers a panel. Three things are non-obvious and each
 
 Panel delivery — the committed bundle, its staleness check, registration and the frontend pin — is `reference/panels.md`.
 
-**1. The bundle must be committed.** HACS ships the repo as-is and runs no build step on the user's machine, so the esbuild output has to live inside `custom_components/<domain>/panel/` to reach the release zip. A stale bundle then breaks *invisibly*: the old bundle still runs, tests pass, CI is green, and the only symptom is "the fix I made isn't there". Copy `templates/frontend/{package.json,tsconfig.json}` and `templates/.github/workflows/frontend_build.yml`; the workflow's `git diff --exit-code` on the bundle is the point of the whole file. **This differs from a Lovelace *card* repo**, which attaches the built `.js` as a release asset — an integration cannot, because the asset isn't in the zip HACS installs.
+### 1. The bundle must be committed
 
-**2. `home-assistant-frontend` must be pinned in `requirements.test.txt`.** A panel declares `frontend` (usually `panel_custom` too) in manifest `dependencies`. The frontend *component* has its own pip requirement that `pip install homeassistant` does **not** pull in — component requirements are installed by HA at runtime. Without the pin every setup test fails in CI with `No module named 'hass_frontend'`, while typically **passing locally** because a dev machine already has the package. Worse, the failures read as `'MockConfigEntry' object has no attribute 'runtime_data'`, pointing at the integration rather than the missing dependency. Pin from **core's own manifest** for your HA version, not from PyPI latest:
+HACS ships the repo as-is and runs no build step on the user's machine, so the esbuild output has to live inside `custom_components/<domain>/panel/` to reach the release zip. A stale bundle then breaks *invisibly*: the old bundle still runs, tests pass, CI is green, and the only symptom is "the fix I made isn't there". Copy `templates/frontend/{package.json,tsconfig.json}` and `templates/.github/workflows/frontend_build.yml`; the workflow's `git diff --exit-code` on the bundle is the point of the whole file. **This differs from a Lovelace *card* repo**, which attaches the built `.js` as a release asset — an integration cannot, because the asset isn't in the zip HACS installs.
+
+### 2. `home-assistant-frontend` must be pinned in `requirements.test.txt`
+
+A panel declares `frontend` (usually `panel_custom` too) in manifest `dependencies`. The frontend *component* has its own pip requirement that `pip install homeassistant` does **not** pull in — component requirements are installed by HA at runtime. Without the pin every setup test fails in CI with `No module named 'hass_frontend'`, while typically **passing locally** because a dev machine already has the package. Worse, the failures read as `'MockConfigEntry' object has no attribute 'runtime_data'`, pointing at the integration rather than the missing dependency. Pin from **core's own manifest** for your HA version, not from PyPI latest:
 ```bash
 curl -s https://raw.githubusercontent.com/home-assistant/core/<ha-version>/homeassistant/components/frontend/manifest.json
 ```

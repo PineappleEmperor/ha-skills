@@ -2,7 +2,16 @@
 
 The **file bodies** live in the skill's `templates/` dir (mirrors the target repo: `templates/.github/workflows/*.yml`, `templates/.github/*.yml`, `templates/scripts/*`, `templates/tests/*`, `templates/hooks/*`, `templates/requirements.test.txt`). Copy them as-is — they are self-contained, no external repo. This file is the **why**: the behaviours each workflow must preserve. Read it before changing any workflow.
 
-⚠️ **This file does not substitute for the templates.** It describes required behaviour so you can *review* a workflow; a workflow written from these descriptions is a paraphrase, and paraphrases drift silently. Locate `templates/` per **Where `templates/` lives** in `reference/github-setup.md` and copy byte-for-byte; if you cannot locate it, stop and say so rather than authoring from prose. Sanctioned adaptations are the table in `reference/github-setup.md` — nothing else.
+**Read the section you need.** `grep -n '^#' reference/github-actions.md` for the list, then read that slice.
+
+- This file does not substitute for the templates
+- Superseded — do not reinstate
+- `.github/workflows/python_validate.yml`
+- `pr-checks.yml`'s `version-gate` job
+
+### This file does not substitute for the templates
+
+⚠️ It describes required behaviour so you can *review* a workflow; a workflow written from these descriptions is a paraphrase, and paraphrases drift silently. Locate `templates/` per **Where `templates/` lives** in `reference/github-setup.md` and copy byte-for-byte; if you cannot locate it, stop and say so rather than authoring from prose. Sanctioned adaptations are the table in `reference/github-setup.md` — nothing else.
 
 #### pr-checks.yml template (canonical — copy this, no external repo)
 
@@ -22,7 +31,9 @@ Must-preserve behaviours:
 - **`title-check` decides from the PR's real labels**, never a copy of the autolabeler's regexes — a duplicate drifts from `.github/release-drafter.yml`, and a checker that disagrees with the thing it checks is worse than none. It **suggests**; it never edits the title.
 - **No job writes the PR body.** `auto_draft_pr.yml` opens a draft with a title derived from the commits and an empty body; the changelog is built from commit subjects at release time, so a generated body would only duplicate it and clobber whatever a human wrote.
 
-> **Superseded — do not reinstate.** `create-dev-pr.yml` auto-opened a draft PR on every push to a non-main branch and derived the title from the commits. Four problems, the first fatal: it **cannot serve fork-based contributions** (a `push` workflow never fires for a contributor pushing to their own fork, and a fork's `pull_request` token is read-only), so the convention only ever worked for people with write access. It also auto-opened a PR for every WIP branch, clobbered human-edited titles, and tripped the `GITHUB_TOKEN` `opened`-suppression rule so no checks ran on first open.
+### Superseded — do not reinstate
+
+`create-dev-pr.yml` auto-opened a draft PR on every push to a non-main branch and derived the title from the commits. Four problems, the first fatal: it **cannot serve fork-based contributions** (a `push` workflow never fires for a contributor pushing to their own fork, and a fork's `pull_request` token is read-only), so the convention only ever worked for people with write access. It also auto-opened a PR for every WIP branch, clobbered human-edited titles, and tripped the `GITHUB_TOKEN` `opened`-suppression rule so no checks ran on first open.
 >
 > The separate `pr-labeler.yml`, `pr-title-check.yml`, `pr-commit-summary.yml` and `check-manifest-version.yml` are superseded by `pr-checks.yml` — the first three because they could not be ordered against the labeler, and `check-manifest-version.yml` because its `push` trigger was a no-op (both its steps were gated on `github.event_name == 'pull_request'`).
 >
@@ -54,9 +65,13 @@ All paths assume one integration per repo: `custom_components/<domain>/manifest.
 
 **`.github/workflows/hacs_validate.yml`** — HACS 9-check validation. **No `ignore:` input** — ignoring any check disqualifies the repo from the default store.
 
-**`.github/workflows/python_validate.yml`** + **`requirements.test.txt`** — ruff + pyright + **pytest** on HA's floor Python (no matrix, deliberately — a single-value matrix renames the check-run; keep the Python version in lockstep with `pyproject.toml` / `pyrightconfig.json`). **Tests run in CI, not local-only:** the quality scale requires a test per rule marked `done`, so a suite CI never runs lets those claims rot unverified. The pytest step fails the build on a red test, warns (doesn't fail) when `tests/` is absent so a fresh scaffold is loud rather than silently green, and hard-fails when `tests/` exists but `requirements.test.txt` doesn't — that combination means the suite was never actually installed. `pytest-homeassistant-custom-component` hard-pins `homeassistant==<matching release>`, so the pin in `requirements.test.txt` decides which HA the suite runs against; a mismatched pin fails at import, not at test time.
+### `.github/workflows/python_validate.yml`
 
-**`pr-checks.yml`'s `version-gate` job** + **`scripts/manifest_gate.py`** + **`tests/test_manifest_gate.py`** — version gate **against the last published release** (not `main` HEAD). ⚠️ **The decision logic lives in a unit-tested Python script, NOT inline bash.** A real bug shipped from inline-bash logic: it used strict equality (`suggested == manifest`), so a `chore` PR sitting at `1.2.0` (riding a minor already merged this cycle) was rejected with "expected v1.1.1" — even though `1.2.0` is a perfectly valid in-cycle version. Inline gate logic is untested and regresses silently; extract it so it has a test suite. The gate must enforce a **floor** (≥ the label's minimum bump from the last release — catches under-bumps) **and** a **ceiling** (≤ the in-cycle version on `main`, or this PR's own label bump if it escalates the tier — catches over-bumps), with prerelease versions only needing to differ and `dependabot[bot]` exempt.
++ **`requirements.test.txt`** — ruff + pyright + **pytest** on HA's floor Python (no matrix, deliberately — a single-value matrix renames the check-run; keep the Python version in lockstep with `pyproject.toml` / `pyrightconfig.json`). **Tests run in CI, not local-only:** the quality scale requires a test per rule marked `done`, so a suite CI never runs lets those claims rot unverified. The pytest step fails the build on a red test, warns (doesn't fail) when `tests/` is absent so a fresh scaffold is loud rather than silently green, and hard-fails when `tests/` exists but `requirements.test.txt` doesn't — that combination means the suite was never actually installed. `pytest-homeassistant-custom-component` hard-pins `homeassistant==<matching release>`, so the pin in `requirements.test.txt` decides which HA the suite runs against; a mismatched pin fails at import, not at test time.
+
+### `pr-checks.yml`'s `version-gate` job
+
++ **`scripts/manifest_gate.py`** + **`tests/test_manifest_gate.py`** — version gate **against the last published release** (not `main` HEAD). ⚠️ **The decision logic lives in a unit-tested Python script, NOT inline bash.** A real bug shipped from inline-bash logic: it used strict equality (`suggested == manifest`), so a `chore` PR sitting at `1.2.0` (riding a minor already merged this cycle) was rejected with "expected v1.1.1" — even though `1.2.0` is a perfectly valid in-cycle version. Inline gate logic is untested and regresses silently; extract it so it has a test suite. The gate must enforce a **floor** (≥ the label's minimum bump from the last release — catches under-bumps) **and** a **ceiling** (≤ the in-cycle version on `main`, or this PR's own label bump if it escalates the tier — catches over-bumps), with prerelease versions only needing to differ and `dependabot[bot]` exempt.
 
 The workflow just gathers inputs and shells out:
 
