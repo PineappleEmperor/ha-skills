@@ -698,14 +698,15 @@ def check_required_status_checks(repo: Repo) -> Result:
                                ".nameWithOwner"], cwd=repo.root, capture_output=True,
                               text=True, check=False)
     except OSError:
-        return [], []
+        return [], ["gh is not available — required status checks NOT CHECKED, not passed"]
     slug = name.stdout.strip()
     if not slug:
-        return [], []
+        return [], ["no GitHub remote resolved — required status checks NOT CHECKED, not passed"]
     branch = subprocess.run(["gh", "api", f"repos/{slug}", "--jq", ".default_branch"],
                             cwd=repo.root, capture_output=True, text=True, check=False).stdout.strip()
     if not branch:
-        return [], []
+        return [], [f"could not read {slug} (token lacks permission?) — required status checks "
+                    "NOT CHECKED, not passed"]
     rules = subprocess.run(["gh", "api", f"repos/{slug}/rules/branches/{branch}", "--jq",
                             "[.[].type]"], cwd=repo.root, capture_output=True, text=True,
                            check=False).stdout.strip()
@@ -721,6 +722,32 @@ def check_required_status_checks(repo: Repo) -> Result:
     return fails, warns
 
 
+def check_dependency_graph(repo: Repo) -> Result:
+    """`dependency_review.yml` fails, rather than skips, when the graph is disabled.
+
+    Observed on a live test repo: seven workflows green and Dependency review red alone,
+    because the repo had been created private and made public, which leaves the graph off.
+    A required check that can never pass blocks every PR, so this reports the state rather
+    than leaving it to be discovered on the first PR.
+    """
+    if not repo.exists(".github/workflows/dependency_review.yml"):
+        return [], []
+    try:
+        slug = subprocess.run(["gh", "repo", "view", "--json", "nameWithOwner", "--jq",
+                               ".nameWithOwner"], cwd=repo.root, capture_output=True,
+                              text=True, check=False).stdout.strip()
+    except OSError:
+        return [], ["gh is not available — dependency graph NOT CHECKED, not passed"]
+    if not slug:
+        return [], ["no GitHub remote resolved — dependency graph NOT CHECKED, not passed"]
+    probe = subprocess.run(["gh", "api", f"repos/{slug}/dependency-graph/sbom", "--jq", ".sbom.name"],
+                           cwd=repo.root, capture_output=True, text=True, check=False)
+    if probe.returncode == 0 and probe.stdout.strip():
+        return [], []
+    return [f"{slug} ships dependency_review.yml but its dependency graph is off, so that "
+            "check fails on every PR — enable it at Settings -> Advanced Security"], []
+
+
 CHECKS = (
     check_canonical_files, check_no_tracked_artefacts, check_scripts_present,
     check_scripts_wired, check_single_body_writer, check_previous_tag,
@@ -731,7 +758,7 @@ CHECKS = (
     check_pr_openers, check_antipatterns, check_quality_scale_and_manifest,
     check_autolabeler_title_only, check_drafter_categories, check_docstrings,
     check_commit_hook, check_brand_assets, check_self_diff, check_template_pins,
-    check_release_token, check_required_status_checks,
+    check_release_token, check_required_status_checks, check_dependency_graph,
 )
 
 
@@ -745,6 +772,7 @@ def audit(root: pathlib.Path) -> Result:
         fails += f
         warns += w
     return fails, warns
+
 
 
 def main(argv: list[str] | None = None) -> int:

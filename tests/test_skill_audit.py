@@ -153,3 +153,48 @@ def test_a_marked_opener_states_its_own_reason(repo) -> None:
         "jobs:\n  x:\n    steps:\n      - run: gh pr create --title v\n")
     fails, _ = audit.check_pr_openers(audit.Repo(repo))
     assert fails == []
+
+
+def test_unverifiable_checks_warn_rather_than_passing(repo, monkeypatch) -> None:
+    """A check that cannot run must say NOT CHECKED, not stay silent.
+
+    Observed on a live run: `Skill Audit` passed in CI while the same script failed
+    locally, because CI could not query GitHub and the check returned nothing. A check
+    that only fails where nobody looks is worse than no check.
+    """
+    class _Missing:
+        def __call__(self, *a, **k):
+            raise OSError("gh not found")
+    monkeypatch.setattr(audit.subprocess, "run", _Missing())
+
+    _, warns = audit.check_required_status_checks(audit.Repo(repo))
+    assert any("NOT CHECKED" in w for w in warns)
+
+    _wf(repo, "dependency_review.yml", "jobs:\n  review:\n    steps: []\n")
+    _, warns = audit.check_dependency_graph(audit.Repo(repo))
+    assert any("NOT CHECKED" in w for w in warns)
+
+
+def test_dependency_graph_off_is_a_failure(repo, monkeypatch) -> None:
+    """Seven workflows green and Dependency review red alone — the observed failure."""
+    _wf(repo, "dependency_review.yml", "jobs:\n  review:\n    steps: []\n")
+
+    class _Fake:
+        def __init__(self, out, rc=0): self.stdout, self.returncode = out, rc
+    calls = []
+
+    def fake_run(cmd, **k):
+        calls.append(cmd)
+        if "repo" in cmd and "view" in cmd:
+            return _Fake("owner/repo\n")
+        return _Fake("", 1)          # sbom probe fails: graph disabled
+    monkeypatch.setattr(audit.subprocess, "run", fake_run)
+
+    fails, _ = audit.check_dependency_graph(audit.Repo(repo))
+    assert any("dependency graph is off" in f for f in fails)
+
+
+def test_no_dependency_review_workflow_means_nothing_to_check(repo, monkeypatch) -> None:
+    """A repo that does not ship the workflow has no prerequisite to satisfy."""
+    monkeypatch.setattr(audit.subprocess, "run", lambda *a, **k: (_ for _ in ()).throw(AssertionError("must not query")))
+    assert audit.check_dependency_graph(audit.Repo(repo)) == ([], [])
