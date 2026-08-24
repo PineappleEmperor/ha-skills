@@ -165,15 +165,16 @@ async def async_setup_entry(hass, entry, async_add_entities):
 - Collapsible service form: `fields: { appearance: { collapsed: true, fields: {...} } }` — sections are UI-only; the call data stays flat, so the voluptuous schema is unaffected.
 
 **Custom frontend panel** (sidebar UI beyond config/options)
-- **Register integration-global resources in `async_setup`, not `async_setup_entry`.** The static-path serve and the `websocket_api` command registration are process-global, register-once resources — like services, they belong in `async_setup`, which HA calls **exactly once, before any entry, never in parallel.** Doing them per-entry *races*: with multiple devices, two entries set up concurrently and both pass a `hass.data` "already registered?" guard before either's `await` completes, so the second `async_register_static_paths` raises aiohttp `RuntimeError: Added route ... already registered` and fails that entry's setup. The **sidebar panel** is the one exception — it's gated on a per-entry option (`show_panel`) and toggled at runtime, so it stays entry-driven; guard it with a `hass.data` flag set **synchronously before** the `await` (claim-then-register) to close the same race, and `frontend.async_remove_panel` on last unload.
+
+- **Register integration-global resources in `async_setup`, not `async_setup_entry`.** The static-path serve and the websocket command registration happen once per process; doing them per entry races when two entries set up in parallel. Claim the `hass.data` flag **before** the `await`, or both entries pass the check.
+- Add `"http"`, `"panel_custom"`, `"websocket_api"` to the manifest `dependencies`.
+
   ```python
-  from homeassistant.components import frontend, panel_custom, websocket_api
   from homeassistant.components.http import StaticPathConfig
 
   async def async_setup(hass, config):  # once per process — no entry parallelism
       await hass.http.async_register_static_paths(
           [StaticPathConfig("/{domain}_panel/editor.js", str(Path(__file__).parent / "panel" / "editor.js"), False)])
-      websocket_api.async_register_command(hass, ws_handler)  # all ws commands here too
       return True
 
   async def _refresh_panel(hass):  # from async_setup_entry — option-gated, toggleable
@@ -184,11 +185,8 @@ async def async_setup_entry(hass, entry, async_add_entities):
               sidebar_title="...", sidebar_icon="mdi:view-grid", require_admin=True)
   # last unload: frontend.async_remove_panel(hass, "{domain}")
   ```
-  Add `"http"`, `"panel_custom"`, `"websocket_api"` to manifest `dependencies`.
-- Back the panel with `websocket_api` commands (`@websocket_api.websocket_command({...})` + `async_register_command`), not custom REST. The panel element gets `hass` injected and calls `hass.callWS({type: "..."})`.
-- Pyright flags `websocket_api.websocket_command`/`async_response` as private — set `"reportPrivateImportUsage": false` in `pyrightconfig.json` (standard HA-integration usage).
-- Frontend: a Lit + TS bundle built with esbuild to a **committed** `panel/editor.js` (HACS ships it, no build on the user's box). A CI job runs `npm ci && npm run build` and `git diff --exit-code` to prove the committed bundle matches source. The JS is not Python, so ruff/pyright skip it; keep render logic in the **backend** and send the browser finished pixels/data so the JS stays display-only.
-- If the integration reuses MicroPython firmware render code under CPython (e.g. for a pixel-accurate preview), bundle a copy inside the package and add a CI sync check (hash/transform compare against `firmware/`) so the copies can't drift; exclude that copy from ruff (`extend-exclude`) and pyright (`exclude`).
+
+Panel delivery — the committed bundle, its staleness check, registration and the frontend pin — is `reference/panels.md`.
 
 **Diagnostics platform** (Gold requirement — add `diagnostics.py`):
 ```python

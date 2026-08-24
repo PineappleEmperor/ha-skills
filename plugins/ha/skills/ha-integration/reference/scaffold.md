@@ -54,8 +54,8 @@ What to ask, what to generate, and the conventions the generated code follows. R
   > value is a placeholder between releases and nothing reads it.
 - `pyproject.toml`
 - `pyrightconfig.json`
-- `requirements.test.txt` — **required**; `python_validate.yml` installs from it and runs `pytest`, so an integration without it has no test job. Copy `templates/requirements.test.txt`. Pin `pytest-homeassistant-custom-component` to the release matching the HA version in `python_validate.yml` (it tracks HA releases 1:1 — a mismatched pin fails at import, not at test time).
-- `conftest.py` — **required, at the repo root, not in `tests/`**; copy `templates/conftest.py`. Its first import claims the name `custom_components` for this repo before `pytest-homeassistant-custom-component` binds it to the package it bundles; without that, HA cannot see the integration and every setup test fails with `Integration not found`. It also pulls in `enable_custom_integrations` autouse. `pyproject.toml` additionally needs `asyncio_mode = "auto"`. Both verified by ablation — full explanation in `reference/testing.md`, read it before writing the first test.
+- `requirements.test.txt` — **required**; copy `templates/requirements.test.txt`. Why the pin matters, and what breaks without it: `reference/testing.md`.
+- `conftest.py` — **required, at the repo root, not in `tests/`**; copy `templates/conftest.py`. Why it must be at the root: `reference/testing.md`.
 - `tests/` — one file per module under test, plus `test_manifest_gate.py` and `test_commit_summary.py` (described in `reference/github-actions.md`). See the testing rules in `reference/testing.md`.
 - `README.md` — **include the AI-assistance disclaimer** as a GitHub `> [!NOTE]` admonition box. Link the skill name to its public repo. Template:
   ```markdown
