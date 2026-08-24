@@ -27,3 +27,5 @@ jobs:
           # Dependabot raises these on its own schedule; failing a human's unrelated
           # PR for a pre-existing low-severity advisory is noise, not a gate.
           fail-on-severity: high
+
+# Dependency graph enabled 2026-08-23; this line re-triggers the PR checks.
