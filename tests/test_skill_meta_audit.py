@@ -200,3 +200,28 @@ def test_an_undocumented_shipped_workflow_fails(tmp_path) -> None:
     fails, _ = audit.check_shipped_workflows_documented(audit.Repo(tmp_path))
     assert any("stale.yml" in f for f in fails)
     assert not any("pr-checks.yml" in f for f in fails)
+
+
+def test_a_wall_of_prose_is_flagged_but_a_long_list_is_not(tmp_path) -> None:
+    """The first version counted blocks, so a 60-item bullet list read as one paragraph.
+
+    Eight of its twelve warnings were well-structured lists and code fences. What costs a
+    reader is an unbroken run of sentences — that is where a conditional rule hides in the
+    middle and gets applied unconditionally.
+    """
+    _skill(tmp_path, "ha-thing", "name: ha-thing\ndescription: Use when doing a thing")
+    ref = tmp_path / "plugins/ha/skills/ha-thing/reference"
+    ref.mkdir(exist_ok=True)
+
+    (ref / "wall.md").write_text("# W\n\n" + "sentence words here about a rule " * 45 + "\n")
+    _, warns = audit.check_paragraph_length(audit.Repo(tmp_path))
+    assert any("prose run" in w for w in warns)
+
+    (ref / "wall.md").write_text("# W\n\n" + "\n".join(
+        f"- item {i} with several words in it" for i in range(60)) + "\n")
+    _, warns = audit.check_paragraph_length(audit.Repo(tmp_path))
+    assert not any("prose run" in w for w in warns)
+
+    (ref / "wall.md").write_text("# W\n\n```python\n" + "x = 1  # a comment with words\n" * 60 + "```\n")
+    _, warns = audit.check_paragraph_length(audit.Repo(tmp_path))
+    assert not any("prose run" in w for w in warns)

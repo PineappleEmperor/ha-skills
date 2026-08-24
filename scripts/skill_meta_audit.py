@@ -232,13 +232,32 @@ def check_paragraph_length(repo: Repo) -> Result:
                 warns.append(f"{doc}: unreadable ({exc.strerror}) — an audit cannot "
                              "vouch for a file it could not open")
                 continue
-            for para in re.split(r"\n\s*\n", text):
-                if para.strip().startswith("```") or para.lstrip().startswith("|"):
+            # Measure the longest run of PROSE, not of any block. A bullet list has no
+            # blank lines between items, so counting blocks flagged well-structured lists
+            # and code fences — 12 warnings, of which 8 were lists. What actually costs a
+            # reader is an unbroken wall of sentences, which is where a conditional rule
+            # hides mid-paragraph and gets applied unconditionally.
+            fenced = False
+            run: list[str] = []
+            def flush(run=run):
+                if not run:
+                    return
+                words = sum(len(l.split()) for l in run)
+                if words > 200:
+                    first = " ".join(" ".join(run).split())[:60]
+                    warns.append(f"{doc.relative_to(repo.root)}: {words}-word prose run — "
+                                 f"break it up ({first}...)")
+                run.clear()
+            for line in text.splitlines():
+                if line.lstrip().startswith("```"):
+                    fenced = not fenced
+                    flush()
                     continue
-                n = len(para.split())
-                if n > 200:
-                    first = " ".join(para.split())[:60]
-                    warns.append(f"{doc.relative_to(repo.root)}: {n}-word paragraph — split it ({first}...)")
+                if fenced or not line.strip() or line.lstrip()[:1] in "-*>|#":
+                    flush()
+                    continue
+                run.append(line)
+            flush()
     return [], warns
 
 

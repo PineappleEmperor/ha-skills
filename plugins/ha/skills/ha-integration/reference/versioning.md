@@ -57,15 +57,14 @@ says what the labels imply. The committed value is a placeholder between release
 
 ### ⚠️ A `pull_request_target` workflow cannot validate a fix to itself
 
-`pull_request_target` loads the workflow definition from the **base** branch, not the PR's. So a PR that fixes `pr-checks.yml` is still checked by the *broken* copy on `main`, and its check stays red no matter how correct the fix is.
+`pull_request_target` loads the workflow from the **base branch**, so a PR that fixes a
+broken job is still checked by the broken copy on `main`. The job cannot pass until the fix
+is merged, and it cannot be merged while the job is red.
 
-Observed: a job wrote `subjects.txt`, then checked out (which clears the workspace), then read the file — `FileNotFoundError`. The fix reordered the steps; the PR carrying that fix failed anyway, because the base branch still held the broken version.
-
-**How to handle it.** This is the ONLY sanctioned reason to merge with a red check, and it applies to one job on one PR: the job whose own definition the PR is fixing. Confirm first by diffing the base copy against the branch copy (`git show origin/main:.github/workflows/pr-checks.yml` versus the branch's), state in the PR that the failure is the bug being fixed, then verify on the **next** PR, the first to run the corrected workflow from `main`.
-
-⚠️ **It is not general licence, and it has been misread as such.** The full rule, with the rationalisation table and red flags, is *Merge discipline* in `reference/discipline.md`. A red check on any other job, or on a PR that is not fixing that job, means stop. The failure this exception was written for is structural and provable in a diff; every other red check is the gate doing its job. Treat "I understand why it is red" as a reason to fix it, not to merge it.
-
-The same property makes a *new* `pull_request_target` workflow inert on the PR that introduces it: it only starts running once merged.
+This is the **only** sanctioned reason to merge with a red check, it applies to one job on
+one PR, and it requires proof by diff. The full rule, the rationalisation table and the red
+flags are *Merge discipline* in `reference/discipline.md` — read it there rather than
+acting on this summary.
 
 ### PR events fire normally — the `GITHUB_TOKEN` suppression no longer applies
 

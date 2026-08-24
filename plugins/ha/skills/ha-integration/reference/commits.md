@@ -20,7 +20,7 @@ notes are generated from. The labels, gates and release model are
 **No AI-attribution trailers.** Don't append `Co-Authored-By: Claude`, tool/session links, or any "generated with…" line to commits — keep the authorship history clean. (If a harness injects such trailers by default, strip them.) A `Co-Authored-By:` for a *real* human collaborator is fine.
 
 ⚠️ **Enforce the trailer ban with a `commit-msg` hook — prose alone isn't enough.** A coding harness can inject `Co-Authored-By: Claude` / `Claude-Session:` on *every* commit via a standing instruction, which fights this rule turn after turn; the agent keeps "remembering" the harness default over the skill and regresses. The fix is deterministic enforcement at the git layer, not memory. Ship `.githooks/commit-msg` (Conventional Commit subject shape + terse-subject + no-narrative-body + an **editorialising-word** reject + **AI-trailer rejection**), add it to the scaffold's repo-root files, and tell contributors to enable it once per clone in `CLAUDE.md`: `git config core.hooksPath .githooks`.
-Body in **`templates/hooks/commit-msg`** — copy it to `.githooks/commit-msg`, `chmod +x`, and enable once per clone with `git config core.hooksPath .githooks`. Don't retype it from this document.
+Body in **`templates/hooks/commit-msg`** — copy it to `.githooks/commit-msg`, `chmod +x`. Don't retype it from this document.
 
 **Put the narrative in the release, not the commit.** The human-readable "what changed and why it matters" belongs in the **PR description / release notes** (surfaced by release-drafter / `generate_release_notes`), which is where users actually read it. Keep commits terse; write the detail once, in the release description.
 
