@@ -65,7 +65,7 @@ What to ask, what to generate, and the conventions the generated code follows. R
 - `LICENSE` — the full text of the chosen licence (MIT unless told otherwise), so GitHub
   resolves an SPDX identifier and the HACS `license` check passes.
 - `.gitignore` — copy `templates/.gitignore`. Covers `__pycache__/`, caches, venvs, HA dev artefacts (`.storage/`, `home-assistant.log*`, the `_v2.db`), and `device_map.md` (the `ha-log-triage` device map holds a home's IP/device layout and must never be committed). **Not optional:** without it a local `pytest` run plus a `git add -A` commits `.pyc` files, and a `.pyc` under `templates/` is then copied verbatim into every repo scaffolded from the skill. `skill_audit.py` fails on any tracked compiled artefact.
-- `ruleset.json` — copy `templates/ruleset.json` to the repo root; `bootstrap_repo.sh` reads it from there to apply the required checks.
+- `ruleset.json` — copy `templates/ruleset.json` to the repo root; what it requires and why is `reference/github-setup.md`.
 - `.githooks/commit-msg` — copy `templates/hooks/commit-msg`, `chmod +x`. Terse-subject + AI-trailer rejection. **Enable once per clone: `git config core.hooksPath .githooks`** — an unenabled hook is a file, not a guard. Document that line in `CLAUDE.md`.
 - `custom_components/{domain}/brand/icon.png` — **256×256**, required by HACS brands validation
 - `custom_components/{domain}/brand/icon@2x.png` — **512×512** (see HiDPI note below)

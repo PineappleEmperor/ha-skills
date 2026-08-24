@@ -1,5 +1,7 @@
 # GitHub CI stack — rationale & required behaviours
 
+<!-- owns: pr-openers -->
+
 The **file bodies** live in the skill's `templates/` dir (mirrors the target repo: `templates/.github/workflows/*.yml`, `templates/.github/*.yml`, `templates/scripts/*`, `templates/tests/*`, `templates/hooks/*`, `templates/requirements.test.txt`). Copy them as-is — they are self-contained, no external repo. This file is the **why**: the behaviours each workflow must preserve. Read it before changing any workflow.
 
 ⚠️ **This file does not substitute for the templates.** It describes required behaviour so you can *review* a workflow; a workflow written from these descriptions is a paraphrase, and paraphrases drift silently. Locate `templates/` per **Where `templates/` lives** in `reference/github-setup.md` and copy byte-for-byte; if you cannot locate it, stop and say so rather than authoring from prose. Sanctioned adaptations are the table in `reference/github-setup.md` — nothing else.

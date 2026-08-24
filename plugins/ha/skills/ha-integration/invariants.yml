@@ -1,68 +1,46 @@
-# Load-bearing facts, declared once. `skill_meta_audit.py` fails any prose that
-# contradicts one, so a fact cannot be restated wrongly in a file nobody re-read.
+# Single source of truth, enforced.
 #
-# Each invariant: what is true, which file owns the explanation, and the phrasings that
-# can only appear if someone is asserting the opposite. A line may opt out with an inline
-# `<!-- allow: <id> -->`, which is how a deliberately historical passage stays.
+# PURPOSE: each load-bearing fact is explained in exactly ONE file. Every other mention of
+# it must be a pointer to that file. Not "detect wrong restatements" — prevent restatement.
 #
-# Added after four review passes kept finding the same versioning claim restated wrongly
-# in a different file each time.
+# WHY NOT PHRASE-MATCHING: a deny-list of wrong wordings is unbounded. "bumped manually"
+# slipped past a list containing "bump the manifest"; the next writer finds another. This
+# check does not read what you claimed, only where you claimed it.
+#
+# VERIFIED BY: tests/test_skill_meta_audit.py — a restatement in a non-owner file fails, a
+# pointer line passes, the owner's own prose passes, and a missing anchor fails.
+#
+# owner  the file that explains the fact; must carry `<!-- owns: <id> -->`
+# terms  topic markers. A line in any other file containing one must link to the owner.
 
 - id: version-model
-  truth: >
-    The release tag sets the version. release.yml patches manifest.json into the zip at
-    publish; no PR, branch or commit ever carries a hand-written bump.
   owner: reference/versioning.md
-  forbidden:
-    - "bump `manifest.json`"
+  terms:
+    - "manifest.json version"
+    - "carries a bump"
     - "bump the manifest"
-    - "bump `plugin.json`"
-    - "pre-merge bump"
-    - "hand-written bump"
     - "bumped manually"
-    - "bump it manually"
-    - "manual bump"
+    - "pre-merge bump"
 
 - id: pr-openers
-  truth: >
-    auto_draft_pr.yml opens draft PRs, actor-gated, using RELEASE_TOKEN. A repo may add
-    one more opener if it carries a `# skill-audit: sanctioned-opener` marker.
   owner: reference/github-actions.md
-  forbidden:
-    - "No workflow opens one"
-    - "no workflow opens PRs"
-    - "PRs are opened by humans."
-
-- id: drafter-version-source
-  truth: >
-    release_drafter.yml resolves the version from merged PR labels, never from a file.
-  owner: reference/versioning.md
-  forbidden:
-    - "version from the manifest"
-    - "Reads the release version from"
+  terms:
+    - "opens a PR"
+    - "opens PRs"
+    - "opens the draft"
+    - "opening PRs"
 
 - id: required-contexts
-  truth: >
-    ruleset.json is the source of truth for required contexts. Version validation is
-    deliberately absent because it cannot fail in a tag-driven repo.
   owner: reference/github-setup.md
-  forbidden:
-    - "rulesets require this context by name"
-
-- id: pr-checks-triggers
-  truth: >
-    pr-checks.yml runs on pull_request_target only. There is no push-context run.
-  owner: reference/github-actions.md
-  forbidden:
-    - "push-context run"
-    - "the push trigger"
+  terms:
+    - "required status check"
+    - "required contexts"
+    - "ruleset.json"
 
 - id: merge-discipline
-  truth: >
-    Never merge a red check and never merge by disabling a gate. One exception: a
-    pull_request_target workflow fixing its own definition, proven by diff.
   owner: reference/discipline.md
-  forbidden:
-    - "enforcement to `disabled`, merge"
-    - "use `--admin`"
-    - "merge with `--admin`"
+  terms:
+    - "merge with a red check"
+    - "merge past a red"
+    - "bypass_actors"
+    - "--admin"

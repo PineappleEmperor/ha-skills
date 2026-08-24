@@ -24,7 +24,7 @@ Body in **`templates/hooks/commit-msg`** — copy it to `.githooks/commit-msg`, 
 
 **Put the narrative in the release, not the commit.** The human-readable "what changed and why it matters" belongs in the **PR description / release notes** (surfaced by release-drafter / `generate_release_notes`), which is where users actually read it. Keep commits terse; write the detail once, in the release description.
 
-**The PR body is for reviewers and nothing else.** No job writes it — `auto_draft_pr.yml` opens the draft with an empty one. Release notes are built from the commit subjects, so anything written here reaches reviewers only. Label the PR so it lands in the intended category (e.g. a `major`/`xfeature` label → 🚨 Breaking Change). Note release-drafter draws the PR body via the GraphQL path; `gh pr edit` can fail on the Projects-classic deprecation — set title/body via `gh api -X PATCH repos/{o}/{r}/pulls/{n} -f title=… -F body=@file` instead.
+**The PR body is for reviewers and nothing else.** No job writes it — see `reference/github-actions.md` for which workflow opens a draft and how. Release notes are built from the commit subjects, so anything written here reaches reviewers only. Label the PR so it lands in the intended category (e.g. a `major`/`xfeature` label → 🚨 Breaking Change). Note release-drafter draws the PR body via the GraphQL path; `gh pr edit` can fail on the Projects-classic deprecation — set title/body via `gh api -X PATCH repos/{o}/{r}/pulls/{n} -f title=… -F body=@file` instead.
 
 > ✅ **Release notes are generated from commit subjects, not from PR bodies.**
 > `scripts/release_notes.py` walks the commits since the last published release,

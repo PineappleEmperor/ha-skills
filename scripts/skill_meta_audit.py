@@ -209,41 +209,49 @@ def check_shipped_workflows_documented(repo: Repo) -> Result:
 
 
 def check_invariants(repo: Repo) -> Result:
-    """Prose may not contradict a declared invariant.
+    """Each load-bearing fact is explained in one file; elsewhere it may only be linked.
 
-    Four review passes each found the same versioning fact restated wrongly in a file
-    nobody had re-read — "bump manifest.json to the next rcN" three lines from "nothing is
-    ever bumped by hand". Structural checks cannot see that: the link resolves, the file
-    exists, the count is right, and the sentence is false.
+    PURPOSE: enforce single source of truth, rather than detect breaches of it. Four review
+    passes each found the same fact restated wrongly in whichever file nobody re-read —
+    "bump manifest.json to the next rcN" three lines from "nothing is ever bumped by hand".
 
-    So the facts are declared once in `invariants.yml`, with the phrasings that can only
-    appear when someone is asserting the opposite. A line that must keep one — a
-    historical note, a description of what a superseded stack did — opts out inline with
-    `<!-- allow: <id> -->`.
+    NOT phrase-matching. A deny-list of wrong wordings is unbounded: a list containing
+    "bump the manifest" missed "bumped manually", and the next writer finds another. This
+    check ignores what a line claims and asks only whether the file is allowed to claim it.
+    A non-owner may mention the topic solely on a line that links to the owner.
+
+    There is no opt-out. A passage that must restate a fact is a passage that should point
+    instead, and a passage describing superseded behaviour should be deleted.
     """
     fails: list[str] = []
     for manifest in sorted(repo.root.glob("plugins/*/skills/*/SKILL.md")):
-        spec = manifest.parent / "invariants.yml"
+        skill = manifest.parent
+        spec = skill / "invariants.yml"
         if not spec.is_file():
             continue
         import yaml as _yaml
-        invariants = _yaml.safe_load(spec.read_text()) or []
-        owners = {i["id"]: i.get("owner") for i in invariants}
-        for doc in sorted(manifest.parent.rglob("*.md")):
-            if "evals" in doc.parts:
+        for inv in _yaml.safe_load(spec.read_text()) or []:
+            owner = skill / inv["owner"]
+            if not owner.is_file():
+                fails.append(f"invariants.yml: owner {inv['owner']} for '{inv['id']}' does not exist")
                 continue
-            rel = doc.relative_to(manifest.parent)
-            for n, line in enumerate(doc.read_text().splitlines(), 1):
-                for inv in invariants:
-                    if f"<!-- allow: {inv['id']} -->" in line:
+            anchor = f"<!-- owns: {inv['id']} -->"
+            if anchor not in owner.read_text():
+                fails.append(f"{inv['owner']} owns '{inv['id']}' but carries no {anchor} anchor, "
+                             "so nothing marks where the fact is explained")
+            for doc in sorted(skill.rglob("*.md")):
+                if "evals" in doc.parts or doc == owner:
+                    continue
+                rel = doc.relative_to(skill)
+                for n, line in enumerate(doc.read_text().splitlines(), 1):
+                    if inv["owner"] in line:          # a pointer: allowed
                         continue
-                    for phrase in inv["forbidden"]:
-                        if phrase.lower() in line.lower():
+                    for term in inv["terms"]:
+                        if term.lower() in line.lower():
                             fails.append(
-                                f"{rel}:{n} contradicts invariant '{inv['id']}' "
-                                f"({phrase!r}) — the fact is owned by {owners[inv['id']]}; "
-                                "state it there, or mark this line "
-                                f"<!-- allow: {inv['id']} --> if it is deliberately historical")
+                                f"{rel}:{n} states '{inv['id']}' ({term!r}) but that fact is "
+                                f"owned by {inv['owner']} — link to it instead of restating it")
+                            break
     return fails, []
 
 

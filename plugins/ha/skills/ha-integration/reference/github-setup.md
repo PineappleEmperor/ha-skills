@@ -1,5 +1,7 @@
 # Setting the repository up on GitHub
 
+<!-- owns: required-contexts -->
+
 One-time setup that lives in GitHub's settings rather than in the repo: the release token, the required checks, the CI templates and the supply-chain guards. `scripts/bootstrap_repo.sh` does most of it in one command.
 
 ## `RELEASE_TOKEN` — set this up before the first release
@@ -132,9 +134,9 @@ Two ways to get it wrong, both of which block every PR permanently:
 - **A context that never reports.** Requiring a check the repo doesn't produce (a repo without `quality_audit.yml` must drop `ha-integration conformance check`) leaves PRs waiting for a check that will never run.
 - **A path-filtered workflow.** `Panel bundle staleness check` from `frontend_build.yml` is absent from the shipped `ruleset.json` for this reason: it only triggers on panel changes, so requiring it would block every unrelated PR.
 
-⚠️ **`bypass_actors` must stay empty to mean anything.** A ruleset granting admins `bypass_mode: always` does not constrain anyone holding admin; the push reports `Bypassed rule violations` and proceeds. If you ever genuinely must overrule — and *Merge discipline* in `reference/discipline.md` gives exactly one sanctioned reason, proven by diff — disable the ruleset, merge, and re-enable it. Doing it that way is deliberate, reversible and leaves an audit-log entry.
+⚠️ **Bypass configuration, and why it must stay empty, is `reference/discipline.md`.** In short: A ruleset granting admins `bypass_mode: always` does not constrain anyone holding admin; the push reports `Bypassed rule violations` and proceeds. If you ever genuinely must overrule — and *Merge discipline* in `reference/discipline.md` gives exactly one sanctioned reason, proven by diff — disable the ruleset, merge, and re-enable it. Doing it that way is deliberate, reversible and leaves an audit-log entry.
 
-> **For AI sessions.** An agent running with your `gh` credentials merges exactly as you do, and `bypass_actors` is evaluated by actor, so any bypass you hold it inherits. Two things make that silent: a broad allow-rule such as `Bash(gh pr *)` in `.claude/settings.local.json` pre-approves `gh pr merge` with no prompt, and an agent with admin can lift any rule it can see. Narrow the allow-rule to read-only verbs (`gh pr view`, `gh pr list`), and give the agent a credential without **Administration** if it genuinely should not edit rulesets or force-push. A restriction the agent can lift is friction, not a limit.
+> **For AI sessions.** An agent running with your `gh` credentials merges exactly as you do, and bypass entries are evaluated by actor (`reference/discipline.md`), so any bypass you hold it inherits. Two things make that silent: a broad allow-rule such as `Bash(gh pr *)` in `.claude/settings.local.json` pre-approves `gh pr merge` with no prompt, and an agent with admin can lift any rule it can see. Narrow the allow-rule to read-only verbs (`gh pr view`, `gh pr list`), and give the agent a credential without **Administration** if it genuinely should not edit rulesets or force-push. A restriction the agent can lift is friction, not a limit.
 
 ## Supply chain
 

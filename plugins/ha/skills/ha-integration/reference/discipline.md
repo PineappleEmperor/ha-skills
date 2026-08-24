@@ -1,10 +1,14 @@
 # Commit, PR and merge discipline
 
+<!-- owns: merge-discipline -->
+
 The rules that decide what ships and what a release says. SKILL.md carries the one-line versions; the reasoning is here.
 
 ## PR discipline — the commit subjects are the changelog
 
-**The release notes are built from the commits, not from the PR body.** `scripts/release_notes.py` classifies each subject and groups it; `auto_draft_pr.yml` opens the draft with an empty body. So a body is optional context for reviewers, and writing the changelog into it just says the same thing twice, in a place users never read.
+<!-- the opener itself is described in reference/github-actions.md -->
+
+**The release notes are built from the commits, not from the PR body.** `scripts/release_notes.py` classifies each subject and groups it, and the draft PR arrives with an empty body (see `reference/github-actions.md`). So a body is optional context for reviewers, and writing the changelog into it just says the same thing twice, in a place users never read.
 
 Reasoning, alternatives, verification evidence: those go in the PR **conversation**, where reviewers read them and the notes do not.
 
@@ -55,9 +59,9 @@ Violating the letter of this rule is violating the spirit of it. The gate stack 
 - Reaching for `--admin`, `--force`, or a `bypass_actors` entry to get a merge through
 - Telling yourself the failure is "unrelated" without having read the log
 
-**All of these mean: stop, read the log, fix or explain in writing first.**
+**All of these mean: stop, read the log, fix or explain in writing first.** Which checks are required, and why one of them is deliberately absent, is `reference/github-setup.md`.
 
-> **Observed.** This rule exists because it was broken in this skill's own repo. The `pull_request_target` exception was written, then reused a few hours later on a PR it did not cover: the version gate had correctly failed because the PR carried no label, and the merge went through with the failure undiagnosed. Two conditions made it silent — an allow-rule of `Bash(gh pr *)` pre-approving `gh pr merge`, and no required status checks on the branch.
+> **Observed.** This rule exists because it was broken in this skill's own repo. The `pull_request_target` exception was written, then reused a few hours later on a PR it did not cover: the version gate had correctly failed because the PR carried no label, and the merge went through with the failure undiagnosed. Two conditions made it silent — an allow-rule of `Bash(gh pr *)` pre-approving `gh pr merge`, and no required checks on the branch (listed in `reference/github-setup.md`).
 
 ---
 

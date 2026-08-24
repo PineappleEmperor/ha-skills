@@ -1,5 +1,7 @@
 # Versioning, labels & CI gating
 
+<!-- owns: version-model -->
+
 Reference for `ha-integration`. Loaded on demand.
 
 Commit and PR-title conventions, and what the release notes are built from, are
@@ -44,9 +46,9 @@ The `!`-breaking branch must come first (else `feat!` matches the `feat` arm). T
 
 **Nothing is ever bumped by hand.** `release.yml` writes `manifest.json` from the release
 tag at publish, so no PR carries a bump, `version-gate` skips itself, and the advisory step
-says what the labels imply. The committed value is a placeholder between releases.
+says what the labels imply. The committed value is a placeholder between releases. Dependabot's exemption from it is `reference/github-setup.md`.
 
-**Exempt Dependabot from the version gate.** Dependabot PRs never touch `manifest.json`, and right after a release (`main` == last release) a no-bump PR equals the released version → the gate's "unchanged" rule trips. Exempt it with a **job-level** `if:` — `github.event.pull_request.user.login != 'dependabot[bot]'`. A skipped job satisfies a required status check, which GitHub states plainly and which this repo has since confirmed, so the merge is not blocked and the check reads "Skipped" rather than a green that proves nothing. There is no second run to fall back on — `pr-checks.yml` triggers on `pull_request_target` only. With this, Dependabot PRs fold into the next release with no bump, exactly as intended.
+**Exempt Dependabot from the version gate** (`reference/github-setup.md` for the required-check list). Dependabot PRs never touch `manifest.json`, and right after a release (`main` == last release) a no-bump PR equals the released version → the gate's "unchanged" rule trips. Exempt it with a **job-level** `if:` — `github.event.pull_request.user.login != 'dependabot[bot]'`. A skipped job satisfies a required status check, which GitHub states plainly and which this repo has since confirmed, so the merge is not blocked and the check reads "Skipped" rather than a green that proves nothing. There is no second run to fall back on — `pr-checks.yml` triggers on `pull_request_target` only. With this, Dependabot PRs fold into the next release with no bump, exactly as intended.
 
 > ⚠️ **Orphaned-branch trap.** A PR merges to `main` as soon as it's approved/auto-merged. **Any commit you push to `feat/rcN` after that merge is stranded** — it's not on `main` and not in the release, even though `git status` on the branch looks fine.  **Guard every time, not just when you remember:**
 > 1. At the **start** of any rc work and before claiming work is "pushed/live", run `git fetch origin` then `git log --oneline origin/main..feat/rcN`. If `main` already contains a merge of this branch, the branch is spent.
@@ -59,9 +61,9 @@ says what the labels imply. The committed value is a placeholder between release
 
 `pull_request_target` loads the workflow from the **base branch**, so a PR that fixes a
 broken job is still checked by the broken copy on `main`. The job cannot pass until the fix
-is merged, and it cannot be merged while the job is red.
+is merged, and it cannot be merged while the job is red — the rule for that single case is `reference/discipline.md`.
 
-This is the **only** sanctioned reason to merge with a red check, it applies to one job on
+This is the **only** sanctioned exception, per `reference/discipline.md`; it applies to one job on
 one PR, and it requires proof by diff. The full rule, the rationalisation table and the red
 flags are *Merge discipline* in `reference/discipline.md` — read it there rather than
 acting on this summary.
