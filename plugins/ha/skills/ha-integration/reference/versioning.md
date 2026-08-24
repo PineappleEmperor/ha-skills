@@ -1,7 +1,5 @@
 # Versioning, labels & CI gating
 
-<!-- owns: version-model -->
-
 Reference for `ha-integration`. Loaded on demand.
 
 Commit and PR-title conventions, and what the release notes are built from, are

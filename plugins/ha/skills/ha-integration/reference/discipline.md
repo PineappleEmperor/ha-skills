@@ -1,7 +1,5 @@
 # Commit, PR and merge discipline
 
-<!-- owns: merge-discipline -->
-
 The rules that decide what ships and what a release says. SKILL.md carries the one-line versions; the reasoning is here.
 
 ## PR discipline — the commit subjects are the changelog

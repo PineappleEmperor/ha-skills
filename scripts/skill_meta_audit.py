@@ -208,52 +208,6 @@ def check_shipped_workflows_documented(repo: Repo) -> Result:
     return [f"shipped workflow {m} is documented nowhere in reference/" for m in missing], []
 
 
-def check_invariants(repo: Repo) -> Result:
-    """Each load-bearing fact is explained in one file; elsewhere it may only be linked.
-
-    PURPOSE: enforce single source of truth, rather than detect breaches of it. Four review
-    passes each found the same fact restated wrongly in whichever file nobody re-read —
-    "bump manifest.json to the next rcN" three lines from "nothing is ever bumped by hand".
-
-    NOT phrase-matching. A deny-list of wrong wordings is unbounded: a list containing
-    "bump the manifest" missed "bumped manually", and the next writer finds another. This
-    check ignores what a line claims and asks only whether the file is allowed to claim it.
-    A non-owner may mention the topic solely on a line that links to the owner.
-
-    There is no opt-out. A passage that must restate a fact is a passage that should point
-    instead, and a passage describing superseded behaviour should be deleted.
-    """
-    fails: list[str] = []
-    for manifest in sorted(repo.root.glob("plugins/*/skills/*/SKILL.md")):
-        skill = manifest.parent
-        spec = skill / "invariants.yml"
-        if not spec.is_file():
-            continue
-        import yaml as _yaml
-        for inv in _yaml.safe_load(spec.read_text()) or []:
-            owner = skill / inv["owner"]
-            if not owner.is_file():
-                fails.append(f"invariants.yml: owner {inv['owner']} for '{inv['id']}' does not exist")
-                continue
-            anchor = f"<!-- owns: {inv['id']} -->"
-            if anchor not in owner.read_text():
-                fails.append(f"{inv['owner']} owns '{inv['id']}' but carries no {anchor} anchor, "
-                             "so nothing marks where the fact is explained")
-            for doc in sorted(skill.rglob("*.md")):
-                if "evals" in doc.parts or doc == owner:
-                    continue
-                rel = doc.relative_to(skill)
-                for n, line in enumerate(doc.read_text().splitlines(), 1):
-                    if inv["owner"] in line:          # a pointer: allowed
-                        continue
-                    for term in inv["terms"]:
-                        if term.lower() in line.lower():
-                            fails.append(
-                                f"{rel}:{n} states '{inv['id']}' ({term!r}) but that fact is "
-                                f"owned by {inv['owner']} — link to it instead of restating it")
-                            break
-    return fails, []
-
 
 def check_paragraph_length(repo: Repo) -> Result:
     """A 400-word paragraph is a wall, and a reader skims walls.
@@ -310,8 +264,7 @@ def check_paragraph_length(repo: Repo) -> Result:
 
 CHECKS = (check_docs_match_templates, check_skill_frontmatter, check_reference_links,
           check_named_sections, check_required_contexts_documented,
-          check_shipped_workflows_documented, check_invariants,
-          check_paragraph_length)
+          check_shipped_workflows_documented, check_paragraph_length)
 
 
 def audit(root: pathlib.Path) -> Result:

@@ -1,7 +1,5 @@
 # Setting the repository up on GitHub
 
-<!-- owns: required-contexts -->
-
 One-time setup that lives in GitHub's settings rather than in the repo: the release token, the required checks, the CI templates and the supply-chain guards. `scripts/bootstrap_repo.sh` does most of it in one command.
 
 ## `RELEASE_TOKEN` — set this up before the first release
