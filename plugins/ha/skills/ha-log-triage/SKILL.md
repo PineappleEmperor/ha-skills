@@ -84,7 +84,7 @@ Collapse each logger cluster to one row. Then read **one representative line** p
 
 **Actionable — real bugs to fix:**
 
-- **`extra keys not allowed @ data['<key>']`** in a script/automation `call_service` → a **service-schema deprecation**. The live one: `light.turn_on` **removed `color_temp` and `kelvin` in HA 2026.3** — use **`color_temp_kelvin`** (kelvin = `1000000 / mired`, floored). The same release removed the `color_temp`, `min_mireds` and `max_mireds` **state attributes**, so templates and dashboards break too, not just service calls. Grep the config for all five names. Grep config for the dead key and replace.
+- **`extra keys not allowed @ data['<key>']`** in a script/automation `call_service` → a **service-schema deprecation**. The live one: `light.turn_on` **removed `color_temp` and `kelvin` in HA 2026.3** — use **`color_temp_kelvin`** (kelvin = `1000000 / mired`, floored). The same release removed the `color_temp`, `min_mireds` and `max_mireds` **state attributes**, so templates and dashboards break too, not just service calls. Grep the config for all four names.
 - **`Action notify.mobile_app_* not found`** / **`Service … not found`** → a referenced entity/service was renamed or its device removed (re-onboarded phone, deleted integration). Update the automation to the current slug.
 - **Z-Wave `NotFoundError: Value N-CC-… not found on node Node(node_id=N)`** → a `zwave_js.set_value` targets a value id the node no longer exposes (most often a re-interview, a firmware change, or the wrong endpoint — heuristics from community reports, not documented behaviour). Resolve `node_id` via the map, re-check the value id in the device's Z-Wave page.
 - **`Bad credentials` / auth errors** from any integration holding a token → expired credential. Reconfigure that integration; it will not recover on its own.
@@ -96,7 +96,7 @@ Ranked table: **severity · cluster · root cause · fix · evidence (`timestamp
 
 ### Companion-app notification images (off-network delivery)
 
-Recurring config-side fix: a `notify.mobile_app_*` image "works on Wi-Fi, fails on cellular". Root cause is always that the **phone** downloads the attachment over the internet through Nabu Casa — so anything only reachable on the LAN, or served stale, breaks off-network. Three causes:
+Recurring config-side fix: a `notify.mobile_app_*` image "works on Wi-Fi, fails on cellular". Root cause is always that the **phone** downloads the attachment over the internet through Nabu Casa — so anything only reachable on the LAN, or served stale, breaks off-network. Two causes:
 
 1. **Hardcoded LAN / internal URL** (`http://192.168.x.x…`, an `internal_url`-based absolute) — unreachable off-network. Use a **relative** path; the companion app prepends the *active* base URL (cloud when remote) and adds auth. Attachments must be reachable from the internet, but not necessarily unauthenticated — the app supplies the auth headers.
 2. **Stale cached image** — the killer, and the mechanism is usually misdiagnosed. A snapshot written to a **fixed** `/config/www/…` filename and served via `/local/…` is sent with `Cache-Control: public, max-age=2678400` — HA's own 31-day header on static paths, not a CDN. The phone/OS/app HTTP cache then serves you the *previous* image (or a pre-first-write 404). It does **not** go away off Nabu Casa. Compounded by a write→push race, where the push beats the file flush.

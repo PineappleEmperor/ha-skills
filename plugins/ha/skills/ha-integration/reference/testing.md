@@ -1,12 +1,12 @@
 # Testing an integration
 
-Two prerequisites decide whether the suite runs at all, then one rule about what to
+Three prerequisites decide whether the suite runs at all, then one rule about what to
 mock. Read this before writing a test; the code patterns being tested are in
 `reference/patterns.md`.
 
 ## Testing — prerequisites before any of the rules below apply
 
-`pytest-homeassistant-custom-component` does not work out of the box. Two requirements, each of which fails the *whole* suite rather than one test. Both verified by ablation against HA 2026.8.0 / p-h-c-c 0.13.354 — remove either and a real setup-entry test stops passing.
+`pytest-homeassistant-custom-component` does not work out of the box. Three requirements, each of which fails the *whole* suite rather than one test. Both verified by ablation against HA 2026.8.0 / p-h-c-c 0.13.354 — remove either and a real setup-entry test stops passing.
 
 **1. A `conftest.py` at the repo root** — not in `tests/`. Copy `templates/conftest.py`. It does two jobs:
 
@@ -43,7 +43,7 @@ The most dangerous test is the one that passes while the integration is broken. 
 
 **Unit-test the pure logic directly** — regex parsers, date/format extraction, data transforms (`order_parse`, `voucher_parse`, `sort_orders`, …) take a string/object and return a value with no HA and no mocks. They carry the highest regression risk and are the cheapest to cover; a parser with zero tests is a standing liability.
 
-**Minimum coverage before claiming a tier:** config-flow (happy path + each error + reauth/reconfigure), a real setup-entry `LOADED` test (plus a **two-entry parallel `LOADED`** test if multiple devices are allowed), coordinator success + auth-failure + the credential-read path against a mocked transport, unload, and a unit test per parser. Wire the regression test *first* on any bug fix: confirm it fails on the unpatched code, then fix. **For Gold specifically, each rule gets a behavioural test (hassfest proves none of these):** reconfigure-success + reconfigure-error flow; diagnostics shape **and** redaction; `stale-devices` removal handler (`False` live / `True` gone); and a `translation_key`-resolution test that scrapes the keys used in code and asserts each exists in `strings.json`. A `done` without such a test is an unproven claim — see the *Prove the rule* note in the quality-scale section.
+**Minimum coverage before claiming a tier:** config-flow (happy path + each error + reauth/reconfigure), a real setup-entry `LOADED` test (plus a **two-entry parallel `LOADED`** test if multiple devices are allowed), coordinator success + auth-failure + the credential-read path against a mocked transport, unload, and a unit test per parser. Wire the regression test *first* on any bug fix: confirm it fails on the unpatched code, then fix. **For Gold specifically, each rule gets a behavioural test (hassfest proves none of these):** reconfigure-success + reconfigure-error flow; diagnostics shape **and** redaction; `stale-devices` removal handler (`False` live / `True` gone); and a `translation_key`-resolution test that scrapes the keys used in code and asserts each exists in `strings.json`. A `done` without such a test is an unproven claim — see the *Prove the rule* note in `reference/quality-scale.md`.
 
 **Prefer future-dated fixtures over freezing the clock.** For an end-to-end test that feeds a real captured payload (e.g. an `.eml`) through the mocked transport and asserts a sensor populates: if the payload has dates that must be "upcoming" for the integration to surface them, **shift the fixture's dates forward at runtime** (parse + rewrite, or template) rather than `freeze_time(...)`. Freezing the clock breaks anything that depends on the loop's time — most painfully it stops the **debouncer** that an `update_before_add` refresh relies on, so the entity never populates (state stays `unknown`), *and* it leaves a timer scheduled at the frozen wall-clock time that fails teardown. A live clock with future-dated data sidesteps both and keeps the fixture's real bytes/encoding.
 

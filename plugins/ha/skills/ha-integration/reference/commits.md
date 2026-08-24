@@ -29,7 +29,7 @@ Body in **`templates/hooks/commit-msg`** — copy it to `.githooks/commit-msg`, 
 > ✅ **Release notes are generated from commit subjects, not from PR bodies.**
 > `scripts/release_notes.py` walks the commits since the last published release,
 > classifies each by its own Conventional Commit type, and groups them under
-> Breaking / Features / Fixes / Maintenance, one line each, linking to the PR it
+> Breaking / Features / Fixes / Maintenance / Other — an unmapped type such as `revert:` lands under Other, one line each, linking to the PR it
 > arrived with, and ends with a full-changelog compare link.
 >
 > This is what surveyed HACS repos do (alexa_media_player, alandtse/tesla,

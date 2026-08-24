@@ -56,7 +56,7 @@ What to ask, what to generate, and the conventions the generated code follows. R
 - `pyrightconfig.json`
 - `requirements.test.txt` — **required**; `python_validate.yml` installs from it and runs `pytest`, so an integration without it has no test job. Copy `templates/requirements.test.txt`. Pin `pytest-homeassistant-custom-component` to the release matching the HA version in `python_validate.yml` (it tracks HA releases 1:1 — a mismatched pin fails at import, not at test time).
 - `conftest.py` — **required, at the repo root, not in `tests/`**; copy `templates/conftest.py`. Its first import claims the name `custom_components` for this repo before `pytest-homeassistant-custom-component` binds it to the package it bundles; without that, HA cannot see the integration and every setup test fails with `Integration not found`. It also pulls in `enable_custom_integrations` autouse. `pyproject.toml` additionally needs `asyncio_mode = "auto"`. Both verified by ablation — full explanation in `reference/testing.md`, read it before writing the first test.
-- `tests/` — one file per module under test, plus `test_manifest_gate.py` and `test_commit_summary.py` (below). See the testing rules in `reference/testing.md`.
+- `tests/` — one file per module under test, plus `test_manifest_gate.py` and `test_commit_summary.py` (described in `reference/github-actions.md`). See the testing rules in `reference/testing.md`.
 - `README.md` — **include the AI-assistance disclaimer** as a GitHub `> [!NOTE]` admonition box. Link the skill name to its public repo. Template:
   ```markdown
   > [!NOTE]
@@ -65,6 +65,7 @@ What to ask, what to generate, and the conventions the generated code follows. R
 - `LICENSE` — the full text of the chosen licence (MIT unless told otherwise), so GitHub
   resolves an SPDX identifier and the HACS `license` check passes.
 - `.gitignore` — copy `templates/.gitignore`. Covers `__pycache__/`, caches, venvs, HA dev artefacts (`.storage/`, `home-assistant.log*`, the `_v2.db`), and `device_map.md` (the `ha-log-triage` device map holds a home's IP/device layout and must never be committed). **Not optional:** without it a local `pytest` run plus a `git add -A` commits `.pyc` files, and a `.pyc` under `templates/` is then copied verbatim into every repo scaffolded from the skill. `skill_audit.py` fails on any tracked compiled artefact.
+- `ruleset.json` — copy `templates/ruleset.json` to the repo root; `bootstrap_repo.sh` reads it from there to apply the required checks.
 - `.githooks/commit-msg` — copy `templates/hooks/commit-msg`, `chmod +x`. Terse-subject + AI-trailer rejection. **Enable once per clone: `git config core.hooksPath .githooks`** — an unenabled hook is a file, not a guard. Document that line in `CLAUDE.md`.
 - `custom_components/{domain}/brand/icon.png` — **256×256**, required by HACS brands validation
 - `custom_components/{domain}/brand/icon@2x.png` — **512×512** (see HiDPI note below)
@@ -133,7 +134,7 @@ See **`reference/patterns.md`** — `__init__`/coordinator/entity/notify pattern
 ## Code style
 
 - Module docstring on every file. **This one may be multi-line** — a file-level explanation of a load-bearing constraint belongs here, not demoted to a comment.
-- Short **single-line** docstrings on all public functions and classes. Enforced by `skill_audit.py`; module docstrings are exempt.
+- Short **single-line** docstrings on all public functions and classes. Enforced by `skill_audit.py` **inside `custom_components/` only** — copied `scripts/` and `tests/` are not checked; module docstrings are exempt.
 - No inline comments unless the WHY is genuinely non-obvious
 - No trailing summaries after edits
 - ruff + pylint compliant; pyright standard mode
