@@ -1,35 +1,6 @@
 # Commit, PR and merge discipline
 
-The rules that decide what ships and what a release says. SKILL.md carries the one-line versions; the reasoning is here.
-
-## PR discipline — the commit subjects are the changelog
-
-<!-- the opener itself is described in reference/github-actions.md -->
-
-**The release notes are built from the commits, not from the PR body.** `scripts/release_notes.py` classifies each subject and groups it, and the draft PR arrives with an empty body (see `reference/github-actions.md`). So a body is optional context for reviewers, and writing the changelog into it just says the same thing twice, in a place users never read.
-
-Reasoning, alternatives, verification evidence: those go in the PR **conversation**, where reviewers read them and the notes do not.
-
-| Excuse | Reality |
-|---|---|
-| "This change is complex, it needs explaining" | Then it needs splitting, or better commit subjects. The subjects are the changelog. |
-| "Reviewers need the reasoning" | Reviewers read the conversation. What users get is the commit subjects, so put the change in those. |
-| "The verification belongs with the change" | It belongs in a comment. A description is not a lab notebook. |
-| "I wrapped it in `<details>` so it's stripped" | The fold is for Dependabot's own output, not a licence to write an essay. |
-| "It's only a few paragraphs" | Measured across eight PRs it was 2,728 words, all republished under the repo owner's byline. |
-
-## Red flags — stop
-
-- Typing prose into `gh pr create --body`
-- Reaching for `<details>` in a PR description
-- A description longer than its diff is interesting
-- Explaining *why* anywhere the commit subjects should have said it
-
-**All of these mean: put it in a comment, or fix the commit subjects.**
-
-> **Observed.** This rule already existed, as "keep two or three sentences of summary at the top of the PR body". It was read and ignored across eight consecutive PRs in this skill's own repo. The author was unaware until they read one of their own PRs. Guidance that exists and is skipped needs a prohibition, not a clearer sentence.
-
----
+Two behavioural rules with no artefact of their own: what to do when a check is red, and what to do before naming a root cause. Commit and PR-body format is `reference/commits.md`.
 
 ## Merge discipline — never merge a red check
 

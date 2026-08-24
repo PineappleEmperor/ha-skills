@@ -6,6 +6,27 @@ Traps specific to shipping a Lit/TS panel from an integration. For how the panel
 
 Only if the integration registers a panel. Three things are non-obvious and each fails silently.
 
+**0. Register the static path and the panel in `async_setup`.** Once per process — per-entry registration races when two entries set up in parallel, so claim the `hass.data` flag before the `await`.
+
+  ```python
+  from homeassistant.components.http import StaticPathConfig
+
+  async def async_setup(hass, config):  # once per process — no entry parallelism
+      await hass.http.async_register_static_paths(
+          [StaticPathConfig("/{domain}_panel/editor.js", str(Path(__file__).parent / "panel" / "editor.js"), False)])
+      return True
+
+  async def _refresh_panel(hass):  # from async_setup_entry — option-gated, toggleable
+      if _panel_wanted(hass) and not hass.data.get(f"{DOMAIN}_panel"):
+          hass.data[f"{DOMAIN}_panel"] = True  # claim BEFORE the await to close the parallel-setup race
+          await panel_custom.async_register_panel(hass, frontend_url_path="{domain}",
+              webcomponent_name="{domain}-panel", module_url="/{domain}_panel/editor.js",
+              sidebar_title="...", sidebar_icon="mdi:view-grid", require_admin=True)
+  # last unload: frontend.async_remove_panel(hass, "{domain}")
+  ```
+
+Panel delivery — the committed bundle, its staleness check, registration and the frontend pin — is `reference/panels.md`.
+
 **1. The bundle must be committed.** HACS ships the repo as-is and runs no build step on the user's machine, so the esbuild output has to live inside `custom_components/<domain>/panel/` to reach the release zip. A stale bundle then breaks *invisibly*: the old bundle still runs, tests pass, CI is green, and the only symptom is "the fix I made isn't there". Copy `templates/frontend/{package.json,tsconfig.json}` and `templates/.github/workflows/frontend_build.yml`; the workflow's `git diff --exit-code` on the bundle is the point of the whole file. **This differs from a Lovelace *card* repo**, which attaches the built `.js` as a release asset — an integration cannot, because the asset isn't in the zip HACS installs.
 
 **2. `home-assistant-frontend` must be pinned in `requirements.test.txt`.** A panel declares `frontend` (usually `panel_custom` too) in manifest `dependencies`. The frontend *component* has its own pip requirement that `pip install homeassistant` does **not** pull in — component requirements are installed by HA at runtime. Without the pin every setup test fails in CI with `No module named 'hass_frontend'`, while typically **passing locally** because a dev machine already has the package. Worse, the failures read as `'MockConfigEntry' object has no attribute 'runtime_data'`, pointing at the integration rather than the missing dependency. Pin from **core's own manifest** for your HA version, not from PyPI latest:

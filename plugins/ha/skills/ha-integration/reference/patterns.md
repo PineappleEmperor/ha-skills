@@ -164,29 +164,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
 - **hassfest forbids literal URLs in `strings.json` descriptions** — `the string should not contain URLs`. Use plain text, or a `{placeholder}` filled via `description_placeholders` in the flow step. A markdown image `![x]({url})` with a placeholder is fine (no literal `http`).
 - Collapsible service form: `fields: { appearance: { collapsed: true, fields: {...} } }` — sections are UI-only; the call data stays flat, so the voluptuous schema is unaffected.
 
-**Custom frontend panel** (sidebar UI beyond config/options)
-
-- **Register integration-global resources in `async_setup`, not `async_setup_entry`.** The static-path serve and the websocket command registration happen once per process; doing them per entry races when two entries set up in parallel. Claim the `hass.data` flag **before** the `await`, or both entries pass the check.
-- Add `"http"`, `"panel_custom"`, `"websocket_api"` to the manifest `dependencies`.
-
-  ```python
-  from homeassistant.components.http import StaticPathConfig
-
-  async def async_setup(hass, config):  # once per process — no entry parallelism
-      await hass.http.async_register_static_paths(
-          [StaticPathConfig("/{domain}_panel/editor.js", str(Path(__file__).parent / "panel" / "editor.js"), False)])
-      return True
-
-  async def _refresh_panel(hass):  # from async_setup_entry — option-gated, toggleable
-      if _panel_wanted(hass) and not hass.data.get(f"{DOMAIN}_panel"):
-          hass.data[f"{DOMAIN}_panel"] = True  # claim BEFORE the await to close the parallel-setup race
-          await panel_custom.async_register_panel(hass, frontend_url_path="{domain}",
-              webcomponent_name="{domain}-panel", module_url="/{domain}_panel/editor.js",
-              sidebar_title="...", sidebar_icon="mdi:view-grid", require_admin=True)
-  # last unload: frontend.async_remove_panel(hass, "{domain}")
-  ```
-
-Panel delivery — the committed bundle, its staleness check, registration and the frontend pin — is `reference/panels.md`.
+**Register integration-global resources in `async_setup`, not `async_setup_entry`.** The registration happens once per process; doing it per entry races when two entries set up in parallel. Claim the `hass.data` flag **before** the `await`, or both entries pass the check. The panel case, with the code, is `reference/panels.md`.
 
 **Diagnostics platform** (Gold requirement — add `diagnostics.py`):
 ```python
