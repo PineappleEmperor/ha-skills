@@ -1,7 +1,8 @@
 # Implementation patterns, file structure and typing
 
-**Read the entry you need, not the file.** Each entry below is a self-contained pattern —
-`grep -n` for the heading and read that slice. The whole file is ~2,300 words; a single
+### Read the entry you need, not the file
+Each entry below is a self-contained pattern —
+`grep -n '^###' ` for the list, then read that slice. The whole file is ~2,300 words; a single
 pattern is 40-200.
 
 | Pattern | For |
@@ -24,7 +25,7 @@ Reference for `ha-integration` Mode 1/2. Loaded on demand.
 
 ### Implementation patterns
 
-**`__init__.py`**
+### `__init__.py`
 - Config-entry-based only — no new YAML integrations.
 - `async_setup_entry`:
   - Store runtime state on `entry.runtime_data` (HA 2024.2+, preferred over `hass.data[DOMAIN][entry.entry_id]`)
@@ -36,7 +37,7 @@ Reference for `ha-integration` Mode 1/2. Loaded on demand.
 - `async_remove_config_entry_device(hass, entry, device_entry) -> bool` — **implement it if the integration creates any device.** HA only shows the device **Delete** button when this handler exists; without it users are stuck with the device. Return `True` to allow deletion (or `False` to block while the device is still live). This is the Gold `stale-devices` rule — **do not `exempt` `stale-devices` just because there's a single static device**; a created device still needs a removal path, so it's `done` (via this handler), not `exempt`. Keep `quality_scale.yaml` honest: an optimistic `exempt` hides a real gap.
 - Include `"notify"` in `PLATFORMS` — loaded via `async_forward_entry_setups` like any other platform
 
-**Notify platform (modern pattern — HA 2023.8+)**
+### Notify platform (modern pattern — HA 2023.8+)
 ```python
 # notify.py
 from homeassistant.components.notify import NotifyEntity
@@ -84,7 +85,7 @@ if hass.services.has_service(NOTIFY_DOMAIN, device_id):
 ```
 This creates `notify.{device_id}` (e.g. `notify.living_room_display`) with full data support.
 
-**`config_flow.py`**
+### `config_flow.py`
 - `class MyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):` — `domain=` is a keyword arg, not a class attribute
 - Include `OptionsFlow` (not `OptionsFlowHandler` — that name is deprecated) when the integration has configurable options
 - Implement `async_step_reauth` for expired/invalid auth (Silver requirement)
@@ -97,7 +98,7 @@ This creates `notify.{device_id}` (e.g. `notify.living_room_display`) with full 
   })
   ```
 
-**Entity platform files**
+### Entity platform files
 - Extend `CoordinatorEntity` (polling) or `Entity` (push)
 - Access runtime state via `entry.runtime_data` not `hass.data[DOMAIN][entry.entry_id]`
 - Use `DeviceInfo` TypedDict (from `homeassistant.helpers.device_registry`) — not a plain dict:
@@ -118,7 +119,8 @@ This creates `notify.{device_id}` (e.g. `notify.living_room_display`) with full 
 - **A list/collection sensor's state should be the `len()` count, with the items in an attribute** — not a timestamp or the raw list. (`last_updated`/`last_changed` are already built-in state attributes; don't re-add them.) Add `_attr_state_class = MEASUREMENT` so the count graphs.
 - **A `device_class` constrains which `state_class` is legal — verify the pair against the authoritative source, never guess.** HA hard-codes the allowed combinations in `DEVICE_CLASS_STATE_CLASSES` (`homeassistant/components/sensor/const.py`); a disallowed pair logs *"is using state class X which is impossible considering device class Y"* and silently drops long-term statistics. The constraint: `SensorDeviceClass.MONETARY` permits **only `{SensorStateClass.TOTAL}`** — `MEASUREMENT` is invalid for monetary. Don't "fix" an invalid combo by **deleting** `state_class` (that kills LTS entirely, a worse regression than the warning) — switch to a *valid* one. So a fluctuating money **balance** (settle-up debt, account balance) is `device_class=MONETARY` + `state_class=TOTAL`, not `MEASUREMENT`. Before setting any `device_class`/`state_class` pair, check the current mapping at https://raw.githubusercontent.com/home-assistant/core/dev/homeassistant/components/sensor/const.py (or the device-class table at developers.home-assistant.io/docs/core/entity/sensor) — the mapping changes between HA versions. Lock the chosen pair with an attribute test so a future rewrite can't silently drop it.
 
-**`EntityDescription` pattern** — preferred when an integration exposes many similar entities:
+### `EntityDescription` pattern
+preferred when an integration exposes many similar entities:
 ```python
 @dataclass(frozen=True, kw_only=True)
 class MySensorDescription(SensorEntityDescription):
@@ -134,7 +136,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     async_add_entities(MySensor(coordinator, desc) for desc in SENSORS)
 ```
 
-**`UpdateEntity` (firmware/OTA install)**
+### `UpdateEntity` (firmware/OTA install)
 - `_attr_in_progress` only **greys out the dashboard install button** — it does **not** stop a programmatic re-entry. A service call, automation, or two near-simultaneous dashboard clicks can still re-enter `async_install` while an install is mid-flight, double-pushing the OTA. Add an **explicit re-entry guard** at the top of `async_install` (after any can't-install checks), windowed so a crashed/timed-out install can't wedge the entity forever:
   ```python
   async def async_install(self, version, backup, **kwargs) -> None:
@@ -150,21 +152,22 @@ async def async_setup_entry(hass, entry, async_add_entities):
   ```
   Clear `_installing` when the new version lands (or the same window elapses) in whatever resyncs state from the device manifest. The `in_progress` flag is for the UI; the boolean+timestamp is the actual lock.
 
-**`DataUpdateCoordinator` (polling)**
+### `DataUpdateCoordinator` (polling)
 - `update_interval` minimum 5 s
 - Set `always_update=False` when API responses support `__eq__` — avoids unnecessary state machine writes
 - Raise `ConfigEntryAuthFailed` on auth errors inside `_async_update_data`
 - Raise `UpdateFailed` on other errors; use `UpdateFailed(retry_after=60)` for rate-limited APIs
 - For push APIs: use `coordinator.async_set_updated_data(data)` instead of adapting to polling
 
-**Entity push subscriptions**
+### Entity push subscriptions
 - Subscribe in `async_added_to_hass`, unsubscribe in `async_will_remove_from_hass` — prevents resource leaks
 - Never subscribe in `__init__`
 
-**`ConfigEntry` mutation**
+### `ConfigEntry` mutation
 - Never mutate `ConfigEntry` directly — always use `hass.config_entries.async_update_entry(entry, data=..., options=...)`
 
-**Logging** (Silver `log-when-unavailable`; HA logging conventions)
+### Logging
+(Silver `log-when-unavailable`; HA logging conventions)
 - **The coordinator already gives you `log-when-unavailable` for free.** When `_async_update_data` raises `UpdateFailed`, `DataUpdateCoordinator` logs the *first* failure at **ERROR**, subsequent consecutive failures at **DEBUG** (no spam), and logs **recovery** automatically. So **do not** wrap the fetch in your own try/log — manual error logging there is double-logging and *fails* the rule. Same for `ConfigEntryNotReady`/`ConfigEntryAuthFailed`: HA logs the reason once; don't also `_LOGGER.exception(...)` in `async_setup_entry` (delete broad `try/except: log; raise` wrappers — they spam and add nothing).
 - **Don't log-and-raise.** Raise the right exception and let HA log it: transient → `UpdateFailed`/`ConfigEntryNotReady`; auth → `ConfigEntryAuthFailed`; service/action errors → `HomeAssistantError`/`ServiceValidationError` (Silver `action-exceptions`). Logging *and* raising the same condition is noise.
 - **Level discipline:** `INFO` is shown by default → use it almost never. **Setup / unload / teardown lifecycle = `DEBUG`, not `INFO`.** `WARNING` = recoverable thing the user should know; `ERROR` = unexpected, actionable bug (never for expected transient failures — those are exceptions HA handles). `DEBUG` = per-poll / developer detail.
@@ -173,20 +176,21 @@ async def async_setup_entry(hass, entry, async_add_entities):
 - Logger name (`logging.getLogger(__name__)`) already carries the module path — don't prefix messages with the integration name or "Home Assistant".
 - Remove a module-level `_LOGGER` that ends up unused (e.g. after deleting lifecycle spam) — ruff won't flag an unused module global, so it lingers silently.
 
-**Custom services**
+### Custom services
 - Register in `async_setup` (not `async_setup_entry`) to avoid duplicate registration across multiple config entries
 - Use `async_register_platform_entity_service()` for entity-targeted actions
 - Document in `services.yaml`; add icons in `icons.json`
 - A `selector: config_entry` renders a field labelled "Integration" (hardcoded in the HA frontend). To present a device dropdown, use `selector: device` with `integration: {domain}`, then resolve the HA device → config entry in the handler via `device_registry.async_get(hass).async_get(id)`.
 
-**`services.yaml` + `strings.json` (hassfest rules)**
+### `services.yaml` + `strings.json` (hassfest rules)
 - The modern convention: `services.yaml` carries only field **structure** (selectors, `required`, `default`, collapsible `sections`); names/descriptions live in `strings.json` under a top-level `services` key (`services.{svc}.name/description`, `.fields.{key}.name/description`, `.sections.{key}.name`). Field keys are flat in `strings.json` even when nested in a `sections` block in `services.yaml`. Keep `translations/en.json` a copy of `strings.json`.
 - **hassfest forbids literal URLs in `strings.json` descriptions** — `the string should not contain URLs`. Use plain text, or a `{placeholder}` filled via `description_placeholders` in the flow step. A markdown image `![x]({url})` with a placeholder is fine (no literal `http`).
 - Collapsible service form: `fields: { appearance: { collapsed: true, fields: {...} } }` — sections are UI-only; the call data stays flat, so the voluptuous schema is unaffected.
 
 **Register integration-global resources in `async_setup`, not `async_setup_entry`.** The registration happens once per process; doing it per entry races when two entries set up in parallel. Claim the `hass.data` flag **before** the `await`, or both entries pass the check. The panel case, with the code, is `reference/panels.md`.
 
-**Diagnostics platform** (Gold requirement — add `diagnostics.py`):
+### Diagnostics platform
+(Gold requirement — add `diagnostics.py`):
 ```python
 from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.config_entries import ConfigEntry
@@ -199,7 +203,8 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigE
 ```
 No registration needed — HA discovers it automatically from the file name.
 
-**Config entry migration** — implement in `__init__.py` when stored `entry.data` schema changes:
+### Config entry migration
+implement in `__init__.py` when stored `entry.data` schema changes:
 ```python
 # In config flow:
 class MyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -244,20 +249,21 @@ Split files by responsibility. Rule of thumb: if `__init__.py` exceeds ~100 line
 
 Complete, correct typing is a **Platinum requirement** — not cosmetic. It catches contract violations between platforms, coordinator data shapes, and config entry contents at development time rather than runtime. Every file must pass `python -m pyright custom_components/` with zero errors before a PR is ready. Suppressions are failures, not fixes.
 
-**Always add at top of every file:**
+### Always add at top of every file
 ```python
 from __future__ import annotations
 ```
 Enables deferred annotation evaluation — avoids forward-reference quoting and circular import issues.
 
-**`TYPE_CHECKING` for expensive or circular imports:**
+### `TYPE_CHECKING` for expensive or circular imports
 ```python
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 ```
 
-**Typed `ConfigEntry`** — avoids untyped `entry.runtime_data`:
+### Typed `ConfigEntry`
+avoids untyped `entry.runtime_data`:
 ```python
 # In coordinator.py or models.py:
 from homeassistant.config_entries import ConfigEntry
@@ -268,14 +274,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: MyConfigEntry, ...) -> N
     coordinator = entry.runtime_data  # typed as MyCoordinator, no cast needed
 ```
 
-**Avoid `# type: ignore`** — at Platinum quality, type suppressions are a violation, not a shortcut. The common HA patterns that tempt `# type: ignore` all have proper solutions:
+### Avoid `# type: ignore`
+at Platinum quality, type suppressions are a violation, not a shortcut. The common HA patterns that tempt `# type: ignore` all have proper solutions:
 - `hass.data[DOMAIN]` is untyped → don't use it; use `entry.runtime_data` with typed `ConfigEntry` instead
 - `entry.runtime_data` assignment errors → solved by the typed `ConfigEntry` alias above
 - Third-party library missing stubs → contribute stubs or use `cast()` with a comment explaining why
 
 Only acceptable suppression: `# type: ignore[import-untyped]` on a third-party import with no available stubs, where contributing stubs is out of scope.
 
-**MicroPython firmware files** — exclude from Pyright entirely in `pyrightconfig.json`:
+### MicroPython firmware files
+exclude from Pyright entirely in `pyrightconfig.json`:
 ```json
 {
   "exclude": ["firmware/"],
@@ -283,7 +291,8 @@ Only acceptable suppression: `# type: ignore[import-untyped]` on a third-party i
 }
 ```
 
-**HA itself is fully typed** — import its types directly rather than re-typing them:
+### HA itself is fully typed
+import its types directly rather than re-typing them:
 ```python
 from homeassistant.helpers.typing import StateType, ConfigType, DiscoveryInfoType
 from homeassistant.helpers.device_registry import DeviceInfo

@@ -5,6 +5,11 @@ description: Use when developing or troubleshooting a Home Assistant custom inte
 
 # Home Assistant Integration Assistant
 
+**Reading this file:** the routing payload is the mode table, the invariants and the
+reference map, immediately below. Modes 1-4 at the end are procedure detail — read the one
+your task selected, not all four.
+
+
 Help create, modify, and lint Home Assistant custom integrations targeting **platinum quality scale**.
 
 **Always fetch before coding** — these are the authoritative sources:
