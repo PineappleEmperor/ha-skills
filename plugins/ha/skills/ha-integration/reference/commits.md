@@ -3,6 +3,9 @@
 What a commit subject must look like, why the body stays empty, and what the release
 notes are built from. Labels, gates and the release model are `reference/versioning.md`.
 
+
+
+
 - Conventional Commits & Semantic Versioning
 - Keep messages short
 - No AI-attribution trailers
@@ -12,9 +15,7 @@ notes are built from. Labels, gates and the release model are `reference/version
 - The PR body, and what belongs in the conversation instead
 - The release notes are built from the commits, not from the PR body
 - Red flags — stop
-- Observed
-
-
+- Why this is stated as a rule
 
 ## Conventional Commits & Semantic Versioning
 
@@ -94,7 +95,10 @@ Reasoning, alternatives, verification evidence: those go in the PR **conversatio
 
 **All of these mean: put it in a comment, or fix the commit subjects.**
 
-### Observed
-This rule already existed, as "keep two or three sentences of summary at the top of the PR body". It was read and ignored across eight consecutive PRs in this skill's own repo. The author was unaware until they read one of their own PRs. Guidance that exists and is skipped needs a prohibition, not a clearer sentence.
+### Why this is stated as a rule
+
+The softer form — "keep a couple of sentences of summary" — was read and ignored
+repeatedly, because a summary is always arguably useful. An empty body is checkable;
+a judgement about summary length is not.
 
 ---
