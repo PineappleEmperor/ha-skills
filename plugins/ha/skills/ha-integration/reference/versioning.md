@@ -97,3 +97,11 @@ The old advice also suggested a `push:` trigger on the version gate so it ran on
 ---
 
 Dependabot's setup, grouping and floor management live in `reference/dependabot.md`.
+
+### Orphaned-branch trap
+
+A PR merges to `main` as soon as it's approved/auto-merged. **Any commit you push to `feat/rcN` after that merge is stranded** — it's not on `main` and not in the release, even though `git status` on the branch looks fine.  **Guard every time, not just when you remember:**
+1. At the **start** of any rc work and before claiming work is "pushed/live", run `git fetch origin` then `git log --oneline origin/main..feat/rcN`. If `main` already contains a merge of this branch, the branch is spent.
+2. When a cycle has merged/released: **branch fresh** `git checkout -b feat/rc(N+1) origin/main`, `git cherry-pick` the orphaned commits (oldest-first), push, then delete the stale branch so nothing lands on it again. Nothing in the branch carries a version — the rc number is the tag you publish.
+3. Don't keep committing onto a `feat/rcN` whose PR has merged — start the next branch immediately after a release.
+
