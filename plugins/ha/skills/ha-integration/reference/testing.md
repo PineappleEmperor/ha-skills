@@ -1,8 +1,7 @@
 # Testing an integration
 
-Three prerequisites decide whether the suite runs at all, then one rule about what to
-
-**Sections** — `grep -n '^###' reference/testing.md`, then read the one you need.
+Three prerequisites decide whether the suite runs at all, then one rule about what to mock.
+The code patterns being tested are `reference/patterns.md`.
 
 - Testing — prerequisites before any of the rules below apply
 - 3. A `config_flow.py` that imports, whenever `manifest.json` sets `"config_flow": true`
@@ -17,9 +16,7 @@ Three prerequisites decide whether the suite runs at all, then one rule about wh
 - Prefer future-dated fixtures over freezing the clock
 - Push coordinator data to entities without scheduling timers
 - Standalone helper scripts
-mock. Read this before writing a test; the code patterns being tested are in
-`reference/patterns.md`.
-
+Three prerequisites decide whether the suite runs at all, then one rule about what to 
 
 
 ## Testing — prerequisites before any of the rules below apply

@@ -2,8 +2,6 @@
 
 The **file bodies** live in the skill's `templates/` dir (mirrors the target repo: `templates/.github/workflows/*.yml`, `templates/.github/*.yml`, `templates/scripts/*`, `templates/tests/*`, `templates/hooks/*`, `templates/requirements.test.txt`). Copy them as-is — they are self-contained, no external repo. This file is the **why**: the behaviours each workflow must preserve. Read it before changing any workflow.
 
-**Sections** — `grep -n '^###' reference/github-actions.md`, then read the one you need.
-
 - This file does not substitute for the templates
 - PRs are opened by humans and by `auto_draft_pr.yml`
 - Superseded — do not reinstate

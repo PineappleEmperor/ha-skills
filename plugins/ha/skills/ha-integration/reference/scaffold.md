@@ -2,8 +2,6 @@
 
 What to ask, what to generate, and the conventions the generated code follows. Read with `reference/patterns.md` open — the code patterns live there.
 
-**Sections** — `grep -n '^###' reference/scaffold.md`, then read the one you need.
-
 - Gather requirements (ask all at once)
 - Files to generate
 - Brand assets are served from the integration's own `brand/` folder since HA 2026.3.0

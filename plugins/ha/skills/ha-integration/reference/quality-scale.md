@@ -2,8 +2,6 @@
 
 The canonical rule set and what each tier demands.
 
-**Sections** — `grep -n '^###' reference/quality-scale.md`, then read the one you need.
-
 - Quality scale — target Platinum
 - Scaffold `quality_scale.yaml` from the start
 - Gate-enforced, on the claim rather than on the tests

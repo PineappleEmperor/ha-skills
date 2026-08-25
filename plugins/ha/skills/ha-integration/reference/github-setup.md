@@ -2,8 +2,6 @@
 
 One-time setup that lives in GitHub's settings rather than in the repo: the release token, the required checks, the CI templates and the supply-chain guards. `scripts/bootstrap_repo.sh` does most of it in one command.
 
-**Sections** — `grep -n '^###' reference/github-setup.md`, then read the one you need.
-
 - `RELEASE_TOKEN` — set this up before the first release
 - Make the checks REQUIRED — a workflow is not a gate until it can block a merge
 - `Dependency review` needs the repository's dependency graph enabled

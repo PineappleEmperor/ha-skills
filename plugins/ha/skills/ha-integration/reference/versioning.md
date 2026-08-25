@@ -2,8 +2,6 @@
 
 Reference for `ha-integration`. Loaded on demand.
 
-**Sections** — `grep -n '^###' reference/versioning.md`, then read the one you need.
-
 - One labeler, title-only — don't hand-roll a second one
 - Stale superseded labels — NOT rare in a squash + rc-cycle repo
 - Type-vocab gap (narrower than it looks — verify against the config, not from memory)

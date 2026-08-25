@@ -3,9 +3,6 @@
 The canonical lookup for code inside `custom_components/`: pattern, rule, copyable
 snippet. Panel code is `reference/panels.md`; tests are `reference/testing.md`.
 
-**Sections** — `grep -n '^###' reference/patterns.md`, then read the one you need.
-
-- Implementation patterns
 - `__init__.py`
 - Notify platform (modern pattern — HA 2023.8+)
 - `config_flow.py`
@@ -29,7 +26,6 @@ snippet. Panel code is `reference/panels.md`; tests are `reference/testing.md`.
 - Avoid `# type: ignore`
 - MicroPython firmware files
 - HA itself is fully typed
-pattern is 40-200.
 
 | Pattern | For |
 |---|---|
@@ -49,9 +45,18 @@ Panel code is `reference/panels.md`; tests are `reference/testing.md`.
 
 Reference for `ha-integration` Mode 1/2. Loaded on demand.
 
-### Implementation patterns
-
 ### `__init__.py`
+
+⚠️ **Every name in `PLATFORMS` must have a module beside it.** `async_forward_entry_setups`
+imports `<domain>/<platform>.py` for each entry; a name with no module raises
+`ModuleNotFoundError` and the entry never reaches `LOADED`. Adding a platform to an existing
+integration means checking the list matches the files *before* wiring the forward — observed
+breaking a real repo whose `PLATFORMS = ["sensor"]` had no `sensor.py`.
+
+⚠️ **Wire the unload in the same change.** `async_unload_entry` must call
+`async_unload_platforms(entry, PLATFORMS)`; adding only the forward leaves an integration
+that sets up and cannot cleanly unload.
+
 - Config-entry-based only — no new YAML integrations.
 - `async_setup_entry`:
   - Store runtime state on `entry.runtime_data` (HA 2024.2+, preferred over `hass.data[DOMAIN][entry.entry_id]`)
@@ -71,10 +76,15 @@ from homeassistant.components.notify import NotifyEntity
 class MyNotifyEntity(NotifyEntity):
     _attr_has_entity_name = True
     _attr_name = "Notify"
-    _attr_unique_id = f"{device_id}_notify"
 
-    async def async_send_message(self, message: str, title: str | None = None, **kwargs) -> None:
-        data = kwargs.get("data") or {}
+    def __init__(self, hass, device_id: str) -> None:
+        self.hass = hass
+        self._device_id = device_id
+        self._attr_unique_id = f"{device_id}_notify"   # per instance, not class scope
+
+    # This is the real signature. NotifyEntity's service schema carries message and
+    # title only, so there is no **kwargs and no `data` to read.
+    async def async_send_message(self, message: str, title: str | None = None) -> None:
         ...
 
 async def async_setup_entry(hass, entry, async_add_entities):

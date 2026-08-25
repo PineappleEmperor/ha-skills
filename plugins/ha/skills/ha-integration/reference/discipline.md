@@ -2,8 +2,6 @@
 
 Two behavioural rules with no artefact of their own: what to do when a check is red, and what to do before naming a root cause. Commit and PR-body format is `reference/commits.md`.
 
-**Sections** — `grep -n '^###' reference/discipline.md`, then read the one you need.
-
 - Merge discipline — never merge a red check
 - One exception, and it is narrow
 - Red flags — stop

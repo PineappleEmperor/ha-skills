@@ -2,8 +2,6 @@
 
 Traps specific to shipping a Lit/TS panel from an integration. For how the panel should look, use the `ha-panel-design` skill.
 
-**Sections** — `grep -n '^###' reference/panels.md`, then read the one you need.
-
 - Panel integrations (a custom panel served by the integration)
 - 0. Register the static path and the panel in `async_setup`
 - 1. The bundle must be committed
@@ -36,7 +34,6 @@ Once per process — per-entry registration races when two entries set up in par
   # last unload: frontend.async_remove_panel(hass, "{domain}")
   ```
 
-Panel delivery — the committed bundle, its staleness check, registration and the frontend pin — is `reference/panels.md`.
 
 ### 1. The bundle must be committed
 

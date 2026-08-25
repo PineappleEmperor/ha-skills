@@ -1,8 +1,7 @@
 # Commit conventions
 
 What a commit subject must look like, why the body stays empty, and what the release
-
-**Sections** — `grep -n '^###' reference/commits.md`, then read the one you need.
+notes are built from. Labels, gates and the release model are `reference/versioning.md`.
 
 - Conventional Commits & Semantic Versioning
 - Keep messages short
@@ -14,8 +13,6 @@ What a commit subject must look like, why the body stays empty, and what the rel
 - The release notes are built from the commits, not from the PR body
 - Red flags — stop
 - Observed
-notes are generated from. The labels, gates and release model are
-`reference/versioning.md`.
 
 
 

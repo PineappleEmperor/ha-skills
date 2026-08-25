@@ -5,10 +5,6 @@ description: Use when developing or troubleshooting a Home Assistant custom inte
 
 # Home Assistant Integration Assistant
 
-**Reading this file:** the routing payload is the mode table, the invariants and the
-reference map, immediately below. Modes 1-4 at the end are procedure detail — read the one
-your task selected, not all four.
-
 
 Help create, modify, and lint Home Assistant custom integrations targeting **platinum quality scale**.
 
@@ -36,7 +32,7 @@ Check the working directory, pick a mode, then **read that mode's reference file
 | Mode | When | Read first |
 |---|---|---|
 | **Scaffold** | no `custom_components/`, or the user wants a new integration | `reference/scaffold.md`, then `reference/patterns.md` |
-| **Modify** | `custom_components/` exists and something is being added or changed | `reference/patterns.md` |
+| **Modify** | `custom_components/` exists and something is being added or changed | `reference/patterns.md`. Adding a platform also touches `strings.json`/`translations/` and the tier claim — see `reference/quality-scale.md` |
 | **Test** | writing or fixing tests for an integration | `reference/testing.md` — the root `conftest.py` and `asyncio_mode` prerequisites decide whether the suite runs at all |
 | **Lint** | hygiene pass over existing code | this file, *Mode 3* below |
 | **Audit** | verify the skill was actually followed | `scripts/skill_audit.py --list` (or the skill's `templates/scripts/skill_audit.py` if the repo never copied it), then `reference/audit.md` |
