@@ -198,3 +198,34 @@ def test_no_dependency_review_workflow_means_nothing_to_check(repo, monkeypatch)
     """A repo that does not ship the workflow has no prerequisite to satisfy."""
     monkeypatch.setattr(audit.subprocess, "run", lambda *a, **k: (_ for _ in ()).throw(AssertionError("must not query")))
     assert audit.check_dependency_graph(audit.Repo(repo)) == ([], [])
+
+
+def test_platforms_naming_a_missing_module_fails(repo) -> None:
+    """The live defect: PLATFORMS = ["sensor"] with no sensor.py, inert until forwarded."""
+    pkg = repo / "custom_components/acmedev"
+    pkg.mkdir(parents=True)
+    (pkg / "manifest.json").write_text('{"domain": "acmedev"}')
+    (pkg / "const.py").write_text('DOMAIN = "acmedev"\nPLATFORMS = ["sensor", "notify"]\n')
+    (pkg / "notify.py").write_text("")
+    fails, _ = audit.check_platforms_have_modules(audit.Repo(repo))
+    assert len(fails) == 1 and "sensor" in fails[0] and "notify" not in fails[0]
+
+
+def test_platform_enum_form_is_understood(repo) -> None:
+    """Both spellings appear in real integrations."""
+    pkg = repo / "custom_components/acmedev"
+    pkg.mkdir(parents=True)
+    (pkg / "manifest.json").write_text('{"domain": "acmedev"}')
+    (pkg / "const.py").write_text("PLATFORMS = [Platform.SENSOR, Platform.NOTIFY]\n")
+    (pkg / "sensor.py").write_text("")
+    fails, _ = audit.check_platforms_have_modules(audit.Repo(repo))
+    assert len(fails) == 1 and "notify" in fails[0]
+
+
+def test_matching_platforms_pass(repo) -> None:
+    pkg = repo / "custom_components/acmedev"
+    pkg.mkdir(parents=True)
+    (pkg / "manifest.json").write_text('{"domain": "acmedev"}')
+    (pkg / "const.py").write_text('PLATFORMS = ["notify"]\n')
+    (pkg / "notify.py").write_text("")
+    assert audit.check_platforms_have_modules(audit.Repo(repo)) == ([], [])

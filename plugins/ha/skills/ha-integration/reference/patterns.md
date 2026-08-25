@@ -47,26 +47,26 @@ Reference for `ha-integration` Mode 1/2. Loaded on demand.
 
 ### `__init__.py`
 
-⚠️ **Every name in `PLATFORMS` must have a module beside it.** `async_forward_entry_setups`
-imports `<domain>/<platform>.py` for each entry; a name with no module raises
-`ModuleNotFoundError` and the entry never reaches `LOADED`. Adding a platform to an existing
-integration means checking the list matches the files *before* wiring the forward — observed
-breaking a real repo whose `PLATFORMS = ["sensor"]` had no `sensor.py`.
+**Pick the shape HA models.** An entity platform when the thing has state a user would see
+in history or on a dashboard. A registered service when it is an action with no state. An
+option on the config entry when it is configuration. Notify is an entity platform because a
+notifier is addressable; a one-shot "send this" with no addressable target is a service.
 
-⚠️ **Wire the unload in the same change.** `async_unload_entry` must call
-`async_unload_platforms(entry, PLATFORMS)`; adding only the forward leaves an integration
-that sets up and cannot cleanly unload.
+**Wire it in one change:**
 
-- Config-entry-based only — no new YAML integrations.
-- `async_setup_entry`:
-  - Store runtime state on `entry.runtime_data` (HA 2024.2+, preferred over `hass.data[DOMAIN][entry.entry_id]`)
-  - Call `await coordinator.async_config_entry_first_refresh()`
-  - Call `await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)`
-  - Raise `ConfigEntryNotReady` for transient failures (device offline, timeout, network error)
-  - Raise `ConfigEntryAuthFailed` for invalid/expired credentials
-- `async_unload_entry`: call `async_unload_platforms`; `entry.runtime_data` cleaned up automatically. **Also `await coordinator.async_shutdown()` when the unload succeeds** — `async_unload_platforms` removes entities but does **not** stop the coordinator's `update_interval` timer or its request-refresh **debouncer**, which then linger across unload/reload (and fail pytest's `verify_cleanup` with "Lingering timer"). Shutting down is correct on reload too (a fresh coordinator is built in the next `async_setup_entry`).
-- `async_remove_config_entry_device(hass, entry, device_entry) -> bool` — **implement it if the integration creates any device.** HA only shows the device **Delete** button when this handler exists; without it users are stuck with the device. Return `True` to allow deletion (or `False` to block while the device is still live). This is the Gold `stale-devices` rule — **do not `exempt` `stale-devices` just because there's a single static device**; a created device still needs a removal path, so it's `done` (via this handler), not `exempt`. Keep `quality_scale.yaml` honest: an optimistic `exempt` hides a real gap.
-- Include `"notify"` in `PLATFORMS` — loaded via `async_forward_entry_setups` like any other platform
+1. `PLATFORMS` lists the platforms this integration provides, and each name has a module
+   beside it — `async_forward_entry_setups` imports `<domain>/<platform>.py` per name.
+2. `async_setup_entry` stores state on `entry.runtime_data`, then forwards:
+   `await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)`.
+3. `async_unload_entry` mirrors it:
+   `return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)`, plus
+   `await coordinator.async_shutdown()` when the unload succeeds.
+4. If setup creates a device, add `async_remove_config_entry_device` so a user can remove it.
+5. If the entity carries `_attr_translation_key`, add the matching block to `strings.json`
+   and `translations/en.json` — `entity-translations` in `reference/quality-scale.md`.
+
+`scripts/skill_audit.py` fails a repo whose `PLATFORMS` names a module that does not exist,
+so the gate catches a half-wired platform without anyone having to remember this list.
 
 ### Notify platform (modern pattern — HA 2023.8+)
 ```python

@@ -459,6 +459,34 @@ def check_pr_openers(repo: Repo) -> Result:
     return fails, []
 
 
+def check_platforms_have_modules(repo: Repo) -> Result:
+    """Every name in PLATFORMS must have a module beside it.
+
+    `async_forward_entry_setups` imports `<domain>/<platform>.py` for each name, so a name
+    with no module raises ModuleNotFoundError and the entry never reaches LOADED. Observed
+    on a live repo: `PLATFORMS = ["sensor"]` with no `sensor.py`, inert until someone wired
+    the forward, at which point setup died. Mechanical, so the skill states the build rule
+    and the gate catches the mismatch.
+    """
+    if not repo.cc:
+        return [], []
+    fails = []
+    for pkg in [repo.cc]:          # repo.cc IS the integration package
+        names: list[str] = []
+        for py in (pkg / "const.py", pkg / "__init__.py"):
+            if not py.is_file():
+                continue
+            m = re.search(r"PLATFORMS[^=]*=\s*\[(?P<body>[^\]]*)\]", py.read_text(errors="replace"))
+            if m:
+                names += re.findall(r"[\"\']([a-z_]+)[\"\']", m.group("body"))
+                names += [p.split(".")[-1].lower() for p in re.findall(r"Platform\.([A-Z_]+)", m.group("body"))]
+        for name in dict.fromkeys(names):
+            if not (pkg / f"{name}.py").is_file():
+                fails.append(f"{pkg.name}: PLATFORMS names {name!r} but {pkg.name}/{name}.py "
+                             "does not exist — the entry will fail to set up")
+    return fails, []
+
+
 def check_antipatterns(repo: Repo) -> Result:
     """Deprecated APIs that still import cleanly and fail at runtime."""
     if not repo.cc:
@@ -755,7 +783,7 @@ CHECKS = (
     check_classifier_not_inlined, check_claims_have_tests, check_action_pins,
     check_pr_checks_shape, check_no_run_interpolation, check_no_ignored_validations,
     check_sole_labeler,
-    check_pr_openers, check_antipatterns, check_quality_scale_and_manifest,
+    check_pr_openers, check_platforms_have_modules, check_antipatterns, check_quality_scale_and_manifest,
     check_autolabeler_title_only, check_drafter_categories, check_docstrings,
     check_commit_hook, check_brand_assets, check_self_diff, check_template_pins,
     check_release_token, check_required_status_checks, check_dependency_graph,
