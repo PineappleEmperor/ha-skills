@@ -11,6 +11,8 @@ One-time setup that lives in GitHub's settings rather than in the repo: the rele
 - Supply chain
 - GitHub CI templates
 - If none of those find it, stop and say so
+
+
 - Workflows orchestrate; scripts decide
 - Read `reference/github-actions.md` before changing any workflow
 
@@ -168,12 +170,7 @@ is mutable — whoever owns the action can repoint it at new code, which then ru
 workflow's token. Dependabot updates both the SHA and the comment, and `skill_audit.py`
 fails a workflow that uses a bare tag or a SHA with nothing saying what it is.
 
-⚠️ **Dependabot keeps your workflows current, not the skill's copies.** Its
-`github-actions` ecosystem only scans `.github/workflows` at the repo root. Your workflows
-are therefore bumped for you once `dependabot.yml` is in place; the skill's `templates/`
-are maintained separately, in the skill's own repo. **Consequence for you:** re-copying
-from `templates/` can move a pin *backwards* if the skill's copies are older than what
-Dependabot has already given you. Diff before overwriting, and keep the newer pin.
+How Dependabot maintains those pins, and why re-copying can move one backwards, is `reference/dependabot.md`.
 
 ## GitHub CI templates
 
@@ -212,18 +209,4 @@ For each canonical file: read the template, write it to the target path byte-for
 - **Writing a faithful-sounding paraphrase instead of copying the artefact.** Producing a workflow that does what the prose says is *not* copying the template. Fifteen files drifted this way and passed the audit clean.
 - **Multi-line docstrings.** The code style below says *short single-line* docstrings on all public functions and classes. Single line means single line.
 
-## Workflows orchestrate; scripts decide
-
-A `run:` block may invoke a tool, pass data between steps, and guard on one condition.
-Anything that classifies, compares, or computes a value belongs in `scripts/`, where it
-has unit tests — logic inside a workflow can only be tested by running CI, so its first
-failure is a real PR. If a change to a template workflow needs a `case`, a loop, or a
-regex, write it in Python first and call it from the step.
-
-These templates are a dependency other repos inherit, so they are held to that standard
-even where a repo's own one-off workflow would not be.
-
-### Read `reference/github-actions.md` before changing any workflow
-— it holds the must-preserve behaviours: the sole title-only labeler + removal-only superseded-label step, `$BODY` + bounded Dependabot `replacers`, the last-published-release version gate (with `dependabot[bot]` exempt and the unit-tested `manifest_gate.py`), the `pr-checks` job ordering, its `pull_request_target` safety rules, and the optional personal reminder-hook recipe.
-
----
+How workflows and scripts divide responsibility is `reference/github-actions.md`.

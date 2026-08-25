@@ -6,12 +6,13 @@ Reference for `ha-integration`. Loaded on demand.
 - Stale superseded labels — NOT rare in a squash + rc-cycle repo
 - Type-vocab gap (narrower than it looks — verify against the config, not from memory)
 - Prerelease (rc) cycle
-- Exempt Dependabot from the version gate
 - ⚠️ A `pull_request_target` workflow cannot validate a fix to itself
 - PR events fire normally — the `GITHUB_TOKEN` suppression no longer applies
 - How the current opener avoids this
 - The suppression is not only about PR creation
 - This no longer bites, because of how the opener is built
+
+
 
 
 
@@ -65,17 +66,6 @@ release candidates are published via the GitHub **prerelease flag** + a `v…-rc
 **Nothing is ever bumped by hand.** `release.yml` writes `manifest.json` from the release
 tag at publish, so no PR carries a bump, `version-gate` skips itself, and the advisory step
 says what the labels imply. The committed value is a placeholder between releases. Dependabot's exemption from it is `reference/github-setup.md`.
-
-### Exempt Dependabot from the version gate
-
-(`reference/github-setup.md` for the required-check list). Dependabot PRs never touch `manifest.json`, and right after a release (`main` == last release) a no-bump PR equals the released version → the gate's "unchanged" rule trips. Exempt it with a **job-level** `if:` — `github.event.pull_request.user.login != 'dependabot[bot]'`. A skipped job satisfies a required status check, which GitHub states plainly and which this repo has since confirmed, so the merge is not blocked and the check reads "Skipped" rather than a green that proves nothing. There is no second run to fall back on — `pr-checks.yml` triggers on `pull_request_target` only. With this, Dependabot PRs fold into the next release with no bump, exactly as intended.
-
-> ⚠️ **Orphaned-branch trap.** A PR merges to `main` as soon as it's approved/auto-merged. **Any commit you push to `feat/rcN` after that merge is stranded** — it's not on `main` and not in the release, even though `git status` on the branch looks fine.  **Guard every time, not just when you remember:**
-> 1. At the **start** of any rc work and before claiming work is "pushed/live", run `git fetch origin` then `git log --oneline origin/main..feat/rcN`. If `main` already contains a merge of this branch, the branch is spent.
-> 2. When a cycle has merged/released: **branch fresh** `git checkout -b feat/rc(N+1) origin/main`, `git cherry-pick` the orphaned commits (oldest-first), push, then delete the stale branch so nothing lands on it again. Nothing in the branch carries a version — the rc number is the tag you publish.
-> 3. Don't keep committing onto a `feat/rcN` whose PR has merged — start the next branch immediately after a release.
-
----
 
 ### ⚠️ A `pull_request_target` workflow cannot validate a fix to itself
 

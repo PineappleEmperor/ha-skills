@@ -11,6 +11,10 @@ The **file bodies** live in the skill's `templates/` dir (mirrors the target rep
 - `.github/workflows/python_validate.yml`
 - `pr-checks.yml`'s `version-gate` job
 - `.github/dependabot.yml`
+- Workflows orchestrate; scripts decide
+- Read `reference/github-actions.md` before changing any workflow
+
+
 
 
 
@@ -102,5 +106,21 @@ The repo `CLAUDE.md` rule is the **canonical, shareable** enforcement (it ships 
 `~/.claude/hooks/ha-resources-reminder.sh` — per-turn anchors; stdout is injected as prompt context, so keep each line terse:
 
 `chmod +x` both scripts. Editing a hook *script* takes effect immediately (the hook re-execs it each turn); editing `settings.json` to add/remove a hook needs a `/hooks` open or restart to re-register.
+
+---
+
+## Workflows orchestrate; scripts decide
+
+A `run:` block may invoke a tool, pass data between steps, and guard on one condition.
+Anything that classifies, compares, or computes a value belongs in `scripts/`, where it
+has unit tests — logic inside a workflow can only be tested by running CI, so its first
+failure is a real PR. If a change to a template workflow needs a `case`, a loop, or a
+regex, write it in Python first and call it from the step.
+
+These templates are a dependency other repos inherit, so they are held to that standard
+even where a repo's own one-off workflow would not be.
+
+### Read `reference/github-actions.md` before changing any workflow
+— it holds the must-preserve behaviours: the sole title-only labeler + removal-only superseded-label step, `$BODY` + bounded Dependabot `replacers`, the last-published-release version gate (with `dependabot[bot]` exempt and the unit-tested `manifest_gate.py`), the `pr-checks` job ordering, its `pull_request_target` safety rules, and the optional personal reminder-hook recipe.
 
 ---
