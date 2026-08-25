@@ -2,16 +2,21 @@
 
 One-time setup that lives in GitHub's settings rather than in the repo: the release token, the required checks, the CI templates and the supply-chain guards. `scripts/bootstrap_repo.sh` does most of it in one command.
 
-**Read the section you need.** `grep -n '^#' reference/github-setup.md` for the list, then read that slice.
+**Sections** — `grep -n '^###' reference/github-setup.md`, then read the one you need.
 
 - `RELEASE_TOKEN` — set this up before the first release
 - Make the checks REQUIRED — a workflow is not a gate until it can block a merge
+- `Dependency review` needs the repository's dependency graph enabled
+- Every workflow here is advisory by default
 - Bypass configuration, and why it must stay empty, is `reference/discipline.md`
 - For AI sessions
 - Supply chain
 - GitHub CI templates
 - If none of those find it, stop and say so
 - Workflows orchestrate; scripts decide
+- Read `reference/github-actions.md` before changing any workflow
+
+
 
 ## `RELEASE_TOKEN` — set this up before the first release
 
@@ -102,7 +107,8 @@ private key is rotated the same way, and its tokens expire hourly regardless.
 > single-value matrix or put the suffixed name in the ruleset; never assume the
 > context equals the job name.
 
-⚠️ **`Dependency review` needs the repository's dependency graph enabled** (Settings → Advanced Security). With it off the action does not skip — it fails, so the check is red on every PR forever. Verified on a test repo: seven workflows green, this one red alone.
+### `Dependency review` needs the repository's dependency graph enabled
+(Settings → Advanced Security). With it off the action does not skip — it fails, so the check is red on every PR forever. Verified on a test repo: seven workflows green, this one red alone.
 
 **`scripts/bootstrap_repo.sh` does all of this once**, from the repo root after the first
 push: description, topics, issues, the ruleset, the dependency graph, `core.hooksPath`, and the `RELEASE_TOKEN`
@@ -130,7 +136,8 @@ when the panel changed. Everything else — `Auto draft PR`, `Auto release zip`,
 weaker check; it is not a check at all, and requiring one would block every PR on a context
 that never reports.
 
-⚠️ **Every workflow here is advisory by default.** GitHub will let a PR merge with all of it red, so without this step the gate stack is decorative. Copy `templates/ruleset.json` and apply it once:
+### Every workflow here is advisory by default
+GitHub will let a PR merge with all of it red, so without this step the gate stack is decorative. Copy `templates/ruleset.json` and apply it once:
 
 ```bash
 gh api -X POST repos/<owner>/<repo>/rulesets --input ruleset.json
@@ -218,6 +225,7 @@ regex, write it in Python first and call it from the step.
 These templates are a dependency other repos inherit, so they are held to that standard
 even where a repo's own one-off workflow would not be.
 
-**Read `reference/github-actions.md` before changing any workflow** — it holds the must-preserve behaviours: the sole title-only labeler + removal-only superseded-label step, `$BODY` + bounded Dependabot `replacers`, the last-published-release version gate (with `dependabot[bot]` exempt and the unit-tested `manifest_gate.py`), the `pr-checks` job ordering, its `pull_request_target` safety rules, and the optional personal reminder-hook recipe.
+### Read `reference/github-actions.md` before changing any workflow
+— it holds the must-preserve behaviours: the sole title-only labeler + removal-only superseded-label step, `$BODY` + bounded Dependabot `replacers`, the last-published-release version gate (with `dependabot[bot]` exempt and the unit-tested `manifest_gate.py`), the `pr-checks` job ordering, its `pull_request_target` safety rules, and the optional personal reminder-hook recipe.
 
 ---

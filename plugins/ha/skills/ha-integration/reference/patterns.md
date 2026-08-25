@@ -1,8 +1,34 @@
 # Implementation patterns, file structure and typing
 
-### Read the entry you need, not the file
-Each entry below is a self-contained pattern —
-`grep -n '^###' ` for the list, then read that slice. The whole file is ~2,300 words; a single
+The canonical lookup for code inside `custom_components/`: pattern, rule, copyable
+snippet. Panel code is `reference/panels.md`; tests are `reference/testing.md`.
+
+**Sections** — `grep -n '^###' reference/patterns.md`, then read the one you need.
+
+- Implementation patterns
+- `__init__.py`
+- Notify platform (modern pattern — HA 2023.8+)
+- `config_flow.py`
+- Entity platform files
+- `EntityDescription` pattern
+- `UpdateEntity` (firmware/OTA install)
+- `DataUpdateCoordinator` (polling)
+- Entity push subscriptions
+- `ConfigEntry` mutation
+- Logging
+- Custom services
+- `services.yaml` + `strings.json` (hassfest rules)
+- Register integration-global resources in `async_setup`, not `async_setup_entry`
+- Diagnostics platform
+- Config entry migration
+- File structure conventions
+- Typing
+- Always add at top of every file
+- `TYPE_CHECKING` for expensive or circular imports
+- Typed `ConfigEntry`
+- Avoid `# type: ignore`
+- MicroPython firmware files
+- HA itself is fully typed
 pattern is 40-200.
 
 | Pattern | For |
@@ -187,7 +213,8 @@ async def async_setup_entry(hass, entry, async_add_entities):
 - **hassfest forbids literal URLs in `strings.json` descriptions** — `the string should not contain URLs`. Use plain text, or a `{placeholder}` filled via `description_placeholders` in the flow step. A markdown image `![x]({url})` with a placeholder is fine (no literal `http`).
 - Collapsible service form: `fields: { appearance: { collapsed: true, fields: {...} } }` — sections are UI-only; the call data stays flat, so the voluptuous schema is unaffected.
 
-**Register integration-global resources in `async_setup`, not `async_setup_entry`.** The registration happens once per process; doing it per entry races when two entries set up in parallel. Claim the `hass.data` flag **before** the `await`, or both entries pass the check. The panel case, with the code, is `reference/panels.md`.
+### Register integration-global resources in `async_setup`, not `async_setup_entry`
+The registration happens once per process; doing it per entry races when two entries set up in parallel. Claim the `hass.data` flag **before** the `await`, or both entries pass the check. The panel case, with the code, is `reference/panels.md`.
 
 ### Diagnostics platform
 (Gold requirement — add `diagnostics.py`):

@@ -37,4 +37,5 @@ already reported the copy clean.
 
 ---
 
-**Keep the gate in lockstep.** When this skill gains an antipattern or a canonical workflow, add the matching check to `scripts/skill_audit.py` in the same PR — the gate is only as current as its rules.
+### Keep the gate in lockstep
+When this skill gains an antipattern or a canonical workflow, add the matching check to `scripts/skill_audit.py` in the same PR — the gate is only as current as its rules.

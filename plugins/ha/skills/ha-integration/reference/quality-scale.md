@@ -2,6 +2,13 @@
 
 The canonical rule set and what each tier demands.
 
+**Sections** — `grep -n '^###' reference/quality-scale.md`, then read the one you need.
+
+- Quality scale — target Platinum
+- Scaffold `quality_scale.yaml` from the start
+- Gate-enforced, on the claim rather than on the tests
+- Prove the rule, don't just claim it — hassfest checks structure, not behaviour
+
 ## Quality scale — target Platinum
 
 Generate `quality_scale.yaml` with each rule set to `todo` or `done` as appropriate.

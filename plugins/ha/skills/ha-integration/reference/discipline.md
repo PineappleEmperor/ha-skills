@@ -2,13 +2,16 @@
 
 Two behavioural rules with no artefact of their own: what to do when a check is red, and what to do before naming a root cause. Commit and PR-body format is `reference/commits.md`.
 
-**Read the section you need.** `grep -n '^#' reference/discipline.md` for the list, then read that slice.
+**Sections** — `grep -n '^###' reference/discipline.md`, then read the one you need.
 
 - Merge discipline — never merge a red check
 - One exception, and it is narrow
 - Red flags — stop
+- All of these mean: stop, read the log, fix or explain in writing first
 - Observed
 - Debugging discipline
+
+
 
 ## Merge discipline — never merge a red check
 
@@ -38,7 +41,8 @@ A `pull_request_target` workflow loads its definition from the **base** branch, 
 - Reaching for `--admin`, `--force`, or a `bypass_actors` entry to get a merge through
 - Telling yourself the failure is "unrelated" without having read the log
 
-**All of these mean: stop, read the log, fix or explain in writing first.** Which checks are required, and why one of them is deliberately absent, is `reference/github-setup.md`.
+### All of these mean: stop, read the log, fix or explain in writing first
+Which checks are required, and why one of them is deliberately absent, is `reference/github-setup.md`.
 
 ### Observed
 

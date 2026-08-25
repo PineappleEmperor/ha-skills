@@ -13,6 +13,7 @@ version gate and the release notes. Set up alongside `reference/github-setup.md`
 
 a small `scripts/update_manifest_floors.py` (parse manifest requirements, query PyPI `…/pypi/{name}/json` for the latest non-prerelease, raise the floor if newer; `--check` to dry-run) plus a scheduled `update_manifest_floors.yml` (`schedule:` + `workflow_dispatch`) that runs it and — on a change — commits to a branch, pushes, and **opens its own PR** (`gh pr create`). `auto_draft_pr.yml` is the only opener shipped, so a floor-bumper must open its own PR — mark it `# skill-audit: sanctioned-opener` with the reason, or the audit rejects it; guard with `gh pr list --head <branch> --state open` so a re-run updates rather than duplicates. Give it a title with a mapped type (`chore:`) so the autolabeler still files it. The floor-bump PR needs **no manifest version bump** under the last-release gate model in `reference/versioning.md`.
 
-**Two Dependabot consequences, both covered above:** the **version gate** must compare against the last release and **exempt `dependabot[bot]`** (see `reference/versioning.md`), and Dependabot's PR body no longer reaches the notes at all, since they are built from commit subjects; its `chore: bump …` subject is classified as Maintenance like any other commit.
+### Two Dependabot consequences, both covered above
+the **version gate** must compare against the last release and **exempt `dependabot[bot]`** (see `reference/versioning.md`), and Dependabot's PR body no longer reaches the notes at all, since they are built from commit subjects; its `chore: bump …` subject is classified as Maintenance like any other commit.
 
 ---

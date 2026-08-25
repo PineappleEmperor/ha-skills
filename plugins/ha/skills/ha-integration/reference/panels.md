@@ -2,17 +2,22 @@
 
 Traps specific to shipping a Lit/TS panel from an integration. For how the panel should look, use the `ha-panel-design` skill.
 
-**Read the section you need.** `grep -n '^#' reference/panels.md` for the list, then read that slice.
+**Sections** — `grep -n '^###' reference/panels.md`, then read the one you need.
 
 - Panel integrations (a custom panel served by the integration)
+- 0. Register the static path and the panel in `async_setup`
 - 1. The bundle must be committed
 - 2. `home-assistant-frontend` must be pinned in `requirements.test.txt`
+- 3. Registration has two traps
+
+
 
 ## Panel integrations (a custom panel served by the integration)
 
 Only if the integration registers a panel. Three things are non-obvious and each fails silently.
 
-**0. Register the static path and the panel in `async_setup`.** Once per process — per-entry registration races when two entries set up in parallel, so claim the `hass.data` flag before the `await`.
+### 0. Register the static path and the panel in `async_setup`
+Once per process — per-entry registration races when two entries set up in parallel, so claim the `hass.data` flag before the `await`.
 
   ```python
   from homeassistant.components.http import StaticPathConfig
@@ -45,7 +50,8 @@ curl -s https://raw.githubusercontent.com/home-assistant/core/<ha-version>/homea
 ```
 Gate-enforced: a manifest depending on `frontend`/`panel_custom` with no pin fails the audit.
 
-**3. Registration has two traps.** Cache-bust the module URL or a browser serves the previous panel after an update, and claim the registered flag **before** the `await` or two entries setting up in parallel both register:
+### 3. Registration has two traps
+Cache-bust the module URL or a browser serves the previous panel after an update, and claim the registered flag **before** the `await` or two entries setting up in parallel both register:
 ```python
 if not hass.data.get(REGISTERED):
     hass.data[REGISTERED] = True          # claim BEFORE the await

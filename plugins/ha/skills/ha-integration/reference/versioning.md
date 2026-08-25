@@ -2,15 +2,20 @@
 
 Reference for `ha-integration`. Loaded on demand.
 
-**Read the section you need.** `grep -n '^#' reference/versioning.md` for the list, then read that slice.
+**Sections** — `grep -n '^###' reference/versioning.md`, then read the one you need.
 
 - One labeler, title-only — don't hand-roll a second one
 - Stale superseded labels — NOT rare in a squash + rc-cycle repo
 - Type-vocab gap (narrower than it looks — verify against the config, not from memory)
+- Prerelease (rc) cycle
 - Exempt Dependabot from the version gate
 - ⚠️ A `pull_request_target` workflow cannot validate a fix to itself
 - PR events fire normally — the `GITHUB_TOKEN` suppression no longer applies
+- How the current opener avoids this
 - The suppression is not only about PR creation
+- This no longer bites, because of how the opener is built
+
+
 
 Commit and PR-title conventions, and what the release notes are built from, are
 `reference/commits.md`.

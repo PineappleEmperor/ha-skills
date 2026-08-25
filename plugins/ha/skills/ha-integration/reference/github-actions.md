@@ -2,12 +2,19 @@
 
 The **file bodies** live in the skill's `templates/` dir (mirrors the target repo: `templates/.github/workflows/*.yml`, `templates/.github/*.yml`, `templates/scripts/*`, `templates/tests/*`, `templates/hooks/*`, `templates/requirements.test.txt`). Copy them as-is — they are self-contained, no external repo. This file is the **why**: the behaviours each workflow must preserve. Read it before changing any workflow.
 
-**Read the section you need.** `grep -n '^#' reference/github-actions.md` for the list, then read that slice.
+**Sections** — `grep -n '^###' reference/github-actions.md`, then read the one you need.
 
 - This file does not substitute for the templates
+- PRs are opened by humans and by `auto_draft_pr.yml`
 - Superseded — do not reinstate
+- The `GITHUB_TOKEN` `opened`-suppression footgun is gone
+- `.github/workflows/release_drafter.yml`
+- `.github/workflows/release.yml`
 - `.github/workflows/python_validate.yml`
 - `pr-checks.yml`'s `version-gate` job
+- `.github/dependabot.yml`
+
+
 
 ### This file does not substitute for the templates
 
@@ -15,7 +22,8 @@ The **file bodies** live in the skill's `templates/` dir (mirrors the target rep
 
 #### pr-checks.yml template (canonical — copy this, no external repo)
 
-**PRs are opened by humans and by `auto_draft_pr.yml`** — draft-only, gated on the actor being the repo owner, and the only workflow permitted to open one. `pr-checks.yml` holds every PR-time job that reads or writes labels, in **one** workflow, ordered with `needs:`.
+### PRs are opened by humans and by `auto_draft_pr.yml`
+— draft-only, gated on the actor being the repo owner, and the only workflow permitted to open one. `pr-checks.yml` holds every PR-time job that reads or writes labels, in **one** workflow, ordered with `needs:`.
 
 | Job | `needs:` | Does |
 |---|---|---|
@@ -37,7 +45,8 @@ Must-preserve behaviours:
 >
 > The separate `pr-labeler.yml`, `pr-title-check.yml`, `pr-commit-summary.yml` and `check-manifest-version.yml` are superseded by `pr-checks.yml` — the first three because they could not be ordered against the labeler, and `check-manifest-version.yml` because its `push` trigger was a no-op (both its steps were gated on `github.event_name == 'pull_request'`).
 >
-> **The `GITHUB_TOKEN` `opened`-suppression footgun is gone.** A human-opened PR is not a token-caused event, so every `pull_request` workflow runs on the first open, as it always should have.
+### The `GITHUB_TOKEN` `opened`-suppression footgun is gone
+A human-opened PR is not a token-caused event, so every `pull_request` workflow runs on the first open, as it always should have.
 
 #### Remaining workflow + config templates (canonical — copy these, no external repo)
 
@@ -55,11 +64,13 @@ All paths assume one integration per repo: `custom_components/<domain>/manifest.
 
 **`.github/workflows/stale.yml`** — marks stale issues; never closes them.
 
-**`.github/workflows/release_drafter.yml`** — drafts release notes on pushes to `main`, and writes the final body on `release: published` (labelling lives in the `label` job of `pr-checks.yml`, so no autolabeler job here). Resolves the release version from the merged PRs' labels — never from a file.
+### `.github/workflows/release_drafter.yml`
+— drafts release notes on pushes to `main`, and writes the final body on `release: published` (labelling lives in the `label` job of `pr-checks.yml`, so no autolabeler job here). Resolves the release version from the merged PRs' labels — never from a file.
 
 **`.github/release-drafter.yml`** (config) — title-only autolabeler rules (breaking `!` first), a placeholder `template` that shows if the generator fails to run, label→semver `version-resolver`.
 
-**`.github/workflows/release.yml`** — *Create Release ZIP*. Required when `hacs.json` has `zip_release: true`: builds `<domain>.zip` (integration files at the **zip root**) and attaches it to the published release, so HACS has the asset to download. `cd` into the package before zipping so paths are root-relative (not `custom_components/<domain>/…`). Uses the `gh` CLI to upload (the old `actions/upload-release-asset@v1` is archived — don't reinstate it).
+### `.github/workflows/release.yml`
+— *Create Release ZIP*. Required when `hacs.json` has `zip_release: true`: builds `<domain>.zip` (integration files at the **zip root**) and attaches it to the published release, so HACS has the asset to download. `cd` into the package before zipping so paths are root-relative (not `custom_components/<domain>/…`). Uses the `gh` CLI to upload (the old `actions/upload-release-asset@v1` is archived — don't reinstate it).
 
 **`.github/workflows/hassfest_validate.yml`** — HA manifest/services/quality-scale validation.
 
@@ -79,7 +90,8 @@ The workflow just gathers inputs and shells out:
 
 `tests/test_manifest_gate.py` — load the standalone script by path (it isn't an importable package) and cover the matrix, **including the regression that shipped** (chore riding an in-cycle minor) and the over-bump it must still catch:
 
-**`.github/dependabot.yml`** — `github-actions` is the real value; `pip` covers `requirements.test.txt`, which the template ships **pinned**, so this ecosystem now produces real PRs (it was near-useless while nothing was pinned). `chore` prefix → autolabeler maps to patch.
+### `.github/dependabot.yml`
+— `github-actions` is the real value; `pip` covers `requirements.test.txt`, which the template ships **pinned**, so this ecosystem now produces real PRs (it was near-useless while nothing was pinned). `chore` prefix → autolabeler maps to patch.
 
 #### Optional: per-turn reminder hooks (personal `~/.claude`)
 

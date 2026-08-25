@@ -1,16 +1,23 @@
 # Commit conventions
 
 What a commit subject must look like, why the body stays empty, and what the release
+
+**Sections** — `grep -n '^###' reference/commits.md`, then read the one you need.
+
+- Conventional Commits & Semantic Versioning
+- Keep messages short
+- No AI-attribution trailers
+- Enforce the trailer ban with a `commit-msg` hook — prose alone isn't enough
+- Put the narrative in the release, not the commit
+- The PR body is for reviewers and nothing else
+- The PR body, and what belongs in the conversation instead
+- The release notes are built from the commits, not from the PR body
+- Red flags — stop
+- Observed
 notes are generated from. The labels, gates and release model are
 `reference/versioning.md`.
 
-**Read the section you need.** `grep -n '^#' reference/commits.md` for the list, then read that slice.
 
-- Conventional Commits & Semantic Versioning
-- Enforce the trailer ban with a `commit-msg` hook — prose alone isn't enough
-- The PR body is for reviewers and nothing else
-- The PR body, and what belongs in the conversation instead
-- Red flags — stop
 
 ## Conventional Commits & Semantic Versioning
 
@@ -23,16 +30,19 @@ notes are generated from. The labels, gates and release model are
 [optional footers — BREAKING CHANGE: <detail>]
 ```
 
-**Keep messages short.** Tight imperative subject; **subject-only by default**. Add a body ONLY when the *why* is non-obvious, or for breaking changes / migration notes — never to restate what the diff already shows. Long bodies that narrate the change are noise. Subject in imperative mood, lowercase after the colon, no trailing period.
+### Keep messages short
+Tight imperative subject; **subject-only by default**. Add a body ONLY when the *why* is non-obvious, or for breaking changes / migration notes — never to restate what the diff already shows. Long bodies that narrate the change are noise. Subject in imperative mood, lowercase after the colon, no trailing period.
 
-**No AI-attribution trailers.** Don't append `Co-Authored-By: Claude`, tool/session links, or any "generated with…" line to commits — keep the authorship history clean. (If a harness injects such trailers by default, strip them.) A `Co-Authored-By:` for a *real* human collaborator is fine.
+### No AI-attribution trailers
+Don't append `Co-Authored-By: Claude`, tool/session links, or any "generated with…" line to commits — keep the authorship history clean. (If a harness injects such trailers by default, strip them.) A `Co-Authored-By:` for a *real* human collaborator is fine.
 
 ### Enforce the trailer ban with a `commit-msg` hook — prose alone isn't enough
 
 ⚠️ A coding harness can inject `Co-Authored-By: Claude` / `Claude-Session:` on *every* commit via a standing instruction, which fights this rule turn after turn; the agent keeps "remembering" the harness default over the skill and regresses. The fix is deterministic enforcement at the git layer, not memory. Ship `.githooks/commit-msg` (Conventional Commit subject shape + terse-subject + no-narrative-body + an **editorialising-word** reject + **AI-trailer rejection**), add it to the scaffold's repo-root files, and tell contributors to enable it once per clone in `CLAUDE.md`: `git config core.hooksPath .githooks`.
 Body in **`templates/hooks/commit-msg`** — copy it to `.githooks/commit-msg`, `chmod +x`. Don't retype it from this document.
 
-**Put the narrative in the release, not the commit.** The human-readable "what changed and why it matters" belongs in the **PR description / release notes** (surfaced by release-drafter / `generate_release_notes`), which is where users actually read it. Keep commits terse; write the detail once, in the release description.
+### Put the narrative in the release, not the commit
+The human-readable "what changed and why it matters" belongs in the **PR description / release notes** (surfaced by release-drafter / `generate_release_notes`), which is where users actually read it. Keep commits terse; write the detail once, in the release description.
 
 ### The PR body is for reviewers and nothing else
 
@@ -65,7 +75,8 @@ No job writes it — see `reference/github-actions.md` for which workflow opens 
 
 <!-- the opener itself is described in reference/github-actions.md -->
 
-**The release notes are built from the commits, not from the PR body.** `scripts/release_notes.py` classifies each subject and groups it, and the draft PR arrives with an empty body (see `reference/github-actions.md`). So a body is optional context for reviewers, and writing the changelog into it just says the same thing twice, in a place users never read.
+### The release notes are built from the commits, not from the PR body
+`scripts/release_notes.py` classifies each subject and groups it, and the draft PR arrives with an empty body (see `reference/github-actions.md`). So a body is optional context for reviewers, and writing the changelog into it just says the same thing twice, in a place users never read.
 
 Reasoning, alternatives, verification evidence: those go in the PR **conversation**, where reviewers read them and the notes do not.
 
@@ -86,6 +97,7 @@ Reasoning, alternatives, verification evidence: those go in the PR **conversatio
 
 **All of these mean: put it in a comment, or fix the commit subjects.**
 
-> **Observed.** This rule already existed, as "keep two or three sentences of summary at the top of the PR body". It was read and ignored across eight consecutive PRs in this skill's own repo. The author was unaware until they read one of their own PRs. Guidance that exists and is skipped needs a prohibition, not a clearer sentence.
+### Observed
+This rule already existed, as "keep two or three sentences of summary at the top of the PR body". It was read and ignored across eight consecutive PRs in this skill's own repo. The author was unaware until they read one of their own PRs. Guidance that exists and is skipped needs a prohibition, not a clearer sentence.
 
 ---
