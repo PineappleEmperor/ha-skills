@@ -19,7 +19,7 @@ Help create, modify, and lint Home Assistant custom integrations targeting **pla
 
 ## When to use this skill
 
-Use it when the task touches any of: a `custom_components/<domain>/` package, a `manifest.json` with a `domain`, a config/options/reauth/reconfigure flow, a `DataUpdateCoordinator` or entity platform (`sensor.py`, `notify.py`, …), `services.yaml`/`quality_scale.yaml`, the integration's GitHub CI (the `pr-checks`/release-drafter/hassfest/HACS stack), or a Home Assistant log to triage. Symptoms that should pull you here: "add a sensor/platform", "config flow won't validate", "hassfest/HACS check failing", "what `state_class` for this `device_class`", "Dependabot keeps bumping actions", "this PR's release version looks wrong", "what's spamming my HA log".
+Use it when the task touches any of: a `custom_components/<domain>/` package, a `manifest.json` with a `domain`, a config/options/reauth/reconfigure flow, a `DataUpdateCoordinator` or entity platform (`sensor.py`, `notify.py`, …), `services.yaml`/`quality_scale.yaml`, the integration's GitHub CI (the `pr-checks`/release-drafter/hassfest/HACS stack). Symptoms that should pull you here: "add a sensor/platform", "config flow won't validate", "hassfest/HACS check failing", "what `state_class` for this `device_class`", "Dependabot keeps bumping actions", "this PR's release version looks wrong".
 
 **When NOT to use:** Home Assistant *panel / display UI* work (Lit/TS web component, CSS, layout) — that's the `ha-panel-design` skill. Generic Python/CI work in a repo that isn't an HA integration.
 
