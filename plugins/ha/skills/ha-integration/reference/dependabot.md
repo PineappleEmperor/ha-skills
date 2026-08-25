@@ -1,13 +1,12 @@
 # Dependabot for a HA custom integration
 
 What Dependabot can bump, what it cannot reach, and the two consequences it has for the
+version gate and the release notes. Set up alongside `reference/github-setup.md`.
 
 - Keeping `>=` floors current (custom, since Dependabot can't):
 - Two Dependabot consequences, both covered above
 - Exemption from the version gate
 - Pins in your repo versus pins in the templates
-
-version gate and the release notes. Set up alongside `reference/github-setup.md`.
 
 `.github/dependabot.yml` with `commit-message.prefix: "chore"` on each ecosystem (so titles read `chore: bump …` → the autolabeler maps `chore` → patch). Know what it actually buys you:
 
