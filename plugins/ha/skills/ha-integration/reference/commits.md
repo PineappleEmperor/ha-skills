@@ -3,9 +3,6 @@
 What a commit subject must look like, why the body stays empty, and what the release
 notes are built from. Labels, gates and the release model are `reference/versioning.md`.
 
-
-
-
 - Conventional Commits & Semantic Versioning
 - Keep messages short
 - No AI-attribution trailers
