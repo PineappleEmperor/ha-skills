@@ -1,9 +1,9 @@
 ---
-name: ha-log-triage
-description: Use when reading a Home Assistant log — a `home-assistant.log`, a Settings → System → Logs download, or a pasted log dump — and the question is what is actually wrong. Reach for it on "thousands of errors after restart", "what is spamming my log", "is this error real or noise", a repeating `websocket_api` pending-messages burst, `extra keys not allowed` from a script or automation, a `notify.mobile_app_*` service that stopped existing, or a Z-Wave value id that no longer resolves. Also when a companion-app notification image works on Wi-Fi but fails on cellular. NOT for writing integration code — that is the `ha-integration` skill.
+name: ha-triage
+description: Use when something in a Home Assistant instance is misbehaving and the question is what is actually wrong — most often from a log (`home-assistant.log`, a Settings → System → Logs download, a pasted dump), but also from a symptom with no log at hand. Reach for it on "thousands of errors after restart", "what is spamming my log", "is this error real or noise", a repeating `websocket_api` pending-messages burst, `extra keys not allowed` from a script or automation, a `notify.mobile_app_*` service that stopped existing, or a Z-Wave value id that no longer resolves. Also when a companion-app notification image works on Wi-Fi but fails on cellular. NOT for writing integration code — that is the `ha-integration` skill.
 ---
 
-# Home Assistant Log Triage
+# Home Assistant Triage
 
 This skill is self-contained: everything is in this file, and there is no `reference/` directory to open.
 
@@ -95,6 +95,13 @@ Collapse each logger cluster to one row. Then read **one representative line** p
 Ranked table: **severity · cluster · root cause · fix · evidence (`timestamp` / `file:line`)**. State explicitly which clusters are *known noise* (so the user stops worrying about a scary count) and which are *actionable*. Resolve every opaque token through the device map so the report reads in plain device names ("Kitchen wall tablet", not `192.168.1.42`). If a fix is config-side (scripts/automations/integration settings) and you only have the log, say so and offer to apply it once given the config path.
 
 ### Companion-app notification images (off-network delivery)
+
+⚠️ **This section is verified against the companion-app docs, not against a live instance,
+and a user reports images failing in practice.** Treat the fixes below as candidates, not
+settled answers, until reproduced. In particular: fetching an image at notification time
+adds a round trip that can time out on a slow link, so *storing* the image and serving it
+may be the more reliable shape — which then makes authenticated file access the thing to
+get right, rather than URL form. Re-derive before advising.
 
 Recurring config-side fix: a `notify.mobile_app_*` image "works on Wi-Fi, fails on cellular". Root cause is always that the **phone** downloads the attachment over the internet through Nabu Casa — so anything only reachable on the LAN, or served stale, breaks off-network. Two causes:
 

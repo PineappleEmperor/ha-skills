@@ -1,6 +1,6 @@
 ---
 name: ha-integration
-description: Use when developing or troubleshooting a Home Assistant custom integration — Python code under `custom_components/`. Covers config/options/reauth/reconfigure flows, the data coordinator and entity platforms (sensor, switch, notify, fan, etc.), manifest, services, diagnostics, and quality_scale. Reach for it on symptom-style reports too: an entity going unavailable after restart, a notify/custom service breaking after an HA update, a `device_class`/`state_class` mismatch HA complains about, a reconfigure flow request, or CI/Dependabot/HACS/hassfest issues on an integration repo. NOT for Lovelace cards, panel/display UI styling (`ha-panel-design`), triaging a `home-assistant.log` (`ha-log-triage`), or generic non-HA Python. Invoke before editing integration code; re-invoke after /compact.
+description: Use when developing or troubleshooting a Home Assistant custom integration — Python code under `custom_components/`. Covers config/options/reauth/reconfigure flows, the data coordinator and entity platforms (sensor, switch, notify, fan, etc.), manifest, services, diagnostics, and quality_scale. Reach for it on symptom-style reports too: an entity going unavailable after restart, a notify/custom service breaking after an HA update, a `device_class`/`state_class` mismatch HA complains about, a reconfigure flow request, or CI/Dependabot/HACS/hassfest issues on an integration repo. NOT for Lovelace cards, panel/display UI styling (`ha-panel-design`), triaging a `home-assistant.log` (`ha-triage`), or generic non-HA Python. Invoke before editing integration code; re-invoke after /compact.
 ---
 
 # Home Assistant Integration Assistant
@@ -42,7 +42,7 @@ The audit script lives at `scripts/skill_audit.py` in a repo that copied the tem
 Auditing a repo that never did — the case where the audit matters most — means running the
 skill's own copy at `templates/scripts/skill_audit.py` against the repo root.
 
-Reading a Home Assistant log is a different skill — `ha-log-triage`. How a panel **looks**
+Reading a Home Assistant log is a different skill — `ha-triage`. How a panel **looks**
 (type scale, colour, spacing, touch targets) is `ha-panel-design`. How a panel is **built and
 served** — the committed bundle, its staleness check, registration and cache-busting, the
 `home-assistant-frontend` pin — stays here, in `reference/panels.md`.

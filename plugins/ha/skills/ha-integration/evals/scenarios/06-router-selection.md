@@ -26,7 +26,7 @@ No fixture. The agent needs read access to `plugins/ha/skills/` — all three sk
 
 | Request | Skill | Next file |
 |---|---|---|
-| A | `ha-log-triage` | none — single-file skill |
+| A | `ha-triage` | none — single-file skill |
 | B | `ha-integration` | `reference/patterns.md` |
 | C | `ha-panel-design` | none — single-file skill |
 | D | `ha-integration` | `reference/github-setup.md`, then `reference/versioning.md` |

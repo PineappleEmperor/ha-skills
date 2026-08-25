@@ -1,6 +1,6 @@
 {
   "name": "ha",
-  "description": "Skills for building Home Assistant custom integrations (Platinum quality scale), designing native-looking custom panels, and triaging Home Assistant logs.",
+  "description": "Skills for building Home Assistant custom integrations (Platinum quality scale), designing native-looking custom panels, and triaging Home Assistant problems.",
   "author": {
     "name": "PineappleEmperor"
   }

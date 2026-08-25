@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'if [ -f .claude-plugin/marketplace.json ]; then echo \"[marketplace-repo] This is the skills marketplace, not an integration: no version is declared in plugin.json or marketplace.json (Claude Code resolves it from the commit SHA), so nothing is ever bumped. templates/ is what ships to scaffolded repos — skill_audit.py and its tests belong there; skill_meta_audit.py is repo-local and must not be shipped. Anything naming a workflow or file that only exists here stays out of plugins/.\"; fi'"
+          }
+        ]
+      }
+    ]
+  }
+}
