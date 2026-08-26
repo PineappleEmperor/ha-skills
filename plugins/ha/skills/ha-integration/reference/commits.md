@@ -10,9 +10,7 @@ notes are built from. Labels, gates and the release model are `reference/version
 - Put the narrative in the release, not the commit
 - The PR body is for reviewers and nothing else
 - The PR body, and what belongs in the conversation instead
-- The release notes are built from the commits, not from the PR body
 - Red flags — stop
-- Why this is stated as a rule
 
 ## Conventional Commits & Semantic Versioning
 
@@ -68,8 +66,7 @@ No job writes it — see `reference/github-actions.md` for which workflow opens 
 
 ## The PR body, and what belongs in the conversation instead
 
-
-### The release notes are built from the commits, not from the PR body
+The release notes are built from the commits, not from the PR body.
 `scripts/release_notes.py` classifies each subject and groups it, and the draft PR arrives with an empty body (see `reference/github-actions.md`). So a body is optional context for reviewers, and writing the changelog into it just says the same thing twice, in a place users never read.
 
 Reasoning, alternatives, verification evidence: those go in the PR **conversation**, where reviewers read them and the notes do not.
@@ -90,11 +87,5 @@ Reasoning, alternatives, verification evidence: those go in the PR **conversatio
 - Explaining *why* anywhere the commit subjects should have said it
 
 **All of these mean: put it in a comment, or fix the commit subjects.**
-
-### Why this is stated as a rule
-
-The softer form — "keep a couple of sentences of summary" — was read and ignored
-repeatedly, because a summary is always arguably useful. An empty body is checkable;
-a judgement about summary length is not.
 
 ---
