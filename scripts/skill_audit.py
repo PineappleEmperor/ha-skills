@@ -713,10 +713,12 @@ def check_release_token(repo: Repo) -> Result:
         return [], ["cannot list secrets here — verify RELEASE_TOKEN exists, or draft PRs will not open"]
     if out.returncode != 0:
         return [], ["cannot list secrets here — verify RELEASE_TOKEN exists, or draft PRs will not open"]
-    if "RELEASE_TOKEN" not in out.stdout.split():
-        return ["auto_draft_pr.yml is present but the RELEASE_TOKEN secret is not set "
-                "(see SKILL.md, RELEASE_TOKEN)"], []
-    return [], []
+    names = set(out.stdout.split())
+    # Either sanctioned source: the PAT, or the GitHub App pair the App path mints from.
+    if "RELEASE_TOKEN" in names or {"APP_ID", "APP_PRIVATE_KEY"} <= names:
+        return [], []
+    return ["auto_draft_pr.yml is present but neither RELEASE_TOKEN nor the "
+            "APP_ID/APP_PRIVATE_KEY pair is set (see SKILL.md, RELEASE_TOKEN)"], []
 
 
 def check_required_status_checks(repo: Repo) -> Result:
