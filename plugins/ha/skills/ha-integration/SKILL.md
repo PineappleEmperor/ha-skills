@@ -5,7 +5,6 @@ description: Use when developing or troubleshooting a Home Assistant custom inte
 
 # Home Assistant Integration Assistant
 
-
 Help create, modify, and lint Home Assistant custom integrations targeting **platinum quality scale**.
 
 **Always fetch before coding** — these are the authoritative sources:
@@ -129,9 +128,7 @@ Two layers:
    `scripts/skill_audit.py --list` prints every check and why it exists.
 2. **Judgement checklist** — `reference/audit.md`. The items a grep can't decide.
 
-⚠️ In a consuming repo the gate checks each canonical workflow *exists*, not that it *matches*
-the template, because that repo has no `templates/` to diff against. (In the skill's own repo
-it does compare: `check_self_diff` and `check_template_pins`.) Green CI is not evidence the
-templates were copied; that is the first item of the judgement checklist.
+⚠️ **Green CI is not evidence the templates were copied.** Why the gate cannot tell you that,
+and how to check it yourself, is the first item of the judgement checklist.
 
 ---

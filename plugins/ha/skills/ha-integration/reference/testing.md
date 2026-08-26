@@ -4,7 +4,6 @@ Three prerequisites decide whether the suite runs at all, then one rule about wh
 The code patterns being tested are `reference/patterns.md`.
 
 - Testing — prerequisites before any of the rules below apply
-- 3. A `config_flow.py` that imports, whenever `manifest.json` sets `"config_flow": true`
 - Don't reuse a domain that exists in HA core
 - Testing — mock at the boundary, not your own code
 - Mock only at the external boundary
@@ -17,7 +16,6 @@ The code patterns being tested are `reference/patterns.md`.
 - Push coordinator data to entities without scheduling timers
 - Standalone helper scripts
 
-
 ## Testing — prerequisites before any of the rules below apply
 
 `pytest-homeassistant-custom-component` does not work out of the box. Three requirements, each of which fails the *whole* suite rather than one test. The first two were verified by ablation — removing either stops a real setup-entry test passing — and the third by the import error it produces. Re-derive against the pinned harness version in `reference/freshness.md` if these stop matching what you see.
@@ -29,8 +27,7 @@ The code patterns being tested are `reference/patterns.md`.
 
 **2. `asyncio_mode = "auto"`** in `pyproject.toml`, or pytest-asyncio never runs the async tests (they error at collection).
 
-### 3. A `config_flow.py` that imports, whenever `manifest.json` sets `"config_flow": true`
-
+**3. A `config_flow.py` that imports**, whenever `manifest.json` sets `"config_flow": true`.
 HA imports the flow module *during entry setup*, not only when a user opens the flow, so a manifest claiming a config flow without the module fails the setup test with `Error importing platform config_flow from integration <domain>` — which reads as a test problem and is a wiring problem. Found by running the setup test against an integration whose `__init__.py` had no `async_setup_entry` at all.
 
 ```toml

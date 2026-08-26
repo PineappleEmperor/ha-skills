@@ -107,7 +107,7 @@ a placeholder may start as an SVG rasterised with `cairosvg` (ImageMagick's MSVG
 
 **HACS validation — 9 checks**
 
-⚠️ All checks must pass without ignoring any — the `ignore:` input in `hacs_validate.yml` must not be used at all — `skill_audit.py` fails on its presence, and ignoring any check disqualifies the repo from the HACS default store.
+⚠️ All nine must pass; none may be ignored (the `ignore:` input is off-limits — `reference/github-actions.md` has the workflow contract). Fix them here, at scaffold time, since each one maps to a file or a GitHub setting:
 
 | Check | What's needed | Where to fix |
 |-------|--------------|--------------|

@@ -30,7 +30,6 @@ Once per process — per-entry registration races when two entries set up in par
   # last unload: frontend.async_remove_panel(hass, "{domain}")
   ```
 
-
 ### The bundle must be committed
 
 HACS ships the repo as-is and runs no build step on the user's machine, so the esbuild output has to live inside `custom_components/<domain>/panel/` to reach the release zip. A stale bundle then breaks *invisibly*: the old bundle still runs, tests pass, CI is green, and the only symptom is "the fix I made isn't there". Copy `templates/frontend/{package.json,tsconfig.json}` and `templates/.github/workflows/frontend_build.yml`; the workflow's `git diff --exit-code` on the bundle is the point of the whole file. **This differs from a Lovelace *card* repo**, which attaches the built `.js` as a release asset — an integration cannot, because the asset isn't in the zip HACS installs.

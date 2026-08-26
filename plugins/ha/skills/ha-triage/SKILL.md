@@ -5,8 +5,6 @@ description: Use when something in a Home Assistant instance is misbehaving and 
 
 # Home Assistant Triage
 
-This skill is self-contained: everything is in this file, and there is no `reference/` directory to open.
-
 Input is a `home-assistant.log`, a **Settings → System → Logs** download, or a pasted dump.
 Turn thousands of log lines into a short ranked list of *actionable* issues, separating real
 faults from the background noise HA emits constantly.
