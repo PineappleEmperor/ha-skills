@@ -43,8 +43,6 @@ snippet. Panel code is `reference/panels.md`; tests are `reference/testing.md`.
 
 Panel code is `reference/panels.md`; tests are `reference/testing.md`.
 
-Reference for `ha-integration` Mode 1/2. Loaded on demand.
-
 ### `__init__.py`
 
 **Pick the shape HA models.** An entity platform when the thing has state a user would see

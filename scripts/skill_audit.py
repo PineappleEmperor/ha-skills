@@ -2,8 +2,9 @@
 """Skill-conformance audit: verify the ha-integration skill was actually followed.
 
 Canonical workflows present, action pins current, antipatterns absent, quality_scale
-honest. The mechanical subset of Mode 4 — the judgement items still need an agent with
-the skill on disk. Exit 1 on any FAIL. Runs locally and in CI.
+honest. The mechanical subset of the audit — the judgement items in
+reference/audit.md still need an agent with the skill on disk. Exit 1 on any FAIL.
+Runs locally and in CI.
 
 Ported from skill_audit.sh: the shell version grew ten embedded Python blocks, none of
 which could be unit-tested, which is the same trap the skill warns about elsewhere.
@@ -673,8 +674,8 @@ def check_self_diff(repo: Repo) -> Result:
         except Exception:
             continue
     if bad:
-        return ["this repo's .github/ diverges from its own templates/ (see Mode 4 sanctioned "
-                "adaptations): " + ", ".join(bad)], []
+        return ["this repo's .github/ diverges from its own templates/ (see the sanctioned "
+                "adaptations table in reference/github-actions.md): " + ", ".join(bad)], []
     return [], []
 
 
