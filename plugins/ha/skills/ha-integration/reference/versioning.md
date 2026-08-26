@@ -10,8 +10,7 @@ Commit and PR-title conventions are `reference/commits.md`; the GitHub-side sett
 - Prerelease (rc) cycle
 - Nothing is ever bumped by hand
 - A `pull_request_target` workflow cannot validate a fix to itself
-- PR events fire normally — the `GITHUB_TOKEN` suppression no longer applies
-- The suppression is not only about PR creation
+- Why every label job is in one workflow
 - Orphaned-branch trap
 
 ### One labeler, title-only — don't hand-roll a second one
@@ -20,33 +19,11 @@ Commit and PR-title conventions are `reference/commits.md`; the GitHub-side sett
 
 ### Stale superseded labels — NOT rare in a squash + rc-cycle repo
 
-⚠️ The autolabeler only *adds*, never removes. When a PR's title flips type mid-life (`fix:` → `feat:` as scope grows — routine on a long-lived `feat/rcN` branch), the **old type label lingers alongside the new one**. release-drafter is PR-granular and lists a PR under **every** matching label's category, so a double-labelled PR shows up under *two* headings (e.g. both `## 🚀 Features` and `## 🔧 Fixes`) with the same change listed under two release sections. The `version-resolver` still picks the highest for the bump, but the **release notes are wrong**. This is common — not "rare since a PR is usually one type"; rc-cycle PRs routinely accrue mixed types and a flipping title. Fix with a **removal-only** step after the autolabeler (removal-only can't flap — it only ever subtracts the non-winning labels, keyed on the same title the autolabeler reads):
-```yaml
-# pr-checks.yml `label` job, step AFTER autolabeler@v7
-- name: Remove superseded type labels
-  env:
-    GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    GH_REPO: ${{ github.repository }}  # job has no checkout — gh would else fail "not a git repository"
-    TITLE: ${{ github.event.pull_request.title }}
-    PR: ${{ github.event.pull_request.number }}
-  run: |
-    if   printf '%s' "$TITLE" | grep -qiE '^[a-z]+(\([^)]*\))?!:';        then WIN=xfeat
-    elif printf '%s' "$TITLE" | grep -qiE '^(chore|docs)(\([^)]*\))?:';   then WIN=chore
-    elif printf '%s' "$TITLE" | grep -qiE '^fix(\([^)]*\))?:';            then WIN=fix
-    elif printf '%s' "$TITLE" | grep -qiE '^(feat|feature)(\([^)]*\))?:'; then WIN=feature
-    else exit 0  # title maps to no managed label; leave labels untouched
-    fi
-    CURRENT=$(gh pr view "$PR" --json labels --jq '.labels[].name')
-    for L in xfeat feature fix chore; do
-      [ "$L" = "$WIN" ] && continue
-      # `if` (not `grep && gh`): a no-match grep as the step's last command
-      # returns 1 under `bash -e`, failing the step even when nothing's wrong.
-      if printf '%s\n' "$CURRENT" | grep -qx "$L"; then
-        gh pr edit "$PR" --remove-label "$L"
-      fi
-    done
-```
-The `!`-breaking branch must come first (else `feat!` matches the `feat` arm). This is still **one source of truth** — the title — and removal-only, so it can't fight the autolabeler the way a second *adding* step does. Needs `pull-requests: write`. **Note this only fixes the *labels* (one PR → one category).** Within a single squash PR whose body lists mixed-type commits, the commits stay together under that PR's one category — that no longer arises: the notes are built from commit subjects and each commit is classified on its own, so a mixed-type PR contributes to whichever sections its commits belong in.
+⚠️ The autolabeler only *adds*, never removes. When a PR's title flips type mid-life (`fix:` → `feat:` as scope grows — routine on a long-lived `feat/rcN` branch), the **old type label lingers alongside the new one**. release-drafter is PR-granular and lists a PR under **every** matching label's category, so a double-labelled PR shows up under *two* headings (e.g. both `## 🚀 Features` and `## 🔧 Fixes`) with the same change listed under two release sections. The `version-resolver` still picks the highest for the bump, but the **release notes are wrong**. This is common — not "rare since a PR is usually one type"; rc-cycle PRs routinely accrue mixed types and a flipping title.
+
+The shipped fix is a **removal-only** step in `pr-checks.yml`'s `label` job, running after the autolabeler. Removal-only can't flap: it only ever subtracts the non-winning labels, keyed on the same title the autolabeler reads, so there is still **one source of truth**. Copy the job from `templates/.github/workflows/pr-checks.yml` — do not retype it from here. Two properties to preserve if you ever touch it: the `!`-breaking arm must be tested first (else `feat!` matches the `feat` arm), and the job needs `pull-requests: write`.
+
+**This fixes the *labels* only — one PR, one category.** It does not decide where a mixed-type PR's commits land: the notes are built from commit subjects and each commit is classified on its own, so such a PR contributes to whichever sections its commits belong in.
 
 ### Type-vocab gap (narrower than it looks — verify against the config, not from memory)
 
@@ -70,7 +47,7 @@ release candidates are published via the GitHub **prerelease flag** + a `v…-rc
 `release.yml` writes `manifest.json` from the release tag at publish, so no PR carries a bump,
 `version-gate` skips itself, and the advisory step says what the labels imply. The committed
 value is a placeholder between releases. Dependabot's exemption from the gate is
-`reference/github-setup.md`.
+`reference/dependabot.md`.
 
 ### A `pull_request_target` workflow cannot validate a fix to itself
 
@@ -78,22 +55,23 @@ value is a placeholder between releases. Dependabot's exemption from the gate is
 broken job is still checked by the broken copy on `main`. The job cannot pass until the fix
 is merged, and it cannot be merged while the job is red.
 
-This is the **only** sanctioned exception, it applies to one job on one PR, and it requires
-proof by diff. The full rule, with the rationalisation table and the red flags, is
-*Merge discipline* in `reference/discipline.md` — read it there rather than acting on this
-summary.
+That deadlock is the one sanctioned reason to merge past a red check, and the conditions on
+it are narrow. Do not act on this paragraph: *Merge discipline* in `reference/discipline.md`
+states them.
 
-### PR events fire normally — the `GITHUB_TOKEN` suppression no longer applies
+### Why every label job is in one workflow
 
-`auto_draft_pr.yml` opens with `RELEASE_TOKEN`, so the events fire and every check runs on first open. The alternatives were worse: opening with the default token and pushing an empty commit to force `synchronize` litters history and races the checks, and a `workflow_dispatch` re-run needs a human, which defeats the point.
+GitHub suppresses workflow runs for events caused by the default `GITHUB_TOKEN`, so the
+`labeled` event the autolabeler would fire never arrives and nothing can be keyed on it.
+Every PR-time job that reads or writes a label therefore lives in `pr-checks.yml`, ordered
+with `needs:` — the workflow contract, and what must not be split back out, is
+`reference/github-actions.md`. **What it means for you: never key a version or label job on
+another workflow's side effect, and never poll for one.**
 
-**Historical note, kept because the symptom is memorable and the old advice is still circulating.** GitHub suppresses workflow runs for events caused by the default `secrets.GITHUB_TOKEN` (an anti-recursion rule). While this skill shipped `create-dev-pr.yml`, that bot opened the PR, so the `pull_request: opened` event was swallowed and `lint_pr`, the autolabeler and the version gate **did not run on first open**. It bit exactly once per branch — a later human push fired `synchronize` with the human as `triggering_actor`, and everything ran — so the footgun only really hurt a branch pushed once and merged untouched.
-
-### The suppression is not only about PR creation
-
-⚠️ It fires for *any* event caused by the default token, so **a workflow that expects to be woken by another workflow's action is relying on an event that will not arrive.** Concretely: the autolabeler applies a label with `GITHUB_TOKEN`, so the resulting `labeled` event is swallowed and nothing keyed on it runs. **This is why every PR-time job that reads or writes labels lives in one workflow, `pr-checks.yml`, ordered with `needs:`.** Jobs within a workflow sequence deterministically; workflows never do. `title-check` learned this the hard way — as a separate workflow it raced the autolabeler, then polled for the label as a workaround, and only `needs: label` actually fixed it. If you find yourself polling for another workflow's side effect, put the work in the same workflow instead.
-
-The old advice also suggested a `push:` trigger on the version gate so it ran on branch pushes too. **Dropped:** the label-derived expected bump needs PR context, so the push path could only ever check the parts that don't depend on a label — and in practice the template's push trigger was a no-op, because every step was gated on `github.event_name == 'pull_request'`. The gate is a PR-time job now, which is the only context in which it can do its whole job.
+The version gate is PR-time only for the same reason a label is: the expected bump is derived
+from the PR's labels, so a `push:` trigger could only check the parts that need no label. The
+template once had one and it was a no-op — every step was already gated on
+`github.event_name == 'pull_request'`.
 
 ---
 
