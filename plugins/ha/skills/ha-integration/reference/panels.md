@@ -2,19 +2,15 @@
 
 Traps specific to shipping a Lit/TS panel from an integration. For how the panel should look, use the `ha-panel-design` skill.
 
-- Panel integrations (a custom panel served by the integration)
-- 0. Register the static path and the panel in `async_setup`
-- 1. The bundle must be committed
-- 2. `home-assistant-frontend` must be pinned in `requirements.test.txt`
-- 3. Registration has two traps
+- Register the static path and the panel in `async_setup`
+- The bundle must be committed
+- `home-assistant-frontend` must be pinned in `requirements.test.txt`
+- Registration has two traps
+- Testability is a design property, not a tooling one
 
+Five things are non-obvious here, and each fails silently.
 
-
-## Panel integrations (a custom panel served by the integration)
-
-Only if the integration registers a panel. Three things are non-obvious and each fails silently.
-
-### 0. Register the static path and the panel in `async_setup`
+### Register the static path and the panel in `async_setup`
 Once per process — per-entry registration races when two entries set up in parallel, so claim the `hass.data` flag before the `await`.
 
   ```python
@@ -35,11 +31,11 @@ Once per process — per-entry registration races when two entries set up in par
   ```
 
 
-### 1. The bundle must be committed
+### The bundle must be committed
 
 HACS ships the repo as-is and runs no build step on the user's machine, so the esbuild output has to live inside `custom_components/<domain>/panel/` to reach the release zip. A stale bundle then breaks *invisibly*: the old bundle still runs, tests pass, CI is green, and the only symptom is "the fix I made isn't there". Copy `templates/frontend/{package.json,tsconfig.json}` and `templates/.github/workflows/frontend_build.yml`; the workflow's `git diff --exit-code` on the bundle is the point of the whole file. **This differs from a Lovelace *card* repo**, which attaches the built `.js` as a release asset — an integration cannot, because the asset isn't in the zip HACS installs.
 
-### 2. `home-assistant-frontend` must be pinned in `requirements.test.txt`
+### `home-assistant-frontend` must be pinned in `requirements.test.txt`
 
 A panel declares `frontend` (usually `panel_custom` too) in manifest `dependencies`. The frontend *component* has its own pip requirement that `pip install homeassistant` does **not** pull in — component requirements are installed by HA at runtime. Without the pin every setup test fails in CI with `No module named 'hass_frontend'`, while typically **passing locally** because a dev machine already has the package. Worse, the failures read as `'MockConfigEntry' object has no attribute 'runtime_data'`, pointing at the integration rather than the missing dependency. Pin from **core's own manifest** for your HA version, not from PyPI latest:
 ```bash
@@ -47,7 +43,7 @@ curl -s https://raw.githubusercontent.com/home-assistant/core/<ha-version>/homea
 ```
 Gate-enforced: a manifest depending on `frontend`/`panel_custom` with no pin fails the audit.
 
-### 3. Registration has two traps
+### Registration has two traps
 Cache-bust the module URL or a browser serves the previous panel after an update, and claim the registered flag **before** the `await` or two entries setting up in parallel both register:
 ```python
 if not hass.data.get(REGISTERED):
@@ -59,7 +55,9 @@ if not hass.data.get(REGISTERED):
     )
 ```
 
-**4. Testability is a design property, not a tooling one.** A panel transforms vendor data
+### Testability is a design property, not a tooling one
+
+A panel transforms vendor data
 before drawing it, and that logic is reachable from nothing else in the stack: `tsc --noEmit`
 proves a helper returns a string, not that it returns the right one; the Python suite cannot
 see it; and the bundle-staleness check proves the JS matches its source, not that the source

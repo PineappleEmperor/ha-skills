@@ -2,12 +2,12 @@
 
 The canonical rule set and what each tier demands.
 
-- Quality scale — target Platinum
+- The tiers and what each demands
 - Scaffold `quality_scale.yaml` from the start
 - Gate-enforced, on the claim rather than on the tests
 - Prove the rule, don't just claim it — hassfest checks structure, not behaviour
 
-## Quality scale — target Platinum
+## The tiers and what each demands
 
 Generate `quality_scale.yaml` with each rule set to `todo` or `done` as appropriate.
 

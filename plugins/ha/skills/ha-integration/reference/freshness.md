@@ -1,10 +1,9 @@
 # Cached facts and when to re-derive them
 
-Values in this skill are snapshots. They were right when captured and go wrong silently.
-
-## Freshness — cached facts and when to re-derive them
-
-Several load-bearing values in this skill are **snapshots**. They were right when captured and go wrong silently: nothing in CI notices, and the check written to catch staleness goes stale in the same place (an "is the pin below v6?" rule keeps passing a v6 pin long after v7 ships — which is exactly what happened to `setup-python`). **Re-derive any row older than ~3 months, and update every listed consumer in the same pass** — a value fixed in one place and not the others is worse than one that's uniformly old.
+Load-bearing values that were right when captured and go wrong silently — nothing in CI
+notices. **Re-derive any row older than ~3 months, and update every listed consumer in the
+same pass**; a value fixed in one place and not the others is worse than one that is
+uniformly old.
 
 | Cached fact | Value | Captured | Re-derive with | Consumers to update together |
 |---|---|---|---|---|
