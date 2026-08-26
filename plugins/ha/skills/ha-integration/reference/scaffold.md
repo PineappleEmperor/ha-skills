@@ -4,7 +4,7 @@ What to ask, what to generate, and the conventions the generated code follows. R
 
 - Gather requirements (ask all at once)
 - Files to generate
-- Brand assets are served from the integration's own `brand/` folder since HA 2026.3.0
+- Brand assets are served from the integration's own `brand/` folder
 - Sources
 - manifest.json key order
 - Implementation patterns, file structure, typing & testing
@@ -51,21 +51,17 @@ What to ask, what to generate, and the conventions the generated code follows. R
   websocket, services…), invoke the `ha-integration` skill. Re-invoke it after any
   `/compact`, since compaction can drop the skill's guidance from context.
   ```
-  (A user may *additionally* wire personal `SessionStart` + `UserPromptSubmit` hooks in their own `~/.claude/settings.json` to re-arm the rule and anchor the CI conventions per-turn — see `reference/github-actions.md` (reminder-hook recipe) for the full recipe. That's a personal convenience; the canonical, shareable enforcement still lives in the repo's `CLAUDE.md`.)
+  (`templates/hooks/` holds optional per-turn reminders for a user's own `~/.claude`; the canonical, shareable enforcement is this `CLAUDE.md` rule, which ships with the repo.)
 - `hacs.json` — `name` is the only strict requirement, but the canonical setup ships a **zip release**: `{"name": "My Integration", "content_in_root": false, "zip_release": true, "filename": "<domain>.zip"}` (add `"homeassistant": "<oldest HA you actually test>"`; `runtime_data` alone needs 2024.2+, so do not copy an older floor from an example). `zip_release` makes HACS download a release **asset** named `<filename>` instead of the tag source archive — so it **requires** the `release.yml` *Create Release ZIP* workflow (`templates/.github/workflows/release.yml`) to build and attach that asset on every published release. **Without that workflow, HACS install fails with `Could not download`** (the symptom of a `zip_release` repo whose release has no attached zip). Drop `zip_release`/`filename` only if you deliberately want HACS to pull the whole tagged repo archive instead.
 
-  > **The tag is the version, not the committed manifest.** `release.yml` rewrites
-  > `manifest.json` from the release tag before zipping, so nobody hand-bumps a version
-  > in a PR and the asset users install always matches the release they installed it
-  > from. The committed value is a placeholder between releases. [frenck/spook](https://github.com/frenck/spook)
-  > patches from the same event; `skill_audit.py` fails a `zip_release` repo whose
-  > `release.yml` doesn't. Overriding a bump is choosing the tag. The committed
-  > value is a placeholder between releases and nothing reads it.
+  > **The tag is the version, not the committed manifest** — how that works, and why no PR
+  > carries a bump, is `reference/versioning.md`. What matters here: `skill_audit.py` fails a
+  > `zip_release` repo whose `release.yml` does not patch the manifest before zipping.
 - `pyproject.toml`
 - `pyrightconfig.json`
 - `requirements.test.txt` — **required**; copy `templates/requirements.test.txt`. Why the pin matters, and what breaks without it: `reference/testing.md`.
 - `conftest.py` — **required, at the repo root, not in `tests/`**; copy `templates/conftest.py`. Why it must be at the root: `reference/testing.md`.
-- `tests/` — one file per module under test, plus `test_manifest_gate.py` and `test_commit_summary.py` (described in `reference/github-actions.md`). See the testing rules in `reference/testing.md`.
+- `tests/` — one file per module under test, plus the template's own `test_manifest_gate.py`. See the testing rules in `reference/testing.md`.
 - `README.md` — **include the AI-assistance disclaimer** as a GitHub `> [!NOTE]` admonition box. Link the skill name to its public repo. Template:
   ```markdown
   > [!NOTE]
@@ -81,8 +77,9 @@ What to ask, what to generate, and the conventions the generated code follows. R
 - `custom_components/{domain}/brand/logo.png` — landscape, shortest side **128–256**
 - `custom_components/{domain}/brand/logo@2x.png` — landscape, shortest side **256–512**
 
-### Brand assets are served from the integration's own `brand/` folder since HA 2026.3.0
-(via the Brands Proxy API). The `home-assistant/brands` CDN `custom_integrations/` folder is **legacy** — do not rely on it for new work. Files are PNG, lossless; transparent background for wordmark/logo art (an LED-screen/device screenshot keeps its black background — that's the device, not a missing alpha).
+### Brand assets are served from the integration's own `brand/` folder
+
+Via the Brands Proxy API, from the HA version recorded in `reference/freshness.md`. The `home-assistant/brands` CDN `custom_integrations/` folder is **legacy** — do not rely on it for new work. Files are PNG, lossless; transparent background for wordmark/logo art (an LED-screen/device screenshot keeps its black background — that's the device, not a missing alpha).
 >
 > ⚠️ **The HACS store/search dashboard still reads the legacy `data-v2.hacs.xyz` (which mirrors the old brands CDN), NOT the inline `brand/` folder.** So an integration that ships *only* inline brand images — i.e. one that never got a `home-assistant/brands` entry, and now **can't** (brands auto-closes `custom_integrations/*` PRs) — renders **blank in the HACS dashboard** even though HA's own UI shows the icon correctly via the proxy. Integrations with a *legacy* brands entry (added before the Feb-2026 cutoff) keep showing in HACS. This is a HACS-side gap, not a repo defect — nothing to fix in the integration; it resolves when HACS points its dashboard at the proxy (tracked in hacs/integration #5171 and #5223). Don't try to "fix" it by PR-ing `home-assistant/brands` (auto-closed).
 >
@@ -144,10 +141,12 @@ See **`reference/patterns.md`** — `__init__`/coordinator/entity/notify pattern
 
 ## Code style
 
+Typing, file structure and the code patterns themselves are `reference/patterns.md`. What a
+scaffold must set up:
+
 - Module docstring on every file. **This one may be multi-line** — a file-level explanation of a load-bearing constraint belongs here, not demoted to a comment.
 - Short **single-line** docstrings on all public functions and classes. Enforced by `skill_audit.py` **inside `custom_components/` only** — copied `scripts/` and `tests/` are not checked; module docstrings are exempt.
 - No inline comments unless the WHY is genuinely non-obvious
-- No trailing summaries after edits
 - ruff + pylint compliant; pyright standard mode
 
 ---
