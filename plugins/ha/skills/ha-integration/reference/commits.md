@@ -8,8 +8,7 @@ notes are built from. Labels, gates and the release model are `reference/version
 - No AI-attribution trailers
 - Enforce the trailer ban with a `commit-msg` hook — prose alone isn't enough
 - Put the narrative in the release, not the commit
-- The PR body is for reviewers and nothing else
-- The PR body, and what belongs in the conversation instead
+- The PR body is for reviewers, and nothing users read
 - Red flags — stop
 
 ## Conventional Commits & Semantic Versioning
@@ -37,37 +36,29 @@ Body in **`templates/hooks/commit-msg`** — copy it to `.githooks/commit-msg`, 
 ### Put the narrative in the release, not the commit
 The human-readable "what changed and why it matters" belongs in the **PR description / release notes** (surfaced by release-drafter / `generate_release_notes`), which is where users actually read it. Keep commits terse; write the detail once, in the release description.
 
-### The PR body is for reviewers and nothing else
+## The PR body is for reviewers, and nothing users read
 
-No job writes it — see `reference/github-actions.md` for which workflow opens a draft and how. Release notes are built from the commit subjects, so anything written here reaches reviewers only. Which label puts a PR in which release category is `reference/versioning.md`. Note release-drafter draws the PR body via the GraphQL path; `gh pr edit` can fail on the Projects-classic deprecation — set title/body via `gh api -X PATCH repos/{o}/{r}/pulls/{n} -f title=… -F body=@file` instead.
+**Release notes are generated from commit subjects, never from PR bodies.**
+`scripts/release_notes.py` walks the commits since the last **full** release — prereleases
+are skipped deliberately, so every rc lists the cumulative set rather than just what changed
+since the previous rc — classifies each subject by its own Conventional Commit type, and
+groups them under Breaking / Features / Fixes / Maintenance / Other, one line each, linking
+to the PR it arrived with and ending with a full-changelog compare link. This is what
+surveyed HACS repos do (alexa_media_player, alandtse/tesla, hacs/integration, SonoffLAN,
+checked 2026-08-15); none of them nests commits under a PR entry.
 
-> ✅ **Release notes are generated from commit subjects, not from PR bodies.**
-> `scripts/release_notes.py` walks the commits since the last published release,
-> classifies each by its own Conventional Commit type, and groups them under
-> Breaking / Features / Fixes / Maintenance / Other — an unmapped type such as `revert:` lands under Other, one line each, linking to the PR it
-> arrived with, and ends with a full-changelog compare link.
->
-> This is what surveyed HACS repos do (alexa_media_player, alandtse/tesla,
-> hacs/integration, SonoffLAN, checked 2026-08-15). None of them nests commits
-> under a PR entry.
->
-> **Why not release-drafter's `$CHANGES`.** It categorises each *PR* by its single
-> label, so a `fix:` commit inside a `feat:`-titled PR is filed under Features and a
-> reader looking for what was fixed finds no Fixes section. Measured on one session,
-> 3 of 8 merged PRs spanned more than one commit type, so this is the common case.
->
-> release-drafter still owns the draft and the tag; `release_drafter.yml` generates
-> the body over the top, then `check_release_notes.py` validates the result. The
-> config keeps only `autolabeler`, `categories` (for `semver-increment`) and a
-> placeholder `template` that is visible if the generator ever fails to run.
->
-> **The PR body is a separate thing**: it is what a reviewer reads on the PR, it
-> is written by a human or left empty, and it never reaches the notes.
+**Why not release-drafter's `$CHANGES`.** It categorises each *PR* by its single label, so a
+`fix:` commit inside a `feat:`-titled PR is filed under Features and a reader looking for
+what was fixed finds no Fixes section. Measured on one session, 3 of 8 merged PRs spanned
+more than one commit type, so this is the common case. What release-drafter still owns, and
+how the generated body replaces its draft, is `reference/github-actions.md`.
 
-## The PR body, and what belongs in the conversation instead
-
-The release notes are built from the commits, not from the PR body.
-`scripts/release_notes.py` classifies each subject and groups it, and the draft PR arrives with an empty body (see `reference/github-actions.md`). So a body is optional context for reviewers, and writing the changelog into it just says the same thing twice, in a place users never read.
+So the body is optional context for reviewers: no job writes it, the draft PR arrives empty,
+and writing the changelog into it says the same thing twice in a place users never read.
+Which label puts a PR in which release category is `reference/versioning.md`. Note
+release-drafter draws the PR body via the GraphQL path; `gh pr edit` can fail on the
+Projects-classic deprecation — set title/body via
+`gh api -X PATCH repos/{o}/{r}/pulls/{n} -f title=… -F body=@file` instead.
 
 Reasoning, alternatives, verification evidence: those go in the PR **conversation**, where reviewers read them and the notes do not.
 

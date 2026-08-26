@@ -142,9 +142,13 @@ disqualifies the repo from the default store.
 on `release: published`. Resolves the version from the merged PRs' labels, never from a file.
 Labelling lives in `pr-checks.yml`, so there is no autolabeler job here.
 
-**`.github/release-drafter.yml`** (config) — title-only autolabeler rules with breaking `!`
-first, a placeholder `template` visible if the generator fails to run, and the label→semver
-`version-resolver`.
+**`.github/release-drafter.yml`** (config) — `name-template`/`tag-template` (both
+`v$RESOLVED_VERSION`, which is what names the tag), title-only autolabeler rules with breaking
+`!` first, the label→semver `version-resolver`, `categories` carrying the `semver-increment`
+values, and a placeholder `template` visible if the generator fails to run. The drafter owns
+the draft and the tag; `release_drafter.yml` then writes the generated body over the top and
+`check_release_notes.py` validates the result. Nothing else belongs in this file — its
+autolabeler vocabulary must stay in step with `lint_pr.yml`'s allowlist.
 
 **`release.yml`** — *Create Release ZIP*. Required when `hacs.json` sets `zip_release: true`:
 builds `<domain>.zip` with the integration files at the **zip root** — `cd` into the package
