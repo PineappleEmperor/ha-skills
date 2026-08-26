@@ -4,14 +4,14 @@ The audit items a grep cannot decide. `scripts/skill_audit.py --list` covers the
 
 ## Judgement checklist (read the code — a grep can't decide these)
 
-- **Templates copied, not paraphrased.** Diff `.github/` and `scripts/` against this skill's `templates/` (locate it per *Where `templates/` lives* in `reference/github-setup.md`). Every difference must appear in the sanctioned-adaptations table there. Files that merely *look* equivalent are not equivalent — `skill_audit.py` checks each canonical workflow **exists**, never that it **matches**, so fifteen hand-written files once passed it clean. Run:
+- **Templates copied, not paraphrased.** Diff `.github/` and `scripts/` against this skill's `templates/` (locate it per *Where `templates/` lives* in `reference/github-actions.md`). Every difference must appear in the sanctioned-adaptations table there. Files that merely *look* equivalent are not equivalent — `skill_audit.py` checks each canonical workflow **exists**, never that it **matches**, so fifteen hand-written files once passed it clean. Run:
   ```bash
   T=<skill>/templates   # from the skill's announced base directory
   diff -ru "$T/.github" .github
   diff -ru "$T/scripts" scripts
   diff -u  "$T/tests/test_manifest_gate.py" tests/test_manifest_gate.py
   ```
-  Expected output is only what the sanctioned-adaptations table in `reference/github-setup.md` permits. Any other hunk is a finding — report it with the file and hunk, and restore from the template unless the diff is a deliberate, listed adaptation. If `templates/` can't be located, report the audit item as **not checked**; do not mark it passed.
+  Expected output is only what the sanctioned-adaptations table in `reference/github-actions.md` permits. Any other hunk is a finding — report it with the file and hunk, and restore from the template unless the diff is a deliberate, listed adaptation. If `templates/` can't be located, report the audit item as **not checked**; do not mark it passed.
 - **Workflows behave, not just exist.** Check each shipped workflow against the contract it must meet — `reference/github-actions.md` states them, one per workflow.
 - **Patterns applied:** `runtime_data` (not `hass.data[DOMAIN][entry_id]`) for entry state; coordinator `async_shutdown()` on unload; `async_remove_config_entry_device` present if the integration creates a device; `DeviceInfo` TypedDict; `_attr_has_entity_name = True`; typed `ConfigEntry` alias; modern `NotifyEntity` (or a directly-registered service for custom `data`).
 - **`quality_scale.yaml` honest:** every canonical rule listed; every `exempt` carries a real `comment`; no optimistic `exempt` masking a gap (e.g. `stale-devices` exempt while a device *is* created); the `manifest.json` tier claimed only when every rule at/below it is `done`/`exempt`.

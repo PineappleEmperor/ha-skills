@@ -70,8 +70,8 @@ served** — the committed bundle, its staleness check, registration and cache-b
 | `reference/patterns.md` | the code patterns every mode applies, plus file structure and typing |
 | `reference/testing.md` | harness prerequisites, and mocking the boundary rather than your own code |
 | `reference/commits.md` | commit subjects, why the PR body stays empty, what the notes are built from |
-| `reference/github-setup.md` | RELEASE_TOKEN, required checks, CI templates, supply chain |
-| `reference/github-actions.md` | what each workflow and job must do, and must not |
+| `reference/github-setup.md` | RELEASE_TOKEN, required checks, dependency graph, supply chain |
+| `reference/github-actions.md` | what each workflow must do, where `templates/` lives, and what may be changed in a copy |
 | `reference/versioning.md` | tag-driven releases, labels, the draft model, the version gate |
 | `reference/dependabot.md` | what it bumps, what it cannot reach, its effect on the gate |
 | `reference/quality-scale.md` | the canonical rule set and what each tier demands |

@@ -1,35 +1,39 @@
 # Setting the repository up on GitHub
 
-One-time setup that lives in GitHub's settings rather than in the repo: the release token, the required checks, the CI templates and the supply-chain guards. `scripts/bootstrap_repo.sh` does most of it in one command.
+One-time setup that lives in GitHub's settings, not in the repo: the release token, the
+required checks, the dependency graph and the supply-chain guards. Every item here is a
+setting no file in the repo can carry, and each one fails quietly until the first CI run.
+`scripts/bootstrap_repo.sh` does most of it in one command.
+
+Copying the templates, and what may be changed in a copy, is `reference/github-actions.md`.
 
 - `RELEASE_TOKEN` — set this up before the first release
-- Make the checks REQUIRED — a workflow is not a gate until it can block a merge
-- `Dependency review` needs the repository's dependency graph enabled
-- Every workflow here is advisory by default
-- Bypass configuration, and why it must stay empty, is `reference/discipline.md`
+- What the grant allows
+- Make the checks required — a workflow is not a gate until it can block a merge
+- The eight required contexts, and what must never be required
+- A cancelled check blocks; a skipped one does not
+- A matrix renames the check
+- `Dependency review` needs the dependency graph enabled
+- Bypass configuration
 - For AI sessions
 - Supply chain
-- GitHub CI templates
-- If none of those find it, stop and say so
-
 
 ## `RELEASE_TOKEN` — set this up before the first release
 
-⚠️ **One secret, once per repo, or `auto_draft_pr.yml` cannot open a PR that checks can
-run on.** GitHub suppresses workflow events caused by `GITHUB_TOKEN`, so a PR opened with
-it fires no `pull_request_target`: no checks run, the required ones never report, and the
-PR is permanently unmergeable. That is how `create-dev-pr.yml` was removed. The opener fails
-loudly instead, and `skill_audit.py` fails a repo that ships it without the secret.
+⚠️ **One secret, once per repo, or `auto_draft_pr.yml` cannot open a PR that checks can run
+on.** GitHub suppresses workflow events caused by `GITHUB_TOKEN`, so a PR opened with it
+fires no `pull_request_target`: no checks run, the required ones never report, and the PR is
+permanently unmergeable. That is why `create-dev-pr.yml` was removed. The opener fails loudly
+instead, and `skill_audit.py` fails a repo that ships it without the secret.
 
 The **release** path needs no token: both the full release and its next rc are kept as
 drafts, and publishing a draft is a human action, so its events fire normally.
 
 **Two ways to provide it. Pick by how many repos you maintain.**
 
-**A GitHub App (preferred for more than one repo).** An App is installed once and then
-covers every repo you install it on, its tokens are minted per run and expire in an hour,
-and it survives you rotating your own credentials. Events it causes DO trigger workflows,
-which is the whole requirement.
+**A GitHub App (preferred for more than one repo).** Installed once, covers every repo you
+install it on, mints tokens per run that expire in an hour, and survives you rotating your
+own credentials. Events it causes do trigger workflows, which is the whole requirement.
 
 1. github.com → Settings → Developer settings → GitHub Apps → **New GitHub App**
 2. Name it (e.g. `<you>-release-bot`), untick **Webhook → Active**
@@ -42,7 +46,7 @@ which is the whole requirement.
    (the whole `.pem` contents, including the BEGIN/END lines) → **Add secret**
 7. In `auto_draft_pr.yml`, mint the token before the step that needs it:
    ```yaml
-   - uses: actions/create-github-app-token@<sha>  # v2 — pin the SHA, a bare tag fails check_action_pins
+   - uses: actions/create-github-app-token@<sha>  # v2 — pin the SHA; a bare tag fails check_action_pins
      id: app-token
      with:
        app-id: ${{ secrets.APP_ID }}
@@ -65,143 +69,127 @@ expires on a date you have to remember.
 6. Repo → **Settings** → **Secrets and variables** → **Actions** → **Secrets** tab →
    **New repository secret** → Name `RELEASE_TOKEN`, paste into **Secret** → **Add secret**
 
-**What the grant actually allows.** `Contents: write` covers creating releases, tags and
-commits in the repos it is scoped to. Adding `Pull requests: write` lets it open the
-draft PR — and, unavoidably, merge one, since GitHub does not separate those. Neither
-permission can edit rulesets or branch protection, change repository settings, or reach
-any repo outside its scope, so a required-checks ruleset still holds.
+### What the grant allows
+
+`Contents: write` covers creating releases, tags and commits in the repos it is scoped to.
+Adding `Pull requests: write` lets it open the draft PR — and, unavoidably, merge one, since
+GitHub does not separate those. Neither permission can edit rulesets or branch protection,
+change repository settings, or reach any repo outside its scope, so a required-checks ruleset
+still holds.
 
 Without `Pull requests: write`, `auto_draft_pr.yml` fails with
-`Resource not accessible by personal access token (repository.pullRequests)`. That
-matters because this token exists to *trigger* workflows — anything it can do, a workflow
-it starts can do too.
+`Resource not accessible by personal access token (repository.pullRequests)`. That matters
+because this token exists to *trigger* workflows — anything it can do, a workflow it starts
+can do too.
 
-**Rotating.** Paste a new value into the same secret; nothing else changes. An App's
-private key is rotated the same way, and its tokens expire hourly regardless.
+**Rotating.** Paste a new value into the same secret; nothing else changes. An App's private
+key is rotated the same way, and its tokens expire hourly regardless.
 
+## Make the checks required — a workflow is not a gate until it can block a merge
 
-## Make the checks REQUIRED — a workflow is not a gate until it can block a merge
-
-> **A cancelled check blocks; a skipped one does not.** GitHub is explicit that a
-> skipped job satisfies a required check, so job-level `if:` guards are fine.
-> Cancelled runs are the hazard. Trigger on `labeled`/`unlabeled` with
-> `cancel-in-progress` and a bot applying several labels at once starts a run per
-> label; the concurrency group cancels all but the last, and those cancelled
-> check-runs make the rollup `FAILURE` with nothing broken. The PR then reports
-> `mergeable: MERGEABLE` and still cannot merge. Drop those two types: the
-> in-workflow autolabeler cannot fire them anyway, because the default token
-> suppresses events it causes.
->
-> Confirmed by re-running a single cancelled run on ha-lego #22: the rollup went
-> from `FAILURE` to `SUCCESS` with nothing else changed.
-
-> **A matrix renames the check.** GitHub names a matrix job's check-run
-> `<job> (<value>)`, so a job `Ruff, Pyright and Pytest` with `python-version: ["3.14"]`
-> reports as `lint-and-type (3.14)` and a ruleset requiring the bare name waits
-> forever. `templates/ruleset.json` once shipped exactly this bug; the template now has no matrix, so the bare context is correct. Either drop a
-> single-value matrix or put the suffixed name in the ruleset; never assume the
-> context equals the job name.
-
-### `Dependency review` needs the repository's dependency graph enabled
-(Settings → Advanced Security). With it off the action does not skip — it fails, so the check is red on every PR forever. Verified on a test repo: seven workflows green, this one red alone.
-
-**`scripts/bootstrap_repo.sh` does all of this once**, from the repo root after the first
-push: description, topics, issues, the ruleset, the dependency graph, `core.hooksPath`, and the `RELEASE_TOKEN`
-secret (prompted, never an argument). Every item in it is a GitHub-side setting no file in
-the repo can carry, and each fails quietly until the first CI run.
-
-```bash
-bash scripts/bootstrap_repo.sh "One-line description of the integration"
-```
-
-**A gate that cannot fail is not a gate.** `Version validation` skips its own steps in a
-tag-driven repo, so requiring it there guarantees a green check that proves nothing — it
-is not in `ruleset.json`. What it still does is useful and advisory: it writes the version
-the PR's labels imply into the job summary, where the checks tab shows it.
-
-**Two kinds of workflow, and only one is a gate.** A *check* runs on a pull request and can
-be required, so a red one blocks the merge. The eight in `ruleset.json`: `CC labelling`,
-`CC label validation`, `CC title validation`, `HACS validation`,
-`Hassfest manifest validation`, `Ruff, Pyright and Pytest`,
-`ha-integration conformance check`, and `Dependency review`. `Version validation` is
-deliberately absent — see above. `Panel bundle staleness check` also runs on pull requests
-and can be required in a repo that ships a panel; it is path-filtered, so it reports only
-when the panel changed. Everything else — `Auto draft PR`, `Auto release zip`,
-`Auto draft releases` — is process automation firing on pushes and releases. It is not a
-weaker check; it is not a check at all, and requiring one would block every PR on a context
-that never reports.
-
-### Every workflow here is advisory by default
-GitHub will let a PR merge with all of it red, so without this step the gate stack is decorative. Copy `templates/ruleset.json` and apply it once:
+GitHub will let a PR merge with every workflow red, so until a ruleset requires them the
+stack is decorative. Copy `templates/ruleset.json` to the repo root and apply it once:
 
 ```bash
 gh api -X POST repos/<owner>/<repo>/rulesets --input ruleset.json
 ```
 
-It requires the eight job-name contexts the templates produce and keeps deletions and force-pushes blocked. `skill_audit.py` FAILs a repo whose default branch has no required checks, so skipping this shows up rather than going unnoticed.
+It requires the eight job-name contexts the templates produce, and keeps deletions and
+force-pushes blocked. `skill_audit.py` fails a repo whose default branch has no required
+checks, so skipping this shows up rather than going unnoticed.
 
-Two ways to get it wrong, both of which block every PR permanently:
+**`scripts/bootstrap_repo.sh` does all of this once**, from the repo root after the first
+push: description, topics, issues, the dependency graph, `core.hooksPath`, the ruleset (only
+if `ruleset.json` is at the repo root — it skips otherwise), and the `RELEASE_TOKEN` secret,
+prompted rather than passed as an argument.
 
-- **A context that never reports.** Requiring a check the repo doesn't produce (a repo without `quality_audit.yml` must drop `ha-integration conformance check`) leaves PRs waiting for a check that will never run.
-- **A path-filtered workflow.** `Panel bundle staleness check` from `frontend_build.yml` is absent from the shipped `ruleset.json` for this reason: it only triggers on panel changes, so requiring it would block every unrelated PR.
+```bash
+bash scripts/bootstrap_repo.sh "One-line description of the integration"
+```
 
-### Bypass configuration, and why it must stay empty, is `reference/discipline.md`
+### The eight required contexts, and what must never be required
 
-⚠️ In short: A ruleset granting admins `bypass_mode: always` does not constrain anyone holding admin; the push reports `Bypassed rule violations` and proceeds. If you ever genuinely must overrule — and *Merge discipline* in `reference/discipline.md` gives exactly one sanctioned reason, proven by diff — disable the ruleset, merge, and re-enable it. Doing it that way is deliberate, reversible and leaves an audit-log entry.
+A *check* runs on a pull request and can be required, so a red one blocks the merge. The
+eight in `ruleset.json`: `CC labelling`, `CC label validation`, `CC title validation`,
+`HACS validation`, `Hassfest manifest validation`, `Ruff, Pyright and Pytest`,
+`ha-integration conformance check`, and `Dependency review`.
+
+`Version validation` is deliberately absent. It skips its own steps in a tag-driven repo, so
+requiring it guarantees a green check that proves nothing. What it still does is advisory and
+useful: it writes the version the PR's labels imply into the job summary.
+
+Everything else — `Auto draft PR`, `Auto release zip`, `Auto draft releases` — is process
+automation firing on pushes and releases. Not a weaker check: not a check at all, and
+requiring one blocks every PR on a context that never reports.
+
+Two ways to get this wrong, both of which block every PR permanently:
+
+- **A context the repo does not produce.** A repo without `quality_audit.yml` must drop
+  `ha-integration conformance check` from its ruleset, or PRs wait forever for a check that
+  never runs.
+- **A path-filtered workflow.** `Panel bundle staleness check` from `frontend_build.yml` is
+  absent from the shipped ruleset for this reason: it triggers only on panel changes. A repo
+  that ships a panel may require it, accepting that unrelated PRs then wait on a context that
+  does not report.
+
+### A cancelled check blocks; a skipped one does not
+
+GitHub is explicit that a skipped job satisfies a required check, so job-level `if:` guards
+are fine. Cancelled runs are the hazard. Trigger on `labeled`/`unlabeled` with
+`cancel-in-progress`, and a bot applying several labels at once starts a run per label; the
+concurrency group cancels all but the last, and those cancelled check-runs make the rollup
+`FAILURE` with nothing broken. The PR then reports `mergeable: MERGEABLE` and still cannot
+merge. Drop those two trigger types — the in-workflow autolabeler cannot fire them anyway,
+because the default token suppresses events it causes.
+
+Confirmed by re-running a single cancelled run: the rollup went from `FAILURE` to `SUCCESS`
+with nothing else changed.
+
+### A matrix renames the check
+
+GitHub names a matrix job's check-run `<job name> (<value>)`. The template's
+`python_validate.yml` job is named `Ruff, Pyright and Pytest`, so giving it a matrix would
+make it report as `Ruff, Pyright and Pytest (3.14)` while the ruleset waits on the bare name.
+The template therefore pins a scalar `python-version` and has no matrix. Either drop a
+single-value matrix or put the suffixed name in the ruleset; never assume the context equals
+the job name.
+
+### `Dependency review` needs the dependency graph enabled
+
+Settings → Advanced Security. With it off the action does not skip — it fails, so the check
+is red on every PR forever. Verified on a test repo: seven workflows green, this one red
+alone. `bootstrap_repo.sh` enables it, and says so loudly if it cannot.
+
+### Bypass configuration
+
+A ruleset granting admins `bypass_mode: always` does not constrain anyone holding admin; the
+push reports `Bypassed rule violations` and proceeds, so the list stays empty. If you must
+overrule — and *Merge discipline* in `reference/discipline.md` gives exactly one sanctioned
+reason, proven by diff — disable the ruleset, merge, and re-enable it. That is deliberate,
+reversible, and leaves an audit-log entry.
 
 ### For AI sessions
 
-An agent running with your `gh` credentials merges exactly as you do, and bypass entries are evaluated by actor (`reference/discipline.md`), so any bypass you hold it inherits. Two things make that silent: a broad allow-rule such as `Bash(gh pr *)` in `.claude/settings.local.json` pre-approves `gh pr merge` with no prompt, and an agent with admin can lift any rule it can see. Narrow the allow-rule to read-only verbs (`gh pr view`, `gh pr list`), and give the agent a credential without **Administration** if it genuinely should not edit rulesets or force-push. A restriction the agent can lift is friction, not a limit.
+An agent running with your `gh` credentials merges exactly as you do, and bypass entries are
+evaluated by actor, so any bypass you hold it inherits. Two things make that silent: a broad
+allow-rule such as `Bash(gh pr *)` pre-approves `gh pr merge` with no prompt, and an agent
+with admin can lift any rule it can see. Narrow the allow-rule to read-only verbs
+(`gh pr view`, `gh pr list`), and give the agent a credential without **Administration** if it
+should not edit rulesets or force-push. A restriction the agent can lift is friction, not a
+limit.
 
 ## Supply chain
 
 Two cheap workflows ship with the stack. `dependency_review.yml` fails a PR that adds a
-dependency with a high-severity advisory, reading the PR's own diff. `stale.yml` labels
-issues and PRs untouched for 60 days and **never closes them** (`days-before-close: -1`)
-— a closed report is a lost report.
+dependency carrying a **high-severity** advisory, reading the PR's own diff; lower severities
+are deliberately not gated, because Dependabot raises those on its own schedule. `stale.yml`
+labels issues and PRs untouched for 60 days and **never closes them**
+(`days-before-close: -1`) — a closed report is a lost report.
 
-Actions are pinned by commit SHA with the version in a trailing comment, because a tag
-is mutable — whoever owns the action can repoint it at new code, which then runs with the
-workflow's token. Dependabot updates both the SHA and the comment, and `skill_audit.py`
-fails a workflow that uses a bare tag or a SHA with nothing saying what it is.
+Actions are pinned by commit SHA with the version in a trailing comment, because a tag is
+mutable: whoever owns the action can repoint it at new code, which then runs with the
+workflow's token. `skill_audit.py` fails a workflow that uses a bare tag, or a SHA with
+nothing saying what it is.
 
-How Dependabot maintains those pins, and why re-copying can move one backwards, is `reference/dependabot.md`.
-
-## GitHub CI templates
-
-The full, self-contained CI stack ships in the skill's **`templates/`** dir (mirrors the target repo layout — `templates/.github/workflows/*.yml`, `templates/.github/*.yml`, `templates/scripts/*`, `templates/tests/*`, `templates/hooks/*`). Copy as-is; no external repo. One file per workflow/config/script.
-
-##### Where `templates/` lives, and what to do if you can't find it
-
-`templates/` sits **next to the `SKILL.md` you are reading**, in this skill's own directory. Resolve it in this order:
-
-1. **The base directory announced when this skill loaded.** Invoking a skill prints `Base directory for this skill: <path>` — `templates/` is `<path>/templates/`. Use this first; it is always correct.
-2. **Installed as a plugin:** `~/.claude/plugins/cache/*/ha/*/skills/ha-integration/templates/`
-3. **Personal or repo skill:** `~/.claude/skills/ha-integration/templates/`, or `plugins/ha/skills/ha-integration/templates/` inside a checkout of the skill repo.
-4. **Last resort — search:** `find ~/.claude ~/.agents . -type d -path '*ha-integration/templates' 2>/dev/null`
-
-### If none of those find it, stop and say so
-
-Report which paths you checked and ask for the skill's location. Do **not** author the workflows, `skill_audit.py`, `manifest_gate.py`, `dependabot.yml`, `release-drafter.yml` or `pr-checks.yml` from this document — the prose *describes* the templates, it does not *replace* them. A hand-written CI stack passes a hand-written audit, and every divergence stays invisible until something breaks in production.
-
-##### Copying the templates
-
-For each canonical file: read the template, write it to the target path byte-for-byte, then apply **only** the substitutions listed below. Do not reformat, reorder keys, rename jobs, add comments, or "improve" a copied file.
-
-**Sanctioned adaptations — the complete list. Any other difference is drift:**
-
-| File | Allowed change |
-|---|---|
-| `.github/workflows/release.yml` | `<domain>` → the integration's domain (3 occurrences) |
-| `.github/workflows/python_validate.yml` | `python-version`, **only** when HA's minimum Python has moved and the template is stale — fix the template too |
-| lint/format config (`pyproject.toml`, ruff) | exclusions needed to leave copied files unformatted |
-| any workflow | an action pin **newer** than the template's, where Dependabot has already bumped yours — keep the newer pin and update the template |
-
-**This table is the only list.** `reference/audit.md` and `reference/github-actions.md` point here; if they ever appear to disagree, this table wins.
-
-**Traps this section exists to close** (both have happened, with the reminder hook active and the agent believing it was complying):
-
-- **Writing a faithful-sounding paraphrase instead of copying the artefact.** Producing a workflow that does what the prose says is *not* copying the template. Fifteen files drifted this way and passed the audit clean.
-- **Multi-line docstrings.** The code style below says *short single-line* docstrings on all public functions and classes. Single line means single line.
-
-How workflows and scripts divide responsibility is `reference/github-actions.md`.
+How Dependabot maintains those pins, and why re-copying a template can move one backwards, is
+`reference/dependabot.md`.
