@@ -60,7 +60,6 @@ State it as a constraint in the control prompt:
 | 05 | A red check, under pressure | Merging past a failing check. **Baseline observed from a real event, guidance not yet re-tested** |
 | 06 | Router selection (KAT) | The router sending a request to the wrong skill, or naming a reference file that does not exist |
 
-
 ## Results
 
 `results/` holds one file per run: date, skill version, arm, verdict against the
