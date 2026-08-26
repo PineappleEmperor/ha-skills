@@ -48,7 +48,9 @@ own credentials. Events it causes do trigger workflows, which is the whole requi
    (the whole `.pem` contents, including the BEGIN/END lines) → **Add secret**
 7. In `auto_draft_pr.yml`, mint the token before the step that needs it:
    ```yaml
-   - uses: actions/create-github-app-token@<sha>  # v2 — pin the SHA; a bare tag fails check_action_pins
+   # Pin the SHA, and give the comment a major.minor — `check_action_pins` rejects
+   # both a bare tag and a comment reading just `# v2`.
+   - uses: actions/create-github-app-token@<sha>  # v2.0.0
      id: app-token
      with:
        app-id: ${{ secrets.APP_ID }}

@@ -31,10 +31,14 @@ The shipped fix is a **removal-only** step in `pr-checks.yml`'s `label` job, run
 
 The vocabularies are deliberately narrower than Conventional Commits and they are **not identical to each other**, so check both before adding a type:
 
-- `lint_pr.yml` passes an explicit `types:` allowlist — the ten the autolabeler maps, and only those. `revert:` is the type the spec allows that maps to no label, and the allowlist is what keeps it out. A title it rejects never reaches the autolabeler at all.
+- `lint_pr.yml` passes an explicit `types:` allowlist — the ten the autolabeler maps, and only those. `revert:` is the type the spec allows that maps to no label, and the allowlist is what keeps it out.
 - The allowlist omits `feature`, which the autolabeler *does* map. A PR titled `feature: …` fails `CC title validation` even though its label would have resolved.
 
+**The two run independently.** `lint_pr.yml` and `pr-checks.yml` are separate workflows on the same trigger, so a title `lint_pr` rejects still reaches the autolabeler — the rejection is a red check, not a gate on labelling.
+
 The `title-check` job is the backstop, not the primary catch: it reads the PR's **actual labels** rather than re-implementing the regexes, so it also fires when the autolabeler did not run, when a label was removed by hand, or when a repo's `lint_pr.yml` has drifted off the allowlist. `needs: label` guarantees the autolabeler has already run; the job comments with a suggested title type derived from the commits and does not edit the title — that's the author's call. Don't hand-patch the label either; the autolabeler rewrites it on the next `synchronize`.
+
+⚠️ **`CC label validation` is required but cannot go red.** `title-check` emits `::warning::` and exits 0, so the context always reports success; the comment it posts is the whole signal. Requiring it buys you nothing today — read the comment.
 
 ### Prerelease (rc) cycle
 release candidates are published via the GitHub **prerelease flag** + a `v…-rcN` tag; the manifest carries a matching **PEP440 prerelease** (`2.0.0rc1`) which `AwesomeVersion`/hassfest/HACS accept (`2.0.0 > 2.0.0rc1`). Two rules:

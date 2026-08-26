@@ -30,7 +30,7 @@ No fixture. The agent needs read access to `plugins/ha/skills/` — all three sk
 | B | `ha-integration` | `reference/patterns.md` |
 | C | `ha-panel-design` | none — single-file skill |
 | D | `ha-integration` | `reference/github-setup.md`, then `reference/versioning.md` |
-| E | `ha-integration` | `reference/patterns.md` (testing sections) |
+| E | `ha-integration` | `reference/testing.md` |
 
 Each answer must cite a sentence from the skill, not an inference. **An answer reached
 "by elimination" is a routing failure even when the destination is right** — it means the
