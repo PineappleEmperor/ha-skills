@@ -16,7 +16,6 @@ The code patterns being tested are `reference/patterns.md`.
 - Prefer future-dated fixtures over freezing the clock
 - Push coordinator data to entities without scheduling timers
 - Standalone helper scripts
-Three prerequisites decide whether the suite runs at all, then one rule about what to 
 
 
 ## Testing — prerequisites before any of the rules below apply

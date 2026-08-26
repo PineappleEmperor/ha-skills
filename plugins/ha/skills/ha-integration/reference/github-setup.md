@@ -13,11 +13,6 @@ One-time setup that lives in GitHub's settings rather than in the repo: the rele
 - If none of those find it, stop and say so
 
 
-- Workflows orchestrate; scripts decide
-- Read `reference/github-actions.md` before changing any workflow
-
-
-
 ## `RELEASE_TOKEN` — set this up before the first release
 
 ⚠️ **One secret, once per repo, or `auto_draft_pr.yml` cannot open a PR that checks can

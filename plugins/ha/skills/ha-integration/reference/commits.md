@@ -68,7 +68,6 @@ No job writes it — see `reference/github-actions.md` for which workflow opens 
 
 ## The PR body, and what belongs in the conversation instead
 
-<!-- the opener itself is described in reference/github-actions.md -->
 
 ### The release notes are built from the commits, not from the PR body
 `scripts/release_notes.py` classifies each subject and groups it, and the draft PR arrives with an empty body (see `reference/github-actions.md`). So a body is optional context for reviewers, and writing the changelog into it just says the same thing twice, in a place users never read.

@@ -6,7 +6,7 @@ Two behavioural rules with no artefact of their own: what to do when a check is 
 - One exception, and it is narrow
 - Red flags — stop
 - All of these mean: stop, read the log, fix or explain in writing first
-- Observed
+- The exception gets misapplied
 - Debugging discipline
 
 

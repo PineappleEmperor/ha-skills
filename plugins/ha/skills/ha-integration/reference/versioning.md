@@ -80,7 +80,6 @@ acting on this summary.
 
 ### PR events fire normally — the `GITHUB_TOKEN` suppression no longer applies
 
-### How the current opener avoids this
 `auto_draft_pr.yml` opens with `RELEASE_TOKEN`, so the events fire and every check runs on first open. The alternatives were worse: opening with the default token and pushing an empty commit to force `synchronize` litters history and races the checks, and a `workflow_dispatch` re-run needs a human, which defeats the point.
 
 **Historical note, kept because the symptom is memorable and the old advice is still circulating.** GitHub suppresses workflow runs for events caused by the default `secrets.GITHUB_TOKEN` (an anti-recursion rule). While this skill shipped `create-dev-pr.yml`, that bot opened the PR, so the `pull_request: opened` event was swallowed and `lint_pr`, the autolabeler and the version gate **did not run on first open**. It bit exactly once per branch — a later human push fired `synchronize` with the human as `triggering_actor`, and everything ran — so the footgun only really hurt a branch pushed once and merged untouched.
