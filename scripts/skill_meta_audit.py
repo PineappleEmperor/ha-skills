@@ -265,10 +265,16 @@ def check_document_integrity(repo: Repo) -> Result:
                 for entry in index:
                     if entry not in heads:
                         fails.append(f"{rel}: index lists {entry!r} but no such heading exists")
-            for j in range(len(lines) - 3):
-                if not any(l.strip() for l in lines[j:j + 4]):
-                    fails.append(f"{rel}:{j + 1} four or more blank lines")
-                    break
+                # The other direction: a heading added later and never indexed. A reader who
+                # navigates by the index never learns the section is there.
+                for head in heads:
+                    if head not in index:
+                        fails.append(f"{rel}: heading {head!r} is missing from the index")
+            # One blank line separates blocks; two is always debris — usually where a block
+            # was deleted. The old threshold was four, which let every real case through.
+            for j in range(len(lines) - 1):
+                if not lines[j].strip() and not lines[j + 1].strip() and (j == 0 or lines[j - 1].strip()):
+                    fails.append(f"{rel}:{j + 1} blank run")
     return fails, []
 
 
