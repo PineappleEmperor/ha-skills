@@ -32,7 +32,7 @@ before acting on one.
 | notification size caps | image 10 MB both platforms · video 50 MB both · audio 5 MB iOS | companion.home-assistant.io/docs/notifications/notification-attachments |
 | `/local` cache header | `Cache-Control: public, max-age=2678400` (31 days) | `homeassistant/components/http/static.py` |
 
-### Step 1 — Build (or load) the device inventory FIRST
+## Step 1 — Build (or load) the device inventory FIRST
 
 Logs identify clients/devices by **opaque tokens** — an IP, a browser user-agent, a Z-Wave `node_id`, a `notify.mobile_app_*` slug, a UniFi/camera hostname. Triage stalls every time on "what *is* `192.168.1.42`?". Resolve it **once**, up front, into a persistent map so every future triage is instant.
 
@@ -61,7 +61,7 @@ Then ask the user to fill **device · room/owner · role** for each token. Store
 
 Decode common fingerprints without asking: `SM-*` = Samsung Galaxy (Tab/phone), `KF*` or `Silk/` = Amazon Fire (current Silk user-agents often omit the `Build/` token entirely), `Pixel*` = Google Pixel, `iPad`/`iPhone` = Apple. Ask only for room/role.
 
-### Step 2 — Aggregate by logger, not by line
+## Step 2 — Aggregate by logger, not by line
 
 ```bash
 grep -oE "(ERROR|WARNING|CRITICAL) \([^)]+\) \[[^]]+\]" LOG | sort | uniq -c | sort -rn
@@ -71,7 +71,7 @@ grep -c "^Traceback" LOG
 
 Collapse each logger cluster to one row. Then read **one representative line** per cluster — not all of them.
 
-### Step 3 — Classify each cluster: noise vs actionable
+## Step 3 — Classify each cluster: noise vs actionable
 
 **Known noise — acknowledge once, do not chase:**
 
@@ -90,11 +90,11 @@ Collapse each logger cluster to one row. Then read **one representative line** p
 - **`Bad credentials` / auth errors** from any integration holding a token → expired credential. Reconfigure that integration; it will not recover on its own.
 - **Anything under `custom_components.<your_domain>`** → your code. Trace it (publish→subscribe→handler) per *Debugging discipline* in the `ha-integration` skill (`ha-integration/reference/discipline.md`); this is the only cluster the rest of this skill directly acts on.
 
-### Step 4 — Report
+## Step 4 — Report
 
 Ranked table: **severity · cluster · root cause · fix · evidence (`timestamp` / `file:line`)**. State explicitly which clusters are *known noise* (so the user stops worrying about a scary count) and which are *actionable*. Resolve every opaque token through the device map so the report reads in plain device names ("Kitchen wall tablet", not `192.168.1.42`). If a fix is config-side (scripts/automations/integration settings) and you only have the log, say so and offer to apply it once given the config path.
 
-### Companion-app notification images (off-network delivery)
+## Companion-app notification images (off-network delivery)
 
 ⚠️ **This section is verified against the companion-app docs, not against a live instance,
 and a user reports images failing in practice.** Treat the fixes below as candidates, not
@@ -121,4 +121,4 @@ Recurring config-side fix: a `notify.mobile_app_*` image "works on Wi-Fi, fails 
 - **Size caps:** image **10 MB on both platforms**, video 50 MB both, audio 5 MB iOS-only. iOS 2021.5+ retries a larger file when the content is opened.
 - **A reused `tag:` replaces the previous notification** on both platforms — give each alert source a distinct one. iOS cannot replace *critical* notifications, and on Android a tag reused across different `group`s misbehaves.
 
-> **Scope note:** most HA log errors are **config / automation / external-device** issues, *not* custom-integration code — this skill triages and routes them, but the editing patterns in the `ha-integration` skill apply only to the `custom_components.<your_domain>` cluster. Don't add a home's specific errors to this skill; add only a **new reusable noise/actionable *pattern*** here when one recurs across triages.
+> **Scope note:** most HA log errors are **config / automation / external-device** issues, *not* custom-integration code. This skill triages and routes them; the editing patterns in the `ha-integration` skill apply only to the `custom_components.<your_domain>` cluster.
