@@ -20,7 +20,7 @@ The code patterns being tested are `reference/patterns.md`.
 
 ## Testing — prerequisites before any of the rules below apply
 
-`pytest-homeassistant-custom-component` does not work out of the box. Three requirements, each of which fails the *whole* suite rather than one test. Both verified by ablation against HA 2026.8.0 / p-h-c-c 0.13.354 — remove either and a real setup-entry test stops passing.
+`pytest-homeassistant-custom-component` does not work out of the box. Three requirements, each of which fails the *whole* suite rather than one test. The first two were verified by ablation — removing either stops a real setup-entry test passing — and the third by the import error it produces. Re-derive against the pinned harness version in `reference/freshness.md` if these stop matching what you see.
 
 **1. A `conftest.py` at the repo root** — not in `tests/`. Copy `templates/conftest.py`. It does two jobs:
 
@@ -71,7 +71,7 @@ A single-entry `LOADED` test can't catch integration-global registration done pe
 
 ### Minimum coverage before claiming a tier:
 
-config-flow (happy path + each error + reauth/reconfigure), a real setup-entry `LOADED` test (plus a **two-entry parallel `LOADED`** test if multiple devices are allowed), coordinator success + auth-failure + the credential-read path against a mocked transport, unload, and a unit test per parser. Wire the regression test *first* on any bug fix: confirm it fails on the unpatched code, then fix. **For Gold specifically, each rule gets a behavioural test (hassfest proves none of these):** reconfigure-success + reconfigure-error flow; diagnostics shape **and** redaction; `stale-devices` removal handler (`False` live / `True` gone); and a `translation_key`-resolution test that scrapes the keys used in code and asserts each exists in `strings.json`. A `done` without such a test is an unproven claim — see the *Prove the rule* note in `reference/quality-scale.md`.
+config-flow (happy path + each error + reauth/reconfigure), a real setup-entry `LOADED` test (plus a **two-entry parallel `LOADED`** test if multiple devices are allowed), coordinator success + auth-failure + the credential-read path against a mocked transport, unload, and a unit test per parser. Wire the regression test *first* on any bug fix: confirm it fails on the unpatched code, then fix. Which rules demand a behavioural test before you may mark them `done`, and what each test must prove, is `reference/quality-scale.md`.
 
 ### Prefer future-dated fixtures over freezing the clock
 
