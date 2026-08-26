@@ -126,9 +126,11 @@ requiring one blocks every PR on a context that never reports.
 
 Two ways to get this wrong, both of which block every PR permanently:
 
-- **A context the repo does not produce.** A repo without `quality_audit.yml` must drop
-  `ha-integration conformance check` from its ruleset, or PRs wait forever for a check that
-  never runs.
+- **A context the repo does not produce.** Each of the eight comes from a canonical workflow,
+  and `skill_audit.py` fails a repo missing any of them — so in a conforming repo the honest
+  fix is to add the missing workflow, not to drop the context. Dropping is for a repo that has
+  deliberately left the canonical set (no `quality_audit.yml`, no `dependency_review.yml`);
+  drop the matching context or PRs wait forever for a check that never runs.
 - **A path-filtered workflow.** `Panel bundle staleness check` from `frontend_build.yml` is
   absent from the shipped ruleset for this reason: it triggers only on panel changes. A repo
   that ships a panel may require it, accepting that unrelated PRs then wait on a context that

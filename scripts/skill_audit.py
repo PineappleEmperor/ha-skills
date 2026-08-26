@@ -22,8 +22,10 @@ import sys
 
 Result = tuple[list[str], list[str]]  # (failures, warnings)
 
+# Every workflow that produces a context templates/ruleset.json requires. A repo missing
+# one passes nothing: the ruleset waits forever on a check that never reports.
 CANONICAL = ("pr-checks", "release_drafter", "lint_pr",
-             "python_validate", "quality_audit")
+             "python_validate", "quality_audit", "dependency_review")
 INTEGRATION_ONLY = ("hacs_validate", "hassfest_validate", "release")
 SHIPPED_SCRIPTS = {"manifest_gate.py", "commit_summary.py", "release_notes.py",
                    "check_release_notes.py", "skill_audit.py", "version_sync.py"}
