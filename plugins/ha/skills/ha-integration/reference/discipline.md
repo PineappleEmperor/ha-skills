@@ -1,15 +1,13 @@
 # Commit, PR and merge discipline
 
-Two behavioural rules with no artefact of their own: what to do when a check is red, and what to do before naming a root cause. Commit and PR-body format is `reference/commits.md`.
+What to do when a check is red, and what to do before naming a root cause. Neither has an
+artefact that can enforce it. Commit and PR-body format is `reference/commits.md`.
 
 - Merge discipline — never merge a red check
 - One exception, and it is narrow
 - Red flags — stop
-- All of these mean: stop, read the log, fix or explain in writing first
 - The exception gets misapplied
 - Debugging discipline
-
-
 
 ## Merge discipline — never merge a red check
 
@@ -28,7 +26,7 @@ A `pull_request_target` workflow loads its definition from the **base** branch, 
 | "It's the `pull_request_target` self-validation case" | Prove it with the diff, on that job, on that PR. If you did not check, it is not that case. |
 | "I merged past a red check earlier for a good reason" | That merge carried its own proof. This one needs its own. Precedent is not evidence. |
 | "The version/label/content is right anyway" | The gate said otherwise. It is reporting what it can see; if it is wrong about that, say why in writing before merging. |
-| "It's only advisory, GitHub let me" | Advisory is a repo-configuration accident, not permission. See *Make the checks REQUIRED*. |
+| "It's only advisory, GitHub let me" | Advisory means GitHub will not stop you, not that the check is wrong. Some are advisory by design (`Version validation`); most red ones are simply not required *yet*. Either way, read the log. Which checks are required, and why one is deliberately not, is `reference/github-setup.md`. |
 | "Re-running it would waste minutes" | Minutes against a bad merge on `main`. |
 
 ## Red flags — stop
@@ -39,8 +37,7 @@ A `pull_request_target` workflow loads its definition from the **base** branch, 
 - Reaching for `--admin`, `--force`, or a `bypass_actors` entry to get a merge through
 - Telling yourself the failure is "unrelated" without having read the log
 
-### All of these mean: stop, read the log, fix or explain in writing first
-Which checks are required, and why one of them is deliberately absent, is `reference/github-setup.md`.
+**All of these mean the same thing: stop, read the log, then fix it or explain in writing.**
 
 ### The exception gets misapplied
 
@@ -51,6 +48,6 @@ Applied once legitimately, it was reused hours later on a PR it did not cover: t
 ## Debugging discipline
 
 - **Trace before naming a cause** — grep the path (publish → subscribe → handler), confirm in code; a pre-trace hunch is a guess, not the diagnosis.
-- **Multi-entry service fan-out:** a `hass.services.async_call(DOMAIN, svc, …)` with no target loops **all** config entries. An entity action that should hit only its own device must pass its own `entry_id`/`device_id` and the handler must filter — default to "all" only for a deliberate bulk call.
+- **Suspect the fan-out first** when an action hits more devices than it should — the service-call shape that causes it is in `reference/patterns.md`.
 
 ---

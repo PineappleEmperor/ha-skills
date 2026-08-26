@@ -215,6 +215,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
 - Use `async_register_platform_entity_service()` for entity-targeted actions
 - Document in `services.yaml`; add icons in `icons.json`
 - A `selector: config_entry` renders a field labelled "Integration" (hardcoded in the HA frontend). To present a device dropdown, use `selector: device` with `integration: {domain}`, then resolve the HA device → config entry in the handler via `device_registry.async_get(hass).async_get(id)`.
+- **Target the entry, or the call fans out.** `hass.services.async_call(DOMAIN, svc, …)` with no target reaches **every** config entry. An entity action that should touch only its own device passes its own `entry_id`/`device_id` and the handler filters on it; leave it untargeted only for a deliberate bulk call.
 
 ### `services.yaml` + `strings.json` (hassfest rules)
 - The modern convention: `services.yaml` carries only field **structure** (selectors, `required`, `default`, collapsible `sections`); names/descriptions live in `strings.json` under a top-level `services` key (`services.{svc}.name/description`, `.fields.{key}.name/description`, `.sections.{key}.name`). Field keys are flat in `strings.json` even when nested in a `sections` block in `services.yaml`. Keep `translations/en.json` a copy of `strings.json`.

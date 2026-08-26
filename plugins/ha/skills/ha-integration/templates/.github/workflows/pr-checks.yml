@@ -187,8 +187,9 @@ jobs:
       # A tag-driven repo has no bump to gate: release.yml writes manifest.json from
       # the tag when the release publishes, so the committed value is a placeholder.
       # Comparing it to the last release would fail every PR with a bump the author
-      # must not make. The job still runs and still reports — rulesets require this
-      # context by name — it just has nothing to check.
+      # must not make. The job still runs and still reports what the labels imply, but
+      # `Version validation` is deliberately NOT one of the ruleset's required contexts
+      # (see templates/ruleset.json): it is advisory here, so it cannot block a merge.
       - name: Detect how the version is set
         id: mode
         run: |
