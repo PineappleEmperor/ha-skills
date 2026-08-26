@@ -8,16 +8,14 @@ Status: `open` · `fixed` (with commit) · `wontfix` (with reason).
 
 ## Open
 
-| # | Finding | Where |
-|---|---|---|
-| 18 | Drafter config contents and "why not `$CHANGES`" — `github-actions.md` owns the drafter | breach in `commits.md:54-62` |
-| 41 | Gate enforces title/commit breaking-marker agreement; documented nowhere | `test_manifest_gate.py` |
+Nothing. Rows 1-72 are cleared; the next audit's findings start at 73.
 
 Rows 1-17, 19-40, 42-43 are cleared — see *Fixed*.
 
-### From the post-fix independent audit (2026-08-26)
+### From the post-fix independent audit (2026-08-26) — all fixed
 
-Ranked by consequence. Each row is verified against source at fix time, not taken on trust.
+Ranked by consequence as found. Each was verified against source before being fixed; two of
+the reported findings did not survive that check and are marked below.
 
 | # | Finding | Where |
 |---|---|---|
@@ -32,7 +30,7 @@ Ranked by consequence. Each row is verified against source at fix time, not take
 | 52 | Dependabot's gate exemption is justified by an "unchanged version" rule that cannot fire in a tag-driven repo | `dependabot.md:33-35` |
 | 53 | "The opener fails loudly instead" — `auto_draft_pr.yml` emits `::notice::` and `exit 0`, so the job goes green | `github-setup.md:26-27` |
 | 54 | "Mode 4" / "Mode 1/2" name a numbering `SKILL.md` no longer uses, and "Mode 4 sanctioned adaptations" points at a table in another file | `audit.md:1`, `patterns.md:46`, `scripts/skill_audit.py:5,676` |
-| 55 | `dependency_review`, `auto_draft_pr`, `stale` and `frontend_build` are required ruleset contexts but absent from `CANONICAL`, so a repo can pass the audit while its ruleset waits on a context nothing produces | `scripts/skill_audit.py:25-27` vs `templates/ruleset.json` |
+| 55 | `dependency_review` is a required ruleset context but absent from `CANONICAL`, so a repo can pass the audit while its ruleset waits on a context nothing produces. (**Partly wrong as reported:** `auto_draft_pr`, `stale` and `frontend_build` produce no required context, so their absence is not a gap) | `scripts/skill_audit.py:25-27` vs `templates/ruleset.json` |
 | 56 | Sanctioned adaptation says a repo without `quality_audit.yml` drops that context; `check_canonical_files` fails any repo missing it | `github-actions.md:65`, `github-setup.md:127-128` |
 | 57 | "Enforced by `skill_audit.py`" for docstring presence — `check_docstrings` only fails a docstring that exists and is multi-line | `scaffold.md:148` |
 | 58 | "walks the commits since the last **published** release" — the workflow deliberately selects the last non-prerelease | `commits.md:45-46` |
@@ -50,6 +48,13 @@ Ranked by consequence. Each row is verified against source at fix time, not take
 | 70 | Scaffold restates the HACS `ignore:` rule; `SKILL.md` restates the two-layer audit model; `commits.md` restates the drafter config; `audit.md` states pattern/quality-scale/testing facts without citing their owners | `scaffold.md:95`, `SKILL.md:126-135`, `commits.md:59-62`, `audit.md:16-18` |
 | 71 | "This skill is self-contained… no `reference/` directory" — a statement about the package, not an instruction | `ha-panel-design/SKILL.md:8`, `ha-triage/SKILL.md:8` |
 | 72 | Two-to-three-line blank runs the meta-audit's ≥4 threshold misses | `SKILL.md:7`, `discipline.md:11`, `testing.md:19`, `panels.md:32`, `versioning.md:101` |
+
+Also reported and **not upheld**: that the gate's title/commit breaking-marker rule is
+undocumented — `github-actions.md` states it. Found while fixing, and not in the audit: that
+rule runs inside the step a tag-driven repo skips, so in the canonical setup nothing enforces
+it. Now stated where the gate is described.
+
+All 72 landed in `fd721c2..854efb3`, one issue per commit.
 
 ## Fixed
 
