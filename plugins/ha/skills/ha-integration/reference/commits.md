@@ -39,7 +39,7 @@ The human-readable "what changed and why it matters" belongs in the **PR descrip
 
 ### The PR body is for reviewers and nothing else
 
-No job writes it — see `reference/github-actions.md` for which workflow opens a draft and how. Release notes are built from the commit subjects, so anything written here reaches reviewers only. Label the PR so it lands in the intended category (e.g. a `major`/`xfeature` label → 🚨 Breaking Change). Note release-drafter draws the PR body via the GraphQL path; `gh pr edit` can fail on the Projects-classic deprecation — set title/body via `gh api -X PATCH repos/{o}/{r}/pulls/{n} -f title=… -F body=@file` instead.
+No job writes it — see `reference/github-actions.md` for which workflow opens a draft and how. Release notes are built from the commit subjects, so anything written here reaches reviewers only. Which label puts a PR in which release category is `reference/versioning.md`. Note release-drafter draws the PR body via the GraphQL path; `gh pr edit` can fail on the Projects-classic deprecation — set title/body via `gh api -X PATCH repos/{o}/{r}/pulls/{n} -f title=… -F body=@file` instead.
 
 > ✅ **Release notes are generated from commit subjects, not from PR bodies.**
 > `scripts/release_notes.py` walks the commits since the last published release,
