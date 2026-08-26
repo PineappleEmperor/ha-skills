@@ -1,7 +1,7 @@
 # Dependabot for a HA custom integration
 
-What Dependabot can bump, what it cannot reach, and the two consequences it has for the
-version gate and the release notes. Set up alongside `reference/github-setup.md`.
+What Dependabot can bump, what it cannot reach, and what its PRs do to the version gate.
+Set up alongside `reference/github-setup.md`.
 
 - Ecosystems worth enabling
 - Keeping `>=` floors current, which Dependabot cannot do
@@ -23,16 +23,20 @@ PyPI `…/pypi/{name}/json` for the latest non-prerelease, raise the floor if ne
 `--check` to dry-run — plus a scheduled `update_manifest_floors.yml` (`schedule:` +
 `workflow_dispatch`) that runs it and, on a change, commits to a branch, pushes and opens its
 own PR. Guard with `gh pr list --head <branch> --state open` so a re-run updates rather than
-duplicates, and give it a `chore:` title so the autolabeler files it. Which workflows may
-open a PR, and how one declares itself, is `reference/github-actions.md`. The floor-bump PR
-carries no version bump.
+duplicates, and give it a `chore:` title so the autolabeler files it. It is a second PR opener,
+so it needs the `# skill-audit: sanctioned-opener` marker or the audit rejects it — the opener
+policy and that marker are `reference/github-actions.md`. The floor-bump PR carries no version
+bump.
 
 ---
 
 ### Exemption from the version gate
 
-Dependabot PRs never touch `manifest.json`, and right after a release (`main` == last release)
-a no-bump PR equals the released version, so the gate's "unchanged" rule trips. Exempt it with
+Dependabot PRs never touch `manifest.json`. In a repo that gates on a committed version, a
+no-bump PR right after a release (`main` == last release) equals the released version and the
+gate's "unchanged" rule trips. **In the canonical tag-driven setup that rule never fires** —
+`version-gate` skips its comparisons entirely — so the exemption is belt-and-braces there: it
+keeps the job off Dependabot PRs whichever model the repo runs. Exempt it with
 a **job-level** `if:` — `github.event.pull_request.user.login != 'dependabot[bot]'` — which
 skips the job rather than passing it falsely. Why a skipped job is safe here, and what it does
 to the required check, is `reference/github-setup.md`. With this, Dependabot PRs fold into the

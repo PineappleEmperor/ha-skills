@@ -73,6 +73,14 @@ disagree, this table wins.
 One workflow, ordered with `needs:`. `auto_draft_pr.yml` opens draft PRs — draft-only, gated
 on the actor being the repo owner, and the only shipped workflow permitted to open one.
 
+**A repo that needs a second opener declares it.** `skill_audit.py` fails any other workflow
+containing `gh pr create`; the one way through is a comment line
+`# skill-audit: sanctioned-opener` in that workflow, carrying the reason. The marker is the
+declaration — a workflow that opens PRs without one is a workflow acting as an author. There
+is a second marker of the same kind for scripts: a `scripts/*.py` or `.sh` that no workflow
+step runs fails the audit unless it carries `# skill-audit: local-tool`, which says it is a
+developer utility rather than a CI check that silently stopped running.
+
 | Job | `needs:` | Does |
 |---|---|---|
 | `label` | — | sole labeler: autolabeler + removal-only superseded step |
