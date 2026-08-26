@@ -254,7 +254,8 @@ def check_document_integrity(repo: Repo) -> Result:
                     # A heading is a label, not the first half of a sentence its body
                     # finishes. Both halves then read wrong on their own, and the index
                     # inherits the fragment.
-                    elif line.rstrip().endswith(":") or nxt.lstrip()[:1] in ("—", "("):
+                    elif line.rstrip().endswith(":") or nxt.lstrip()[:1] in ("—", "(") \
+                            or (nxt[:1].isalpha() and nxt[:1].islower()):
                         fails.append(f"{rel}:{i + 1} heading {line.strip('# ')!r} runs on "
                                      f"into its body: …{nxt.lstrip()[:40]!r}")
                 # prose cut mid-sentence before a list or heading
