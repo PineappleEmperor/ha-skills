@@ -34,7 +34,7 @@ Check the working directory, pick a mode, then **read that mode's reference file
 | **Scaffold** | no `custom_components/`, or the user wants a new integration | `reference/scaffold.md`, then `reference/patterns.md` |
 | **Modify** | `custom_components/` exists and something is being added or changed | `reference/patterns.md`. Adding a platform also touches `strings.json`/`translations/` and the tier claim — see `reference/quality-scale.md` |
 | **Test** | writing or fixing tests for an integration | `reference/testing.md` — the root `conftest.py` and `asyncio_mode` prerequisites decide whether the suite runs at all |
-| **Lint** | hygiene pass over existing code | this file, *Mode 3* below |
+| **Lint** | hygiene pass over existing code | this file, *Lint* below |
 | **Audit** | verify the skill was actually followed | `scripts/skill_audit.py --list` (or the skill's `templates/scripts/skill_audit.py` if the repo never copied it), then `reference/audit.md` |
 | **Release / repo setup** | first release, tokens, required checks | `reference/github-setup.md` — token, ruleset, dependency graph, required contexts. Then `reference/versioning.md` for how the version is decided, `reference/commits.md` for what the notes are built from, `reference/github-actions.md` for what each workflow must do |
 
@@ -81,14 +81,14 @@ served** — the committed bundle, its staleness check, registration and cache-b
 | `reference/freshness.md` | cached facts, when captured, how to re-derive |
 
 ---
-## Mode 1 — Scaffold new integration
+
+## Scaffold
 
 Read `reference/scaffold.md`, then `reference/github-setup.md` when the repo needs its GitHub side configured. Ask the requirement questions in one go; do not generate files before they are answered.
 
 ---
 
-
-## Mode 2 — Modify existing integration
+## Modify existing integration
 
 Identify the integration domain from `custom_components/`. Then ask what to add or change:
 
@@ -103,11 +103,11 @@ Identify the integration domain from `custom_components/`. Then ask what to add 
 - Cut a release (publish the rc draft, then the full one)
 - Other
 
-Apply the same patterns and code style as Mode 1.
+Apply the same patterns and code style as a scaffold.
 
 ---
 
-## Mode 3 — Lint & quality check
+## Lint & quality check
 
 1. Run `ruff check custom_components/` — fix all actionable issues; suppress intentional ones with `# noqa` and a reason
 2. Run `python -m pyright custom_components/` — fix all actionable issues
@@ -117,22 +117,21 @@ Apply the same patterns and code style as Mode 1.
 
 ---
 
-## Mode 4 — Audit (skill conformance)
+## Audit — skill conformance
 
-**Why this is separate from lint.** Mode 3 answers *is the code hygienic*. Mode 4 answers *was
-this skill actually followed* — canonical workflows present and correct, documented patterns
-applied, antipatterns gone, `quality_scale.yaml` honest. The skill has repeatedly been *used*
-while specific items were missed. **Run it before claiming a tier and before merge.**
+Lint answers *is the code hygienic*. This answers *was the skill followed* — canonical
+workflows present and correct, documented patterns applied, antipatterns gone,
+`quality_scale.yaml` honest. Run it before claiming a tier and before merge.
 
-Two layers, because a checklist you must remember to run gets skipped:
+Two layers:
 
-1. **Mechanical gate** — `scripts/skill_audit.py`, enforced by `quality_audit.yml` on every PR.
-   `scripts/skill_audit.py --list` prints every check and why it exists. It cannot be forgotten,
-   and it fails CI.
+1. **Mechanical gate** — `scripts/skill_audit.py`, run by `quality_audit.yml` on every PR.
+   `scripts/skill_audit.py --list` prints every check and why it exists.
 2. **Judgement checklist** — `reference/audit.md`. The items a grep can't decide.
 
-⚠️ The gate checks each canonical workflow *exists*, not that it *matches* the template — a
-consuming repo has no `templates/` to diff against. Green CI is not evidence the templates were
-copied; that is the first item of the judgement checklist.
+⚠️ In a consuming repo the gate checks each canonical workflow *exists*, not that it *matches*
+the template, because that repo has no `templates/` to diff against. (In the skill's own repo
+it does compare: `check_self_diff` and `check_template_pins`.) Green CI is not evidence the
+templates were copied; that is the first item of the judgement checklist.
 
 ---
