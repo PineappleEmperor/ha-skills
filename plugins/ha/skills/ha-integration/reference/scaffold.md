@@ -61,7 +61,22 @@ What to ask, what to generate, and the conventions the generated code follows. R
 - `pyrightconfig.json`
 - `requirements.test.txt` — **required**; copy `templates/requirements.test.txt`. Why the pin matters, and what breaks without it: `reference/testing.md`.
 - `conftest.py` — **required, at the repo root, not in `tests/`**; copy `templates/conftest.py`. Why it must be at the root: `reference/testing.md`.
-- `tests/` — one file per module under test, plus the template's own `test_manifest_gate.py`. See the testing rules in `reference/testing.md`.
+- `tests/` — one file per module under test, plus the template's own tests for the tooling it
+  ships. `skill_audit.py` requires `test_manifest_gate.py` and `test_commit_summary.py`; copy
+  the rest of `templates/tests/` alongside whichever scripts you keep. Testing rules are
+  `reference/testing.md`.
+
+**The CI stack — copy whole, do not author.** Missing files here are ~13 separate audit
+failures on the first run, so this is not an optional last step:
+
+- `.github/workflows/` — all twelve of `templates/.github/workflows/`
+- `.github/dependabot.yml` and `.github/release-drafter.yml`
+- `scripts/` — all of `templates/scripts/`; `skill_audit.py` fails a repo missing any of
+  `manifest_gate.py`, `commit_summary.py`, `release_notes.py`, `check_release_notes.py`,
+  `version_sync.py`
+
+What each workflow is for, and the only changes allowed in a copy, is
+`reference/github-actions.md`.
 - `README.md` — **include the AI-assistance disclaimer** as a GitHub `> [!NOTE]` admonition box. Link the skill name to its public repo. Template:
   ```markdown
   > [!NOTE]
