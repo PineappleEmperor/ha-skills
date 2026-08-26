@@ -171,6 +171,14 @@ release) and a ceiling (≤ the in-cycle version on `main`), lets prereleases me
 exempts `dependabot[bot]`, and requires the PR title and its commits to agree about whether
 the change is breaking.
 
+**In the canonical tag-driven repo the whole `Version gate` step is skipped** — the committed
+manifest is a placeholder, so there is nothing to compare; `release.yml` sets the version at
+publish. That takes the breaking-marker agreement with it, since it runs inside the same step:
+in a tag-driven repo nothing mechanically checks that a `feat!:` commit reached a `!` PR title,
+so the label is on the author. All the job does there is write the advisory summary — what
+this PR's labels imply the next release will be. The version model is
+`reference/versioning.md`.
+
 **`.github/dependabot.yml`** — configuration and consequences are `reference/dependabot.md`.
 
 **`templates/hooks/`** — optional per-turn reminders for your own `~/.claude`, gated on marker

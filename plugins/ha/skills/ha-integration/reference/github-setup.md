@@ -98,7 +98,10 @@ gh api -X POST repos/<owner>/<repo>/rulesets --input ruleset.json
 
 It requires the eight job-name contexts the templates produce, and keeps deletions and
 force-pushes blocked. `skill_audit.py` fails a repo whose default branch has no required
-checks, so skipping this shows up rather than going unnoticed.
+checks — **but only where it can ask GitHub.** With `gh` missing, unauthenticated, or holding
+a token without `Administration: read`, that check and the `RELEASE_TOKEN` one downgrade to a
+warning reading `NOT CHECKED, not passed`, and the audit still reports green overall. A clean
+run in a sandbox or a token-limited CI is not evidence the ruleset exists; read the warnings.
 
 **`scripts/bootstrap_repo.sh` does all of this once**, from the repo root after the first
 push: description, topics, issues, the dependency graph, `core.hooksPath`, the ruleset (only

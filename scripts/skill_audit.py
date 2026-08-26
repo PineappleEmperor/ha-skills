@@ -666,7 +666,6 @@ def check_self_diff(repo: Repo) -> Result:
         rel = tf.relative_to(tmpl)
         if rel.name in sanctioned:
             continue
-        rf = repo.root / ".github" / rel.relative_to(".github") if str(rel).startswith(".github") else repo.root / rel
         rf = repo.root / rel
         if not rf.exists():
             continue
