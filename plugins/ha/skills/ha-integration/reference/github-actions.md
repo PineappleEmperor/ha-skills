@@ -57,7 +57,7 @@ Any other difference is drift.
 | File | Allowed change |
 |---|---|
 | `.github/workflows/release.yml` | `<domain>` → the integration's domain (3 occurrences) |
-| `.github/workflows/python_validate.yml` | `python-version`, **only** when HA's minimum Python has moved and the template is stale — fix the template too |
+| `.github/workflows/python_validate.yml` | `python-version`, **only** when HA's minimum Python has moved and the template is stale — fix the template too, and move ruff's `target-version` and `pyrightconfig.json` in the same commit or `version_sync.py` fails the repo |
 | lint/format config (`pyproject.toml`, ruff) | exclusions needed to leave copied files unformatted |
 | any workflow | an action pin **newer** than the template's, where Dependabot has already bumped yours — keep the newer pin and update the template |
 | `frontend/package.json` | `<domain>` and `<name>` placeholders → this integration's values |

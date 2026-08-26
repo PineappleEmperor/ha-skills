@@ -7,11 +7,14 @@ The audit items a grep cannot decide. `scripts/skill_audit.py --list` covers the
 - **Templates copied, not paraphrased.** Compare `.github/`, `scripts/` and `tests/` against this skill's `templates/` (locate it per *Where `templates/` lives* in `reference/github-actions.md`). Every difference must appear in the sanctioned-adaptations table there. Files that merely *look* equivalent are not equivalent — in a consuming repo `skill_audit.py` checks each canonical workflow **exists**, never that it **matches**, so fifteen hand-written files once passed it clean. Compare **per file**, never per directory:
   ```bash
   T=<skill>/templates   # from the skill's announced base directory
-  ( cd "$T" && find .github scripts tests -type f ) | while read -r f; do
+  cd <repo root>
+  ( cd "$T" && find .github scripts tests frontend -type f; \
+    echo ./conftest.py; echo ./requirements.test.txt; echo ./ruleset.json ) | while read -r f; do
+      [ -e "$T/$f" ] || continue
       cmp -s "$T/$f" "$f" || echo "DIFFERS: $f"
   done
   ```
-  Then `diff -u` each file the loop names. Only what the sanctioned-adaptations table in `reference/github-actions.md` permits may differ; any other hunk is a finding — report it with the file and hunk, and restore from the template unless the diff is a listed adaptation. If `templates/` can't be located, report the audit item as **not checked**; do not mark it passed.
+  Then `diff -u` each file the loop names. Only what the sanctioned-adaptations table in `reference/github-actions.md` permits may differ; any other hunk is a finding — report it with the file and hunk, and restore from the template unless the diff is a listed adaptation. The loop is one-directional: it will not show you a file the repo has and the template does not, so scan `.github/` and `scripts/` for extras by eye. If `templates/` can't be located, report the audit item as **not checked**; do not mark it passed.
 - **Workflows behave, not just exist.** Check each shipped workflow against the contract it must meet — `reference/github-actions.md` states them, one per workflow.
 - **Patterns applied** — judged against `reference/patterns.md`: `runtime_data` (not `hass.data[DOMAIN][entry_id]`) for entry state; coordinator `async_shutdown()` on unload; `async_remove_config_entry_device` present if the integration creates a device; `DeviceInfo` TypedDict; `_attr_has_entity_name = True`; typed `ConfigEntry` alias; modern `NotifyEntity` (or a directly-registered service for custom `data`).
 - **`quality_scale.yaml` honest** — the rule list and tier requirements are `reference/quality-scale.md`: every canonical rule listed; every `exempt` carries a real `comment`; no optimistic `exempt` masking a gap (e.g. `stale-devices` exempt while a device *is* created); the `manifest.json` tier claimed only when every rule at/below it is `done`/`exempt`.
@@ -29,9 +32,5 @@ while `tests/test_version_sync.py` was failing from a stale template copy, and o
 `pytest` found it. Run what CI runs — `ruff`, `pyright`, `pytest`, `version_sync.py` —
 before reporting an audit clean, and treat a failing test in a *copied* file as your copy
 being stale rather than a skill bug to hand back.
-
-Compare **per file**. `diff -ru` on a tree still being assembled can read as identical
-while individual files differ. Two drifted files were found by `cmp` after a directory
-diff reported the copy clean.
 
 **Report:** per-item pass/fail with `file:line` evidence · what the mechanical gate caught · remaining manual work. Fix findings before claiming the tier.

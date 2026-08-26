@@ -34,17 +34,18 @@ Don't append `Co-Authored-By: Claude`, tool/session links, or any "generated wit
 Body in **`templates/hooks/commit-msg`** — copy it to `.githooks/commit-msg`, `chmod +x`. Don't retype it from this document.
 
 ### Put the narrative in the release, not the commit
-The human-readable "what changed and why it matters" belongs in the **PR description / release notes** (surfaced by release-drafter / `generate_release_notes`), which is where users actually read it. Keep commits terse; write the detail once, in the release description.
+
+The human-readable "what changed and why it matters" belongs in the **release notes**, which is where users actually read it. Keep commits terse; write the detail once, in the release description. (GitHub's own `generate_release_notes` is not the mechanism here — the stack has exactly one body writer, and `skill_audit.py` fails a repo that enables a second.)
 
 ## The PR body is for reviewers, and nothing users read
 
 **Release notes are generated from commit subjects, never from PR bodies.**
-`scripts/release_notes.py` walks the commits since the last **full** release — prereleases
-are skipped deliberately, so every rc lists the cumulative set rather than just what changed
-since the previous rc — classifies each subject by its own Conventional Commit type, and
+`scripts/release_notes.py` classifies each subject by its own Conventional Commit type and
 groups them under Breaking / Features / Fixes / Maintenance / Other, one line each, linking
-to the PR it arrived with and ending with a full-changelog compare link. This is what
-surveyed HACS repos do (alexa_media_player, alandtse/tesla, hacs/integration, SonoffLAN,
+to the PR it arrived with and ending with a full-changelog compare link. The range it walks
+is chosen by `release_drafter.yml`, which measures from the last **full** release rather than
+the newest one, so every rc lists the cumulative set instead of just what changed since the
+previous rc. This is what surveyed HACS repos do (alexa_media_player, alandtse/tesla, hacs/integration, SonoffLAN,
 checked 2026-08-15); none of them nests commits under a PR entry.
 
 **Why not release-drafter's `$CHANGES`.** It categorises each *PR* by its single label, so a

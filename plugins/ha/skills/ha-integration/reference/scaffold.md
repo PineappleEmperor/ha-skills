@@ -57,7 +57,9 @@ What to ask, what to generate, and the conventions the generated code follows. R
   > **The tag is the version, not the committed manifest** — how that works, and why no PR
   > carries a bump, is `reference/versioning.md`. What matters here: `skill_audit.py` fails a
   > `zip_release` repo whose `release.yml` does not patch the manifest before zipping.
-- `pyproject.toml`
+- `pyproject.toml` — ruff/pyright config, **and `asyncio_mode = "auto"` under
+  `[tool.pytest.ini_options]`**; without it the async tests never run and `skill_audit.py`
+  fails the repo once `tests/` exists. The block to copy is in `reference/testing.md`.
 - `pyrightconfig.json`
 - `requirements.test.txt` — **required**; copy `templates/requirements.test.txt`. Why the pin matters, and what breaks without it: `reference/testing.md`.
 - `conftest.py` — **required, at the repo root, not in `tests/`**; copy `templates/conftest.py`. Why it must be at the root: `reference/testing.md`.

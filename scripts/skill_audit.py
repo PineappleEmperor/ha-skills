@@ -22,8 +22,11 @@ import sys
 
 Result = tuple[list[str], list[str]]  # (failures, warnings)
 
-# Every workflow that produces a context templates/ruleset.json requires. A repo missing
-# one passes nothing: the ruleset waits forever on a check that never reports.
+# Required in every repo built from this skill. All but release_drafter produce a context
+# templates/ruleset.json requires, and a repo missing one leaves the ruleset waiting forever
+# on a check that never reports; release_drafter is here because the release model depends on
+# it, not because it reports a check. The two integration-only workflows below produce
+# required contexts too — they are separated because a non-integration repo has no manifest.
 CANONICAL = ("pr-checks", "release_drafter", "lint_pr",
              "python_validate", "quality_audit", "dependency_review")
 INTEGRATION_ONLY = ("hacs_validate", "hassfest_validate", "release")
