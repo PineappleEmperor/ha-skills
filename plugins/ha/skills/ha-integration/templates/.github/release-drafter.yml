@@ -3,8 +3,9 @@ tag-template: 'v$RESOLVED_VERSION'
 # Sole labeler keyed on the PR TITLE only — a human writes that title, so it must use
 # a mapped type or the PR gets no label and no release category. Mapped: feat|feature,
 # fix, and chore|docs|refactor|perf|test|build|ci|style (all -> chore); any `type!:` ->
-# xfeat. NOT mapped: `revert:`, which lint_pr accepts — the title-check job in pr-checks.yml flags it. No branch rules (they flapped when the branch name disagreed with
-# the commits). Breaking `!` must precede `feature`.
+# xfeat. NOT mapped: `revert:`, which lint_pr's allowlist rejects for that reason. Keep
+# these rules and that allowlist in step. No branch rules (they flapped when the branch
+# name disagreed with the commits). Breaking `!` must precede `feature`.
 autolabeler:
   - label: "xfeat"
     title:

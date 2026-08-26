@@ -138,8 +138,8 @@ jobs:
           title matches none of its rules, so the PR has no label, won't appear in the draft
           release notes, and gives the version gate nothing to check.
 
-          `lint_pr` passed because it accepts the full Conventional Commits set — `revert:`
-          is the type that clears the lint and still maps to nothing.
+          `lint_pr` checks the title's type against its allowlist. This check reads the labels
+          themselves, so it also fires when the autolabeler did not run or a label was removed.
 
           **Suggested type, from this PR's commits: {title}** — files under
           *{category}*, resolves a **{bump}** bump.

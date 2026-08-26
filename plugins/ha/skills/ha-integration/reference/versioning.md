@@ -50,7 +50,14 @@ The `!`-breaking branch must come first (else `feat!` matches the `feat` arm). T
 
 ### Type-vocab gap (narrower than it looks — verify against the config, not from memory)
 
-⚠️ The autolabeler maps `feat`/`feature` → **feature**, `fix` → **fix**, `chore`/`docs`/`refactor`/`perf`/`test`/`build`/`ci`/`style` → **chore**, and any `type!:` → **xfeat**. So `ci:`, `refactor:`, `perf:`, `build:`, `style:` and `test:` **are** labelled (as `chore` → 🧰 Maintenance → patch). The real gap is **`revert:`**, which `lint_pr` accepts and the autolabeler maps to nothing → no label → no release-drafter category. **This matters more now a human types the title.** A `revert:` PR — or any non-Conventional title — passes `lint_pr` and still ends up unlabelled, hence uncategorised and invisible to the version gate. The `title-check` job in `pr-checks.yml` catches it: it reads the PR's **actual labels** (ground truth, so it can't drift from this config), and `needs: label` guarantees the autolabeler has already run and comments with a suggested title type derived from the commits. It does not edit the title; that's the author's call. Don't hand-patch the label either — the autolabeler rewrites it on the next `synchronize`.
+⚠️ The autolabeler maps `feat`/`feature` → **feature**, `fix` → **fix**, `chore`/`docs`/`refactor`/`perf`/`test`/`build`/`ci`/`style` → **chore**, and any `type!:` → **xfeat**. So `ci:`, `refactor:`, `perf:`, `build:`, `style:` and `test:` **are** labelled (as `chore` → 🧰 Maintenance → patch).
+
+The vocabularies are deliberately narrower than Conventional Commits and they are **not identical to each other**, so check both before adding a type:
+
+- `lint_pr.yml` passes an explicit `types:` allowlist — the ten the autolabeler maps, and only those. `revert:` is the type the spec allows that maps to no label, and the allowlist is what keeps it out. A title it rejects never reaches the autolabeler at all.
+- The allowlist omits `feature`, which the autolabeler *does* map. A PR titled `feature: …` fails `CC title validation` even though its label would have resolved.
+
+The `title-check` job is the backstop, not the primary catch: it reads the PR's **actual labels** rather than re-implementing the regexes, so it also fires when the autolabeler did not run, when a label was removed by hand, or when a repo's `lint_pr.yml` has drifted off the allowlist. `needs: label` guarantees the autolabeler has already run; the job comments with a suggested title type derived from the commits and does not edit the title — that's the author's call. Don't hand-patch the label either; the autolabeler rewrites it on the next `synchronize`.
 
 ### Prerelease (rc) cycle
 release candidates are published via the GitHub **prerelease flag** + a `v…-rcN` tag; the manifest carries a matching **PEP440 prerelease** (`2.0.0rc1`) which `AwesomeVersion`/hassfest/HACS accept (`2.0.0 > 2.0.0rc1`). Two rules:
