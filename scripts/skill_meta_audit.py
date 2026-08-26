@@ -251,6 +251,12 @@ def check_document_integrity(repo: Repo) -> Result:
                     nxt = next((l for l in lines[i + 1:] if l.strip()), "")
                     if nxt.startswith("#") or not nxt:
                         fails.append(f"{rel}:{i + 1} heading {line.strip('# ')!r} has no body")
+                    # A heading is a label, not the first half of a sentence its body
+                    # finishes. Both halves then read wrong on their own, and the index
+                    # inherits the fragment.
+                    elif line.rstrip().endswith(":") or nxt.lstrip()[:1] in ("—", "("):
+                        fails.append(f"{rel}:{i + 1} heading {line.strip('# ')!r} runs on "
+                                     f"into its body: …{nxt.lstrip()[:40]!r}")
                 # prose cut mid-sentence before a list or heading
                 if line.strip() and not line.startswith(("#", "-", "*", ">", "|", " ")) \
                         and line.rstrip()[-1:] not in ".:;)`\"" :
