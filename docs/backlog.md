@@ -79,7 +79,7 @@ Status: `open` · `fixed` (with commit) · `wontfix` (with reason).
 | 42 | Ablation evidence pinned to HA 2026.8.0 / p-h-c-c 0.13.354 while the shipped pin is 0.13.357 → 2026.8.3 | `testing.md:24` |
 | 43 | `requirements.test.txt` comment names a frontend build for HA 2026.8.0 under a pin for 2026.8.3 | `templates/requirements.test.txt` |
 
-## Fixed this session
+## Fixed
 
 | Finding | Commit |
 |---|---|
@@ -87,6 +87,21 @@ Status: `open` · `fixed` (with commit) · `wontfix` (with reason).
 | Shipped reminder hook contradicted three invariants every turn | `1c717c6` |
 | `SKILL.md` claimed log triage in scope while its frontmatter disclaimed it | `1c717c6` |
 | Two files instructed maintaining a `python_validate.yml` matrix the template does not have | `1c717c6` |
+| #1 adaptations table missing the frontend placeholders, the frontend pin and the ruleset-context drop | `b423c16` |
+| #2 template fidelity ownership — decided: `github-actions.md` owns it, `github-setup.md` keeps GitHub settings | `b423c16` |
+| #7 `dependency_review` described as blocking any known advisory | `b423c16` |
+| #8 matrix example named the job id where GitHub uses the job name | `b423c16` |
+| #9 false claim that `ruleset.json` once carried a matrix | `b423c16` |
+| #10 `templates/` contents lists omitted `conftest.py`, `.gitignore`, `ruleset.json`, `frontend/` | `b423c16` |
+| #11 adaptations rows for `pyproject.toml`/`pyrightconfig.json` templates that do not exist | `b423c16` |
+| #13 Dependabot value proposition duplicated in `github-actions.md` | `b423c16` |
+| #21, #24 "the code style below", which was in another file | `b423c16` |
+| #22 empty heading in `github-actions.md` | `b423c16` |
+| #32 five dangling colons where code blocks had been removed | `b423c16` |
+| #36, #37 meta-commentary in `github-actions.md` and `github-setup.md` | `b423c16` |
+| #35 "Why this is stated as a rule" — rule-drafting note | `7c61647` |
+| `versioning.md` index listed a deleted heading; a section duplicated the one above it | `9575203` |
+| `commits.md` heading with no body | `7c61647` |
 
 ## Uncommitted work in progress
 
