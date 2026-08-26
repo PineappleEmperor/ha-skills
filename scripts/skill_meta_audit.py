@@ -216,6 +216,62 @@ def check_shipped_workflows_documented(repo: Repo) -> Result:
 
 
 
+def check_document_integrity(repo: Repo) -> Result:
+    """Catch the damage a careless bulk edit leaves behind.
+
+    Five transforms during one session cut sentences in half, orphaned index entries and
+    once emptied every section of a file while leaving its index intact — 663 words to 212,
+    with four other files pointing at it. Reading the result catches this; so does asking
+    the document whether it is still internally consistent.
+
+    Not a word-count threshold: a legitimate consolidation loses words and a gutting can
+    stay under any percentage. These are the shapes the damage actually takes.
+    """
+    fails = []
+    for manifest in sorted(repo.root.glob("plugins/*/skills/*/SKILL.md")):
+        for doc in sorted(manifest.parent.rglob("*.md")):
+            if "evals" in doc.parts or "templates" in doc.parts:
+                continue
+            rel = doc.relative_to(manifest.parent.parent)
+            lines = doc.read_text().splitlines()
+            heads = [l.lstrip("# ").strip() for l in lines if re.match(r"^#{2,3} ", l)]
+            # The index is the bullet run BEFORE the first heading. Bullets after one are
+            # content, and treating them as index entries flags every checklist in the set.
+            first_head = next((i for i, l in enumerate(lines) if re.match(r"^#{2,3} ", l)), len(lines))
+            index = [l.lstrip("- ").strip() for l in lines[:first_head] if l.startswith("- ")]
+            fenced = False
+            for i, line in enumerate(lines):
+                if line.lstrip().startswith("```"):
+                    fenced = not fenced
+                    continue
+                if fenced:
+                    continue
+                # a heading whose section has no body
+                if re.match(r"^#{2,3} ", line):
+                    nxt = next((l for l in lines[i + 1:] if l.strip()), "")
+                    if nxt.startswith("#") or not nxt:
+                        fails.append(f"{rel}:{i + 1} heading {line.strip('# ')!r} has no body")
+                # prose cut mid-sentence before a list or heading
+                if line.strip() and not line.startswith(("#", "-", "*", ">", "|", " ")) \
+                        and line.rstrip()[-1:] not in ".:;)`\"" :
+                    nxt = next((l for l in lines[i + 1:] if l.strip()), "")
+                    if nxt.startswith(("- ", "#")):
+                        fails.append(f"{rel}:{i + 1} sentence ends mid-clause: …{line.rstrip()[-40:]!r}")
+            # Only judge a bullet run that IS an index: most of its entries match headings.
+            # A run of reference links or definitions matches none, and flagging those buries
+            # the real finding — a stale entry left behind when a heading was renamed.
+            matched = [e for e in index if e in heads]
+            if index and len(matched) >= max(2, len(index) // 2):
+                for entry in index:
+                    if entry not in heads:
+                        fails.append(f"{rel}: index lists {entry!r} but no such heading exists")
+            for j in range(len(lines) - 3):
+                if not any(l.strip() for l in lines[j:j + 4]):
+                    fails.append(f"{rel}:{j + 1} four or more blank lines")
+                    break
+    return fails, []
+
+
 def check_paragraph_length(repo: Repo) -> Result:
     """A 400-word paragraph is a wall, and a reader skims walls.
 
@@ -271,7 +327,8 @@ def check_paragraph_length(repo: Repo) -> Result:
 
 CHECKS = (check_docs_match_templates, check_skill_frontmatter, check_reference_links,
           check_named_sections, check_required_contexts_documented,
-          check_shipped_workflows_documented, check_paragraph_length)
+          check_shipped_workflows_documented, check_document_integrity,
+          check_paragraph_length)
 
 
 def audit(root: pathlib.Path) -> Result:
