@@ -152,7 +152,8 @@ This creates `notify.{device_id}` (e.g. `notify.living_room_display`) with full 
 - **A `device_class` constrains which `state_class` is legal — verify the pair against the authoritative source, never guess.** HA hard-codes the allowed combinations in `DEVICE_CLASS_STATE_CLASSES` (`homeassistant/components/sensor/const.py`); a disallowed pair logs *"is using state class X which is impossible considering device class Y"* and silently drops long-term statistics. The constraint: `SensorDeviceClass.MONETARY` permits **only `{SensorStateClass.TOTAL}`** — `MEASUREMENT` is invalid for monetary. Don't "fix" an invalid combo by **deleting** `state_class` (that kills LTS entirely, a worse regression than the warning) — switch to a *valid* one. So a fluctuating money **balance** (settle-up debt, account balance) is `device_class=MONETARY` + `state_class=TOTAL`, not `MEASUREMENT`. Before setting any `device_class`/`state_class` pair, check the current mapping at https://raw.githubusercontent.com/home-assistant/core/dev/homeassistant/components/sensor/const.py (or the device-class table at developers.home-assistant.io/docs/core/entity/sensor) — the mapping changes between HA versions. Lock the chosen pair with an attribute test so a future rewrite can't silently drop it.
 
 ### `EntityDescription` pattern
-preferred when an integration exposes many similar entities:
+
+Preferred when an integration exposes many similar entities:
 ```python
 @dataclass(frozen=True, kw_only=True)
 class MySensorDescription(SensorEntityDescription):
@@ -242,7 +243,8 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigE
 No registration needed — HA discovers it automatically from the file name.
 
 ### Config entry migration
-implement in `__init__.py` when stored `entry.data` schema changes:
+
+Implement `async_migrate_entry` in `__init__.py` whenever the stored `entry.data` schema changes:
 ```python
 # In config flow:
 class MyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -301,7 +303,8 @@ if TYPE_CHECKING:
 ```
 
 ### Typed `ConfigEntry`
-avoids untyped `entry.runtime_data`:
+
+Alias the entry to its runtime type so `entry.runtime_data` is not untyped:
 ```python
 # In coordinator.py or models.py:
 from homeassistant.config_entries import ConfigEntry
@@ -313,7 +316,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: MyConfigEntry, ...) -> N
 ```
 
 ### Avoid `# type: ignore`
-at Platinum quality, type suppressions are a violation, not a shortcut. The common HA patterns that tempt `# type: ignore` all have proper solutions:
+
+At Platinum quality a type suppression is a violation, not a shortcut. The common HA patterns that tempt one all have proper solutions:
 - `hass.data[DOMAIN]` is untyped → don't use it; use `entry.runtime_data` with typed `ConfigEntry` instead
 - `entry.runtime_data` assignment errors → solved by the typed `ConfigEntry` alias above
 - Third-party library missing stubs → contribute stubs or use `cast()` with a comment explaining why
@@ -321,7 +325,8 @@ at Platinum quality, type suppressions are a violation, not a shortcut. The comm
 Only acceptable suppression: `# type: ignore[import-untyped]` on a third-party import with no available stubs, where contributing stubs is out of scope.
 
 ### MicroPython firmware files
-exclude from Pyright entirely in `pyrightconfig.json`:
+
+Exclude them from Pyright entirely in `pyrightconfig.json`:
 ```json
 {
   "exclude": ["firmware/"],
@@ -330,7 +335,8 @@ exclude from Pyright entirely in `pyrightconfig.json`:
 ```
 
 ### HA itself is fully typed
-import its types directly rather than re-typing them:
+
+Import its types directly rather than re-typing them:
 ```python
 from homeassistant.helpers.typing import StateType, ConfigType, DiscoveryInfoType
 from homeassistant.helpers.device_registry import DeviceInfo
