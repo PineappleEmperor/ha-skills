@@ -17,15 +17,25 @@
 three `SKILL.md` files and nothing else. None was reached by elimination, which the scenario
 counts as a failure even when the destination is right.
 
-## What this run changed
+## ⚠️ The oracle was edited before the run — weigh the result accordingly
 
-- The scenario's own answer key was stale: it expected E → `patterns.md` (testing sections),
-  written before `testing.md` existed. Corrected to `testing.md` before the run.
-- Earlier in the same session the line *"This skill is self-contained: everything is in this
-  file…"* was deleted from both single-file skills as meta-commentary. That line is the only
-  sentence a router can cite for "no reference file to read next", so removing it would have
-  turned A and C into answers-by-elimination — a scenario failure. Restored, reworded as
-  reader guidance (*"Work from this file alone"*), and the run then cited it for both.
+Two changes were made to the scenario *before* this run, which makes it weaker evidence than
+a blind run:
+
+- **E's expected answer was changed** from `patterns.md` (testing sections) to `testing.md`.
+  The key predated the split that created `testing.md`, and `docs/skill-file-hierarchy.md`
+  assigns test-harness rules to `testing.md`, so the new key is the correct one — but a test
+  whose answer is edited to match current behaviour proves less than one that was not. E is
+  now documented in the scenario as the deliberate edge case it tests.
+- **A and C were answered from a line that has since been removed.** Earlier in the session
+  *"This skill is self-contained…"* was deleted from both single-file skills as
+  meta-commentary, then restored as *"Work from this file alone — there is no `reference/`
+  directory to load"*, which is what the run cited. That wording was wrong: both skills name
+  authoritative external sources (Material 3, HA frontend theming, the companion-app docs)
+  that a task still has to consult, and "work from this file alone" tells an agent not to.
+  The line is gone again, and the scenario now states the distinction instead.
+
+**A and C should be re-run against the current wording.** B, D and E stand.
 
 ## Findings not planted by the scenario
 

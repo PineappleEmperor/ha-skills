@@ -5,8 +5,6 @@ description: Use when changing how a Home Assistant custom panel looks — a Lit
 
 # HA Custom Panel Design
 
-Work from this file alone — there is no `reference/` directory to load.
-
 Size, type, spacing, and colour for **Home Assistant custom panels** (Lit/TS web components
 served by an integration). Make the panel look native to HA and follow Material 3 — not
 hand-eyeballed pixel values.

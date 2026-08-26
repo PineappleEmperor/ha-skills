@@ -5,8 +5,6 @@ description: Use when something in a Home Assistant instance is misbehaving and 
 
 # Home Assistant Triage
 
-Work from this file alone — there is no `reference/` directory to load.
-
 Input is a `home-assistant.log`, a **Settings → System → Logs** download, or a pasted dump.
 Turn thousands of log lines into a short ranked list of *actionable* issues, separating real
 faults from the background noise HA emits constantly.
