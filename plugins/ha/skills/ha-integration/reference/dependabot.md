@@ -18,21 +18,33 @@ version gate and the release notes. Set up alongside `reference/github-setup.md`
 
 ### Keeping `>=` floors current, which Dependabot cannot do
 
-a small `scripts/update_manifest_floors.py` (parse manifest requirements, query PyPI `…/pypi/{name}/json` for the latest non-prerelease, raise the floor if newer; `--check` to dry-run) plus a scheduled `update_manifest_floors.yml` (`schedule:` + `workflow_dispatch`) that runs it and — on a change — commits to a branch, pushes, and **opens its own PR** (`gh pr create`). `auto_draft_pr.yml` is the only opener shipped, so a floor-bumper must open its own PR — mark it `# skill-audit: sanctioned-opener` with the reason, or the audit rejects it; guard with `gh pr list --head <branch> --state open` so a re-run updates rather than duplicates. Give it a title with a mapped type (`chore:`) so the autolabeler still files it. The floor-bump PR needs **no manifest version bump** under the last-release gate model in `reference/versioning.md`.
+Build a small `scripts/update_manifest_floors.py` — parse the manifest requirements, query
+PyPI `…/pypi/{name}/json` for the latest non-prerelease, raise the floor if newer, with
+`--check` to dry-run — plus a scheduled `update_manifest_floors.yml` (`schedule:` +
+`workflow_dispatch`) that runs it and, on a change, commits to a branch, pushes and opens its
+own PR. Guard with `gh pr list --head <branch> --state open` so a re-run updates rather than
+duplicates, and give it a `chore:` title so the autolabeler files it. Which workflows may
+open a PR, and how one declares itself, is `reference/github-actions.md`. The floor-bump PR
+carries no version bump.
 
 ---
 
 ### Exemption from the version gate
 
-Dependabot PRs never touch `manifest.json`, and right after a release (`main` == last release) a no-bump PR equals the released version → the gate's "unchanged" rule trips. Exempt it with a **job-level** `if:` — `github.event.pull_request.user.login != 'dependabot[bot]'`. A skipped job satisfies a required status check, which GitHub states plainly and which this repo has since confirmed, so the merge is not blocked and the check reads "Skipped" rather than a green that proves nothing. There is no second run to fall back on — `pr-checks.yml` triggers on `pull_request_target` only. With this, Dependabot PRs fold into the next release with no bump, exactly as intended.
+Dependabot PRs never touch `manifest.json`, and right after a release (`main` == last release)
+a no-bump PR equals the released version, so the gate's "unchanged" rule trips. Exempt it with
+a **job-level** `if:` — `github.event.pull_request.user.login != 'dependabot[bot]'` — which
+skips the job rather than passing it falsely. Why a skipped job is safe here, and what it does
+to the required check, is `reference/github-setup.md`. With this, Dependabot PRs fold into the
+next release with no bump.
 
 ---
 
 ### Pins in your repo versus pins in the templates
 
-Its
-`github-actions` ecosystem only scans `.github/workflows` at the repo root. Your workflows
-are therefore bumped for you once `dependabot.yml` is in place; the skill's `templates/`
-are maintained separately, in the skill's own repo. **Consequence for you:** re-copying
-from `templates/` can move a pin *backwards* if the skill's copies are older than what
-Dependabot has already given you. Diff before overwriting, and keep the newer pin.
+Dependabot's `github-actions` ecosystem only scans `.github/workflows` at the repo root. Your
+workflows are therefore bumped for you once `dependabot.yml` is in place; the skill's
+`templates/` are maintained separately, in the skill's own repo. **Consequence for you:**
+re-copying from `templates/` can move a pin *backwards* if the skill's copies are older than
+what Dependabot has already given you. Diff before overwriting, and keep the newer pin — a
+listed adaptation in `reference/github-actions.md`.
