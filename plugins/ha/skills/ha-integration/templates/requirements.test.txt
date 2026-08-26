@@ -5,8 +5,9 @@
 # hard-pins `homeassistant==<that release>`, so the pin below decides which HA
 # version the suite runs against. A mismatched pin fails at import, not at test
 # time. Pick the release matching the HA you target, and keep its Python floor
-# in lockstep with the `python-version` matrix in python_validate.yml,
-# `target-version` in pyproject.toml, and pyrightconfig.json.
+# in lockstep with `python-version` in python_validate.yml (a single value —
+# a matrix renames the required check-run), `target-version` in pyproject.toml,
+# and pyrightconfig.json. scripts/version_sync.py compares those three.
 #
 # Version map (verify at pypi.org/project/pytest-homeassistant-custom-component):
 #   0.13.357 -> homeassistant 2026.8.3, requires-python >=3.14

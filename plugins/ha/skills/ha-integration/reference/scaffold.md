@@ -160,7 +160,7 @@ Typing, file structure and the code patterns themselves are `reference/patterns.
 scaffold must set up:
 
 - Module docstring on every file. **This one may be multi-line** — a file-level explanation of a load-bearing constraint belongs here, not demoted to a comment.
-- Short **single-line** docstrings on all public functions and classes. Enforced by `skill_audit.py` **inside `custom_components/` only** — copied `scripts/` and `tests/` are not checked; module docstrings are exempt.
+- Short **single-line** docstrings on all public functions and classes. `skill_audit.py` fails a *multi-line* one **inside `custom_components/` only** — copied `scripts/` and `tests/` are not checked, and module docstrings are exempt. It does not check that a docstring is present at all; that part is on you.
 - No inline comments unless the WHY is genuinely non-obvious
 - ruff + pylint compliant; pyright standard mode
 
