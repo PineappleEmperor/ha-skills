@@ -139,7 +139,7 @@ def check_scripts_present(repo: Repo) -> Result:
     wanted = {
         "scripts/manifest_gate.py": "pr-checks.yml's version-gate shells out to it",
         "tests/test_manifest_gate.py": "the gate's logic must stay unit-tested",
-        "scripts/commit_summary.py": "pr-checks.yml's commit-summary shells out to it",
+        "scripts/commit_summary.py": "pr-checks.yml's title-check and auto_draft_pr.yml both shell out to it",
         "scripts/release_notes.py": "release notes would be grouped by PR label, filing fixes under Features",
         "scripts/check_release_notes.py": "nothing would verify the release description renders",
         "scripts/version_sync.py": "nothing would compare the python version across the files that declare it",
