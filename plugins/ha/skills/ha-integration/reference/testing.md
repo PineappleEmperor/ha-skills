@@ -38,10 +38,11 @@ testpaths = ["tests"]
 
 No `pythonpath` entry is needed: a root conftest already puts the repo root on `sys.path`, so `pytest` works from any directory (verified with `pytest`, `python -m pytest`, and from inside `tests/`).
 
-### Don't reuse a domain that exists in HA core
-A custom `demo`, `sun`, `light`… is shadowed by the built-in, and the failure surfaces as core's dependencies failing to import (`No module named 'hassil'` for `demo`), which looks nothing like a naming clash. Check `homeassistant/components/` before fixing the domain — it can't change later.
-
 The pinned `pytest-homeassistant-custom-component` in `requirements.test.txt` hard-pins `homeassistant==<matching release>`, so **that pin decides which HA the suite runs against** — a mismatch fails at import, not at test time. Keep it in lockstep with the `python_validate.yml` `python-version` (a scalar — the template ships no matrix).
+
+### Don't reuse a domain that exists in HA core
+
+A custom `demo`, `sun`, `light`… is shadowed by the built-in, and the failure surfaces as core's dependencies failing to import (`No module named 'hassil'` for `demo`), which looks nothing like a naming clash. Check `homeassistant/components/` before fixing the domain — it can't change later.
 
 ## Testing — mock at the boundary, not your own code
 

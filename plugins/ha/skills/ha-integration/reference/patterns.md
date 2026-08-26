@@ -36,12 +36,10 @@ snippet. Panel code is `reference/panels.md`; tests are `reference/testing.md`.
 | `` `UpdateEntity` `` | firmware/OTA install |
 | `` `DataUpdateCoordinator` `` | polling, backoff, shutdown |
 | Entity push subscriptions | subscribe/unsubscribe lifecycle |
-| `` `ConfigEntry` mutation | options updates without a reload loop |
+| `` `ConfigEntry` `` mutation | options updates without a reload loop |
 | Logging | Silver `log-when-unavailable`, HA conventions |
 | Custom services | registration, schema, `services.yaml` + `strings.json` |
 | Typing | `from __future__ import annotations`, `TYPE_CHECKING` |
-
-Panel code is `reference/panels.md`; tests are `reference/testing.md`.
 
 ### `__init__.py`
 

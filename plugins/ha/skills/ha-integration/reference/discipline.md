@@ -5,8 +5,8 @@ artefact that can enforce it. Commit and PR-body format is `reference/commits.md
 
 - Merge discipline — never merge a red check
 - One exception, and it is narrow
-- Red flags — stop
 - The exception gets misapplied
+- Red flags — stop
 - Debugging discipline
 
 ## Merge discipline — never merge a red check
@@ -29,6 +29,10 @@ A `pull_request_target` workflow loads its definition from the **base** branch, 
 | "It's only advisory, GitHub let me" | Advisory means GitHub will not stop you, not that the check is wrong. Some are advisory by design (`Version validation`); most red ones are simply not required *yet*. Either way, read the log. Which checks are required, and why one is deliberately not, is `reference/github-setup.md`. |
 | "Re-running it would waste minutes" | Minutes against a bad merge on `main`. |
 
+### The exception gets misapplied
+
+Applied once legitimately, it was reused hours later on a PR it did not cover: the version gate had failed correctly because the PR carried no label, and the merge went through with the failure undiagnosed. Re-derive the diff every time before claiming it.
+
 ## Red flags — stop
 
 - About to run `gh pr merge` while any check is red
@@ -38,10 +42,6 @@ A `pull_request_target` workflow loads its definition from the **base** branch, 
 - Telling yourself the failure is "unrelated" without having read the log
 
 **All of these mean the same thing: stop, read the log, then fix it or explain in writing.**
-
-### The exception gets misapplied
-
-Applied once legitimately, it was reused hours later on a PR it did not cover: the version gate had failed correctly because the PR carried no label, and the merge went through with the failure undiagnosed. Re-derive the diff every time before claiming it.
 
 ---
 

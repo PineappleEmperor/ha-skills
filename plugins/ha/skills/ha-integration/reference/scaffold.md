@@ -66,17 +66,6 @@ What to ask, what to generate, and the conventions the generated code follows. R
   the rest of `templates/tests/` alongside whichever scripts you keep. Testing rules are
   `reference/testing.md`.
 
-**The CI stack — copy whole, do not author.** Missing files here are ~13 separate audit
-failures on the first run, so this is not an optional last step:
-
-- `.github/workflows/` — all twelve of `templates/.github/workflows/`
-- `.github/dependabot.yml` and `.github/release-drafter.yml`
-- `scripts/` — all of `templates/scripts/`; `skill_audit.py` fails a repo missing any of
-  `manifest_gate.py`, `commit_summary.py`, `release_notes.py`, `check_release_notes.py`,
-  `version_sync.py`
-
-What each workflow is for, and the only changes allowed in a copy, is
-`reference/github-actions.md`.
 - `README.md` — **include the AI-assistance disclaimer** as a GitHub `> [!NOTE]` admonition box. Link the skill name to its public repo. Template:
   ```markdown
   > [!NOTE]
@@ -92,16 +81,29 @@ What each workflow is for, and the only changes allowed in a copy, is
 - `custom_components/{domain}/brand/logo.png` — landscape, shortest side **128–256**
 - `custom_components/{domain}/brand/logo@2x.png` — landscape, shortest side **256–512**
 
+**The CI stack — copy whole, do not author.** Missing files here are ~13 separate audit
+failures on the first run, so this is not an optional last step:
+
+- `.github/workflows/` — all twelve of `templates/.github/workflows/`
+- `.github/dependabot.yml` and `.github/release-drafter.yml`
+- `scripts/` — all of `templates/scripts/`; `skill_audit.py` fails a repo missing any of
+  `manifest_gate.py`, `commit_summary.py`, `release_notes.py`, `check_release_notes.py`,
+  `version_sync.py`
+
+What each workflow is for, and the only changes allowed in a copy, is
+`reference/github-actions.md`.
+
 ### Brand assets are served from the integration's own `brand/` folder
 
 Via the Brands Proxy API, from the HA version recorded in `reference/freshness.md`. The `home-assistant/brands` CDN `custom_integrations/` folder is **legacy** — do not rely on it for new work. Files are PNG, lossless; transparent background for wordmark/logo art (an LED-screen/device screenshot keeps its black background — that's the device, not a missing alpha).
->
+
 > ⚠️ **The HACS store/search dashboard still reads the legacy `data-v2.hacs.xyz` (which mirrors the old brands CDN), NOT the inline `brand/` folder.** So an integration that ships *only* inline brand images — i.e. one that never got a `home-assistant/brands` entry, and now **can't** (brands auto-closes `custom_integrations/*` PRs) — renders **blank in the HACS dashboard** even though HA's own UI shows the icon correctly via the proxy. Integrations with a *legacy* brands entry (added before the Feb-2026 cutoff) keep showing in HACS. This is a HACS-side gap, not a repo defect — nothing to fix in the integration; it resolves when HACS points its dashboard at the proxy (tracked in hacs/integration #5171 and #5223). Don't try to "fix" it by PR-ing `home-assistant/brands` (auto-closed).
 >
 > ⚠️ **Ship the `@2x` variants or the icon flickers/fails on HiDPI.** The most common "icon shows only sometimes" bug is a present `icon.png` with **no `icon@2x.png`**: a Retina/zoomed client requests `@2x`, 404s, and falls back inconsistently. `icon@2x.png` (512²) and `logo@2x.png` are not optional. Exact, square sizes matter — an off-spec `icon.png` (e.g. 384²) also misbehaves.
->
+
 ### Sources
-a placeholder may start as an SVG rasterised with `cairosvg` (ImageMagick's MSVG renderer botches text) or `convert -background none -density 144 in.svg out.png`. But the asset can equally be a **crisp nearest-neighbour upscale of a real device render** — for a pixel display this is the strongest branding. Pick by where HA shows it: the **logo** renders large (integration page / HACS) so a busy/detailed screen reads well; the **icon** renders small (~48px in the integrations list) so use a **simple, low-detail** screen (fewer, fatter pixels survive the shrink) — a full text-heavy screen turns to mush. Generate the PNG straight from the byte-faithful preview (`render_layout_png(..., scale=N)`), not a photo.
+
+A placeholder may start as an SVG rasterised with `cairosvg` (ImageMagick's MSVG renderer botches text) or `convert -background none -density 144 in.svg out.png`. But the asset can equally be a **crisp nearest-neighbour upscale of a real device render** — for a pixel display this is the strongest branding. Pick by where HA shows it: the **logo** renders large (integration page / HACS) so a busy/detailed screen reads well; the **icon** renders small (~48px in the integrations list) so use a **simple, low-detail** screen (fewer, fatter pixels survive the shrink) — a full text-heavy screen turns to mush. Generate the PNG straight from the byte-faithful preview (`render_layout_png(..., scale=N)`), not a photo.
 
 > HACS `check-brands` fails if `custom_components/{domain}/brand/icon.png` is absent and the integration is not listed in the HA brands repo.
 
