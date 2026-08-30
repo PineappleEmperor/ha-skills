@@ -121,6 +121,9 @@ eight in `ruleset.json`: `CC labelling`, `CC label validation`, `CC title valida
 `HACS validation`, `Hassfest manifest validation`, `Ruff, Pyright and Pytest`,
 `ha-integration conformance check`, and `Dependency review`.
 
+The first three all concern the label and are **not** redundant — each reports a failure the
+other two cannot. Why, and what each catches, is `reference/github-actions.md`.
+
 `Version validation` is deliberately absent. It skips its own steps in a tag-driven repo, so
 requiring it guarantees a green check that proves nothing. What it still does is advisory and
 useful: it writes the version the PR's labels imply into the job summary.

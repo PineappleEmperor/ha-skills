@@ -67,3 +67,16 @@ jobs:
       # bundle that actually ships.
       - name: Build
         run: npm run build
+
+      # Reported on the PR that caused it, not enforced. Blocking a merge on a build
+      # artefact was the old behaviour and it stopped real work; leaving it silent until
+      # release meant finding out late. A warning here is the middle: you learn on the PR,
+      # and users are protected regardless because release.yml rebuilds before packing.
+      - name: Say whether the committed bundle is stale
+        working-directory: .
+        run: |
+          if git diff --quiet -- 'custom_components/*/panel/*.js'; then
+            echo "::notice::committed panel bundle matches a fresh build"
+          else
+            echo "::warning::the committed panel bundle is stale — run 'npm run build' in frontend/ and commit the result. This does not block the merge; release.yml rebuilds before packing the zip."
+          fi

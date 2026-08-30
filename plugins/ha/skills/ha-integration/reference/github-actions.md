@@ -84,8 +84,17 @@ developer utility rather than a CI check that silently stopped running.
 | Job | `needs:` | Does |
 |---|---|---|
 | `label` | — | sole labeler: autolabeler + removal-only superseded step |
-| `title-check` | `label` | comments when the title maps to no label; suggests a type from the commits; withdraws itself when fixed |
-| `version-gate` | `label` | version gate via `scripts/manifest_gate.py`; skips itself in a tag-driven repo, where `release.yml` sets the version |
+| `title-check` | `label` | **the gate**: fails when the PR's label is not the one its commits entitle it to; comments the correct type and withdraws the comment once fixed |
+| `version-gate` | `label` | writes the advisory "next release will be X" summary; its version comparisons skip themselves in a tag-driven repo, where `release.yml` sets the version |
+
+**Three label checks, three different failures — keep all three required.** They look
+redundant and are not: `CC title validation` (`lint_pr.yml`) catches a title whose type is not
+in the allowlist and says exactly what to retype; `CC labelling` catches the labelling
+machinery itself failing, which is otherwise invisible; `CC label validation` (`title-check`)
+catches a label that exists but is **wrong**. A label being present was never the question —
+a `fix:`-titled PR carrying a `feat!:` commit was labelled `fix`, filed under Fixes, and
+resolved a **patch** bump for a change that breaks users. Dropping any one of the three loses
+a failure the other two cannot report.
 
 ### Must-preserve behaviours
 
