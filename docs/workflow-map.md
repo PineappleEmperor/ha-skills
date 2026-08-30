@@ -68,7 +68,6 @@ flowchart LR
   ADP -.->|title from commits| CS[[scripts/commit_summary.py]]
 
   P2 --> LINT[lint_pr.yml<br/>CC title validation]
-  P2 --> PRC[pr-checks.yml]
   P3 --> PY[python_validate.yml]
   P3 --> QA[quality_audit.yml]
   P3 --> DR[dependency_review.yml]
@@ -78,6 +77,7 @@ flowchart LR
     L[label<br/>CC labelling] --> TC[title-check<br/>CC label validation]
     L --> VG[version-gate<br/>Version validation]
   end
+  P2 --> L
 
   TC -.-> CS
   VG -.-> MG[[scripts/manifest_gate.py]]

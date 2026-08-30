@@ -684,6 +684,33 @@ def check_self_diff(repo: Repo) -> Result:
 
 
 
+def check_template_scripts_match(repo: Repo) -> Result:
+    """When this IS the skill repo, the scripts it ships must match the ones it runs.
+
+    `check_self_diff` compares workflows only, so `templates/scripts/` and `templates/tests/`
+    drifted silently: two fixes landed in the repo's own copy and never reached the copy every
+    scaffolded integration receives, while the docs described the fixed behaviour. Compare
+    byte-for-byte — these are the same file, not a file and its adaptation.
+    """
+    tmpl = _template_dir(repo)
+    if not tmpl:
+        return [], []
+    bad = []
+    for sub in ("scripts", "tests"):
+        if not (tmpl / sub).is_dir():
+            continue
+        for tf in sorted((tmpl / sub).rglob("*.py")):
+            rf = repo.root / tf.relative_to(tmpl)
+            if not rf.is_file():
+                continue          # not every shipped file is one this repo runs
+            if tf.read_bytes() != rf.read_bytes():
+                bad.append(str(tf.relative_to(repo.root)))
+    if bad:
+        return ["templates/ ships a different version of a script this repo also runs; the "
+                "shipped copy is what integrations get, so fix both: " + ", ".join(bad)], []
+    return [], []
+
+
 def check_template_pins(repo: Repo) -> Result:
     """Dependabot cannot see templates/; this compares them against what it does bump."""
     tmpl = _template_dir(repo)
@@ -792,7 +819,8 @@ CHECKS = (
     check_sole_labeler,
     check_pr_openers, check_platforms_have_modules, check_antipatterns, check_quality_scale_and_manifest,
     check_autolabeler_title_only, check_drafter_categories, check_docstrings,
-    check_commit_hook, check_brand_assets, check_self_diff, check_template_pins,
+    check_commit_hook, check_brand_assets, check_self_diff, check_template_scripts_match,
+    check_template_pins,
     check_release_token, check_required_status_checks, check_dependency_graph,
 )
 

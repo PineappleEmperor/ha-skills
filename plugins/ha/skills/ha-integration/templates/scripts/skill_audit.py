@@ -2,8 +2,9 @@
 """Skill-conformance audit: verify the ha-integration skill was actually followed.
 
 Canonical workflows present, action pins current, antipatterns absent, quality_scale
-honest. The mechanical subset of Mode 4 — the judgement items still need an agent with
-the skill on disk. Exit 1 on any FAIL. Runs locally and in CI.
+honest. The mechanical subset of the audit — the judgement items in
+reference/audit.md still need an agent with the skill on disk. Exit 1 on any FAIL.
+Runs locally and in CI.
 
 Ported from skill_audit.sh: the shell version grew ten embedded Python blocks, none of
 which could be unit-tested, which is the same trap the skill warns about elsewhere.
@@ -21,8 +22,13 @@ import sys
 
 Result = tuple[list[str], list[str]]  # (failures, warnings)
 
+# Required in every repo built from this skill. All but release_drafter produce a context
+# templates/ruleset.json requires, and a repo missing one leaves the ruleset waiting forever
+# on a check that never reports; release_drafter is here because the release model depends on
+# it, not because it reports a check. The two integration-only workflows below produce
+# required contexts too — they are separated because a non-integration repo has no manifest.
 CANONICAL = ("pr-checks", "release_drafter", "lint_pr",
-             "python_validate", "quality_audit")
+             "python_validate", "quality_audit", "dependency_review")
 INTEGRATION_ONLY = ("hacs_validate", "hassfest_validate", "release")
 SHIPPED_SCRIPTS = {"manifest_gate.py", "commit_summary.py", "release_notes.py",
                    "check_release_notes.py", "skill_audit.py", "version_sync.py"}
@@ -663,7 +669,6 @@ def check_self_diff(repo: Repo) -> Result:
         rel = tf.relative_to(tmpl)
         if rel.name in sanctioned:
             continue
-        rf = repo.root / ".github" / rel.relative_to(".github") if str(rel).startswith(".github") else repo.root / rel
         rf = repo.root / rel
         if not rf.exists():
             continue
@@ -673,10 +678,37 @@ def check_self_diff(repo: Repo) -> Result:
         except Exception:
             continue
     if bad:
-        return ["this repo's .github/ diverges from its own templates/ (see Mode 4 sanctioned "
-                "adaptations): " + ", ".join(bad)], []
+        return ["this repo's .github/ diverges from its own templates/ (see the sanctioned "
+                "adaptations table in reference/github-actions.md): " + ", ".join(bad)], []
     return [], []
 
+
+
+def check_template_scripts_match(repo: Repo) -> Result:
+    """When this IS the skill repo, the scripts it ships must match the ones it runs.
+
+    `check_self_diff` compares workflows only, so `templates/scripts/` and `templates/tests/`
+    drifted silently: two fixes landed in the repo's own copy and never reached the copy every
+    scaffolded integration receives, while the docs described the fixed behaviour. Compare
+    byte-for-byte — these are the same file, not a file and its adaptation.
+    """
+    tmpl = _template_dir(repo)
+    if not tmpl:
+        return [], []
+    bad = []
+    for sub in ("scripts", "tests"):
+        if not (tmpl / sub).is_dir():
+            continue
+        for tf in sorted((tmpl / sub).rglob("*.py")):
+            rf = repo.root / tf.relative_to(tmpl)
+            if not rf.is_file():
+                continue          # not every shipped file is one this repo runs
+            if tf.read_bytes() != rf.read_bytes():
+                bad.append(str(tf.relative_to(repo.root)))
+    if bad:
+        return ["templates/ ships a different version of a script this repo also runs; the "
+                "shipped copy is what integrations get, so fix both: " + ", ".join(bad)], []
+    return [], []
 
 
 def check_template_pins(repo: Repo) -> Result:
@@ -713,10 +745,12 @@ def check_release_token(repo: Repo) -> Result:
         return [], ["cannot list secrets here — verify RELEASE_TOKEN exists, or draft PRs will not open"]
     if out.returncode != 0:
         return [], ["cannot list secrets here — verify RELEASE_TOKEN exists, or draft PRs will not open"]
-    if "RELEASE_TOKEN" not in out.stdout.split():
-        return ["auto_draft_pr.yml is present but the RELEASE_TOKEN secret is not set "
-                "(see SKILL.md, RELEASE_TOKEN)"], []
-    return [], []
+    names = set(out.stdout.split())
+    # Either sanctioned source: the PAT, or the GitHub App pair the App path mints from.
+    if "RELEASE_TOKEN" in names or {"APP_ID", "APP_PRIVATE_KEY"} <= names:
+        return [], []
+    return ["auto_draft_pr.yml is present but neither RELEASE_TOKEN nor the "
+            "APP_ID/APP_PRIVATE_KEY pair is set (see SKILL.md, RELEASE_TOKEN)"], []
 
 
 def check_required_status_checks(repo: Repo) -> Result:
@@ -785,7 +819,8 @@ CHECKS = (
     check_sole_labeler,
     check_pr_openers, check_platforms_have_modules, check_antipatterns, check_quality_scale_and_manifest,
     check_autolabeler_title_only, check_drafter_categories, check_docstrings,
-    check_commit_hook, check_brand_assets, check_self_diff, check_template_pins,
+    check_commit_hook, check_brand_assets, check_self_diff, check_template_scripts_match,
+    check_template_pins,
     check_release_token, check_required_status_checks, check_dependency_graph,
 )
 

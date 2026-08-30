@@ -128,6 +128,35 @@ def test_hook_without_the_subject_guards_fails(tmp_path) -> None:
     assert fails == []
 
 
+def test_shipped_scripts_must_match_the_ones_this_repo_runs(tmp_path) -> None:
+    """The shipped copy is what integrations get, and it drifted from the repo's own.
+
+    Two fixes landed in `scripts/` and never reached `templates/scripts/`, while the docs
+    described the fixed behaviour. Nothing compared them: `check_self_diff` walks workflows
+    only. A silent no-op here would restore exactly that blind spot, so assert both that it
+    catches a difference and that it clears once the copies agree.
+    """
+    tmpl = tmp_path / "plugins/ha/skills/demo/templates"
+    (tmpl / "scripts").mkdir(parents=True)
+    (tmp_path / "scripts").mkdir()
+    (tmpl / "scripts/tool.py").write_text("VALUE = 1\n")
+    (tmp_path / "scripts/tool.py").write_text("VALUE = 2\n")
+
+    fails, _ = audit.check_template_scripts_match(audit.Repo(tmp_path))
+    assert any("scripts/tool.py" in f for f in fails)
+
+    (tmp_path / "scripts/tool.py").write_text("VALUE = 1\n")
+    assert audit.check_template_scripts_match(audit.Repo(tmp_path)) == ([], [])
+
+
+def test_shipped_script_absent_from_this_repo_is_not_drift(tmp_path) -> None:
+    """Not every shipped file is one the skill repo runs; a missing counterpart is fine."""
+    tmpl = tmp_path / "plugins/ha/skills/demo/templates"
+    (tmpl / "scripts").mkdir(parents=True)
+    (tmpl / "scripts/only_shipped.py").write_text("VALUE = 1\n")
+    assert audit.check_template_scripts_match(audit.Repo(tmp_path)) == ([], [])
+
+
 def test_list_mode_names_every_check(capsys) -> None:
     """The skill points readers at --list instead of enumerating rules that go stale."""
     assert audit.main(["--list"]) == 0
