@@ -128,10 +128,13 @@ conformance gate.
 **`dependency_review.yml`** — fails a PR that adds a dependency carrying a **high-severity**
 advisory. Lower severities are deliberately not gated.
 
-**`frontend_build.yml`** — *Panel bundle staleness check*: rebuilds the panel and diffs the
-committed bundle. Path-filtered, panel repos only. Details in `reference/panels.md`.
+**`panel_bundle.yml`** — *Panel type-check and tests*: `tsc --noEmit`, the vitest suite, and a
+build that proves the source still compiles. Path-filtered, panel repos only, and therefore
+**must not be a required context** — it does not report on a Python-only PR. It does not gate
+on the committed bundle being fresh; `release.yml` rebuilds the bundle immediately before
+packing the zip, so users always install a fresh build. Details in `reference/panels.md`.
 
-**`stale.yml`** — labels stale issues; never closes them.
+**`issue_stale.yml`** — labels issues and PRs untouched for 60 days; never closes them.
 
 **`hassfest_validate.yml`** — HA manifest, services and quality-scale validation.
 

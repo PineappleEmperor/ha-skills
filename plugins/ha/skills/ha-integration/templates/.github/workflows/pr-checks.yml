@@ -75,8 +75,11 @@ jobs:
           done
 
   # ----------------------------------------------------------- title-check ----
-  # Reads labels, so it must follow `label`. No polling: `needs` guarantees the
-  # autolabeler has finished, which is what the old standalone workflow could not.
+  # THE gate. `lint_pr` (title shape) and `label` (apply the label) are automation that
+  # informs; this is the one job whose failure must stop a merge, because it is the only
+  # one that asks whether the label is CORRECT rather than merely present. Reads labels,
+  # so it must follow `label`; `needs` guarantees the autolabeler has finished, which is
+  # what the old standalone workflow could not.
   title-check:
     name: CC label validation
     needs: label
@@ -90,63 +93,65 @@ jobs:
           ref: ${{ github.event.pull_request.base.sha }}
           persist-credentials: false
 
-      - name: Check for a version-resolvable label
+      - name: The label must match what the commits entitle the PR to
         id: check
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
           PR: ${{ github.event.pull_request.number }}
         run: |
-          # Ground truth is the PR's ACTUAL labels, never a copy of the autolabeler's
-          # regexes — a duplicate would drift from .github/release-drafter.yml, and a
-          # checker that disagrees with the thing it checks is worse than none.
-          # Keep in sync with version-resolver in .github/release-drafter.yml.
-          KNOWN="xfeat xfeature major feat feature minor fix bugfix bug patch chore"
+          # A label being PRESENT is not a label being CORRECT. The autolabeler derives it
+          # from the TITLE, so a `fix:`-titled PR carrying a `feat!:` commit is labelled
+          # `fix`, files under Fixes, and resolves a patch bump for a change that breaks
+          # users. This compares the label the PR carries against the one its COMMITS
+          # entitle it to; the mapping lives in commit_summary.py, where it is unit-tested.
+          gh api --paginate "repos/$GH_REPO/pulls/$PR/commits" \
+            --jq '.[].commit.message | split("\n")[0]' > subjects.txt
+          EXPECTED=$(python3 scripts/commit_summary.py --mode label --subjects subjects.txt)
           gh pr view "$PR" --json labels --jq '.labels[].name' > labels.txt || true
-          FOUND=""
-          for l in $KNOWN; do
-            grep -qx "$l" labels.txt && { FOUND="$l"; break; }
-          done
-          if [ -n "$FOUND" ]; then
-            echo "ok=true" >> $GITHUB_OUTPUT
-            echo "PR carries '$FOUND' - title is resolvable."
+          ACTUAL=$(grep -xE 'xfeat|feature|fix|chore' labels.txt | sort -u | tr '\n' ' ')
+          ACTUAL="${ACTUAL% }"
+          echo "expected=$EXPECTED" >> "$GITHUB_OUTPUT"
+          echo "actual=$ACTUAL" >> "$GITHUB_OUTPUT"
+          if [ "$ACTUAL" = "$EXPECTED" ]; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+            echo "PR carries '$EXPECTED', which is what its commits entitle it to."
           else
-            echo "ok=false" >> $GITHUB_OUTPUT
-            echo "::warning::PR has no version-resolvable label; its title type maps to nothing."
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            echo "::error::label is '${ACTUAL:-none}' but these commits entitle this PR to '$EXPECTED'."
           fi
 
-      - name: Suggest a title type from the commits
+      - name: Say what the title should be, then fail
         if: steps.check.outputs.ok == 'false'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
           PR: ${{ github.event.pull_request.number }}
+          EXPECTED: ${{ steps.check.outputs.expected }}
+          ACTUAL: ${{ steps.check.outputs.actual }}
         run: |
-          gh api --paginate "repos/$GH_REPO/pulls/$PR/commits" \
-            --jq '.[].commit.message | split("\n")[0]' > subjects.txt
           WIN=$(python3 scripts/commit_summary.py --mode winning --subjects subjects.txt)
-          python3 - "$WIN" > comment.md <<'PYS'
-          import importlib.util, pathlib, sys
+          python3 - "$WIN" "$EXPECTED" "${ACTUAL:-none}" > comment.md <<'PYS'
+          import importlib.util, sys
           spec = importlib.util.spec_from_file_location("cs", "scripts/commit_summary.py")
           cs = importlib.util.module_from_spec(spec); spec.loader.exec_module(cs)
           title, category, bump = cs.SUGGESTIONS[sys.argv[1]]
+          expected, actual = sys.argv[2], sys.argv[3]
           print(f"""<!-- pr-title-check -->
-          ### This PR's title can't be labelled
+          ### This PR's label does not match its commits
 
-          The autolabeler maps the title to a label, release-drafter turns that label into a
-          release category, and the version gate resolves the expected bump from it. This
-          title matches none of its rules, so the PR has no label, won't appear in the draft
-          release notes, and gives the version gate nothing to check.
+          Label carried: **{actual}** — label its commits entitle it to: **{expected}**.
 
-          `lint_pr` checks the title's type against its allowlist. This check reads the labels
-          themselves, so it also fires when the autolabeler did not run or a label was removed.
+          The label is applied from the TITLE, and it decides the release category and the
+          version bump. When the title understates the commits the change ships under the
+          wrong heading with the wrong bump — a breaking change released as a patch is the
+          case this exists to stop.
 
-          **Suggested type, from this PR's commits: {title}** — files under
-          *{category}*, resolves a **{bump}** bump.
+          **Retitle as {title}** — files under *{category}*, resolves a **{bump}** bump.
 
-          Mapped types: `feat`/`feature` · `fix` · `chore`/`docs`/`refactor`/`perf`/`test`/`build`/`ci`/`style` · any `type!:` for breaking.
-
-          Edit the title and this comment will remove itself. Nothing here changes your title.""".replace(chr(10) + " " * 10, chr(10)))
+          Fix the title and this check goes green; the comment removes itself. Nothing here
+          edits your title, and hand-patching the label will not help — the autolabeler
+          rewrites it from the title on the next push.""".replace(chr(10) + " " * 10, chr(10)))
           PYS
           EXISTING=$(gh api "repos/$GH_REPO/issues/$PR/comments" \
             --jq '[.[] | select(.body | startswith("<!-- pr-title-check -->"))] | .[0].id // ""')
@@ -155,8 +160,11 @@ jobs:
           else
             gh pr comment "$PR" --body-file comment.md
           fi
+          # The comment is the explanation; this is the gate. Before it failed here, the
+          # required context reported success on every path and enforced nothing.
+          exit 1
 
-      - name: Withdraw the suggestion once the title is fixed
+      - name: Withdraw the suggestion once the label is right
         if: steps.check.outputs.ok == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

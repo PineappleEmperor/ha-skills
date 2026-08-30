@@ -109,6 +109,25 @@ def winning(subjects: list[str]) -> str:
 # titled with one gets no category and no version increment. Those become `chore:`.
 LABELLABLE = frozenset({"feat", "fix", "chore", "docs"})
 
+# The managed labels, and which one a PR's COMMITS entitle it to. The autolabeler
+# derives its label from the TITLE, so these two can disagree — a `fix:` title over a
+# `feat!:` commit gets `fix`, files under Fixes, and resolves a patch bump for a change
+# that breaks users. Comparing the two is what makes the label *correct* rather than
+# merely present.
+MANAGED_LABELS = frozenset({"xfeat", "feature", "fix", "chore"})
+LABEL_FOR = {
+    "breaking": "xfeat",
+    "feat": "feature",
+    "fix": "fix",
+    "maint": "chore",
+    "other": "chore",
+}
+
+
+def label_for(subjects: list[str]) -> str:
+    """The one managed label these commits entitle the PR to."""
+    return LABEL_FOR[winning(subjects)]
+
 
 def title_for(subjects: list[str]) -> str:
     """A PR title for these commits: the winning group's oldest commit, verbatim.
@@ -139,7 +158,7 @@ def title_for(subjects: list[str]) -> str:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--mode", choices=("winning", "title"), default="title")
+    ap.add_argument("--mode", choices=("winning", "title", "label"), default="title")
     ap.add_argument("--subjects", default="-", help="file of commit subjects, or - for stdin")
     args = ap.parse_args()
 
@@ -149,6 +168,8 @@ def main() -> int:
 
     if args.mode == "title":
         print(title_for(subjects))
+    elif args.mode == "label":
+        print(label_for(subjects))
     else:
         print(winning(subjects))
     return 0

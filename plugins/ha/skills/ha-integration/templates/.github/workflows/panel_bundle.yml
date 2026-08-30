@@ -1,15 +1,18 @@
-name: Frontend Build
+name: Panel Bundle
 
-# HACS ships the repository as-is and runs no build step on the user's machine, so
-# the esbuild output must be COMMITTED inside custom_components/<domain>/panel/ to
-# reach the release zip. That makes a stale bundle silent: the old bundle still
-# runs, tests pass, CI is green, and the only symptom is "the fix I made isn't
-# there". The `git diff --exit-code` step below is the whole point of this file —
-# it fails when the committed bundle does not match a fresh build of the source.
+# The panel's TypeScript is reachable from nothing else in the stack: `tsc --noEmit`
+# proves a helper returns a string, not the right one, and the Python suite cannot see
+# it at all. This runs the type-check and the unit tests so that logic is covered on the
+# PR that changes it.
 #
-# This differs from a Lovelace CARD repo, which attaches the built .js as a
-# release asset instead. An integration cannot: the asset is not in the zip HACS
-# installs into custom_components/<domain>/.
+# It deliberately does NOT gate on the committed bundle being fresh. `release.yml`
+# rebuilds the bundle immediately before packing the zip, so what users install is always
+# a fresh build — a stale committed bundle is repo hygiene, not a release defect, and it
+# is reported as a warning there. Gating on it here blocked merges over a build artefact.
+#
+# Path-filtered on purpose: it has nothing to say about a Python-only PR. That also means
+# it must not be a required status check — a required context that never reports on an
+# unrelated PR leaves that PR unmergeable forever.
 
 on:
   push:
@@ -17,19 +20,19 @@ on:
     paths:
       - 'frontend/**'
       - 'custom_components/*/panel/**'
-      - '.github/workflows/frontend_build.yml'
+      - '.github/workflows/panel_bundle.yml'
   pull_request:
     paths:
       - 'frontend/**'
       - 'custom_components/*/panel/**'
-      - '.github/workflows/frontend_build.yml'
+      - '.github/workflows/panel_bundle.yml'
 
 permissions:
   contents: read
 
 jobs:
   build:
-    name: Panel bundle staleness check
+    name: Panel type-check and tests
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -60,13 +63,7 @@ jobs:
           fi
           npm test
 
+      # Proves the source still builds. The artefact is discarded: release.yml builds the
+      # bundle that actually ships.
       - name: Build
         run: npm run build
-
-      - name: Committed bundle must match a fresh build
-        working-directory: .
-        run: |
-          if ! git diff --exit-code -- 'custom_components/*/panel/*.js'; then
-            echo "::error::The committed panel bundle is stale. Run 'npm run build' in frontend/ and commit the result."
-            exit 1
-          fi

@@ -35,7 +35,7 @@ a candidate for removal regardless of whether it works.
 | Workflow | Trigger | Context (job name) | Required | Permissions | Depends on | On failure |
 |---|---|---|---|---|---|---|
 | `pr-checks.yml` · `label` | `pull_request_target` (opened, reopened, synchronize, edited) | `CC labelling` | ✅ | `contents: read`, `pull-requests: write` | autolabeler action, `gh` | PR unlabelled → no release category |
-| `pr-checks.yml` · `title-check` | same, `needs: label` | `CC label validation` | ✅ | inherited | `scripts/commit_summary.py` | **cannot fail** — warns and exits 0 |
+| `pr-checks.yml` · `title-check` | same, `needs: label` | `CC label validation` | ✅ **the gate** | inherited | `scripts/commit_summary.py` | red when the label ≠ what the commits entitle the PR to |
 | `pr-checks.yml` · `version-gate` | same, `needs: label` | `Version validation` | ❌ deliberate | inherited | `scripts/manifest_gate.py` | skips all comparisons in a tag-driven repo |
 | `lint_pr.yml` | `pull_request_target` | `CC title validation` | ✅ | `pull-requests: read` | `amannn/action-semantic-pull-request` | red until the title uses one of ten types |
 | `python_validate.yml` | `push: main`, `pull_request` | `Ruff, Pyright and Pytest` | ✅ | `contents: read` | `requirements.test.txt` | red on lint, type or test failure; **warns only** when `tests/` is absent |
@@ -43,11 +43,11 @@ a candidate for removal regardless of whether it works.
 | `hacs_validate.yml` | `push: main`, `pull_request`, daily cron | `HACS validation` | ✅ | `contents: read` | `hacs/action@main` (mutable) | red on any of nine HACS checks |
 | `hassfest_validate.yml` | `push: main`, `pull_request`, daily cron | `Hassfest manifest validation` | ✅ | `contents: read` | `home-assistant/actions/hassfest@master` (mutable) | red on manifest/quality-scale violation |
 | `dependency_review.yml` | `pull_request` | `Dependency review` | ✅ | `contents: read` | dependency graph **enabled** | red at `high` severity; **permanently red if the graph is off** |
-| `frontend_build.yml` | push/PR, **path-filtered** | `Panel bundle staleness check` | ❌ can't be | `contents: read` | `frontend/`, npm | red when the committed bundle ≠ a fresh build |
+| `panel_bundle.yml` | push/PR, **path-filtered** | `Panel type-check and tests` | ❌ can't be | `contents: read` | `frontend/`, npm | red on a type error or a failing panel test |
 | `auto_draft_pr.yml` | `push` to any branch but `main` | `Auto draft PR` | ❌ not a check | `contents: read` | `RELEASE_TOKEN`, `commit_summary.py` | **silent no-op** — `::notice::` and exit 0 |
 | `release_drafter.yml` | `push: main`, `release: published` | `Auto draft releases` | ❌ not a check | `contents: write`, `pull-requests: write` | `release_notes.py`, `check_release_notes.py` | red on the release path only |
-| `release.yml` | `release: published` | `Auto release zip` | ❌ not a check | `contents: write` | none | red → HACS install fails with `Could not download` |
-| `stale.yml` | weekly cron, `workflow_dispatch` | `Mark stale` | ❌ not a check | `issues: write`, `pull-requests: write` | none | labels only; never closes |
+| `release.yml` | `release: published` | `Auto release zip` | ❌ not a check | `contents: write` | npm, when `frontend/` exists | red → HACS install fails with `Could not download` |
+| `issue_stale.yml` | weekly cron, `workflow_dispatch` | `Mark stale` | ❌ not a check | `issues: write`, `pull-requests: write` | none | labels only; never closes |
 
 ---
 
@@ -71,7 +71,7 @@ flowchart LR
   P3 --> PY[python_validate.yml]
   P3 --> QA[quality_audit.yml]
   P3 --> DR[dependency_review.yml]
-  P3 --> FE[frontend_build.yml<br/>path-filtered]
+  P3 --> FE[panel_bundle.yml<br/>path-filtered]
 
   subgraph PRC[pr-checks.yml — one workflow, ordered with needs:]
     L[label<br/>CC labelling] --> TC[title-check<br/>CC label validation]
@@ -90,7 +90,7 @@ flowchart LR
 
   P6 --> HACS[hacs_validate.yml]
   P6 --> HASS[hassfest_validate.yml]
-  P6 --> ST[stale.yml]
+  P6 --> ST[issue_stale.yml]
 
   classDef req fill:#1b5e20,stroke:#0d3b10,color:#fff
   classDef notreq fill:#37474f,stroke:#1c262b,color:#fff
@@ -153,7 +153,9 @@ flowchart TD
   FIN --> RD2[release_drafter on published<br/>rewrites the body, deletes stale drafts]
   FIN --> ZIP[release.yml]
   ZIP --> MAN[write manifest.json version<br/>from the tag]
-  MAN --> ASSET[attach domain.zip]
+  MAN --> REB[rebuild the panel bundle<br/>if frontend/ exists]
+  REB --> PACK[zip custom_components/domain]
+  PACK --> ASSET[attach domain.zip]
   ASSET --> HACSDL[HACS downloads the asset]
 
   RC --> RD2
@@ -169,10 +171,13 @@ publishing a draft.
 These are the couplings and gaps a per-workflow read cannot settle. Each is verified against
 the files above.
 
-1. **A required check that cannot go red.** `CC label validation` is required by the ruleset,
-   but `title-check` emits `::warning::` and exits 0 in every path. It buys a comment on the
-   PR and nothing enforceable. Either it should fail when no label resolves, or it should come
-   out of the required list — keeping both is the "decorative gate" the skill warns about.
+1. ~~**A required check that cannot go red.**~~ **Resolved.** `title-check` now compares the
+   label the PR carries against the one its *commits* entitle it to (`commit_summary.py
+   --mode label`) and exits 1 on a mismatch. A label being present was never the question —
+   a `fix:`-titled PR carrying a `feat!:` commit was labelled `fix`, filed under Fixes and
+   resolved a patch bump for a breaking change, and nothing objected. This also subsumes the
+   breaking-marker check that item 6 stranded. `CC label validation` is **the** gate;
+   `CC title validation` and `CC labelling` are automation that informs.
 2. **Two mutable action refs are required contexts.** `hacs/action@main` and
    `hassfest@master` are deliberately unpinned so they track upstream rules. That is defensible,
    but it means an upstream change can turn a required check red with no commit in this repo.
@@ -190,14 +195,20 @@ the files above.
    observable workflow (it only runs on `main` and on publish) and the most consequential.
    Worth asking whether the rc-draft machinery earns its place, or whether cutting an rc
    should be an explicit act.
-6. **`version-gate` runs on every PR and decides nothing** in the canonical tag-driven repo.
-   It writes an advisory summary. That may be worth keeping for visibility, but it should be
-   an explicit choice, not a leftover of the pre-tag-driven model.
-7. **`frontend_build` can never be required** because it is path-filtered — so a panel repo's
-   most important check is advisory unless the repo opts in and accepts unrelated PRs waiting
-   on a context that never reports.
-8. **`stale.yml` serves none of the four intents.** It is repo hygiene, not release or quality
-   machinery. Keep or cut on that basis rather than on whether it works.
+6. **`version-gate` runs on every PR and decides nothing** in the canonical tag-driven repo,
+   because the release tag writes the version at publish — there is no committed bump to
+   check. Its one enforceable rule, that the title and commits agree about being breaking,
+   sat inside the skipped block and never ran; that now lives in the label gate (item 1).
+   What remains is the advisory "next release will be X" summary, which is worth keeping for
+   visibility but should be named as such rather than called a gate.
+7. ~~**`frontend_build` can never be required.**~~ **Resolved by moving the work.** The bundle
+   rebuild now happens in `release.yml`, immediately before the zip is packed, so what users
+   install is always a fresh build and no gate is needed to protect them. The renamed
+   `panel_bundle.yml` keeps the PR-time type-check and tests and stays path-filtered and
+   unrequired. The rebuild could not live in its own workflow: two workflows on the same
+   `release: published` event cannot be ordered, so it could finish after the zip was packed.
+8. **`issue_stale.yml` — kept, and renamed for what it does.** It is repo hygiene, which is an
+   intent in its own right; the old name collided with "bundle staleness", which is unrelated.
 9. **`python_validate` warns instead of failing when `tests/` is absent.** A scaffold with no
    tests is green on the check that is supposed to prove behaviour, while `quality_audit`
    separately fails only if a `quality_scale.yaml` rule claims `done`.

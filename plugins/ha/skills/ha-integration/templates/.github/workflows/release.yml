@@ -42,6 +42,42 @@ jobs:
           print(f"{manifest}: version={version}")
           PY
 
+      # The panel bundle is rebuilt HERE, immediately before packing, rather than in its
+      # own workflow. Two workflows on the same `release: published` event cannot be
+      # ordered, so a separate rebuild could finish after the zip was already packed and
+      # ship the stale bundle it was meant to prevent. A repo with no frontend/ skips it.
+      - name: Is there a panel to build
+        id: panel
+        run: |
+          if [ -f frontend/package.json ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::no frontend/ — nothing to rebuild"
+          fi
+
+      - if: steps.panel.outputs.present == 'true'
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Rebuild the panel bundle if it is stale
+        if: steps.panel.outputs.present == 'true'
+        working-directory: frontend
+        run: npm ci && npm run build
+
+      # Reported, not enforced: the zip now carries a fresh build either way, so a stale
+      # committed bundle is a repo-hygiene problem rather than a release defect.
+      - name: Say whether the committed bundle was stale
+        if: steps.panel.outputs.present == 'true'
+        run: |
+          if git diff --quiet -- 'custom_components/*/panel/*.js'; then
+            echo "::notice::committed panel bundle was already current"
+          else
+            echo "::warning::the committed panel bundle was stale; this release ships a fresh build. Run 'npm run build' in frontend/ and commit it."
+          fi
+
       - name: Create ZIP file
         run: |
           cd custom_components/<domain>

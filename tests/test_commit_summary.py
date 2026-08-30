@@ -149,3 +149,25 @@ def test_title_uses_a_labellable_type_from_the_winning_commit() -> None:
     assert cs.title_for(["refactor: tidy internals"]) == "chore: tidy internals"
     # A version bump is release plumbing and never the headline.
     assert cs.title_for(["fix: one", "chore: bump to 7.3.0"]) == "fix: one"
+
+
+def test_the_label_a_prs_commits_entitle_it_to() -> None:
+    """The autolabeler reads the TITLE; this reads the COMMITS, so the two can disagree.
+
+    The disagreement is the whole point: a `fix:`-titled PR carrying a `feat!:` commit is
+    labelled `fix`, files under Fixes and resolves a patch bump for a change that breaks
+    users. Nothing caught that, because the check only asked whether *a* label existed.
+    """
+    assert cs.label_for(["feat!: drop python 3.13", "fix: tidy"]) == "xfeat"
+    assert cs.label_for(["feat: add a thing", "fix: correct it"]) == "feature"
+    assert cs.label_for(["fix: correct it"]) == "fix"
+    assert cs.label_for(["refactor: tidy internals"]) == "chore"
+    assert cs.label_for(["docs: describe the ci"]) == "chore"
+    # No commits at all still resolves, rather than raising in the middle of a PR check.
+    assert cs.label_for([]) == "chore"
+
+
+def test_every_group_maps_to_a_managed_label() -> None:
+    """A group with no label would make the correctness check unresolvable."""
+    for key in cs.ORDER:
+        assert cs.LABEL_FOR[key] in cs.MANAGED_LABELS
