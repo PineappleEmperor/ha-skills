@@ -9,6 +9,26 @@
           }
         ]
       }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Grep",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'echo \"[read-dont-search] A search LOCATES; it does not VERIFY. It cannot tell you a thing is correct, and no matches is not evidence that it is fixed — that mistake shipped a defect as resolved in this repo. Use this only to find candidate files, then READ each one before concluding anything. If you are judging content, open the file instead.\"'"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -c \"import json,sys,re; d=json.load(sys.stdin); c=d.get('tool_input',{}).get('command',''); print('[read-dont-search] A search LOCATES; it does not VERIFY. It cannot tell you a thing is correct, and no matches is not evidence that it is fixed — that mistake shipped a defect as resolved in this repo. Use this only to find candidate files, then READ each one before concluding anything. If you are judging content, open the file instead.') if re.search(r'\\\\b(grep|rg|ag|ack)\\\\b', c) else None\""
+          }
+        ]
+      }
     ]
   }
 }
