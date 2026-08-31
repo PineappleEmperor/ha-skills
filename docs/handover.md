@@ -95,11 +95,19 @@ Learned the hard way this session; ignoring these cost hours.
 
 ## Environment gotchas
 
-- `~/.gitconfig` was on the sandbox read deny-list for part of the session, which makes
-  *every* git command abort with `fatal: unknown error occurred while reading the
-  configuration files`. It has been allowed; if it recurs, `GIT_CONFIG_GLOBAL=/dev/null`
-  works but drops `user.name`/`user.email`, so commits then need them passed per-invocation.
-- Credential-storage lock warnings on push (`Read-only file system`) are noise; the ref still
-  updates. Check with `git fetch`.
+- `~/.gitconfig` and `~/.config/gh/hosts.yml` were on the sandbox read deny-list for part of
+  the session. The first makes *every* git command abort with `fatal: unknown error occurred
+  while reading the configuration files`; the second silently degrades three `skill_audit.py`
+  checks to `NOT CHECKED` while the audit still reports green. Both are allowed now. If the
+  gitconfig one recurs, `GIT_CONFIG_GLOBAL=/dev/null` works but drops `user.name`/`user.email`
+  with it, so commits then need them passed per-invocation.
+- **Credential-storage lock warnings on push** come from `credential.helper=store`, injected
+  by Claude Code itself as `GIT_CONFIG_KEY_1`/`GIT_CONFIG_VALUE_1` — not from `~/.gitconfig`,
+  which is why grepping the config for it finds nothing. `store` tries to persist the
+  credential to `~/.git-credentials`, whose directory is read-only in the sandbox.
+  `GIT_CONFIG_COUNT=1 git push …` drops it and the push is silent, keeping `url.insteadOf`.
+  **Do not "fix" it by allowing the write**: the global helper already re-supplies the PAT
+  from `$CLAUDE_GIT_PAT` on every call, so `store` persists a plaintext token to disk for no
+  benefit. It is currently failing safe.
 - The GitHub MCP server has no git-data endpoints, so it cannot push local commits. The git
   MCP server (`mcp-server-git`) has no push at all. Neither is a route around a git problem.
