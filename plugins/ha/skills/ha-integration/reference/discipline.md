@@ -26,7 +26,7 @@ A `pull_request_target` workflow loads its definition from the **base** branch, 
 | "It's the `pull_request_target` self-validation case" | Prove it with the diff, on that job, on that PR. If you did not check, it is not that case. |
 | "I merged past a red check earlier for a good reason" | That merge carried its own proof. This one needs its own. Precedent is not evidence. |
 | "The version/label/content is right anyway" | The gate said otherwise. It is reporting what it can see; if it is wrong about that, say why in writing before merging. |
-| "It's only advisory, GitHub let me" | Advisory means GitHub will not stop you, not that the check is wrong. Some are advisory by design (`Version validation`); most red ones are simply not required *yet*. Either way, read the log. Which checks are required, and why one is deliberately not, is `reference/github-setup.md`. |
+| "It's only advisory, GitHub let me" | Advisory means GitHub will not stop you, not that the check is wrong — a red check that is merely not required *yet* is still reporting a real failure. Read the log. Which checks are required, and why, is `reference/github-setup.md`. |
 | "Re-running it would waste minutes" | Minutes against a bad merge on `main`. |
 
 ### The exception gets misapplied

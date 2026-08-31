@@ -124,9 +124,10 @@ eight in `ruleset.json`: `CC labelling`, `CC label validation`, `CC title valida
 The first three all concern the label and are **not** redundant — each reports a failure the
 other two cannot. Why, and what each catches, is `reference/github-actions.md`.
 
-`Version validation` is deliberately absent. It skips its own steps in a tag-driven repo, so
-requiring it guarantees a green check that proves nothing. What it still does is advisory and
-useful: it writes the version the PR's labels imply into the job summary.
+There is no `Version validation` context: the job was removed. The release tag owns the
+version, so no PR carries a bump and there was nothing left for it to check. The version the
+PR's labels imply is now written into `CC label validation`'s job summary, which is the job
+that already knows the label is right.
 
 Everything else — `Auto draft PR`, `Auto release zip`, `Auto draft releases` — is process
 automation firing on pushes and releases. Not a weaker check: not a check at all, and

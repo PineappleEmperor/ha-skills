@@ -1,11 +1,11 @@
 # Dependabot for a HA custom integration
 
-What Dependabot can bump, what it cannot reach, and what its PRs do to the version gate.
+What Dependabot can bump, what it cannot reach, and why its PRs need no special handling.
 Set up alongside `reference/github-setup.md`.
 
 - Ecosystems worth enabling
 - Keeping `>=` floors current, which Dependabot cannot do
-- Exemption from the version gate
+- Dependabot needs no exemption
 - Pins in your repo versus pins in the templates
 
 ### Ecosystems worth enabling
@@ -30,17 +30,20 @@ bump.
 
 ---
 
-### Exemption from the version gate
+### Dependabot needs no exemption
 
-Dependabot PRs never touch `manifest.json`. In a repo that gates on a committed version, a
-no-bump PR right after a release (`main` == last release) equals the released version and the
-gate's "unchanged" rule trips. **In the canonical tag-driven setup that rule never fires** —
-`version-gate` skips its comparisons entirely — so the exemption is belt-and-braces there: it
-keeps the job off Dependabot PRs whichever model the repo runs. Exempt it with
-a **job-level** `if:` — `github.event.pull_request.user.login != 'dependabot[bot]'` — which
-skips the job rather than passing it falsely. Why a skipped job is safe here, and what it does
-to the required check, is `reference/github-setup.md`. With this, Dependabot PRs fold into the
-next release with no bump.
+It used to. A `version-gate` job compared the PR's committed `manifest.json` version against
+the last release, and a Dependabot PR — which never touches the manifest — tripped the
+"unchanged version" rule right after a release. The exemption existed to skip that job.
+
+**That job is gone.** The release tag owns the version, so nothing compares a committed one,
+and the only PR-time gate is the label check — which already skips bots via
+`github.event.pull_request.user.type != 'Bot'`. Dependabot PRs carry a `chore` label from
+their `chore:` title, fold into the next release, and need no special case anywhere.
+
+If you are looking at an older repo that still has `version-gate`, the exemption to keep is a
+**job-level** `if:` — `github.event.pull_request.user.login != 'dependabot[bot]'` — which skips
+the job rather than passing it falsely.
 
 ---
 

@@ -143,8 +143,9 @@ def check_no_tracked_artefacts(repo: Repo) -> Result:
 def check_scripts_present(repo: Repo) -> Result:
     """The scripts workflows shell out to; a missing one fails at runtime, on every PR."""
     wanted = {
-        "scripts/manifest_gate.py": "pr-checks.yml's version-gate shells out to it",
-        "tests/test_manifest_gate.py": "the gate's logic must stay unit-tested",
+        "scripts/manifest_gate.py": "pr-checks.yml's title-check shells out to it for the "
+                                    "implied next version",
+        "tests/test_manifest_gate.py": "that resolution must stay unit-tested",
         "scripts/commit_summary.py": "pr-checks.yml's title-check and auto_draft_pr.yml both shell out to it",
         "scripts/release_notes.py": "release notes would be grouped by PR label, filing fixes under Features",
         "scripts/check_release_notes.py": "nothing would verify the release description renders",
@@ -353,14 +354,16 @@ def check_pr_checks_shape(repo: Repo) -> Result:
     fails, warns = [], []
     if "Remove superseded" not in t:
         fails.append("pr-checks.yml missing the removal-only superseded-label step")
-    if "dependabot[bot]" not in t:
-        warns.append("pr-checks.yml may not exempt dependabot[bot] from the version gate")
-    if "gh release list" not in t:
-        warns.append("pr-checks.yml may not compare against the last published release")
+    # The label decides the release category and the version bump, so it has to be the
+    # RIGHT label, not merely a label. Checking presence alone passed a `fix:`-titled PR
+    # carrying a `feat!:` commit, which released a breaking change as a patch.
+    if "--mode label" not in t:
+        fails.append("pr-checks.yml does not compare the PR's label against the one its "
+                     "commits entitle it to (scripts/commit_summary.py --mode label)")
     if "pull_request_target" not in t:
         fails.append("pr-checks.yml must use pull_request_target (fork PRs get a read-only "
                      "token otherwise)")
-    if t.count("needs: label") < 2:
+    if "needs: label" not in t:
         fails.append("pr-checks.yml: label-reading jobs must declare 'needs: label' (else "
                      "they race the autolabeler)")
     if "user.type != 'Bot'" not in t:

@@ -49,10 +49,11 @@ Release candidates are published via the GitHub **prerelease flag** + a `v…-rc
 
 ### Nothing is ever bumped by hand
 
-`release.yml` writes `manifest.json` from the release tag at publish, so no PR carries a bump,
-`version-gate` skips itself, and the advisory step says what the labels imply. The committed
-value is a placeholder between releases. Dependabot's exemption from the gate is
-`reference/dependabot.md`.
+`release.yml` writes `manifest.json` from the release tag at publish, so no PR carries a bump
+and the committed value is a placeholder between releases. **Nothing gates a version at PR
+time, because there is no version in the PR to gate** — what the merged labels imply for the
+next release is reported in `CC label validation`'s summary, and the correctness of that
+number rests entirely on the label being right.
 
 ### A `pull_request_target` workflow cannot validate a fix to itself
 

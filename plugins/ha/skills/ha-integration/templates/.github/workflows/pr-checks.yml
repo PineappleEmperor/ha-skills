@@ -15,8 +15,8 @@ name: PR Checks
 # updated, which is the whole point of these jobs.
 # SAFETY: that trigger runs in the base repo's context with a writable token, so
 # nothing here may execute PR-authored code. The autolabeler checks out nothing;
-# the version gate explicitly checks out the BASE and reads the PR's manifest as
-# data over the API; the body/comment jobs never check out at all.
+# title-check checks out the BASE and reads the PR's commits as data over the API,
+# never the PR head.
 on:
   pull_request_target:
     # NOT `labeled`/`unlabeled`. The autolabeler runs inside this workflow with the
@@ -176,105 +176,30 @@ jobs:
           [ -n "$EXISTING" ] && gh api -X DELETE "repos/$GH_REPO/issues/comments/$EXISTING" --silent \
             && echo "removed the stale suggestion" || echo "nothing to withdraw"
 
-  # ---------------------------------------------------------- version-gate ----
-  # Reads labels to derive the expected bump, so it must follow `label` too.
-  version-gate:
-    name: Version validation
-    needs: label
-    if: github.event.pull_request.user.login != 'dependabot[bot]'
-    runs-on: ubuntu-latest
-    steps:
-      # BASE, not the PR head. Under pull_request_target the token is writable, so
-      # scripts/manifest_gate.py must be the trusted copy from the base branch — a
-      # fork PR that edited it would otherwise run with that token.
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.event.pull_request.base.sha }}
-          persist-credentials: false
-
-      # A tag-driven repo has no bump to gate: release.yml writes manifest.json from
-      # the tag when the release publishes, so the committed value is a placeholder.
-      # Comparing it to the last release would fail every PR with a bump the author
-      # must not make. The job still runs and still reports what the labels imply, but
-      # `Version validation` is deliberately NOT one of the ruleset's required contexts
-      # (see templates/ruleset.json): it is advisory here, so it cannot block a merge.
-      - name: Detect how the version is set
-        id: mode
-        run: |
-          if grep -q 'Set the manifest version from the tag' .github/workflows/release.yml 2>/dev/null; then
-            echo "tag_driven=true" >> "$GITHUB_OUTPUT"
-          fi
-
-      # Advisory in a tag-driven repo: say what this PR's label implies the next
-      # release will be, so the number is visible before anyone publishes a draft.
-      # It cannot block — there is no bump in the PR to be wrong about.
+      # Reported here rather than in a job of its own. The release version is resolved
+      # from the merged PRs' labels by release-drafter, so once the label is known to be
+      # correct there is nothing further to validate — the old `version-gate` job
+      # compared a committed manifest version that a tag-driven repo never carries, and
+      # re-derived this same number through a second implementation.
       - name: Say what version this PR implies
-        if: steps.mode.outputs.tag_driven == 'true'
+        if: steps.check.outputs.ok == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR: ${{ github.event.pull_request.number }}
+          EXPECTED: ${{ steps.check.outputs.expected }}
         run: |
-          LABELS=$(gh pr view "$PR" --json labels -q '[.labels[].name]|join(",")')
           LAST=$(gh release list --exclude-drafts --limit 30 --json tagName,isPrerelease \
             --jq '.[] | select(.isPrerelease == false) | .tagName' | head -1)
           LAST="${LAST#v}"
           [ -n "$LAST" ] || LAST="0.0.0"
-          NEXT=$(python3 scripts/manifest_gate.py --suggest --last-release "$LAST" --labels "$LABELS")
-          echo "::notice::labels [$LABELS] imply the next release is ${NEXT} (currently v${LAST})"
+          NEXT=$(python3 scripts/manifest_gate.py --suggest --last-release "$LAST" --labels "$EXPECTED")
+          echo "::notice::label '$EXPECTED' implies the next release is ${NEXT} (currently v${LAST})"
           # A notice alone only lands on the run page. The step summary renders on the
           # PR's checks tab, which is where someone reading the PR will actually see it.
           {
             echo "### Next release"
             echo
-            echo "| current | labels | implies |"
+            echo "| current | label | implies |"
             echo "|---|---|---|"
-            echo "| v${LAST} | ${LABELS:-none} | ${NEXT} |"
+            echo "| v${LAST} | ${EXPECTED} | ${NEXT} |"
           } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Gather versions and labels
-        id: gather
-        if: steps.mode.outputs.tag_driven != 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GH_REPO: ${{ github.repository }}
-          PR: ${{ github.event.pull_request.number }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: |
-          MANIFEST=$(ls custom_components/*/manifest.json | head -1)
-          # The PR's manifest is read as DATA over the API — never checked out.
-          gh api "repos/$GH_REPO/contents/$MANIFEST?ref=$HEAD_SHA" --jq '.content' \
-            | base64 -d > pr_manifest.json
-          echo "pr_version=$(jq -r '.version' pr_manifest.json)" >> "$GITHUB_OUTPUT"
-          echo "main_version=$(jq -r '.version' "$MANIFEST")" >> "$GITHUB_OUTPUT"
-          TAG=$(gh release list --exclude-drafts --limit 1 --json tagName --jq '.[0].tagName')
-          echo "last_release=${TAG#v}" >> "$GITHUB_OUTPUT"
-          echo "labels=$(gh pr view "$PR" --json labels -q '[.labels[].name]|join(",")')" >> "$GITHUB_OUTPUT"
-
-      # All decision logic lives in scripts/manifest_gate.py (unit-tested in
-      # tests/test_manifest_gate.py) so the gate can't silently regress again.
-      - name: Version gate
-        if: steps.mode.outputs.tag_driven != 'true'
-        # Via env, never `${{ }}` inside run: `pr_version` is read from the PR's own
-        # manifest.json, so a fork PR controls that string entirely. Interpolated into
-        # the command line it would be shell injection against a writable token.
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GH_REPO: ${{ github.repository }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          LAST_RELEASE: ${{ steps.gather.outputs.last_release }}
-          MAIN_VERSION: ${{ steps.gather.outputs.main_version }}
-          PR_VERSION: ${{ steps.gather.outputs.pr_version }}
-          LABELS: ${{ steps.gather.outputs.labels }}
-        run: |
-          # The count is computed here, not in manifest_gate.py: the gate runs from
-          # the trusted base checkout and must not run `git log` over PR-controlled
-          # refs. `gh` returns data only, and jq emits an integer.
-          BRK=$(gh pr view "$PR_NUMBER" --json commits \
-                --jq '[.commits[].messageHeadline | select(test("^[a-zA-Z]+(\\([^)]*\\))?!:"))] | length')
-          python3 scripts/manifest_gate.py \
-            --last-release "$LAST_RELEASE" \
-            --main-version "$MAIN_VERSION" \
-            --pr-version "$PR_VERSION" \
-            --labels "$LABELS" \
-            --breaking-commits "$BRK"
-

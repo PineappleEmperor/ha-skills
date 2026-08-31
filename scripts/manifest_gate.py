@@ -55,11 +55,14 @@ def evaluate(last_release: str, main_version: str, pr_version: str,
     # `feat!:` with no `!` on any commit shipped a major whose notes had no Breaking
     # Changes section, and a `!` commit under a `feat:` title shipped a breaking
     # change as a minor. Both directions are caught here, before the version lands.
-    # PRECONDITION: labels must already be reconciled. The autolabeler only ADDS,
-    # so a PR retitled from `feat!:` to `fix:` keeps a stale `xfeat` and this would
-    # reject it. pr-checks.yml handles that: `version-gate` declares `needs: label`,
-    # and the label job removes superseded type labels before the gate runs. Reuse
-    # this function outside that ordering and you inherit the stale-label problem.
+    # NOT CALLED BY THE SHIPPED STACK. The canonical repo is tag-driven — no PR carries a
+    # version — so `evaluate()` has no input and pr-checks.yml only uses `--suggest`. The
+    # breaking-marker rule it implements now lives in the label gate, which compares the
+    # label against what the commits entitle the PR to. Kept for a repo that genuinely
+    # gates a committed version; delete it with the rest if that stops being a case.
+    # PRECONDITION if you do use it: labels must already be reconciled. The autolabeler
+    # only ADDS, so a PR retitled from `feat!:` to `fix:` keeps a stale `xfeat` and this
+    # would reject it.
     if breaking_commits is not None:
         claims_breaking = bool({"xfeat", "xfeature", "major"} & set(labels))
         if claims_breaking and breaking_commits == 0:

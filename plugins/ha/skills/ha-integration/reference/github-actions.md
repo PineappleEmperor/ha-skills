@@ -84,8 +84,15 @@ developer utility rather than a CI check that silently stopped running.
 | Job | `needs:` | Does |
 |---|---|---|
 | `label` | — | sole labeler: autolabeler + removal-only superseded step |
-| `title-check` | `label` | **the gate**: fails when the PR's label is not the one its commits entitle it to; comments the correct type and withdraws the comment once fixed |
-| `version-gate` | `label` | writes the advisory "next release will be X" summary; its version comparisons skip themselves in a tag-driven repo, where `release.yml` sets the version |
+| `title-check` | `label` | **the gate**: fails when the PR's label is not the one its commits entitle it to; comments the correct type, withdraws the comment once fixed, and writes the advisory "next release will be X" summary |
+
+**There is no version gate, deliberately.** The release tag owns the version — `release.yml`
+writes it into `manifest.json` at publish — so no PR carries a bump and there is nothing to
+compare. The job that used to do it compared a committed version a tag-driven repo never has,
+and re-derived the implied next version through a second implementation of what
+release-drafter already resolves. Its one enforceable rule, that the title and the commits
+agree about being breaking, is subsumed by the label gate: a `feat!:` commit entitles the PR
+to `xfeat`, so a title that does not say breaking now fails there.
 
 **Three label checks, three different failures — keep all three required.** They look
 redundant and are not: `CC title validation` (`lint_pr.yml`) catches a title whose type is not
@@ -107,13 +114,12 @@ a failure the other two cannot report.
 - **`pull_request_target`, and no PR-authored code ever runs.** A fork PR under plain
   `pull_request` gets a read-only token — it cannot be labelled or commented on, which is the
   entire purpose of these jobs. `pull_request_target` supplies a writable token but runs in
-  the base repo's context, so `label` and the comment jobs check out **nothing**, and
-  `version-gate` checks out `base.sha` explicitly and reads the PR's manifest as data over the
-  API.
-- **No `${{ }}` inside any `run:`.** Untrusted strings — the PR title, the PR's own manifest
-  version — reach the shell through `env:`. A fork PR controls its manifest `version` string
-  completely; interpolated into a command line, that is shell injection against a writable
-  token. `skill_audit.py` enforces this across every workflow.
+  the base repo's context, so `label` checks out **nothing** and `title-check` checks out
+  `base.sha` explicitly, reading the PR's commit subjects as data over the API.
+- **No `${{ }}` inside any `run:`.** Untrusted strings — the PR title, a commit subject — reach
+  the shell through `env:`. A fork PR controls those strings completely; interpolated into a
+  command line, that is shell injection against a writable token. `skill_audit.py` enforces
+  this across every workflow.
 - **`title-check` decides from the PR's real labels**, never a copy of the autolabeler's
   regexes — a duplicate drifts from `.github/release-drafter.yml`. It suggests; it never
   edits the title.
