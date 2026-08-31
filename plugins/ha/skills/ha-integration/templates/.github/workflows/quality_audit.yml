@@ -16,7 +16,13 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - run: python3 scripts/skill_audit.py
+      # GH_TOKEN as step env, not a persisted checkout credential: three checks query
+      # GitHub (required contexts, the live ruleset, the dependency graph) and without a
+      # token they report NOT CHECKED, so they only ever ran on a maintainer's machine —
+      # a required context with no producing job blocked a PR here while CI stayed green.
+      - env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 scripts/skill_audit.py
       # The Python version is written in several files, each read by a different
       # tool. This is the only thing that compares them.
       - run: python3 scripts/version_sync.py
