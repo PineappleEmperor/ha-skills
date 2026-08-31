@@ -38,7 +38,7 @@ jobs:
           BASE: ${{ github.event.repository.default_branch }}
         run: |
           if [ -z "$GH_TOKEN" ]; then
-            echo "::notice::RELEASE_TOKEN is not set; skipping the draft PR"
+            echo "::warning::RELEASE_TOKEN is not set; no draft PR was opened"
             exit 0
           fi
           EXISTING=$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number')
