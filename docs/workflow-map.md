@@ -175,23 +175,38 @@ the files above.
    resolved a patch bump for a breaking change, and nothing objected. This also subsumes the
    breaking-marker check that item 6 stranded. `CC label validation` is **the** gate;
    `CC title validation` and `CC labelling` are automation that informs.
-2. **Two mutable action refs are required contexts.** `hacs/action@main` and
-   `hassfest@master` are deliberately unpinned so they track upstream rules. That is defensible,
-   but it means an upstream change can turn a required check red with no commit in this repo.
-   The daily cron exists to find that out before a PR does — worth confirming that is the
-   intent, because nothing says so.
-3. **`dependency_review` is required and fails closed on a repo setting.** With the dependency
-   graph off it does not skip; it fails. Every scaffolded repo therefore has a required check
-   that is red until someone toggles a GitHub setting `bootstrap_repo.sh` handles. Intentional
-   or not, it is the single most likely first-run failure.
-4. **`auto_draft_pr` fails silently.** No token means no PR and a green run. Nothing in CI
-   goes red; only `skill_audit.py` notices, and only when it can list secrets.
-5. **`release_drafter.yml` carries most of the set's complexity in one unrequired job** —
-   version resolution, two draft releases, rc numbering, notes generation, GitHub's
-   New Contributors block, stale-draft cleanup, and render validation. It is the least
-   observable workflow (it only runs on `main` and on publish) and the most consequential.
-   Worth asking whether the rc-draft machinery earns its place, or whether cutting an rc
-   should be an explicit act.
+2. ~~**Two mutable action refs are required contexts.**~~ **Resolved — intended, and the
+   pin loop is closed elsewhere.** `hacs/action@main` and `hassfest@master` are deliberately
+   unpinned so they track upstream rules; they have no version, so Dependabot can never bump
+   them and the daily cron is the mechanism that finds an upstream break before a PR does.
+   For everything that *is* SHA-pinned: Dependabot scopes `directory: /`, which for the
+   `github-actions` ecosystem means `/.github/workflows/` only — so a scaffolded repo's own
+   workflows are bumped weekly, while `templates/` here is invisible to it. That is not a gap:
+   Dependabot bumps this repo's copies, `check_template_pins` then fails because the shipped
+   pins lag, and the sync is forced. Adding a second Dependabot directory for `templates/`
+   was considered and rejected as redundant.
+3. ~~**`dependency_review` is required and fails closed on a repo setting.**~~ **Resolved —
+   the mitigation exists and is verified.** `bootstrap_repo.sh` enables the dependency graph
+   over the API and prints an explicit fallback when it cannot. Checked against the testbed
+   `PineappleEmperor/ha-ci-testing`: the graph is enabled and the SBOM endpoint answers. The
+   red-check state the item describes was the pre-`bootstrap_repo.sh` condition, not a
+   standing defect.
+4. ~~**`auto_draft_pr` fails silently.**~~ **Resolved — it warns.** The missing-token branch
+   emitted `::notice::` and exited 0, so a misconfigured repo looked identical to a healthy
+   one. It now emits `::warning::`, which renders as an annotation on the run. The two other
+   `::notice::` lines are left alone: "PR already open" and "no commits ahead" are normal
+   outcomes, not misconfiguration. The job still exits 0 — this is an optional convenience,
+   and failing it would redden every push for anyone without the token.
+5. ~~**`release_drafter.yml` carries most of the set's complexity in one unrequired job.**~~
+   **Resolved — the complexity is earned; stop revisiting it.** Read against the file's
+   history, every element traces to a named fix: notes grouped by commit type `535048b`,
+   render validation `e5f381e`, the generator that was never called `4c47ec8`, two writers
+   racing `48d6cc4`, the previous tag including itself `06e8013`, measuring from the last
+   full release `b1a56e1`, the first release with no previous tag `1fb2692`, version from
+   merged PR labels `83edd54`, the rc draft `6ffdbcb`, and the `v0.1.0rc1rc1` suffix bug
+   `1d1c0d5`. The rc machinery is deliberate — HACS users test candidates — and this
+   marketplace repo already opted out of it for a documented reason. The residual risk is
+   observability, covered by `check_release_notes.py` and by cutting an rc before a final.
 6. ~~**`version-gate` runs on every PR and decides nothing.**~~ **Resolved — the job is
    deleted.** In a tag-driven repo the release tag writes the version at publish, so there was
    no committed bump to check and every comparison was skipped. Its one enforceable rule, that
@@ -207,6 +222,30 @@ the files above.
    `release: published` event cannot be ordered, so it could finish after the zip was packed.
 8. **`issue_stale.yml` — kept, and renamed for what it does.** It is repo hygiene, which is an
    intent in its own right; the old name collided with "bundle staleness", which is unrelated.
-9. **`python_validate` warns instead of failing when `tests/` is absent.** A scaffold with no
-   tests is green on the check that is supposed to prove behaviour, while `quality_audit`
-   separately fails only if a `quality_scale.yaml` rule claims `done`.
+9. ~~**`python_validate` warns instead of failing when `tests/` is absent.**~~ **Resolved —
+   warning is the decision, not an oversight.** A scaffold legitimately starts without tests,
+   and reddening its first PR would teach people to disable the check. `quality_audit` still
+   hard-fails the moment a `quality_scale.yaml` rule claims `done` without a test behind it,
+   which is where the claim actually has to be honest. The step already hard-fails when
+   `tests/` exists but `requirements.test.txt` does not.
+
+---
+
+## Still open
+
+10. **The GitHub-querying checks are inert in CI.** `quality_audit.yml` runs `skill_audit.py`
+    with no `GH_TOKEN`, so `gh` is unauthenticated and `check_required_status_checks`,
+    `check_dependency_graph` and `check_live_required_contexts` all return `NOT CHECKED`
+    warnings rather than running. They only really execute on a maintainer's machine. Setting
+    `GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}` on that step is the obvious fix; whether the
+    default token can read rulesets and the SBOM needs testing on the testbed first.
+11. **End-to-end verification is outstanding — this is the dev cycle's own step, not a defect.**
+    `ha-ci-testing` currently carries the previous template set (`stale.yml` rather than
+    `issue_stale.yml`, no `panel_bundle.yml`) and has no ruleset applied, which is simply the
+    state before a refresh. Deploying current `templates/` there, applying `ruleset.json`, and
+    opening a PR is how any of this gets proven; until that runs, every claim about the shipped
+    stack rests on reading rather than on a green check.
+12. **`check_self_diff` waives three whole files.** `pr-checks.yml`, `release_drafter.yml` and
+    `python_validate.yml` are exempt by name because they legitimately differ, so any
+    *unintended* difference inside them is invisible. Narrowing the waiver from files to named
+    jobs needs a per-job read of the three pairs first, to establish what legitimately differs.
