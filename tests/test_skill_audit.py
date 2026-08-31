@@ -8,6 +8,7 @@ for weeks. Each check here is a function, so each gets its own case.
 from __future__ import annotations
 
 import importlib.util
+import json
 import pathlib
 
 import pytest
@@ -258,3 +259,77 @@ def test_matching_platforms_pass(repo) -> None:
     (pkg / "const.py").write_text('PLATFORMS = ["notify"]\n')
     (pkg / "notify.py").write_text("")
     assert audit.check_platforms_have_modules(audit.Repo(repo)) == ([], [])
+
+
+def _ruleset(repo, *contexts) -> None:
+    (repo / "ruleset.json").write_text(json.dumps(
+        {"rules": [{"type": "required_status_checks",
+                    "parameters": {"required_status_checks":
+                                   [{"context": c} for c in contexts]}}]}))
+
+
+def test_a_required_context_no_job_produces_fails(repo) -> None:
+    """The observed defect, twice: a ruleset requiring a check nothing reports.
+
+    Checking that workflow FILES exist cannot catch this — the failure is a name in the
+    ruleset with no job on the other end. Every other check goes green and the PR is
+    unmergeable with nothing to point at.
+    """
+    _wf(repo, "pr-checks.yml", "jobs:\n  label:\n    name: CC labelling\n    steps: []\n")
+    _ruleset(repo, "CC labelling", "Version validation")
+    fails, _ = audit.check_required_contexts_have_producers(audit.Repo(repo))
+    assert len(fails) == 1 and "Version validation" in fails[0]
+
+
+def test_every_required_context_produced_passes(repo) -> None:
+    _wf(repo, "pr-checks.yml", "jobs:\n  label:\n    name: CC labelling\n    steps: []\n")
+    _ruleset(repo, "CC labelling")
+    assert audit.check_required_contexts_have_producers(audit.Repo(repo)) == ([], [])
+
+
+def test_a_job_without_a_name_is_known_by_its_id(repo) -> None:
+    """GitHub names the check-run for the job id when the job declares no name."""
+    _wf(repo, "a.yml", "jobs:\n  review:\n    steps: []\n")
+    _ruleset(repo, "review")
+    assert audit.check_required_contexts_have_producers(audit.Repo(repo)) == ([], [])
+
+
+def test_the_shipped_ruleset_is_checked_against_the_shipped_workflows(tmp_path) -> None:
+    """What ships is what scaffolds; an orphan here bricks every repo built from it."""
+    tmpl = tmp_path / "plugins/ha/skills/demo/templates"
+    (tmpl / ".github/workflows").mkdir(parents=True)
+    (tmpl / ".github/workflows/a.yml").write_text("jobs:\n  x:\n    name: Real\n    steps: []\n")
+    (tmpl / "ruleset.json").write_text(json.dumps(
+        {"rules": [{"type": "required_status_checks",
+                    "parameters": {"required_status_checks": [{"context": "Imaginary"}]}}]}))
+    fails, _ = audit.check_required_contexts_have_producers(audit.Repo(tmp_path))
+    assert len(fails) == 1 and "Imaginary" in fails[0]
+
+
+def test_live_required_contexts_warn_when_gh_is_missing(repo, monkeypatch) -> None:
+    """Unverifiable must say NOT CHECKED; a silent pass is how this survived before."""
+    class _Missing:
+        def __call__(self, *a, **k):
+            raise OSError("gh not found")
+    monkeypatch.setattr(audit.subprocess, "run", _Missing())
+    _, warns = audit.check_live_required_contexts(audit.Repo(repo))
+    assert any("NOT CHECKED" in w for w in warns)
+
+
+def test_live_ruleset_orphan_fails(repo, monkeypatch) -> None:
+    """A repo protected from the GitHub UI has no ruleset.json to compare against."""
+    _wf(repo, "pr-checks.yml", "jobs:\n  label:\n    name: CC labelling\n    steps: []\n")
+
+    class _Fake:
+        def __init__(self, out, rc=0): self.stdout, self.returncode = out, rc
+
+    def fake_run(cmd, **k):
+        if "view" in cmd:
+            return _Fake("owner/repo\n")
+        if cmd[-1] == ".default_branch":
+            return _Fake("main\n")
+        return _Fake('["CC labelling","Version validation"]')
+    monkeypatch.setattr(audit.subprocess, "run", fake_run)
+
+    fails, _ = audit.check_live_required_contexts(audit.Repo(repo))
+    assert len(fails) == 1 and "Version validation" in fails[0]

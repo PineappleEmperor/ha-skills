@@ -787,6 +787,104 @@ def check_required_status_checks(repo: Repo) -> Result:
     return fails, warns
 
 
+def _job_names(wf_dir: pathlib.Path) -> dict[str, str]:
+    """Check-run name -> the workflow that defines it.
+
+    GitHub names a check-run for the job's `name`, falling back to the job id. A matrix
+    renames it again — `lint-and-type (3.14)` — which is why the templates ship a scalar
+    python-version.
+    """
+    import yaml as _yaml
+    out: dict[str, str] = {}
+    for wf in sorted(wf_dir.glob("*.y*ml")):
+        try:
+            doc = _yaml.safe_load(wf.read_text(encoding="utf-8")) or {}
+        except Exception:
+            continue
+        for jid, job in (doc.get("jobs") or {}).items():
+            out[str((job or {}).get("name") or jid)] = wf.name
+    return out
+
+
+def _required_contexts(ruleset: pathlib.Path) -> list[str]:
+    """The status-check contexts a ruleset JSON makes required."""
+    try:
+        doc = json.loads(ruleset.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+    return [c["context"] for r in doc.get("rules") or []
+            if r.get("type") == "required_status_checks"
+            for c in (r.get("parameters") or {}).get("required_status_checks") or []
+            if c.get("context")]
+
+
+def check_required_contexts_have_producers(repo: Repo) -> Result:
+    """A required context no job produces blocks every PR, forever.
+
+    A ruleset requires a check-run BY NAME, and nothing connected that name to the jobs the
+    workflows actually define. Checking that workflow FILES exist cannot catch it: the
+    failure is a name on one side with no job on the other. `dependency_review` hit this
+    once; `Version validation` hit it again after its workflow was deleted while the ruleset
+    kept requiring the context — every other check green, the PR unmergeable forever.
+    """
+    fails: list[str] = []
+    pairs: list[tuple[str, pathlib.Path, pathlib.Path]] = []
+    if repo.exists("ruleset.json") and repo.workflows.is_dir():
+        pairs.append(("ruleset.json", repo.root / "ruleset.json", repo.workflows))
+    tmpl = _template_dir(repo)
+    if tmpl and (tmpl / "ruleset.json").is_file() and (tmpl / ".github/workflows").is_dir():
+        pairs.append((str((tmpl / "ruleset.json").relative_to(repo.root)),
+                      tmpl / "ruleset.json", tmpl / ".github/workflows"))
+    for label, rs, wf_dir in pairs:
+        produced = _job_names(wf_dir)
+        fails += [f"{label} requires the status check {c!r}, but no job in "
+                  f"{wf_dir.relative_to(repo.root)}/ is named that — it can never report and "
+                  f"every PR stays blocked"
+                  for c in _required_contexts(rs) if c not in produced]
+    return fails, []
+
+
+def check_live_required_contexts(repo: Repo) -> Result:
+    """The ruleset in force, not the one committed beside it.
+
+    A repo whose protection is configured in the GitHub UI has no ruleset.json to compare,
+    and that is exactly where the `Version validation` orphan survived a workflow deletion.
+    Unverifiable here means NOT CHECKED, never silence.
+    """
+    if not repo.workflows.is_dir():
+        return [], []
+    try:
+        slug = subprocess.run(["gh", "repo", "view", "--json", "nameWithOwner", "--jq",
+                               ".nameWithOwner"], cwd=repo.root, capture_output=True,
+                              text=True, check=False).stdout.strip()
+    except OSError:
+        return [], ["gh is not available — live required contexts NOT CHECKED, not passed"]
+    if not slug:
+        return [], ["no GitHub remote resolved — live required contexts NOT CHECKED, not passed"]
+    branch = subprocess.run(["gh", "api", f"repos/{slug}", "--jq", ".default_branch"],
+                            cwd=repo.root, capture_output=True, text=True, check=False).stdout.strip()
+    if not branch:
+        return [], [f"could not read {slug} (token lacks permission?) — live required contexts "
+                    "NOT CHECKED, not passed"]
+    out = subprocess.run(
+        ["gh", "api", f"repos/{slug}/rules/branches/{branch}", "--jq",
+         '[.[] | select(.type == "required_status_checks") '
+         '| .parameters.required_status_checks[].context]'],
+        cwd=repo.root, capture_output=True, text=True, check=False)
+    if out.returncode != 0 or not out.stdout.strip():
+        return [], [f"could not read branch rules for {branch} (token lacks permission?) — "
+                    "live required contexts NOT CHECKED, not passed"]
+    try:
+        contexts = json.loads(out.stdout)
+    except ValueError:
+        return [], [f"unexpected branch-rules response for {branch} — live required contexts "
+                    "NOT CHECKED, not passed"]
+    produced = _job_names(repo.workflows)
+    return [f"{branch} requires the status check {c!r}, but no job in .github/workflows/ is "
+            f"named that — it can never report and every PR stays blocked"
+            for c in contexts if c not in produced], []
+
+
 def check_dependency_graph(repo: Repo) -> Result:
     """`dependency_review.yml` fails, rather than skips, when the graph is disabled.
 
@@ -824,7 +922,9 @@ CHECKS = (
     check_autolabeler_title_only, check_drafter_categories, check_docstrings,
     check_commit_hook, check_brand_assets, check_self_diff, check_template_scripts_match,
     check_template_pins,
-    check_release_token, check_required_status_checks, check_dependency_graph,
+    check_release_token, check_required_status_checks,
+    check_required_contexts_have_producers, check_live_required_contexts,
+    check_dependency_graph,
 )
 
 
