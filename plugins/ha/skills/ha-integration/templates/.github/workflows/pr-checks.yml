@@ -108,9 +108,8 @@ jobs:
           gh api --paginate "repos/$GH_REPO/pulls/$PR/commits" \
             --jq '.[].commit.message | split("\n")[0]' > subjects.txt
           EXPECTED=$(python3 scripts/commit_summary.py --mode label --subjects subjects.txt)
-          gh pr view "$PR" --json labels --jq '.labels[].name' > labels.txt || true
-          ACTUAL=$(grep -xE 'xfeat|feature|fix|chore' labels.txt | sort -u | tr '\n' ' ')
-          ACTUAL="${ACTUAL% }"
+          ACTUAL=$(gh pr view "$PR" --json labels \
+            --jq '[.labels[].name | select(test("^(xfeat|feature|fix|chore)$"))] | unique | join(" ")' || true)
           echo "expected=$EXPECTED" >> "$GITHUB_OUTPUT"
           echo "actual=$ACTUAL" >> "$GITHUB_OUTPUT"
           if [ "$ACTUAL" = "$EXPECTED" ]; then

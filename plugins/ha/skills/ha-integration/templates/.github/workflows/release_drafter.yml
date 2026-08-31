@@ -75,8 +75,7 @@ jobs:
           # Excluding the release being written matters on `release: published`,
           # where it is already the newest non-draft and would otherwise match itself.
           PREV=$(gh release list --exclude-drafts --limit 30 --json tagName,isPrerelease \
-            --jq '.[] | select(.isPrerelease == false) | .tagName' \
-            | grep -vx "v$V" | head -1)
+            --jq 'map(select(.isPrerelease == false and .tagName != "v" + env.V)) | .[0].tagName // ""')
           # A repo's first release has no previous tag, so the range would be `..HEAD`
           # and every commit would be missed. Fall back to the root commit; the compare
           # link is dropped with it, since there is nothing to compare against.
