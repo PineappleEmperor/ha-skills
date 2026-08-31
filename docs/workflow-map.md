@@ -35,8 +35,7 @@ a candidate for removal regardless of whether it works.
 | Workflow | Trigger | Context (job name) | Required | Permissions | Depends on | On failure |
 |---|---|---|---|---|---|---|
 | `pr-checks.yml` · `label` | `pull_request_target` (opened, reopened, synchronize, edited) | `CC labelling` | ✅ | `contents: read`, `pull-requests: write` | autolabeler action, `gh` | PR unlabelled → no release category |
-| `pr-checks.yml` · `title-check` | same, `needs: label` | `CC label validation` | ✅ **the gate** | inherited | `scripts/commit_summary.py` | red when the label ≠ what the commits entitle the PR to |
-| `pr-checks.yml` · `version-gate` | same, `needs: label` | `Version validation` | ❌ deliberate | inherited | `scripts/manifest_gate.py` | skips all comparisons in a tag-driven repo |
+| `pr-checks.yml` · `title-check` | same, `needs: label` | `CC label validation` | ✅ **the gate** | inherited | `scripts/commit_summary.py`, `scripts/manifest_gate.py --suggest` | red when the label ≠ what the commits entitle the PR to |
 | `lint_pr.yml` | `pull_request_target` | `CC title validation` | ✅ | `pull-requests: read` | `amannn/action-semantic-pull-request` | red until the title uses one of ten types |
 | `python_validate.yml` | `push: main`, `pull_request` | `Ruff, Pyright and Pytest` | ✅ | `contents: read` | `requirements.test.txt` | red on lint, type or test failure; **warns only** when `tests/` is absent |
 | `quality_audit.yml` | `push: main`, `pull_request` | `ha-integration conformance check` | ✅ | `contents: read` | `skill_audit.py`, `version_sync.py` | red on any audit FAIL |
@@ -75,12 +74,11 @@ flowchart LR
 
   subgraph PRC[pr-checks.yml — one workflow, ordered with needs:]
     L[label<br/>CC labelling] --> TC[title-check<br/>CC label validation]
-    L --> VG[version-gate<br/>Version validation]
   end
   P2 --> L
 
   TC -.-> CS
-  VG -.-> MG[[scripts/manifest_gate.py]]
+  TC -.-> MG[[scripts/manifest_gate.py --suggest]]
   QA -.-> SA[[scripts/skill_audit.py<br/>scripts/version_sync.py]]
 
   P4 --> RD[release_drafter.yml<br/>maintains the draft + rc]
@@ -96,7 +94,7 @@ flowchart LR
   classDef notreq fill:#37474f,stroke:#1c262b,color:#fff
   classDef script fill:#4a148c,stroke:#2a0b50,color:#fff
   class LINT,L,TC,PY,QA,DR,HACS,HASS req
-  class VG,FE,ADP,RD,REL,ST notreq
+  class FE,ADP,RD,REL,ST notreq
   class CS,MG,SA,RN script
 ```
 
@@ -128,8 +126,7 @@ sequenceDiagram
   end
   GH->>PRC: pull_request_target
   PRC->>PRC: label (autolabeler + remove superseded)
-  PRC->>PRC: title-check — reads real labels, comments a suggestion
-  PRC->>PRC: version-gate — inert in a tag-driven repo, writes a summary
+  PRC->>PRC: title-check — reads real labels, comments a suggestion,<br/>writes the next-version summary
   GH->>CHK: pull_request
   CHK-->>GH: lint_pr · python_validate · quality_audit · dependency_review
   Note over GH: 8 required contexts must be green
@@ -195,12 +192,13 @@ the files above.
    observable workflow (it only runs on `main` and on publish) and the most consequential.
    Worth asking whether the rc-draft machinery earns its place, or whether cutting an rc
    should be an explicit act.
-6. **`version-gate` runs on every PR and decides nothing** in the canonical tag-driven repo,
-   because the release tag writes the version at publish — there is no committed bump to
-   check. Its one enforceable rule, that the title and commits agree about being breaking,
-   sat inside the skipped block and never ran; that now lives in the label gate (item 1).
-   What remains is the advisory "next release will be X" summary, which is worth keeping for
-   visibility but should be named as such rather than called a gate.
+6. ~~**`version-gate` runs on every PR and decides nothing.**~~ **Resolved — the job is
+   deleted.** In a tag-driven repo the release tag writes the version at publish, so there was
+   no committed bump to check and every comparison was skipped. Its one enforceable rule, that
+   the title and commits agree about being breaking, sat inside the skipped block and never
+   ran; that now lives in the label gate (item 1). The advisory "next release will be X"
+   summary was worth keeping, so it is a step of `title-check` rather than a gate of its own,
+   and the `Version validation` context went with the job.
 7. ~~**`frontend_build` can never be required.**~~ **Resolved by moving the work.** The bundle
    rebuild now happens in `release.yml`, immediately before the zip is packed, so what users
    install is always a fresh build and no gate is needed to protect them. The renamed
