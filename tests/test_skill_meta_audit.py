@@ -9,8 +9,6 @@ from __future__ import annotations
 import importlib.util
 import pathlib
 
-import pytest
-
 _SCRIPTS = pathlib.Path(__file__).resolve().parents[1] / "scripts"
 _SPEC = importlib.util.spec_from_file_location("skill_meta_audit", _SCRIPTS / "skill_meta_audit.py")
 audit = importlib.util.module_from_spec(_SPEC)

@@ -278,9 +278,11 @@ def get_file(path: str, receipt_key: str | None) -> str:
         body = ""
     return "\n".join(
         [
-            f"EditKey: {current_edit_key(rel)} - pass this as EditKey on patch_file for "
-            f"{rel}. It is bound to the bytes below, so it dies the moment this file changes; "
-            f"re-read rather than resending a previous value.",
+            (
+                f"EditKey: {current_edit_key(rel)} - pass this as EditKey on patch_file for "
+                f"{rel}. It is bound to the bytes below, so it dies the moment this file "
+                f"changes; re-read rather than resending a previous value."
+            ),
             "",
             f"===== {rel} ({len(body.splitlines())} lines) =====",
             body,
@@ -437,9 +439,11 @@ def get_function(path: str, name: str, receipt_key: str | None) -> str:
     lines = source.splitlines()
     spans = ", ".join(f"{s}-{e}" for s, e, _ in segments)
     parts = [
-        f"EditKey: {current_function_key(rel, name)} - pass this as EditKey on patch_file for "
-        f"{rel}. It unlocks only the text below (lines {spans} of {len(lines)}): a patch "
-        f"outside them is refused, and a change to any of them kills the key.",
+        (
+            f"EditKey: {current_function_key(rel, name)} - pass this as EditKey on patch_file "
+            f"for {rel}. It unlocks only the text below (lines {spans} of {len(lines)}): a "
+            f"patch outside them is refused, and a change to any of them kills the key."
+        ),
         "",
     ]
     for s, e, label in segments:

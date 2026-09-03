@@ -16,7 +16,6 @@ from __future__ import annotations
 import argparse
 import pathlib
 import re
-import sys
 
 Result = tuple[list[str], list[str]]
 
@@ -38,7 +37,9 @@ def _template_dir(repo: Repo) -> pathlib.Path | None:
 # describing it as the thing that writes the PR body — including the table a
 # reader consults first. Documenting a job the scaffold does not ship is worse than
 # documenting nothing: it gets followed.
-DOCS_EXCUSED = re.compile(r"supersede|do not reinstate|removed|deleted|replaced by|historical", re.I)
+DOCS_EXCUSED = re.compile(
+    r"supersede|do not reinstate|removed|deleted|replaced by|historical", re.IGNORECASE
+)
 # Described on purpose without being shipped: the floor-bumper is an opt-in add-on
 # the reader builds when a manifest carries `>=` requirements, so the skill explains
 # it rather than scaffolding it into every repo.
@@ -57,7 +58,7 @@ def check_docs_match_templates(repo: Repo) -> Result:
     for wf in (tmpl / ".github/workflows").glob("*.yml"):
         try:
             data = _yaml.safe_load(wf.read_text()) or {}
-        except Exception:
+        except (OSError, _yaml.YAMLError):
             continue
         jobs |= set((data.get("jobs") or {}).keys())
 
@@ -78,10 +79,12 @@ def check_docs_match_templates(repo: Repo) -> Result:
                     fails.append(f"{doc.name}:{n} names a workflow that is not shipped: {name}")
             # The job table in the workflow reference, identified by its `needs:`
             # column so that a settings table elsewhere is not read as job names.
-            if doc.name == "github-actions.md" and (
-                    m := re.match(r"\|\s*`([a-z0-9-]+)`\s*\|\s*(?:—|`[a-z0-9-]+`)\s*\|", line)):
-                if m.group(1) not in jobs:
-                    fails.append(f"{doc.name}:{n} documents a job that no workflow defines: {m.group(1)}")
+            if (
+                doc.name == "github-actions.md"
+                and (m := re.match(r"\|\s*`([a-z0-9-]+)`\s*\|\s*(?:—|`[a-z0-9-]+`)\s*\|", line))
+                and m.group(1) not in jobs
+            ):
+                fails.append(f"{doc.name}:{n} documents a job that no workflow defines: {m.group(1)}")
     return fails, []
 
 
@@ -102,7 +105,7 @@ def check_skill_frontmatter(repo: Repo) -> Result:
             fails.append(f"{skill.parent.name}/SKILL.md has no frontmatter block")
             continue
         fm = parts[1]
-        fields = dict(re.findall(r"^([a-z-]+):\s*(.*)$", fm, re.M))
+        fields = dict(re.findall(r"^([a-z-]+):\s*(.*)$", fm, re.MULTILINE))
         if "name" not in fields:
             fails.append(f"{skill.parent.name}/SKILL.md frontmatter has no name field")
         elif fields["name"].strip() != skill.parent.name:
@@ -323,7 +326,7 @@ def check_paragraph_length(repo: Repo) -> Result:
             # hides mid-paragraph and gets applied unconditionally.
             fenced = False
             run: list[str] = []
-            def flush(run=run):
+            def flush(run=run, doc=doc):
                 if not run:
                     return
                 words = sum(len(l.split()) for l in run)
