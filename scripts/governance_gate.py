@@ -255,6 +255,173 @@ def get_file(path: str, receipt_key: str | None) -> str:
     )
 
 
+FUNCTION_PREFIX = "I-HAVE-READ-THE-FUNCTION"
+
+
+def _closure(source: str, name: str, rel: str) -> list[tuple[int, int, str]]:
+    """The segments of `source` a patch to `name` may touch, as (start, end, label), 1-based.
+
+    The function itself; every module-level function, class or constant it reaches, taken
+    transitively so a helper's own helpers come too; every import; and any module-level
+    statement that names the function, which is how the registry tuple listing a check is
+    brought in. Parameter names count as references, because a test reaches its fixtures
+    that way and never by a call.
+
+    This is the one slice of a file the whole-file rule allows. A hand-picked slice omits the
+    context that made a line wrong, which is how this repo shipped a defect as fixed, twice.
+    A slice the parser picks cannot omit anything the patch can reach.
+    """
+    import ast
+
+    try:
+        tree = ast.parse(source)
+    except SyntaxError as exc:
+        raise GateError(
+            f"{rel} does not parse ({exc.msg} at line {exc.lineno}); read it with get_file"
+        ) from None
+    defs: dict[str, ast.stmt] = {}
+    for node in tree.body:
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            defs[node.name] = node
+        elif isinstance(node, ast.Assign):
+            for target in node.targets:
+                if isinstance(target, ast.Name):
+                    defs[target.id] = node
+        elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+            defs[node.target.id] = node
+    if not isinstance(defs.get(name), (ast.FunctionDef, ast.AsyncFunctionDef)):
+        raise GateError(f"{rel} defines no function named {name!r}")
+
+    wanted = {name}
+    queue = [name]
+    while queue:
+        node = defs[queue.pop()]
+        refs = {n.id for n in ast.walk(node) if isinstance(n, ast.Name)}
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            args = node.args
+            refs |= {a.arg for a in args.posonlyargs + args.args + args.kwonlyargs}
+        for ref in sorted(refs):
+            if ref in defs and ref not in wanted:
+                wanted.add(ref)
+                queue.append(ref)
+    chosen_nodes = {id(defs[n]) for n in wanted}
+
+    segments: list[tuple[int, int, str]] = []
+    for node in tree.body:
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
+            label = "imports"
+        elif id(node) in chosen_nodes:
+            label = getattr(node, "name", None) or "assignment"
+        elif isinstance(node, (ast.Assign, ast.AnnAssign)) and any(
+            isinstance(n, ast.Name) and n.id == name for n in ast.walk(node)
+        ):
+            label = "registry"
+        else:
+            continue
+        decorators = getattr(node, "decorator_list", [])
+        start = min([node.lineno] + [d.lineno for d in decorators])
+        segments.append((start, node.end_lineno or start, label))
+    return segments
+
+
+def _closure_text(source: str, segments: list[tuple[int, int, str]]) -> str:
+    lines = source.splitlines()
+    return "\n\n".join("\n".join(lines[s - 1 : e]) for s, e, _ in segments)
+
+
+def _closure_hash(rel: str, name: str) -> str | None:
+    """Hash of the function's closure as the file stands; None when it cannot be taken."""
+    try:
+        source = (REPO / rel).read_text(encoding="utf-8")
+        segments = _closure(source, name, rel)
+    except (OSError, GateError):
+        return None
+    return hashlib.sha256(_closure_text(source, segments).encode()).hexdigest()
+
+
+def _function_key_for(tier: str, rel: str, name: str, bucket: int, docs: str, body: str) -> str:
+    mac = hmac.new(
+        _SALT.encode(),
+        f"{bucket}:{tier}:{docs}:{rel}:fn:{name}:{body}".encode(),
+        hashlib.sha256,
+    )
+    return f"{FUNCTION_PREFIX}-{name}-{mac.hexdigest()[:8]}"
+
+
+def current_function_key(rel: str, name: str, now: float | None = None) -> str | None:
+    tier = resolve_tier(rel)
+    if tier is None:
+        return None
+    docs = _docs_hash(tier)
+    body = _closure_hash(rel, name)
+    if docs is None or body is None:
+        return None
+    bucket = int((time.time() if now is None else now) // ROTATION_SECONDS)
+    return _function_key_for(tier, rel, name, bucket, docs, body)
+
+
+def valid_function_keys(rel: str, name: str, now: float | None = None) -> set[str]:
+    """Current and previous window, bound to the closure's CURRENT text, not the file's.
+
+    An edit elsewhere in the file leaves the key alive; that is the saving. An edit to anything
+    the function reaches kills it; that is the guarantee.
+    """
+    tier = resolve_tier(rel)
+    if tier is None:
+        return set()
+    docs = _docs_hash(tier)
+    body = _closure_hash(rel, name)
+    if docs is None or body is None:
+        return set()
+    t = time.time() if now is None else now
+    return {
+        _function_key_for(tier, rel, name, int(t // ROTATION_SECONDS), docs, body),
+        _function_key_for(
+            tier, rel, name, int((t - ROTATION_SECONDS) // ROTATION_SECONDS), docs, body
+        ),
+    }
+
+
+def get_function(path: str, name: str, receipt_key: str | None) -> str:
+    """Emit one function with everything it uses, plus an EditKey that unlocks only that text."""
+    rel = safe_relpath(path)
+    tier = resolve_tier(rel)
+    if tier is None:
+        raise GateError(
+            f"{rel} is not governed; read it with the ordinary tools rather than through this gate"
+        )
+    valid = valid_receipt_keys(tier)
+    if valid and receipt_key not in valid:
+        raise GateError(
+            f"{rel} is governed by '{tier}'. Call get_docs(tier={tier!r}) first, read "
+            f"it, then pass that ReceiptKey here."
+        )
+    try:
+        source = (REPO / rel).read_text(encoding="utf-8")
+    except OSError:
+        raise GateError(f"{rel} does not exist; a new file is made with get_file then patch_file") from None
+    segments = _closure(source, name, rel)
+    lines = source.splitlines()
+    spans = ", ".join(f"{s}-{e}" for s, e, _ in segments)
+    parts = [
+        f"EditKey: {current_function_key(rel, name)} - pass this as EditKey on patch_file for "
+        f"{rel}. It unlocks only the text below (lines {spans} of {len(lines)}): a patch "
+        f"outside them is refused, and a change to any of them kills the key.",
+        "",
+    ]
+    for s, e, label in segments:
+        parts += [f"===== {rel}:{s}-{e} {label} =====", "\n".join(lines[s - 1 : e]), ""]
+    return "\n".join(parts)
+
+
+def _inside(before: str, old_string: str, segments: list[tuple[int, int, str]]) -> bool:
+    """Whether the unique match of old_string lies wholly within one returned segment."""
+    idx = before.index(old_string)
+    first = before.count("\n", 0, idx) + 1
+    last = before.count("\n", 0, idx + len(old_string.rstrip("\n"))) + 1
+    return any(s <= first and last <= e for s, e, _ in segments)
+
+
 def _apply(before: str, old_string: str, new_string: str, rel: str) -> str:
     """Exact, unique replacement. Absence and ambiguity are refusals, never guesses.
 
@@ -338,7 +505,19 @@ def patch_file(
             + _report(before, after, rel)
         )
 
-    if edit_key not in valid_edit_keys(rel):
+    # A function key names its function in plain English; the name is what lets the gate
+    # recompute the closure it was issued over and confine the patch to it.
+    scope: str | None = None
+    if (edit_key or "").startswith(FUNCTION_PREFIX + "-"):
+        scope = edit_key[len(FUNCTION_PREFIX) + 1 :].rsplit("-", 1)[0]
+        if edit_key not in valid_function_keys(rel, scope):
+            raise GateError(
+                f"{rel} is governed by '{tier}'. That function key is stale: {scope!r} or "
+                f"something it uses has changed, or the file no longer parses. Call "
+                f"get_function(path={rel!r}, name={scope!r}) again, or get_file for the whole "
+                f"file, then retry with the EditKey it returns."
+            )
+    elif edit_key not in valid_edit_keys(rel):
         raise GateError(
             f"{rel} is governed by '{tier}'. Call get_docs(tier={tier!r}), then "
             f"get_file(path={rel!r}) and READ IT IN FULL, then retry with the EditKey "
@@ -347,13 +526,25 @@ def patch_file(
         )
 
     after = _apply(before, old_string, new_string, rel)
+    if scope is not None and not _inside(before, old_string, _closure(before, scope, rel)):
+        raise GateError(
+            f"old_string lies outside the text get_function returned for {scope!r} in {rel}; "
+            f"read the function that contains it, or the whole file with get_file"
+        )
     (REPO / rel).write_text(after, encoding="utf-8")
-    # The key rolls forward: the caller read the file in full and has just seen this diff, so
-    # it has read the file as it now stands. Without this every second patch cost a re-read of
-    # the whole file — eleven of thirteen reads of one file in a session were that.
-    return (
-        f"wrote {rel}\n"
-        + _report(before, after, rel)
-        + f"\nEditKey: {current_edit_key(rel)} - for the next patch to {rel}; it is bound to "
-        f"the bytes as now written, so it dies if anything else touches the file."
-    )
+    # The key rolls forward: the caller read the file (or the function's closure) and has
+    # just seen this diff, so it has read that text as it now stands. Without this every
+    # second patch cost a re-read of the whole file — eleven of thirteen reads of one file in
+    # a session were that.
+    next_key = current_function_key(rel, scope) if scope else current_edit_key(rel)
+    if next_key is None:
+        tail = (
+            f"\n{rel} no longer parses, or {scope!r} is gone; read it again with get_file "
+            f"before patching further."
+        )
+    else:
+        tail = (
+            f"\nEditKey: {next_key} - for the next patch to {rel}; it is bound to the text as "
+            f"now written, so it dies if anything else touches it."
+        )
+    return f"wrote {rel}\n" + _report(before, after, rel) + tail

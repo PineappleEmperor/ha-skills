@@ -8,10 +8,13 @@ hand-rolled JSON-RPC loop — protocol framing, capability negotiation and error
 the SDK's job to keep current, not ours. (Point in evidence: the SDK is 2.x, where FastMCP was
 renamed MCPServer; a hand-rolled loop would have drifted silently instead of failing loudly.)
 
-The three tools are one workflow, in order, and the order is the point:
+The tools are one workflow, in order, and the order is the point:
     get_docs(tier)                     -> ReceiptKey. The rules.
     get_file(path, Receipt)            -> the WHOLE file, plus an EditKey bound to its bytes.
-    patch_file(path, old, new, Edit)   -> one exact replacement, reported as a diff.
+    get_function(path, name, Receipt)  -> one function with everything it uses, plus an
+                                          EditKey bound to that text alone.
+    patch_file(path, old, new, Edit)   -> one exact replacement, reported as a diff, plus the
+                                          EditKey for the next patch.
 
 Named the way ha-mcp names its tools: a plain verb and noun, get/patch pairs, no adjective
 about governance in the name because the docs the first tool returns are where that lives.
@@ -69,15 +72,31 @@ def get_file(path: str, ReceiptKey: str | None = None) -> str:
 
 
 @mcp.tool()
+def get_function(path: str, name: str, ReceiptKey: str | None = None) -> str:
+    """Emit one function with everything it uses, plus an EditKey that unlocks only that text.
+
+    The cheaper read for a file that is a list of functions. The parser picks the slice: the
+    function, every module-level name it reaches, the imports, and the registry that lists it.
+    A patch outside that text is refused; a change to any of it kills the key. Serves every
+    governed Python file, tests included, where the fixtures a test names come along with it.
+    """
+    try:
+        return gate.get_function(path, name, ReceiptKey)
+    except gate.GateError as exc:
+        return f"REFUSED: {exc}"
+
+
+@mcp.tool()
 def patch_file(
     path: str, old_string: str, new_string: str, EditKey: str | None = None
 ) -> str:
     """Replace one exact, unique occurrence of old_string, returning the resulting diff.
 
-    Step three of three. Requires the EditKey from get_file, which is only obtainable by
-    reading the whole file — patching cheaply is fine, patching something unread is the
-    failure this exists to prevent. Refuses when old_string is absent or appears more than once
-    rather than choosing for you.
+    Last step. Requires the EditKey from get_file or get_function, which is only obtainable
+    by reading that text — patching cheaply is fine, patching something unread is the failure
+    this exists to prevent. Refuses when old_string is absent or appears more than once rather
+    than choosing for you. The reply ends with the EditKey for the next patch, so one read
+    serves many patches.
     """
     try:
         return gate.patch_file(path, old_string, new_string, EditKey)

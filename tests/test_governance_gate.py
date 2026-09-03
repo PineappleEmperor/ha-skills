@@ -261,3 +261,107 @@ def test_a_patch_hands_back_the_key_for_the_file_it_just_wrote(repo) -> None:
     assert fresh in out and fresh != edit_key
     gs.patch_file("scripts/t.py", "c = 3", "c = 9", fresh)
     assert (repo / "scripts/t.py").read_text() == "a = 9\nb = 2\nc = 9\nb = 2\n"
+
+
+# ------------------------------------------------------------ one function
+
+
+_MODULE = '''\
+"""A file shaped like the audit: independent checks, shared helpers, one registry."""
+import re
+
+LIMIT = 3
+
+
+def _helper(x):
+    return x * LIMIT
+
+
+def check_one(repo):
+    """First check."""
+    return _helper(repo)
+
+
+def check_two(repo):
+    """Second check."""
+    return re.sub("a", "b", repo)
+
+
+CHECKS = (check_one, check_two)
+'''
+
+
+@pytest.fixture
+def module(repo):
+    (repo / "scripts/mod.py").write_text(_MODULE)
+    return "scripts/mod.py"
+
+
+def test_a_function_read_returns_it_with_everything_it_uses(module) -> None:
+    """The server decides what the slice is, from the code, so it is never incomplete.
+
+    Reading one check out of a thousand-line file is the cheap read the whole-file rule was
+    written to forbid, because a hand-picked slice omits the context that made the line wrong.
+    A slice the parser picks is different: the function, every module-level name it reaches,
+    the imports, and the registry that lists it. Nothing the edit can touch is out of view.
+    """
+    docs_key = gs.current_receipt_key("scripts/")
+    out = gs.get_function(module, "check_one", docs_key)
+    for needed in ("def check_one", "def _helper", "LIMIT = 3", "import re", "CHECKS = ("):
+        assert needed in out, needed
+    assert "def check_two" not in out, "an unrelated function is not part of the closure"
+    assert gs.current_function_key(module, "check_one") in out
+
+
+def test_a_function_key_unlocks_a_patch_inside_it_and_refuses_one_outside(module) -> None:
+    """The key covers exactly the text returned; the rest of the file stays locked."""
+    docs_key = gs.current_receipt_key("scripts/")
+    gs.get_function(module, "check_one", docs_key)
+    key = gs.current_function_key(module, "check_one")
+    with pytest.raises(gs.GateError) as excinfo:
+        gs.patch_file(module, 're.sub("a", "b", repo)', "repo", key)
+    assert "outside" in str(excinfo.value)
+    gs.patch_file(module, "return _helper(repo)", "return _helper(repo) + 1", key)
+    assert "return _helper(repo) + 1" in (gs.REPO / module).read_text()
+
+
+def test_a_function_key_dies_with_its_closure_and_survives_unrelated_edits(module) -> None:
+    """Bound to the closure, not the file: an edit elsewhere must not force a re-read."""
+    key = gs.current_function_key(module, "check_one")
+    text = (gs.REPO / module).read_text()
+    (gs.REPO / module).write_text(text.replace('"b", repo', '"c", repo'))
+    assert gs.current_function_key(module, "check_one") == key
+    (gs.REPO / module).write_text(text.replace("x * LIMIT", "x + LIMIT"))
+    assert gs.current_function_key(module, "check_one") != key
+
+
+def test_a_patch_with_a_function_key_hands_back_a_function_key(module) -> None:
+    docs_key = gs.current_receipt_key("scripts/")
+    gs.get_function(module, "check_one", docs_key)
+    out = gs.patch_file(
+        module, "return _helper(repo)", "return _helper(repo) + 1",
+        gs.current_function_key(module, "check_one"),
+    )
+    fresh = gs.current_function_key(module, "check_one")
+    assert fresh in out
+    gs.patch_file(module, "return _helper(repo) + 1", "return _helper(repo) + 2", fresh)
+
+
+def test_a_fixture_named_as_a_parameter_is_part_of_the_closure(repo) -> None:
+    """A test reaches its fixtures by parameter name, never by a call, so names count too."""
+    (repo / "scripts/test_x.py").write_text(
+        "import pytest\n\n\n@pytest.fixture\ndef thing():\n    return 1\n\n\n"
+        "def test_it(thing):\n    assert thing == 1\n"
+    )
+    out = gs.get_function("scripts/test_x.py", "test_it", gs.current_receipt_key("scripts/"))
+    assert "def thing" in out
+
+
+def test_an_unknown_function_and_an_unparseable_file_are_refused(module) -> None:
+    docs_key = gs.current_receipt_key("scripts/")
+    with pytest.raises(gs.GateError):
+        gs.get_function(module, "check_nine", docs_key)
+    (gs.REPO / module).write_text("def (\n")
+    with pytest.raises(gs.GateError) as excinfo:
+        gs.get_function(module, "check_one", docs_key)
+    assert "get_file" in str(excinfo.value)
