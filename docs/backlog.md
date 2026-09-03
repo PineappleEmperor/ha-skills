@@ -8,7 +8,11 @@ Status: `open` · `fixed` (with commit) · `wontfix` (with reason).
 
 ## Open
 
-Nothing open. Rows 73-78 are cleared below; rows 1-72 are cleared under *Fixed*.
+| # | Finding | Where |
+|---|---|---|
+| 79 | **The shipped tooling is never linted.** The template's `python_validate.yml` runs `ruff check custom_components/` and `pyright custom_components/` only, so `scripts/` and `tests/` ship to every scaffolded repo without passing the lint the skill demands of integration code; this repo's own `python_validate.yml` runs pytest alone. Neither repo carries a ruff config, so the IDE's rule set decides what a reader sees: 27 findings under an extended set, 148 under ruff's defaults (142 of them line length at the default 88 columns, the file being written to ~95; the rest five `l` variable names and one unused variable). `reference/testing.md` tells a scaffold to add `per-file-ignores` for `scripts/*`, which presumes a lint that nothing runs | `templates/.github/workflows/python_validate.yml:45,48`, `.github/workflows/python_validate.yml:35`, `scripts/skill_audit.py`, `reference/testing.md` *Standalone helper scripts* |
+
+Rows 73-78 are cleared below; rows 1-72 are cleared under *Fixed*.
 
 ### From the CI audit pass (2026-08-31) — cleared 2026-09-03
 
