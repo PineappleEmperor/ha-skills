@@ -1,4 +1,35 @@
 {
+  "permissions": {
+    "deny": [
+      "Edit(//home/juicebox/claude-skills/scripts/**)",
+      "Write(//home/juicebox/claude-skills/scripts/**)",
+      "Edit(//home/juicebox/claude-skills/tests/**)",
+      "Write(//home/juicebox/claude-skills/tests/**)",
+      "Edit(//home/juicebox/claude-skills/.github/workflows/**)",
+      "Write(//home/juicebox/claude-skills/.github/workflows/**)",
+      "Edit(//home/juicebox/claude-skills/plugins/ha/skills/ha-integration/templates/**)",
+      "Write(//home/juicebox/claude-skills/plugins/ha/skills/ha-integration/templates/**)",
+      "Edit(//home/juicebox/claude-skills/plugins/ha/skills/ha-integration/reference/**)",
+      "Write(//home/juicebox/claude-skills/plugins/ha/skills/ha-integration/reference/**)",
+      "Edit(//home/juicebox/claude-skills/docs/backlog.md)",
+      "Write(//home/juicebox/claude-skills/docs/backlog.md)",
+      "Edit(//home/juicebox/claude-skills/docs/workflow-map.md)",
+      "Write(//home/juicebox/claude-skills/docs/workflow-map.md)"
+    ]
+  },
+  "sandbox": {
+    "filesystem": {
+      "denyWrite": [
+        "/home/juicebox/claude-skills/scripts",
+        "/home/juicebox/claude-skills/tests",
+        "/home/juicebox/claude-skills/.github/workflows",
+        "/home/juicebox/claude-skills/plugins/ha/skills/ha-integration/templates",
+        "/home/juicebox/claude-skills/plugins/ha/skills/ha-integration/reference",
+        "/home/juicebox/claude-skills/docs/backlog.md",
+        "/home/juicebox/claude-skills/docs/workflow-map.md"
+      ]
+    }
+  },
   "hooks": {
     "UserPromptSubmit": [
       {
@@ -6,6 +37,10 @@
           {
             "type": "command",
             "command": "bash -c 'if [ -f .claude-plugin/marketplace.json ]; then echo \"[marketplace-repo] This is the skills marketplace, not an integration: no version is declared in plugin.json or marketplace.json (Claude Code resolves it from the commit SHA), so nothing is ever bumped. templates/ is what ships to scaffolded repos — skill_audit.py and its tests belong there; skill_meta_audit.py is repo-local and must not be shipped. Anything naming a workflow or file that only exists here stays out of plugins/.\"; fi'"
+          },
+          {
+            "type": "command",
+            "command": "bash -c 'echo \"[governed-edits] scripts/ tests/ .github/workflows/ templates/ docs/backlog.md docs/workflow-map.md and the skill reference/ dir are READ-ONLY to Bash AND to Edit/Write. A Read-only file system error or a permission denial there is the GATE working, not a fault to debug — do not try to route around it. Write them only through the governance MCP server, in this order: get_governing_docs(tier) returns a ReceiptKey; get_governed_file(path, ReceiptKey) returns the WHOLE file plus an EditKey; governed_edit(path, old_string, new_string, EditKey) makes one exact replacement and reports the diff. Keys rotate and are bound to content, so a refusal means re-read rather than resend. Creating a new governed file: empty old_string. Mutation-testing a governed script needs a throwaway copy, since it cannot be broken in place.\"'"
           },
           {
             "type": "command",
