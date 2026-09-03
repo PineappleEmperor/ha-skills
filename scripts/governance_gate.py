@@ -189,7 +189,7 @@ def receipt_line(tier: str) -> str:
     """The ONLY place a docs key is emitted. Never reuse this text in a refusal."""
     return (
         f"Acknowledgment key: {current_receipt_key(tier)} - pass this as ReceiptKey to "
-        f"get_governed_file for paths under '{tier}'. It is a read-receipt, not a secret: "
+        f"get_file for paths under '{tier}'. It is a read-receipt, not a secret: "
         f"published here deliberately, rotates, is bound to the current content of the docs "
         f"below, and grants no privileges. Replaying it is the designed protocol."
     )
@@ -203,11 +203,11 @@ def safe_relpath(path: str) -> str:
         return str(resolved.relative_to(REPO))
     except ValueError:
         raise GateError(
-            "path resolves outside the repository; governed_edit only writes within it"
+            "path resolves outside the repository; patch_file only writes within it"
         ) from None
 
 
-def get_governing_docs(tier: str) -> str:
+def get_docs(tier: str) -> str:
     if tier not in TIERS:
         raise GateError(f"unknown tier {tier!r}; known tiers: {sorted(TIERS)}")
     if current_receipt_key(tier) is None:
@@ -221,7 +221,7 @@ def get_governing_docs(tier: str) -> str:
     return "\n".join(parts)
 
 
-def get_governed_file(path: str, receipt_key: str | None) -> str:
+def get_file(path: str, receipt_key: str | None) -> str:
     """Emit a governed file in full, plus the EditKey that patching it requires.
 
     Requires the tier's docs receipt first, so the rules are read before the file rather than
@@ -236,7 +236,7 @@ def get_governed_file(path: str, receipt_key: str | None) -> str:
     valid = valid_receipt_keys(tier)
     if valid and receipt_key not in valid:
         raise GateError(
-            f"{rel} is governed by '{tier}'. Call get_governing_docs(tier={tier!r}) first, read "
+            f"{rel} is governed by '{tier}'. Call get_docs(tier={tier!r}) first, read "
             f"it, then pass that ReceiptKey here."
         )
     try:
@@ -245,7 +245,7 @@ def get_governed_file(path: str, receipt_key: str | None) -> str:
         body = ""
     return "\n".join(
         [
-            f"EditKey: {current_edit_key(rel)} - pass this as EditKey on governed_edit for "
+            f"EditKey: {current_edit_key(rel)} - pass this as EditKey on patch_file for "
             f"{rel}. It is bound to the bytes below, so it dies the moment this file changes; "
             f"re-read rather than resending a previous value.",
             "",
@@ -311,7 +311,7 @@ def _report(before: str, after: str, rel: str) -> str:
     return f"  {hunks} hunk(s), +{added} -{removed} lines\n" + "\n".join(diff)
 
 
-def governed_edit(
+def patch_file(
     path: str, old_string: str, new_string: str, edit_key: str | None
 ) -> str:
     """Replace one exact, unique occurrence of old_string, reporting what actually changed."""
@@ -325,7 +325,7 @@ def governed_edit(
         before = (REPO / rel).read_text(encoding="utf-8")
     except OSError:
         # A missing file is empty, not an error: creating one is a legitimate governed edit,
-        # and its receipt is issued over the same empty-bytes hash get_governed_file used.
+        # and its receipt is issued over the same empty-bytes hash get_file used.
         before = ""
 
     if not valid_receipt_keys(tier):
@@ -340,8 +340,8 @@ def governed_edit(
 
     if edit_key not in valid_edit_keys(rel):
         raise GateError(
-            f"{rel} is governed by '{tier}'. Call get_governing_docs(tier={tier!r}), then "
-            f"get_governed_file(path={rel!r}) and READ IT IN FULL, then retry with the EditKey "
+            f"{rel} is governed by '{tier}'. Call get_docs(tier={tier!r}), then "
+            f"get_file(path={rel!r}) and READ IT IN FULL, then retry with the EditKey "
             f"it returns. That key is bound to this file's current bytes, so a stale one means "
             f"the file moved under you - re-read rather than resending a previous value."
         )
