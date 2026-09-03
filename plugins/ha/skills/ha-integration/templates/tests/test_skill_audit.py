@@ -333,3 +333,46 @@ def test_live_ruleset_orphan_fails(repo, monkeypatch) -> None:
 
     fails, _ = audit.check_live_required_contexts(audit.Repo(repo))
     assert len(fails) == 1 and "Version validation" in fails[0]
+
+
+def test_a_placeholder_left_in_a_shipped_run_block_fails(tmp_path) -> None:
+    """The observed defect: `<domain>` shipped in release.yml and bash read it as a redirect.
+
+    The zip step died on `cd custom_components/<domain>` with a syntax error, no asset was
+    attached, and HACS could not install the release. The one check that read the file only
+    asked whether it mentioned manifest.json, which it did.
+    """
+    tmpl = tmp_path / "plugins/ha/skills/demo/templates"
+    (tmpl / ".github/workflows").mkdir(parents=True)
+    (tmpl / ".github/workflows/release.yml").write_text(
+        "jobs:\n  build:\n    steps:\n      - run: |\n"
+        "          cd custom_components/<domain>\n          zip -r out.zip .\n")
+    fails, _ = audit.check_no_placeholders(audit.Repo(tmp_path))
+    assert len(fails) == 1 and "release.yml" in fails[0] and "<domain>" in fails[0]
+
+
+def test_a_placeholder_in_a_comment_is_documentation(tmp_path) -> None:
+    """A comment saying what `<domain>` means is never seen by bash."""
+    tmpl = tmp_path / "plugins/ha/skills/demo/templates"
+    (tmpl / ".github/workflows").mkdir(parents=True)
+    (tmpl / ".github/workflows/release.yml").write_text(
+        "# zips custom_components/<domain>\njobs:\n  build:\n    steps:\n      - run: |\n"
+        "          # the package is custom_components/<domain>\n          zip -r out.zip .\n")
+    assert audit.check_no_placeholders(audit.Repo(tmp_path)) == ([], [])
+
+
+def test_a_placeholder_left_in_a_copied_workflow_fails(repo) -> None:
+    """A scaffolded repo that copied the template and never substituted has the same defect."""
+    _wf(repo, "release.yml",
+        "jobs:\n  build:\n    steps:\n      - run: gh release upload v1 <domain>.zip\n")
+    fails, _ = audit.check_no_placeholders(audit.Repo(repo))
+    assert len(fails) == 1 and "<domain>" in fails[0]
+
+
+def test_a_placeholder_in_a_with_value_fails(repo) -> None:
+    """An action input is not shell, but a placeholder there is just as unsubstituted."""
+    _wf(repo, "a.yml",
+        "jobs:\n  x:\n    steps:\n      - uses: actions/setup-node@abc # v1\n"
+        "        with:\n          cache-dependency-path: <domain>/package-lock.json\n")
+    fails, _ = audit.check_no_placeholders(audit.Repo(repo))
+    assert len(fails) == 1 and "<domain>" in fails[0]

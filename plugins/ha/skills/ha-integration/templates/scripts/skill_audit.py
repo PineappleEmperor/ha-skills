@@ -231,6 +231,37 @@ def check_zip_release_patches_manifest(repo: Repo) -> Result:
     return [], []
 
 
+def check_no_placeholders(repo: Repo) -> Result:
+    """A `<placeholder>` left in a workflow step is a redirect to bash, not a name.
+
+    `release.yml` shipped `cd custom_components/<domain>` for a hand-edit nothing performed,
+    and the zip step died with a syntax error on every published release: no asset, and
+    HACS could not install. The one check that read the file asked whether it mentioned
+    manifest.json, which it did. A placeholder in a comment is documentation; one in a
+    run: block or a with:/env: value reaches the shell or the action and can never be right.
+    Checked in this repo's workflows and, when this is the skill repo, in the shipped ones.
+    """
+    dirs = [repo.workflows]
+    tmpl = _template_dir(repo)
+    if tmpl:
+        dirs.append(tmpl / ".github/workflows")
+    fails = []
+    for wf_dir in dirs:
+        if not wf_dir.is_dir():
+            continue
+        for wf in sorted(wf_dir.glob("*.y*ml")):
+            for jn, step in repo.steps(wf):
+                texts = [_live(str(step.get("run", "")))]
+                for key in ("with", "env"):
+                    texts += [str(v) for v in (step.get(key) or {}).values()]
+                found = sorted({m for t in texts for m in re.findall(r"<[a-z][a-z0-9_-]*>", t)})
+                if found:
+                    fails.append(f"{wf.relative_to(repo.root)} step '{step.get('name') or jn}' "
+                                 f"carries the unsubstituted placeholder {', '.join(found)} — "
+                                 f"bash reads `<` as a redirect, so the step cannot run")
+    return fails, []
+
+
 def check_label_events(repo: Repo) -> Result:
     """`labeled` plus `cancel-in-progress` makes cancelled runs look like failures."""
     if not repo.exists(".github/workflows/pr-checks.yml"):
@@ -914,7 +945,8 @@ def check_dependency_graph(repo: Repo) -> Result:
 CHECKS = (
     check_canonical_files, check_no_tracked_artefacts, check_scripts_present,
     check_scripts_wired, check_single_body_writer, check_previous_tag,
-    check_zip_release_patches_manifest, check_label_events, check_release_drafter_wiring,
+    check_zip_release_patches_manifest, check_no_placeholders, check_label_events,
+    check_release_drafter_wiring,
     check_classifier_not_inlined, check_claims_have_tests, check_action_pins,
     check_pr_checks_shape, check_no_run_interpolation, check_no_ignored_validations,
     check_sole_labeler,
