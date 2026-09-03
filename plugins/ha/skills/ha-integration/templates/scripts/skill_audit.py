@@ -871,11 +871,70 @@ def check_required_contexts_have_producers(repo: Repo) -> Result:
                       tmpl / "ruleset.json", tmpl / ".github/workflows"))
     for label, rs, wf_dir in pairs:
         produced = _job_names(wf_dir)
+        judged = f"{wf_dir.relative_to(repo.root)}/"
+        if wf_dir == repo.workflows:
+            # Under pull_request_target the producing workflow is the BASE branch's, so a
+            # branch that deletes a job the base still defines has not orphaned the
+            # context — that misreading removed a working gate once. Count both trees,
+            # and say which were consulted.
+            base = _base_ref(repo)
+            on_base = _job_names_at(repo, base) if base else None
+            if on_base is not None:
+                produced = {**on_base, **produced}
+                judged = f".github/workflows/ on {base} or in the working tree"
+            else:
+                judged = ".github/workflows/ in the working tree (no base branch to consult)"
         fails += [f"{label} requires the status check {c!r}, but no job in "
-                  f"{wf_dir.relative_to(repo.root)}/ is named that — it can never report and "
+                  f"{judged} is named that — it can never report and "
                   f"every PR stays blocked"
                   for c in _required_contexts(rs) if c not in produced]
     return fails, []
+
+
+def _base_ref(repo: Repo) -> str | None:
+    """The remote default branch as a ref, when the clone can see it."""
+    candidates: list[str] = []
+    try:
+        head = subprocess.run(["git", "symbolic-ref", "--short", "refs/remotes/origin/HEAD"],
+                              cwd=repo.root, capture_output=True, text=True, check=False)
+        if head.returncode == 0 and head.stdout.strip():
+            candidates.append(head.stdout.strip())
+        candidates += ["origin/main", "origin/master"]
+        for ref in candidates:
+            ok = subprocess.run(["git", "rev-parse", "--verify", "-q", ref + "^{commit}"],
+                                cwd=repo.root, capture_output=True, text=True, check=False)
+            if ok.returncode == 0:
+                return ref
+    except OSError:
+        return None
+    return None
+
+
+def _job_names_at(repo: Repo, ref: str) -> dict[str, str] | None:
+    """Check-run name -> workflow, read from `ref` rather than the working tree."""
+    import yaml as _yaml
+    try:
+        ls = subprocess.run(["git", "ls-tree", "--name-only", ref, ".github/workflows/"],
+                            cwd=repo.root, capture_output=True, text=True, check=False)
+    except OSError:
+        return None
+    if ls.returncode != 0:
+        return None
+    out: dict[str, str] = {}
+    for path in ls.stdout.split():
+        if not path.endswith((".yml", ".yaml")):
+            continue
+        show = subprocess.run(["git", "show", f"{ref}:{path}"], cwd=repo.root,
+                              capture_output=True, text=True, check=False)
+        if show.returncode != 0:
+            continue
+        try:
+            doc = _yaml.safe_load(show.stdout) or {}
+        except Exception:
+            continue
+        for jid, job in (doc.get("jobs") or {}).items():
+            out[str((job or {}).get("name") or jid)] = pathlib.Path(path).name
+    return out
 
 
 def check_live_required_contexts(repo: Repo) -> Result:
@@ -914,7 +973,12 @@ def check_live_required_contexts(repo: Repo) -> Result:
         return [], [f"unexpected branch-rules response for {branch} — live required contexts "
                     "NOT CHECKED, not passed"]
     produced = _job_names(repo.workflows)
-    return [f"{branch} requires the status check {c!r}, but no job in .github/workflows/ is "
+    on_base = _job_names_at(repo, f"origin/{branch}")
+    judged = ".github/workflows/ in the working tree (no base branch to consult)"
+    if on_base is not None:
+        produced = {**on_base, **produced}
+        judged = f".github/workflows/ on origin/{branch} or in the working tree"
+    return [f"{branch} requires the status check {c!r}, but no job in {judged} is "
             f"named that — it can never report and every PR stays blocked"
             for c in contexts if c not in produced], []
 

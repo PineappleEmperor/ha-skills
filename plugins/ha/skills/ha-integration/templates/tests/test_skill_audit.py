@@ -324,6 +324,8 @@ def test_live_ruleset_orphan_fails(repo, monkeypatch) -> None:
         def __init__(self, out, rc=0): self.stdout, self.returncode = out, rc
 
     def fake_run(cmd, **k):
+        if cmd[0] == "git":
+            return _Fake("", 128)     # no clone to consult: the working tree is the verdict
         if "view" in cmd:
             return _Fake("owner/repo\n")
         if cmd[-1] == ".default_branch":
@@ -332,7 +334,7 @@ def test_live_ruleset_orphan_fails(repo, monkeypatch) -> None:
     monkeypatch.setattr(audit.subprocess, "run", fake_run)
 
     fails, _ = audit.check_live_required_contexts(audit.Repo(repo))
-    assert len(fails) == 1 and "Version validation" in fails[0]
+    assert len(fails) == 1 and "Version validation" in fails[0] and "working tree" in fails[0]
 
 
 def test_a_placeholder_left_in_a_shipped_run_block_fails(tmp_path) -> None:
@@ -404,3 +406,73 @@ def test_title_check_pinned_to_the_base_sha_fails(repo) -> None:
 def test_title_check_on_the_base_ref_passes(repo) -> None:
     _wf(repo, "pr-checks.yml", _pr_checks("base.ref"))
     assert audit.check_pr_checks_shape(audit.Repo(repo)) == ([], [])
+
+
+def _cloned_repo(tmp_path, workflow: str) -> pathlib.Path:
+    """A working clone whose origin/main carries `workflow` as pr-checks.yml."""
+    import subprocess
+    src = tmp_path / "src"
+    (src / ".github/workflows").mkdir(parents=True)
+    (src / ".github/workflows/pr-checks.yml").write_text(workflow)
+    git = ["git", "-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false",
+           "-c", "core.hooksPath=/dev/null"]
+    subprocess.run(git + ["init", "-q", "-b", "main"], cwd=src, check=True)
+    subprocess.run(git + ["add", "."], cwd=src, check=True)
+    subprocess.run(git + ["commit", "-q", "-m", "chore: init"], cwd=src, check=True)
+    work = tmp_path / "work"
+    subprocess.run(["git", "clone", "-q", str(src), str(work)], check=True)
+    return work
+
+
+def test_a_job_the_base_branch_defines_is_not_an_orphan(tmp_path) -> None:
+    """The misreading that cost a working gate.
+
+    Under pull_request_target the producing workflow comes from the BASE branch, so a
+    branch that deletes a job main still defines does not orphan the context. `Version
+    validation` was called an orphan on exactly this evidence and removed from the ruleset
+    while origin/main still defined `version-gate`, which was correctly failing PR #65.
+    """
+    work = _cloned_repo(tmp_path, "jobs:\n  gate:\n    name: Version validation\n    steps: []\n")
+    (work / ".github/workflows/pr-checks.yml").write_text(
+        "jobs:\n  label:\n    name: CC labelling\n    steps: []\n")
+    _ruleset(work, "CC labelling", "Version validation")
+    assert audit.check_required_contexts_have_producers(audit.Repo(work)) == ([], [])
+
+
+def test_an_orphan_report_names_the_refs_it_judged(tmp_path) -> None:
+    """A verdict without its evidence is what got misread; say which ref was consulted."""
+    work = _cloned_repo(tmp_path, "jobs:\n  label:\n    name: CC labelling\n    steps: []\n")
+    _ruleset(work, "CC labelling", "Version validation")
+    fails, _ = audit.check_required_contexts_have_producers(audit.Repo(work))
+    assert len(fails) == 1 and "Version validation" in fails[0] and "origin/main" in fails[0]
+
+
+def test_without_a_remote_the_verdict_says_working_tree(repo) -> None:
+    """No base branch to consult is a weaker verdict, and it must say so."""
+    _wf(repo, "pr-checks.yml", "jobs:\n  label:\n    name: CC labelling\n    steps: []\n")
+    _ruleset(repo, "CC labelling", "Version validation")
+    fails, _ = audit.check_required_contexts_have_producers(audit.Repo(repo))
+    assert len(fails) == 1 and "working tree" in fails[0]
+
+
+def test_live_check_counts_jobs_the_base_branch_defines(tmp_path, monkeypatch) -> None:
+    """The live ruleset is judged the same way: producers on the base branch count."""
+    work = _cloned_repo(tmp_path, "jobs:\n  gate:\n    name: Version validation\n    steps: []\n")
+    (work / ".github/workflows/pr-checks.yml").write_text(
+        "jobs:\n  label:\n    name: CC labelling\n    steps: []\n")
+    real_run = audit.subprocess.run
+
+    class _Fake:
+        def __init__(self, out, rc=0): self.stdout, self.returncode = out, rc
+
+    def fake_run(cmd, **k):
+        if cmd[0] == "git":
+            return real_run(cmd, **k)
+        if "view" in cmd:
+            return _Fake("owner/repo\n")
+        if cmd[-1] == ".default_branch":
+            return _Fake("main\n")
+        return _Fake('["CC labelling","Version validation"]')
+    monkeypatch.setattr(audit.subprocess, "run", fake_run)
+
+    assert audit.check_live_required_contexts(audit.Repo(work)) == ([], [])
