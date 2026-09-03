@@ -29,7 +29,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -c 'import json,sys,re; d=json.load(sys.stdin); c=d.get(\"tool_input\",{}).get(\"command\",\"\"); bad=sorted(set(re.split(\"[^a-zA-Z]+\",c))&{\"grep\",\"rg\",\"ag\",\"ack\",\"egrep\",\"fgrep\"}); print(json.dumps({\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"[read-dont-search] Blocked \"+bad[0]+\". A search LOCATES; it does not VERIFY. An empty result is not evidence a thing is fixed - that mistake shipped a defect as resolved in this repo twice. Use the Grep TOOL to locate candidate files, then READ each one before concluding. To filter structured output use jq or python, not a shell search.\"}})) if bad else None'"
+            "command": "python3 /home/juicebox/claude-skills/scripts/no_shell_search.py"
           }
         ]
       }
