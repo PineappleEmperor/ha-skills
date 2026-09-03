@@ -350,7 +350,8 @@ def test_a_patch_with_a_function_key_hands_back_a_function_key(module) -> None:
 def test_a_fixture_named_as_a_parameter_is_part_of_the_closure(repo) -> None:
     """A test reaches its fixtures by parameter name, never by a call, so names count too."""
     (repo / "scripts/test_x.py").write_text(
-        "import pytest\n\n\n@pytest.fixture\ndef thing():\n    return 1\n\n\n"
+        "import pytest\n\n\n"
+        "@pytest.fixture\ndef thing():\n    return 1\n\n\n"
         "def test_it(thing):\n    assert thing == 1\n"
     )
     out = gs.get_function("scripts/test_x.py", "test_it", gs.current_receipt_key("scripts/"))
