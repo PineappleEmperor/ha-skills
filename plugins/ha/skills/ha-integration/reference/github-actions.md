@@ -114,7 +114,10 @@ a failure the other two cannot report.
   `pull_request` gets a read-only token — it cannot be labelled or commented on, which is the
   entire purpose of these jobs. `pull_request_target` supplies a writable token but runs in
   the base repo's context, so `label` checks out **nothing** and `title-check` checks out
-  `base.sha` explicitly, reading the PR's commit subjects as data over the API.
+  `base.ref` explicitly — the base branch head, the same ref its own definition is loaded
+  from — reading the PR's commit subjects as data over the API. Not `base.sha`: that is
+  frozen at PR creation, and a `scripts/` change merged mid-PR ran the new workflow against
+  the old script.
 - **No `${{ }}` inside any `run:`.** Untrusted strings — the PR title, a commit subject — reach
   the shell through `env:`. A fork PR controls those strings completely; interpolated into a
   command line, that is shell injection against a writable token. `skill_audit.py` enforces

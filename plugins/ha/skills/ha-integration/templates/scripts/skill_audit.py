@@ -400,9 +400,12 @@ def check_pr_checks_shape(repo: Repo) -> Result:
     if "user.type != 'Bot'" not in t:
         fails.append("pr-checks.yml does not skip bot-authored PRs")
     if "actions/checkout" in t:
-        if "ref: ${{ github.event.pull_request.base.sha }}" not in t:
-            fails.append("pr-checks.yml checks out without pinning base.sha (never run PR "
-                         "code under pull_request_target)")
+        if "ref: ${{ github.event.pull_request.base.ref }}" not in t:
+            fails.append("pr-checks.yml must check out base.ref (never run PR code under "
+                         "pull_request_target; not base.sha either — that is frozen at PR "
+                         "creation while the workflow runs from the base branch head, so a "
+                         "scripts/ change merged mid-PR ran the new workflow against the "
+                         "old script)")
         if re.search(r"actions/checkout[^\n]*\n(?:[^\n]*\n){0,2}?[^\n]*head\.sha", t):
             fails.append("pr-checks.yml checks out the PR head under pull_request_target")
     # checkout clears the workspace, so a job that writes a file first loses it

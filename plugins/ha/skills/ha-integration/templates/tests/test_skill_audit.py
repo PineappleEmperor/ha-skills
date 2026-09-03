@@ -376,3 +376,31 @@ def test_a_placeholder_in_a_with_value_fails(repo) -> None:
         "        with:\n          cache-dependency-path: <domain>/package-lock.json\n")
     fails, _ = audit.check_no_placeholders(audit.Repo(repo))
     assert len(fails) == 1 and "<domain>" in fails[0]
+
+
+def _pr_checks(ref: str) -> str:
+    """A pr-checks.yml carrying every string the shape check requires, checking out `ref`."""
+    return ("on:\n  pull_request_target:\n    types: [opened]\n"
+            "jobs:\n  label:\n    steps:\n      - run: echo 'Remove superseded'\n"
+            "  title-check:\n    needs: label\n    if: github.event.pull_request.user.type != 'Bot'\n"
+            "    steps:\n      - uses: actions/checkout@abc # v1\n"
+            f"        with:\n          ref: ${{{{ github.event.pull_request.{ref} }}}}\n"
+            "      - run: python3 scripts/commit_summary.py --mode label\n")
+
+
+def test_title_check_pinned_to_the_base_sha_fails(repo) -> None:
+    """base.sha is frozen at PR creation while the workflow runs from the base branch head.
+
+    A PR opened before a scripts/ change merged ran the NEW workflow against the OLD script:
+    on ha-ci-testing #9 the gate died with `--mode: invalid choice: 'label'` instead of
+    reporting the label mismatch it exists to report. base.ref keeps the tree and the
+    workflow consistent and is equally base-side.
+    """
+    _wf(repo, "pr-checks.yml", _pr_checks("base.sha"))
+    fails, _ = audit.check_pr_checks_shape(audit.Repo(repo))
+    assert len(fails) == 1 and "base.ref" in fails[0] and "frozen" in fails[0]
+
+
+def test_title_check_on_the_base_ref_passes(repo) -> None:
+    _wf(repo, "pr-checks.yml", _pr_checks("base.ref"))
+    assert audit.check_pr_checks_shape(audit.Repo(repo)) == ([], [])
