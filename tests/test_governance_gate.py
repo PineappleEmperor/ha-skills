@@ -243,3 +243,21 @@ def test_the_old_tool_names_are_gone(repo) -> None:
     """A renamed tool that keeps its old alias is two names for one gate, and docs drift."""
     for old in ("get_governing_docs", "get_governed_file", "governed_edit"):
         assert not hasattr(gs, old), old
+
+
+# --------------------------------------------------------------- rolling key
+
+
+def test_a_patch_hands_back_the_key_for_the_file_it_just_wrote(repo) -> None:
+    """Read once, patch many times: the reply carries the next key, so no re-read is needed.
+
+    Eleven of thirteen reads of one file in a session were re-reads forced by a key that died
+    on every patch. The server holds the bytes it just wrote and the caller saw the diff, so
+    handing the next key back keeps the guarantee and drops the cost.
+    """
+    _, edit_key = _keys()
+    out = gs.patch_file("scripts/t.py", "a = 1", "a = 9", edit_key)
+    fresh = gs.current_edit_key("scripts/t.py")
+    assert fresh in out and fresh != edit_key
+    gs.patch_file("scripts/t.py", "c = 3", "c = 9", fresh)
+    assert (repo / "scripts/t.py").read_text() == "a = 9\nb = 2\nc = 9\nb = 2\n"

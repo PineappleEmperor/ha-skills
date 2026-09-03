@@ -348,4 +348,12 @@ def patch_file(
 
     after = _apply(before, old_string, new_string, rel)
     (REPO / rel).write_text(after, encoding="utf-8")
-    return f"wrote {rel}\n" + _report(before, after, rel)
+    # The key rolls forward: the caller read the file in full and has just seen this diff, so
+    # it has read the file as it now stands. Without this every second patch cost a re-read of
+    # the whole file — eleven of thirteen reads of one file in a session were that.
+    return (
+        f"wrote {rel}\n"
+        + _report(before, after, rel)
+        + f"\nEditKey: {current_edit_key(rel)} - for the next patch to {rel}; it is bound to "
+        f"the bytes as now written, so it dies if anything else touches the file."
+    )
