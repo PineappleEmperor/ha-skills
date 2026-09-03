@@ -54,6 +54,11 @@ REPO = pathlib.Path(__file__).resolve().parents[1]
 RECEIPT_PREFIX = "I-HAVE-READ-THE-GOVERNING-DOCS"
 EDIT_PREFIX = "I-HAVE-READ-THE-WHOLE-FILE"
 _SALT = secrets.token_hex(8)
+# Four hex characters carried by every key and named in every key refusal. The salt dies with
+# the process, so a restart kills every outstanding key at once — and without this the refusal
+# read exactly like a stale read or an hour rollover. Observed: keys minutes old, nothing
+# changed, all refused, cause unguessable. Now a key from another gate says so.
+GATE_ID = secrets.token_hex(2)
 ROTATION_SECONDS = int(os.environ.get("GOVERNANCE_ROTATION_SECONDS", "3600"))
 
 # Governed path prefix -> the docs that govern it. FIRST match wins, so specific before general.
@@ -123,14 +128,42 @@ def _file_hash(rel: str) -> str:
 
 def _key_for(tier: str, bucket: int, docs: str) -> str:
     mac = hmac.new(_SALT.encode(), f"{bucket}:{tier}:{docs}".encode(), hashlib.sha256)
-    return f"{RECEIPT_PREFIX}-{mac.hexdigest()[:8]}"
+    return f"{RECEIPT_PREFIX}-{GATE_ID}-{mac.hexdigest()[:8]}"
 
 
 def _edit_key_for(tier: str, rel: str, bucket: int, docs: str, body: str) -> str:
     mac = hmac.new(
         _SALT.encode(), f"{bucket}:{tier}:{docs}:{rel}:{body}".encode(), hashlib.sha256
     )
-    return f"{EDIT_PREFIX}-{mac.hexdigest()[:8]}"
+    return f"{EDIT_PREFIX}-{GATE_ID}-{mac.hexdigest()[:8]}"
+
+
+def _minted_by(key: str | None) -> str:
+    """The gate id a key carries — the segment before the MAC — or '' when it carries none."""
+    parts = (key or "").split("-")
+    minted = parts[-2] if len(parts) >= 3 else ""
+    return minted if len(minted) == 4 and set(minted) <= set("0123456789abcdef") else ""
+
+
+def _cause(key: str | None) -> str:
+    """Why a key failed, as far as the gate can tell. A restart names itself; nothing else may.
+
+    Appended to every key refusal. Without it the three causes — never read, read before a
+    restart, read before the content moved — produced one message, and the caller could only
+    guess which re-read would help.
+    """
+    minted = _minted_by(key)
+    if minted and minted != GATE_ID:
+        return (
+            f" That key was minted by gate {minted}; this is gate {GATE_ID}, so the server has "
+            f"restarted since and every key issued before it is dead. Re-read to mint new ones."
+        )
+    if minted:
+        return (
+            f" This is gate {GATE_ID}, the one that minted the key, so the process has not "
+            f"restarted: the content the key was bound to has changed."
+        )
+    return f" This is gate {GATE_ID}."
 
 
 def current_receipt_key(tier: str, now: float | None = None) -> str | None:
@@ -237,7 +270,7 @@ def get_file(path: str, receipt_key: str | None) -> str:
     if valid and receipt_key not in valid:
         raise GateError(
             f"{rel} is governed by '{tier}'. Call get_docs(tier={tier!r}) first, read "
-            f"it, then pass that ReceiptKey here."
+            f"it, then pass that ReceiptKey here." + _cause(receipt_key)
         )
     try:
         body = (REPO / rel).read_text(encoding="utf-8")
@@ -345,7 +378,7 @@ def _function_key_for(tier: str, rel: str, name: str, bucket: int, docs: str, bo
         f"{bucket}:{tier}:{docs}:{rel}:fn:{name}:{body}".encode(),
         hashlib.sha256,
     )
-    return f"{FUNCTION_PREFIX}-{name}-{mac.hexdigest()[:8]}"
+    return f"{FUNCTION_PREFIX}-{name}-{GATE_ID}-{mac.hexdigest()[:8]}"
 
 
 def current_function_key(rel: str, name: str, now: float | None = None) -> str | None:
@@ -394,7 +427,7 @@ def get_function(path: str, name: str, receipt_key: str | None) -> str:
     if valid and receipt_key not in valid:
         raise GateError(
             f"{rel} is governed by '{tier}'. Call get_docs(tier={tier!r}) first, read "
-            f"it, then pass that ReceiptKey here."
+            f"it, then pass that ReceiptKey here." + _cause(receipt_key)
         )
     try:
         source = (REPO / rel).read_text(encoding="utf-8")
@@ -509,13 +542,13 @@ def patch_file(
     # recompute the closure it was issued over and confine the patch to it.
     scope: str | None = None
     if (edit_key or "").startswith(FUNCTION_PREFIX + "-"):
-        scope = edit_key[len(FUNCTION_PREFIX) + 1 :].rsplit("-", 1)[0]
+        scope = edit_key[len(FUNCTION_PREFIX) + 1 :].rsplit("-", 2)[0]
         if edit_key not in valid_function_keys(rel, scope):
             raise GateError(
                 f"{rel} is governed by '{tier}'. That function key is stale: {scope!r} or "
                 f"something it uses has changed, or the file no longer parses. Call "
                 f"get_function(path={rel!r}, name={scope!r}) again, or get_file for the whole "
-                f"file, then retry with the EditKey it returns."
+                f"file, then retry with the EditKey it returns." + _cause(edit_key)
             )
     elif edit_key not in valid_edit_keys(rel):
         raise GateError(
@@ -523,6 +556,7 @@ def patch_file(
             f"get_file(path={rel!r}) and READ IT IN FULL, then retry with the EditKey "
             f"it returns. That key is bound to this file's current bytes, so a stale one means "
             f"the file moved under you - re-read rather than resending a previous value."
+            + _cause(edit_key)
         )
 
     after = _apply(before, old_string, new_string, rel)

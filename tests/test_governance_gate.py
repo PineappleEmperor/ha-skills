@@ -421,3 +421,56 @@ def test_a_file_without_a_twin_is_refused(repo) -> None:
     with pytest.raises(gs.GateError):
         gs.patch_twins("scripts/t.py", "a = 1", "a = 9", edit_key)
     assert (repo / "scripts/t.py").read_text().startswith("a = 1")
+
+
+# ------------------------------------------------------------------- gate id
+
+
+def test_every_key_carries_the_gate_id(module) -> None:
+    """A restart mints a new salt and a new id together, so the id says which gate spoke.
+
+    Keys minutes old, docs and file unchanged, well inside the grace window, were all refused
+    after the harness restarted the server, and the refusal read exactly like a stale read.
+    The id in the key is what lets the two be told apart.
+    """
+    docs_key = gs.current_receipt_key("scripts/")
+    _, edit_key = _keys()
+    fn_key = gs.current_function_key(module, "check_one")
+    for key in (docs_key, edit_key, fn_key):
+        assert f"-{gs.GATE_ID}-" in key, key
+
+
+def test_a_key_from_another_gate_is_refused_and_the_restart_is_named(monkeypatch, module) -> None:
+    docs_key, edit_key = _keys()
+    fn_key = gs.current_function_key(module, "check_one")
+    born_as = gs.GATE_ID
+    monkeypatch.setattr(gs, "GATE_ID", "dead")
+    for call in (
+        lambda: gs.patch_file("scripts/t.py", "a = 1", "a = 9", edit_key),
+        lambda: gs.patch_file(module, "return _helper(repo)", "return 0", fn_key),
+        lambda: gs.get_file("scripts/t.py", docs_key),
+        lambda: gs.get_function(module, "check_one", docs_key),
+    ):
+        with pytest.raises(gs.GateError) as excinfo:
+            call()
+        assert f"minted by gate {born_as}" in str(excinfo.value)
+        assert "restarted since" in str(excinfo.value)
+    assert (gs.REPO / "scripts/t.py").read_text().startswith("a = 1")
+    assert "return _helper(repo)" in (gs.REPO / module).read_text()
+
+
+def test_a_stale_key_from_this_gate_is_not_blamed_on_a_restart(repo) -> None:
+    """The other cause must not be misnamed either: same id means the content moved."""
+    _, edit_key = _keys()
+    (repo / "scripts/t.py").write_text("moved\n")
+    with pytest.raises(gs.GateError) as excinfo:
+        gs.patch_file("scripts/t.py", "moved", "back", edit_key)
+    assert "has not restarted" in str(excinfo.value)
+    assert "restarted since" not in str(excinfo.value)
+    assert gs.GATE_ID in str(excinfo.value)
+
+
+def test_a_missing_key_still_names_the_gate(repo) -> None:
+    with pytest.raises(gs.GateError) as excinfo:
+        gs.get_file("scripts/t.py", None)
+    assert gs.GATE_ID in str(excinfo.value)
