@@ -234,6 +234,13 @@ def check_document_integrity(repo: Repo) -> Result:
                 continue
             rel = doc.relative_to(manifest.parent.parent)
             lines = doc.read_text().splitlines()
+            # An emptied file has no structure left to judge, so every check below it
+            # finds nothing and the audit passes a gutted document. Partial gutting was
+            # caught; total gutting was the boundary case that slipped. No legitimate
+            # consolidation ends at zero bytes — delete the file, or keep its content.
+            if not any(l.strip() for l in lines):
+                fails.append(f"{rel}: file is empty — delete it or restore its content")
+                continue
             heads = [l.lstrip("# ").strip() for l in lines if re.match(r"^#{2,3} ", l)]
             # The index is the bullet run BEFORE the first heading. Bullets after one are
             # content, and treating them as index entries flags every checklist in the set.

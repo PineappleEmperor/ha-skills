@@ -202,6 +202,35 @@ def test_an_undocumented_shipped_workflow_fails(tmp_path) -> None:
     assert not any("pr-checks.yml" in f for f in fails)
 
 
+def test_an_emptied_document_fails(tmp_path) -> None:
+    """Total gutting was the boundary case that slipped past every structural check.
+
+    `check_document_integrity` was written for the partial kind — sentences cut in half,
+    an index left pointing at deleted headings. On a fully empty file there are no lines,
+    so no headings, no index and no loop bodies: it returned nothing and the audit passed
+    a document with its content removed. Found by emptying each governing doc in turn and
+    watching which ones the audit noticed; `audit.md` was the one it did not.
+    """
+    _skill(tmp_path, "ha-thing", "name: ha-thing\ndescription: Use when doing a thing",
+           body="See `reference/gutted.md`.\n")
+    ref = tmp_path / "plugins/ha/skills/ha-thing/reference"
+    ref.mkdir(exist_ok=True)
+
+    (ref / "gutted.md").write_text("")
+    fails, _ = audit.check_document_integrity(audit.Repo(tmp_path))
+    assert any("gutted.md" in f and "is empty" in f for f in fails)
+
+    # Whitespace-only is the same damage with the evidence hidden.
+    (ref / "gutted.md").write_text("\n\n   \n")
+    fails, _ = audit.check_document_integrity(audit.Repo(tmp_path))
+    assert any("gutted.md" in f and "is empty" in f for f in fails)
+
+    # And a file with real content must not be flagged by it.
+    (ref / "gutted.md").write_text("# Heading\n\nA sentence that says something.\n")
+    fails, _ = audit.check_document_integrity(audit.Repo(tmp_path))
+    assert not any("is empty" in f for f in fails)
+
+
 def test_a_wall_of_prose_is_flagged_but_a_long_list_is_not(tmp_path) -> None:
     """The first version counted blocks, so a 60-item bullet list read as one paragraph.
 
