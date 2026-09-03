@@ -78,10 +78,17 @@ jobs:
             echo "::warning::the committed panel bundle was stale; this release ships a fresh build. Run 'npm run build' in frontend/ and commit it."
           fi
 
+      # The domain is derived the same way the manifest step derives it — one
+      # integration per repo, found by its manifest — never hand-edited into this file.
+      # A `<domain>` placeholder left in a run: block is a bash redirect, and the step
+      # died on exactly that in a published release, so no asset was attached.
       - name: Create ZIP file
+        id: zip
         run: |
-          cd custom_components/<domain>
-          zip -r "$GITHUB_WORKSPACE/<domain>.zip" . -x '*/__pycache__/*' '*.pyc'
+          DOMAIN=$(basename "$(dirname custom_components/*/manifest.json)")
+          ASSET="$GITHUB_WORKSPACE/$DOMAIN.zip"
+          (cd "custom_components/$DOMAIN" && zip -r "$ASSET" . -x '*/__pycache__/*' '*.pyc')
+          echo "asset=$ASSET" >> "$GITHUB_OUTPUT"
 
       # No `${{ }}` inside a run block: the expression is substituted as text before
       # the shell sees it, so a crafted tag would execute here. Pass it as env.
@@ -89,4 +96,5 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}
-        run: gh release upload "$RELEASE_TAG" "$GITHUB_WORKSPACE/<domain>.zip" --clobber
+          ASSET: ${{ steps.zip.outputs.asset }}
+        run: gh release upload "$RELEASE_TAG" "$ASSET" --clobber
