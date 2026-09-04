@@ -231,20 +231,22 @@ the files above.
 
 ---
 
+10. ~~**The GitHub-querying checks are inert in CI.**~~ **Resolved.** The audit step passes
+    `GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}`, and on the testbed's 2026-09-04 run the ruleset,
+    live-context and dependency-graph checks all executed under it: the only warning the
+    default token leaves is that it cannot list secrets, so `RELEASE_TOKEN` stays a
+    maintainer-machine check.
+11. ~~**End-to-end verification is outstanding.**~~ **Ran 2026-09-04, and found what reading
+    could not.** `ha-ci-testing` #12 synced the current templates: the draft opener titled
+    the PR from its commit, all eight required contexts reported green, and `panel_bundle.yml`
+    failed on its first execution anywhere, twenty-four days after it was written — its own
+    file in its path filter runs it once on a repo with no `frontend/`, where setup-node's
+    cache step dies. Backlog rows 85-88 carry the finding and the process gap behind it: every
+    check in this repo reads a workflow, none runs one, and a template this repo does not
+    carry has no execution path at all. Merge, rc and final are the rest of the cycle.
+
 ## Still open
 
-10. **The GitHub-querying checks are inert in CI.** `quality_audit.yml` runs `skill_audit.py`
-    with no `GH_TOKEN`, so `gh` is unauthenticated and `check_required_status_checks`,
-    `check_dependency_graph` and `check_live_required_contexts` all return `NOT CHECKED`
-    warnings rather than running. They only really execute on a maintainer's machine. Setting
-    `GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}` on that step is the obvious fix; whether the
-    default token can read rulesets and the SBOM needs testing on the testbed first.
-11. **End-to-end verification is outstanding — this is the dev cycle's own step, not a defect.**
-    `ha-ci-testing` currently carries the previous template set (`stale.yml` rather than
-    `issue_stale.yml`, no `panel_bundle.yml`) and has no ruleset applied, which is simply the
-    state before a refresh. Deploying current `templates/` there, applying `ruleset.json`, and
-    opening a PR is how any of this gets proven; until that runs, every claim about the shipped
-    stack rests on reading rather than on a green check.
 12. **`check_self_diff` waives three whole files.** `pr-checks.yml`, `release_drafter.yml` and
     `python_validate.yml` are exempt by name because they legitimately differ, so any
     *unintended* difference inside them is invisible. Narrowing the waiver from files to named
