@@ -71,22 +71,25 @@ from homeassistant.components.notify import NotifyEntity
 
 
 class MyNotifyEntity(NotifyEntity):
+    """The notify entity for one device."""
+
     _attr_has_entity_name = True
     _attr_name = "Notify"
 
     def __init__(self, hass, device_id: str) -> None:
+        """Bind the entity to its device."""
         self.hass = hass
         self._device_id = device_id
         self._attr_unique_id = f"{device_id}_notify"  # per instance, not class scope
 
     # This is the real signature. NotifyEntity's service schema carries message and
     # title only, so there is no **kwargs and no `data` to read.
-    async def async_send_message(
-        self, message: str, title: str | None = None
-    ) -> None: ...
+    async def async_send_message(self, message: str, title: str | None = None) -> None:
+        """Send the message to the device."""
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
+    """Add one notify entity for the config entry."""
     opts = {**entry.data, **entry.options}
     async_add_entities([MyNotifyEntity(hass, opts[CONF_DEVICE_ID])])
 ```
@@ -94,8 +97,12 @@ async def async_setup_entry(hass, entry, async_add_entities):
 ⚠️ `NotifyEntity` only supports `message` and `title` — `data` is **not in its service schema**. If you need custom payload fields (animations, sounds, colours, etc.), register the service directly instead:
 ```python
 # notify.py
-from homeassistant.components.notify.const import ATTR_DATA, ATTR_MESSAGE, ATTR_TITLE
-from homeassistant.components.notify.const import DOMAIN as NOTIFY_DOMAIN
+from homeassistant.components.notify.const import (
+    ATTR_DATA,
+    ATTR_MESSAGE,
+    ATTR_TITLE,
+    DOMAIN as NOTIFY_DOMAIN,
+)
 
 SERVICE_SCHEMA = vol.Schema(
     {
@@ -107,9 +114,12 @@ SERVICE_SCHEMA = vol.Schema(
 
 
 def make_notify_handler(hass: HomeAssistant, device_id: str):
+    """Build the service handler bound to one device."""
+
     async def async_handle(call: ServiceCall) -> None:
+        """Push the message, with any extra payload, to the device."""
         data = call.data.get(ATTR_DATA) or {}
-        ...
+        await push_to_device(hass, device_id, call.data[ATTR_MESSAGE], data)
 
     return async_handle
 
@@ -149,9 +159,12 @@ This creates `notify.{device_id}` (e.g. `notify.living_room_display`) with full 
 - Use `DeviceInfo` TypedDict (from `homeassistant.helpers.device_registry`) — not a plain dict:
   ```python
   from homeassistant.helpers.device_registry import DeviceInfo
+
+
   @property
   def device_info(self) -> DeviceInfo:
-      return DeviceInfo(identifiers={(DOMAIN, self._device_id)}, name="My Device", ...)
+      """The device this entity belongs to."""
+      return DeviceInfo(identifiers={(DOMAIN, self._device_id)}, name="My Device")
   ```
 - Set `unique_id` on all entities
 - **`_attr_has_entity_name = True` is mandatory for new integrations** — entity name identifies only the data point; main feature entity sets `_attr_name = None` so only device name shows
@@ -170,6 +183,8 @@ Preferred when an integration exposes many similar entities:
 ```python
 @dataclass(frozen=True, kw_only=True)
 class MySensorDescription(SensorEntityDescription):
+    """Describes one sensor and where its value comes from."""
+
     value_fn: Callable[[MyData], float]
 
 
@@ -184,6 +199,7 @@ SENSORS: tuple[MySensorDescription, ...] = (
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
+    """Add one sensor per description."""
     coordinator = entry.runtime_data
     async_add_entities(MySensor(coordinator, desc) for desc in SENSORS)
 ```
@@ -192,6 +208,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
 - `_attr_in_progress` only **greys out the dashboard install button** — it does **not** stop a programmatic re-entry. A service call, automation, or two near-simultaneous dashboard clicks can still re-enter `async_install` while an install is mid-flight, double-pushing the OTA. Add an **explicit re-entry guard** at the top of `async_install` (after any can't-install checks), windowed so a crashed/timed-out install can't wedge the entity forever:
   ```python
   async def async_install(self, version, backup, **kwargs) -> None:
+      """Push the OTA once, refusing a second entry while one is in flight."""
       if self._reflash:
           raise HomeAssistantError("Layout change — reflash via USB, not OTA.")
       if self._installing and time.monotonic() - self._install_started < INSTALL_TIMEOUT:
@@ -200,7 +217,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
       self._install_started = time.monotonic()
       self._attr_in_progress = True
       self.async_write_ha_state()
-      ...  # push the OTA
+      await self._push_ota(version)
   ```
   Clear `_installing` when the new version lands (or the same window elapses) in whatever resyncs state from the device manifest. The `in_progress` flag is for the UI; the boolean+timestamp is the actual lock.
 
@@ -260,6 +277,7 @@ TO_REDACT = {CONF_PASSWORD, CONF_API_KEY, "token"}
 async def async_get_config_entry_diagnostics(
     hass: HomeAssistant, entry: ConfigEntry
 ) -> dict:
+    """Return the entry and its runtime data with secrets redacted."""
     return async_redact_data(
         {"entry": entry.as_dict(), "data": entry.runtime_data}, TO_REDACT
     )
@@ -272,12 +290,15 @@ Implement `async_migrate_entry` in `__init__.py` whenever the stored `entry.data
 ```python
 # In config flow:
 class MyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+    """Config flow; the version pair says which stored entries need migrating."""
+
     VERSION = 2  # bump for breaking changes (fails setup if no handler)
     MINOR_VERSION = 1  # bump for compatible changes (setup continues without handler)
 
 
 # In __init__.py:
 async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Bring a stored entry up to the current version."""
     if entry.version == 1:
         new_data = {**entry.data, "new_field": "default"}
         hass.config_entries.async_update_entry(
@@ -329,6 +350,10 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
+
+
+def uses_hass_in_annotations_only(hass: HomeAssistant) -> None:
+    """The import never runs; deferred annotations resolve the name when asked."""
 ```
 
 ### Typed `ConfigEntry`
@@ -337,11 +362,17 @@ Alias the entry to its runtime type so `entry.runtime_data` is not untyped:
 ```python
 # In coordinator.py or models.py:
 from homeassistant.config_entries import ConfigEntry
+
 type MyConfigEntry = ConfigEntry[MyCoordinator]  # Python 3.12+ / HA 2024.x
 
+
 # In platform files:
-async def async_setup_entry(hass: HomeAssistant, entry: MyConfigEntry, ...) -> None:
+async def async_setup_entry(
+    hass: HomeAssistant, entry: MyConfigEntry, async_add_entities: AddEntitiesCallback
+) -> None:
+    """Set up the platform from the typed entry."""
     coordinator = entry.runtime_data  # typed as MyCoordinator, no cast needed
+    async_add_entities(MySensor(coordinator, desc) for desc in SENSORS)
 ```
 
 ### Avoid `# type: ignore`
@@ -367,9 +398,9 @@ Exclude them from Pyright entirely in `pyrightconfig.json`:
 
 Import its types directly rather than re-typing them:
 ```python
-from homeassistant.helpers.typing import StateType, ConfigType, DiscoveryInfoType
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType, StateType
 ```
 
 ---

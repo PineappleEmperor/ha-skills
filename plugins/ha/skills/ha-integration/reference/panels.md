@@ -14,10 +14,13 @@ Five things are non-obvious here, and each fails silently.
 Once per process — per-entry registration races when two entries set up in parallel, so claim the `hass.data` flag before the `await`.
 
   ```python
+  from pathlib import Path
+
   from homeassistant.components.http import StaticPathConfig
 
 
   async def async_setup(hass, config):  # once per process — no entry parallelism
+      """Serve the panel bundle; registration itself is option-gated below."""
       await hass.http.async_register_static_paths(
           [
               StaticPathConfig(
@@ -66,14 +69,15 @@ Gate-enforced: a manifest depending on `frontend`/`panel_custom` with no pin fai
 ### Registration has two traps
 Cache-bust the module URL or a browser serves the previous panel after an update, and claim the registered flag **before** the `await` or two entries setting up in parallel both register:
 ```python
-if not hass.data.get(REGISTERED):
-    hass.data[REGISTERED] = True  # claim BEFORE the await
-    integration = await async_get_integration(hass, DOMAIN)
-    await panel_custom.async_register_panel(
-        hass,
-        ...,
-        module_url=f"{PANEL_MODULE_URL}?v={integration.version}",  # or the browser caches
-    )
+async def _register_panel(hass: HomeAssistant) -> None:
+    if not hass.data.get(REGISTERED):
+        hass.data[REGISTERED] = True  # claim BEFORE the await
+        integration = await async_get_integration(hass, DOMAIN)
+        await panel_custom.async_register_panel(
+            hass,
+            frontend_url_path=DOMAIN,
+            module_url=f"{PANEL_MODULE_URL}?v={integration.version}",  # else cached
+        )
 ```
 
 ### Testability is a design property, not a tooling one
