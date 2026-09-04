@@ -83,6 +83,34 @@ def test_a_single_declaration_warns_rather_than_passing_silently(tmp_path) -> No
     assert "pyrightconfig.json" in warns[0]
 
 
+def test_every_workflow_that_sets_up_python_is_compared(tmp_path) -> None:
+    """A second workflow on a different Python is a disagreement, named by file.
+
+    Four shipped workflows run scripts/ and each sets up Python itself. Reading only
+    python_validate.yml let one of them lag a bump and run the scripts on an interpreter
+    that rejected their syntax, with this check printing that the versions agreed.
+    """
+    _repo(tmp_path)
+    (tmp_path / ".github/workflows/quality_audit.yml").write_text(
+        "jobs:\n  audit:\n    steps:\n      - uses: actions/setup-python@v6\n"
+        "        with:\n          python-version: '3.12'\n"
+    )
+    found = vs.problems(tmp_path)
+    assert len(found) == 1
+    assert "quality_audit.yml=3.12" in found[0]
+    assert "python_validate.yml=3.14" in found[0]
+
+
+def test_a_workflow_without_python_is_not_a_declaration(tmp_path) -> None:
+    """A workflow that never sets up Python neither agrees nor disagrees."""
+    _repo(tmp_path)
+    (tmp_path / ".github/workflows/lint_pr.yml").write_text(
+        "jobs:\n  lint:\n    steps:\n      - uses: amannn/action-semantic-pull-request@v6\n"
+    )
+    assert vs.problems(tmp_path) == []
+    assert "lint_pr.yml" not in vs.collect(tmp_path)
+
+
 def test_two_declarations_are_compared_not_warned(tmp_path) -> None:
     """Two values are enough to compare, so the thin warning must not fire."""
     (tmp_path / ".github/workflows").mkdir(parents=True)

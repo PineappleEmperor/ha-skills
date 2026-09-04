@@ -32,9 +32,15 @@ def collect(root: pathlib.Path) -> dict[str, str | None]:
     """Every declared Python version, keyed by the file that declares it."""
     found: dict[str, str | None] = {}
 
-    workflow = _read(root / ".github/workflows/python_validate.yml")
-    m = PY_VERSION.search(workflow)
-    found["python_validate.yml"] = m.group("version") if m else None
+    # Every workflow that sets up Python, not just the one that runs pytest: the ones
+    # running scripts/ declare the version too, and one lagging a bump ran the scripts
+    # on an interpreter that rejected their syntax while this said the versions agreed.
+    found["python_validate.yml"] = None
+    workflows = root / ".github/workflows"
+    for wf in sorted(workflows.glob("*.y*ml")) if workflows.is_dir() else []:
+        m = PY_VERSION.search(_read(wf))
+        if m:
+            found[wf.name] = m.group("version")
 
     pyproject = _read(root / "pyproject.toml")
     m = RUFF_TARGET.search(pyproject)
