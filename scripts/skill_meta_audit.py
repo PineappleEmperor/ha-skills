@@ -15,6 +15,9 @@ import argparse
 import json
 import pathlib
 import re
+import shutil
+import subprocess
+import tempfile
 
 import yaml
 
@@ -448,6 +451,72 @@ def check_paragraph_length(repo: Repo) -> Result:
     return [], warns
 
 
+# A fenced Python block, at any indentation (list items indent theirs), with its body.
+_EXAMPLE = re.compile(r"^( *)```python\n(.*?)^\1```", re.MULTILINE | re.DOTALL)
+# What a fragment cannot supply and is not judged on: the names its surrounding file
+# defines, a module docstring, and imports shown for their own sake.
+_FRAGMENT_RULES = ("F821", "D100", "F401")
+
+
+def check_doc_examples(repo: Repo) -> Result:
+    """Every fenced Python example in the skill docs must pass the shipped ruff rules.
+
+    Two examples shipped for months with syntax errors — a positional argument after a
+    keyword, an `...` declared as a parameter — and every one contradicted the docstring
+    rule the same docs state. ruff never reads Markdown, so nothing saw. Each block is
+    written out beside a copy of `templates/pyproject.toml` and linted under the rules a
+    scaffold runs; the formatter already covers Markdown on its own. Findings carry the
+    doc's line, not the block's.
+    """
+    tmpl = _template_dir(repo)
+    config = tmpl / "pyproject.toml" if tmpl else None
+    if config is None or not config.is_file():
+        return [], []
+    ruff = shutil.which("ruff")
+    if ruff is None:
+        return [], ["ruff is not installed — doc examples NOT CHECKED, not passed"]
+    fails: list[str] = []
+    with tempfile.TemporaryDirectory() as scratch:
+        work = pathlib.Path(scratch)
+        (work / "pyproject.toml").write_bytes(config.read_bytes())
+        origin: dict[str, tuple[str, int]] = {}
+        for manifest in sorted(repo.root.glob("plugins/*/skills/*/SKILL.md")):
+            for doc in sorted(manifest.parent.rglob("*.md")):
+                if "evals" in doc.parts or "templates" in doc.parts:
+                    continue
+                text = doc.read_text()
+                for n, m in enumerate(_EXAMPLE.finditer(text), 1):
+                    indent, body = m.group(1), m.group(2)
+                    lines = [line.removeprefix(indent) for line in body.splitlines()]
+                    name = f"{doc.stem}_{n}.py"
+                    (work / name).write_text("\n".join(lines) + "\n")
+                    # The block's first code line is the line after the opening fence.
+                    origin[name] = (
+                        str(doc.relative_to(repo.root)),
+                        text.count("\n", 0, m.start()) + 2,
+                    )
+        if not origin:
+            return [], []
+        ignores = [arg for rule in _FRAGMENT_RULES for arg in ("--ignore", rule)]
+        out = subprocess.run(
+            [ruff, "check", "--no-cache", "--output-format", "concise", *ignores, "."],
+            cwd=work,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        for line in out.stdout.splitlines():
+            name, _, rest = line.partition(":")
+            if name not in origin:
+                continue
+            doc, start = origin[name]
+            row, _, rest = rest.partition(":")
+            _col, _, verdict = rest.partition(":")
+            at = start + int(row) - 1 if row.isdigit() else start
+            fails.append(f"{doc}:{at} example fails ruff: {verdict.strip()}")
+    return fails, []
+
+
 CHECKS = (
     check_docs_match_templates,
     check_skill_frontmatter,
@@ -457,6 +526,7 @@ CHECKS = (
     check_shipped_workflows_documented,
     check_document_integrity,
     check_paragraph_length,
+    check_doc_examples,
 )
 
 

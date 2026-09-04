@@ -7,6 +7,9 @@ here can fire in a scaffolded integration, so nothing here ships to one.
 import importlib.util
 import json
 import pathlib
+import shutil
+
+import pytest
 
 _SCRIPTS = pathlib.Path(__file__).resolve().parents[1] / "scripts"
 _SPEC = importlib.util.spec_from_file_location(
@@ -331,3 +334,50 @@ def test_a_wall_of_prose_is_flagged_but_a_long_list_is_not(tmp_path) -> None:
     )
     _, warns = audit.check_paragraph_length(audit.Repo(tmp_path))
     assert not any("prose run" in w for w in warns)
+
+
+def _doc_with_example(tmp_path, code: str) -> None:
+    """A skill whose one reference doc carries `code` as a fenced Python example."""
+    _skill(tmp_path, "ha-thing", "name: ha-thing\ndescription: Use when doing a thing")
+    tmpl = _templates(tmp_path)
+    (tmpl / "pyproject.toml").write_text('[tool.ruff]\ntarget-version = "py314"\n')
+    ref = tmp_path / "plugins/ha/skills/ha-thing/reference"
+    (ref / "code.md").write_text(f"# C\n\n```python\n{code}```\n")
+
+
+def test_a_doc_example_that_fails_ruff_is_named(tmp_path) -> None:
+    """Two examples shipped with syntax errors; ruff never reads Markdown, so nothing saw.
+
+    The finding carries the doc's own line number, not the line inside the block, so the
+    reader lands on the fence rather than counting from it.
+    """
+    if not shutil.which("ruff"):
+        pytest.skip("ruff is not installed")
+    _doc_with_example(tmp_path, "def f(a, ...):\n    return a\n")
+    fails, _ = audit.check_doc_examples(audit.Repo(tmp_path))
+    assert fails and all("invalid-syntax" in f for f in fails)
+    assert fails[0].startswith("plugins/ha/skills/ha-thing/reference/code.md:4 ")
+
+
+def test_a_fragment_is_not_blamed_for_what_its_file_would_supply(tmp_path) -> None:
+    """Names defined elsewhere in the file and a module docstring are not the example's."""
+    if not shutil.which("ruff"):
+        pytest.skip("ruff is not installed")
+    _doc_with_example(
+        tmp_path,
+        "async def setup(hass: HomeAssistant) -> None:\n"
+        '    """Use names the surrounding file defines."""\n'
+        "    hass.data[DOMAIN] = True\n",
+    )
+    assert audit.check_doc_examples(audit.Repo(tmp_path)) == ([], [])
+
+
+def test_without_ruff_the_examples_are_not_checked_rather_than_passed(
+    tmp_path, monkeypatch
+) -> None:
+    """A check that cannot run says so; silence here would read as a pass."""
+    monkeypatch.setattr(audit.shutil, "which", lambda _name: None)
+    _doc_with_example(tmp_path, "def f(a, ...):\n    return a\n")
+    fails, warns = audit.check_doc_examples(audit.Repo(tmp_path))
+    assert fails == []
+    assert any("NOT CHECKED" in w for w in warns)
