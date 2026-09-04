@@ -16,6 +16,9 @@
 
 [tool.ruff]
 target-version = "py314"
+# Ruff formats fenced Python inside Markdown as well; a README's examples are prose,
+# not code, and stay as written.
+extend-exclude = ["*.md"]
 
 [tool.ruff.lint]
 select = [
