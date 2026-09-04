@@ -16,17 +16,34 @@ Once per process — per-entry registration races when two entries set up in par
   ```python
   from homeassistant.components.http import StaticPathConfig
 
+
   async def async_setup(hass, config):  # once per process — no entry parallelism
       await hass.http.async_register_static_paths(
-          [StaticPathConfig("/{domain}_panel/editor.js", str(Path(__file__).parent / "panel" / "editor.js"), False)])
+          [
+              StaticPathConfig(
+                  "/{domain}_panel/editor.js",
+                  str(Path(__file__).parent / "panel" / "editor.js"),
+                  False,
+              )
+          ]
+      )
       return True
+
 
   async def _refresh_panel(hass):  # from async_setup_entry — option-gated, toggleable
       if _panel_wanted(hass) and not hass.data.get(f"{DOMAIN}_panel"):
-          hass.data[f"{DOMAIN}_panel"] = True  # claim BEFORE the await to close the parallel-setup race
-          await panel_custom.async_register_panel(hass, frontend_url_path="{domain}",
-              webcomponent_name="{domain}-panel", module_url="/{domain}_panel/editor.js",
-              sidebar_title="...", sidebar_icon="mdi:view-grid", require_admin=True)
+          hass.data[f"{DOMAIN}_panel"] = True  # claim BEFORE the await: setups race
+          await panel_custom.async_register_panel(
+              hass,
+              frontend_url_path="{domain}",
+              webcomponent_name="{domain}-panel",
+              module_url="/{domain}_panel/editor.js",
+              sidebar_title="...",
+              sidebar_icon="mdi:view-grid",
+              require_admin=True,
+          )
+
+
   # last unload: frontend.async_remove_panel(hass, "{domain}")
   ```
 
@@ -50,11 +67,12 @@ Gate-enforced: a manifest depending on `frontend`/`panel_custom` with no pin fai
 Cache-bust the module URL or a browser serves the previous panel after an update, and claim the registered flag **before** the `await` or two entries setting up in parallel both register:
 ```python
 if not hass.data.get(REGISTERED):
-    hass.data[REGISTERED] = True          # claim BEFORE the await
+    hass.data[REGISTERED] = True  # claim BEFORE the await
     integration = await async_get_integration(hass, DOMAIN)
     await panel_custom.async_register_panel(
-        hass, ...,
-        module_url=f"{PANEL_MODULE_URL}?v={integration.version}",   # or the browser caches
+        hass,
+        ...,
+        module_url=f"{PANEL_MODULE_URL}?v={integration.version}",  # or the browser caches
     )
 ```
 

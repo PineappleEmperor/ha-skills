@@ -69,6 +69,7 @@ so the gate catches a half-wired platform without anyone having to remember this
 # notify.py
 from homeassistant.components.notify import NotifyEntity
 
+
 class MyNotifyEntity(NotifyEntity):
     _attr_has_entity_name = True
     _attr_name = "Notify"
@@ -76,12 +77,14 @@ class MyNotifyEntity(NotifyEntity):
     def __init__(self, hass, device_id: str) -> None:
         self.hass = hass
         self._device_id = device_id
-        self._attr_unique_id = f"{device_id}_notify"   # per instance, not class scope
+        self._attr_unique_id = f"{device_id}_notify"  # per instance, not class scope
 
     # This is the real signature. NotifyEntity's service schema carries message and
     # title only, so there is no **kwargs and no `data` to read.
-    async def async_send_message(self, message: str, title: str | None = None) -> None:
-        ...
+    async def async_send_message(
+        self, message: str, title: str | None = None
+    ) -> None: ...
+
 
 async def async_setup_entry(hass, entry, async_add_entities):
     opts = {**entry.data, **entry.options}
@@ -94,22 +97,30 @@ async def async_setup_entry(hass, entry, async_add_entities):
 from homeassistant.components.notify.const import ATTR_DATA, ATTR_MESSAGE, ATTR_TITLE
 from homeassistant.components.notify.const import DOMAIN as NOTIFY_DOMAIN
 
-SERVICE_SCHEMA = vol.Schema({
-    vol.Required(ATTR_MESSAGE): cv.string,
-    vol.Optional(ATTR_TITLE):   cv.string,
-    vol.Optional(ATTR_DATA):    dict,
-})
+SERVICE_SCHEMA = vol.Schema(
+    {
+        vol.Required(ATTR_MESSAGE): cv.string,
+        vol.Optional(ATTR_TITLE): cv.string,
+        vol.Optional(ATTR_DATA): dict,
+    }
+)
+
 
 def make_notify_handler(hass: HomeAssistant, device_id: str):
     async def async_handle(call: ServiceCall) -> None:
         data = call.data.get(ATTR_DATA) or {}
         ...
+
     return async_handle
+
 
 # __init__.py async_setup_entry:
 if not hass.services.has_service(NOTIFY_DOMAIN, device_id):
     hass.services.async_register(
-        NOTIFY_DOMAIN, device_id, make_notify_handler(hass, device_id), schema=SERVICE_SCHEMA
+        NOTIFY_DOMAIN,
+        device_id,
+        make_notify_handler(hass, device_id),
+        schema=SERVICE_SCHEMA,
     )
 # async_unload_entry:
 if hass.services.has_service(NOTIFY_DOMAIN, device_id):
@@ -122,12 +133,14 @@ This creates `notify.{device_id}` (e.g. `notify.living_room_display`) with full 
 - Include `OptionsFlow` (not `OptionsFlowHandler` — that name is deprecated) when the integration has configurable options
 - Implement `async_step_reauth` for expired/invalid auth (Silver requirement)
 - Implement `async_step_reconfigure` for changing connection settings (Gold requirement)
-- `vol.Schema` — align into three columns: key | `default=` | type:
+- `vol.Schema` — one entry per line, exactly as `ruff format` leaves it (the shipped format check rejects hand-aligned columns):
   ```python
-  DATA_SCHEMA = vol.Schema({
-      vol.Required(CONF_HOST,  default="192.168.1.1"): str,
-      vol.Required(CONF_PORT,  default=8080):          int,
-  })
+  DATA_SCHEMA = vol.Schema(
+      {
+          vol.Required(CONF_HOST, default="192.168.1.1"): str,
+          vol.Required(CONF_PORT, default=8080): int,
+      }
+  )
   ```
 
 ### Entity platform files
@@ -159,10 +172,16 @@ Preferred when an integration exposes many similar entities:
 class MySensorDescription(SensorEntityDescription):
     value_fn: Callable[[MyData], float]
 
+
 SENSORS: tuple[MySensorDescription, ...] = (
-    MySensorDescription(key="temperature", translation_key="temperature", value_fn=lambda d: d.temp),
-    MySensorDescription(key="humidity",    translation_key="humidity",    value_fn=lambda d: d.humidity),
+    MySensorDescription(
+        key="temperature", translation_key="temperature", value_fn=lambda d: d.temp
+    ),
+    MySensorDescription(
+        key="humidity", translation_key="humidity", value_fn=lambda d: d.humidity
+    ),
 )
+
 
 async def async_setup_entry(hass, entry, async_add_entities):
     coordinator = entry.runtime_data
@@ -237,8 +256,13 @@ from homeassistant.core import HomeAssistant
 
 TO_REDACT = {CONF_PASSWORD, CONF_API_KEY, "token"}
 
-async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigEntry) -> dict:
-    return async_redact_data({"entry": entry.as_dict(), "data": entry.runtime_data}, TO_REDACT)
+
+async def async_get_config_entry_diagnostics(
+    hass: HomeAssistant, entry: ConfigEntry
+) -> dict:
+    return async_redact_data(
+        {"entry": entry.as_dict(), "data": entry.runtime_data}, TO_REDACT
+    )
 ```
 No registration needed — HA discovers it automatically from the file name.
 
@@ -248,14 +272,17 @@ Implement `async_migrate_entry` in `__init__.py` whenever the stored `entry.data
 ```python
 # In config flow:
 class MyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    VERSION = 2        # bump for breaking changes (fails setup if no handler)
-    MINOR_VERSION = 1  # bump for backwards-compatible changes (setup continues without handler)
+    VERSION = 2  # bump for breaking changes (fails setup if no handler)
+    MINOR_VERSION = 1  # bump for compatible changes (setup continues without handler)
+
 
 # In __init__.py:
 async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if entry.version == 1:
         new_data = {**entry.data, "new_field": "default"}
-        hass.config_entries.async_update_entry(entry, data=new_data, version=2, minor_version=1)
+        hass.config_entries.async_update_entry(
+            entry, data=new_data, version=2, minor_version=1
+        )
     return True
 ```
 Major version bump without `async_migrate_entry` = setup **fails** for existing users. Always implement the handler before shipping a major bump.
@@ -299,6 +326,7 @@ it, and the shipped `pyproject.toml` enforces the ban through ruff (`TID251`).
 ### `TYPE_CHECKING` for expensive or circular imports
 ```python
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 ```
