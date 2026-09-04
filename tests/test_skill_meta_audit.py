@@ -278,6 +278,29 @@ def test_an_emptied_document_fails(tmp_path) -> None:
     assert not any("is empty" in f for f in fails)
 
 
+def test_blank_runs_inside_a_code_fence_are_code(tmp_path) -> None:
+    """The formatter puts two blank lines between top-level defs; in a fence that is code."""
+    _skill(
+        tmp_path,
+        "ha-thing",
+        "name: ha-thing\ndescription: Use when doing a thing",
+        body="See `reference/code.md`.\n",
+    )
+    ref = tmp_path / "plugins/ha/skills/ha-thing/reference"
+    ref.mkdir(exist_ok=True)
+
+    (ref / "code.md").write_text(
+        "# C\n\n```python\nimport re\n\n\ndef f():\n    return re\n```\n"
+    )
+    fails, _ = audit.check_document_integrity(audit.Repo(tmp_path))
+    assert not any("blank run" in f for f in fails)
+
+    # Outside a fence the same two blank lines are still debris.
+    (ref / "code.md").write_text("# C\n\ntext\n\n\nmore\n")
+    fails, _ = audit.check_document_integrity(audit.Repo(tmp_path))
+    assert any("blank run" in f for f in fails)
+
+
 def test_a_wall_of_prose_is_flagged_but_a_long_list_is_not(tmp_path) -> None:
     """The first version counted blocks, so a 60-item bullet list read as one paragraph.
 

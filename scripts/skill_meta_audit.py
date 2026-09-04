@@ -319,11 +319,13 @@ def check_document_integrity(repo: Repo) -> Result:
                 if line.startswith("- ")
             ]
             fenced = False
+            code: set[int] = set()
             for i, line in enumerate(lines):
                 if line.lstrip().startswith("```"):
                     fenced = not fenced
                     continue
                 if fenced:
+                    code.add(i)
                     continue
                 # a heading whose section has no body
                 if re.match(r"^#{2,3} ", line):
@@ -374,10 +376,13 @@ def check_document_integrity(repo: Repo) -> Result:
                 ]
             # One blank line separates blocks; two is always debris — usually where a block
             # was deleted. The old threshold was four, which let every real case through.
+            # Inside a code fence the rule is the formatter's, not this one's: ruff puts
+            # two blank lines between top-level definitions, and the examples are formatted.
             fails += [
                 f"{rel}:{j + 1} blank run"
                 for j in range(len(lines) - 1)
-                if not lines[j].strip()
+                if j not in code
+                and not lines[j].strip()
                 and not lines[j + 1].strip()
                 and (j == 0 or lines[j - 1].strip())
             ]
