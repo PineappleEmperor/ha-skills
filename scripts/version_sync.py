@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 """Check that every copy of the Python version agrees.
 
-The Python version an integration targets is written in four places, each read by a
-different tool: the CI workflow, ruff, pyright, and (indirectly) the pinned
-`pytest-homeassistant-custom-component`, which hard-pins the Home Assistant release the
-suite runs against. Nothing compared them, so a bump in one place left the others behind
-and CI stayed green while linting a version nobody runs.
+The Python version an integration targets is written in several places, each read by a
+different tool: every workflow that sets up Python, ruff, pyright, and (indirectly) the
+pinned `pytest-homeassistant-custom-component`, which hard-pins the Home Assistant release
+the suite runs against. Nothing compared them, so a bump in one place left the others
+behind and CI stayed green while linting a version nobody runs; later, one workflow lagging
+a bump ran the shipped scripts on an interpreter that rejected their syntax.
 
 `requirements.test.txt` is the source: it names the HA release. Everything else derives
-from it and is checked against the workflow's `python-version`.
+from it, and every declaration is compared with every other.
 """
 
 import argparse
@@ -86,8 +87,9 @@ def thin(root: pathlib.Path) -> list[str]:
     """Warnings: the check ran but had little or nothing to compare.
 
     A single declaration cannot disagree with anything, so printing "versions agree" is a
-    green tick for work not done. An integration is expected to declare all three; a repo
-    that only runs pytest legitimately declares one, so this warns rather than fails.
+    green tick for work not done. An integration is expected to declare it in every
+    workflow that sets up Python, in ruff and in pyright; a repo that only runs pytest
+    legitimately declares one, so this warns rather than fails.
     """
     found = collect(root)
     missing = [k for k, v in found.items() if v is None]
