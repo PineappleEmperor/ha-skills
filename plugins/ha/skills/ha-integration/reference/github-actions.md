@@ -181,7 +181,9 @@ it.
 and pytest, all on HA's floor Python. The whole repo is linted, not the integration alone:
 the copied `scripts/` and `tests/` are held to the same rules, and are clean under them as
 shipped. No matrix, deliberately: a single-value matrix renames the check-run out of the
-ruleset. Keep the Python version in lockstep with `pyproject.toml` and `pyrightconfig.json`.
+ruleset. Its `python-version` is one of the declarations `version_sync.py` compares: every
+workflow that sets up Python, ruff's `target-version` and `pyrightconfig.json`; a bump moves
+all of them in one commit, per the adaptations table above.
 The pytest step fails on a red test, warns when `tests/` is absent so a fresh scaffold is loud
 rather than silently green, and hard-fails when `tests/` exists without
 `requirements.test.txt` — that combination means the suite was never installed.
