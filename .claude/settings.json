@@ -44,6 +44,10 @@
           },
           {
             "type": "command",
+            "command": "bash -c 'echo \"[review-before-push] Before handing over any push, run a context-free reviewer subagent over the diff since the last pushed commit with a fixed brief: the backlog rows as the claims to verify, the twins/YAML-equality/subject/attribution invariants, discrepancies only with file:line. Self-review found none of the seven the reviewer found on 2026-09-04. Its findings become backlog rows before they become fixes. Prose has one source: state a fact once and point to it elsewhere; a restatement found is deleted, not synced.\"'"
+          },
+          {
+            "type": "command",
             "command": "bash -c 'echo \"[read-the-file] READ THE FILES YOU ARE WORKING ON, IN FULL, BEFORE SAYING ANYTHING ABOUT THEM. Not a slice, not a chunk, not the first 120 lines — the whole file. A search LOCATES; it does not VERIFY, and an empty result is not evidence a thing is fixed; that mistake shipped a defect as resolved here twice. Shell grep/rg/ag/ack is BLOCKED, and a python or awk line-scanner over source is the same thing wearing a hat — also banned. Filtering structured DATA with jq is fine; scanning SOURCE is not. If you catch yourself sampling a file to confirm a hunch, stop and open it.\"'"
           }
         ]
