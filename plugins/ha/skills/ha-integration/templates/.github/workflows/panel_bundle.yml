@@ -43,8 +43,8 @@ jobs:
           persist-credentials: false
 
       # The path filter names this file, so the one run a repo with no panel ever sees
-      # is the one that lands the workflow — and that run died at the cache step above
-      # on a lock file that does not exist. Every step below is gated on the panel's
+      # is the one that lands the workflow — and that run died at setup-node's cache step
+      # below, on a lock file that does not exist. Every step below is gated on the panel's
       # manifest; a job-level `if` cannot see files, a step-level one can.
       - name: Nothing to check without a panel
         if: hashFiles('frontend/package.json') == ''
