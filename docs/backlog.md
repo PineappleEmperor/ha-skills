@@ -8,10 +8,22 @@ Status: `open` · `fixed` (with commit) · `wontfix` (with reason).
 
 ## Open
 
-Open: row 89. Every other row from 73 up is cleared below, with its commit; rows 1-72 are
-cleared under *Fixed*. The testbed cycle that proved rows 85, 92 and 95 ran end to end on
-2026-09-04: draft PR, eight required contexts, merge, rc publish, final publish, asset,
-notes and draft cleanup.
+Open: rows 89, 98 and 99. Every other row from 73 up is cleared below, with its commit;
+rows 1-72 are cleared under *Fixed*. The testbed cycle that proved rows 85, 92 and 95 ran
+end to end on 2026-09-04: draft PR, eight required contexts, merge, rc publish, final
+publish, asset, notes and draft cleanup.
+
+### From the CI contract of 2026-08-21, reconciled 2026-09-04
+
+The contract's gap list lived outside this repo, and the CI plan of 2026-08-31 was built
+from this file alone, so its item 8 was never planned and the copy model it replaces was
+audited and fixed for three days instead. Everything still outstanding from that list is
+here now, so there is one list.
+
+| # | Finding | Fix | Commit |
+|---|---|---|---|
+| 98 | **Workflow bodies do not propagate to scaffolds.** Dependabot bumps the action pins inside a copied workflow and never its body, so the setup-python step of row 84, the panel guard of row 85 and every future change reach a scaffold only by hand-copying the templates, as `ha-ci-testing` #12 and #13 did. Contract item 8, agreed 2026-08-21, is the design: each shipped workflow lives once, in this repo's `.github/workflows/`, and a scaffold's file is a one-line pointer at it pinned by SHA with a version comment, which Dependabot bumps like an action, so a release here reaches every scaffold as its weekly grouped PR. The body checks this repo out at its own SHA to run `scripts/`, so scripts and their tests stop being copied too; `patch_twins`, the byte-identical checks and `check_self_diff` go with them. Secrets are passed by name to the one workflow that needs one, never inherited. This repo does not run the integration workflows itself: it is not an integration, it keeps its own small set, and the testbed remains where a shipped workflow is proven. Job names change to caller / job, so `ruleset.json` changes once. What a scaffold still copies, the pointer files, `dependabot.yml`, the drafter config, `ruleset.json`, the commit hook, the `CLAUDE.md` snippet, `pyproject.toml`, `conftest.py`, `requirements.test.txt`, is checked by the audit against the templates at the pinned SHA and named on drift. The audit itself narrows to the integration and the repo's GitHub side. Proof: the testbed cycle, then one Dependabot bump observed landing, then the two panel repos migrated as the first real consumers | open | — |
+| 99 | **Skill prose outside `reference/` may still describe the copy model.** Contract item 13. `SKILL.md`, `README.md` and `docs/` were not re-read after the tag-driven and, once row 98 lands, the pointer-based delivery. One read, one list of restatements to delete rather than sync | open | — |
 
 ### From the independent review of rows 84-90 (2026-09-04)
 
