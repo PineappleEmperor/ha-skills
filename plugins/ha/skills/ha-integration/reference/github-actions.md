@@ -215,7 +215,18 @@ Anything that classifies, compares or computes belongs in `scripts/`, where it h
 If a change to a workflow needs a `case`, a loop or a regex, write it in Python and call it
 from the step.
 
+**A shipped workflow is untested until a scaffold has run it.** Every check in the skill repo
+reads a workflow file — placeholders, pins, interpolation, equality with the copy — and none
+runs one; the skill repo's own CI runs only the workflows it carries. `panel_bundle.yml` was
+written, edited eight times and released without one execution, and failed on its first. A
+change to anything under `templates/.github/workflows/` is not done until a sync PR on the
+testbed integration has run it green.
+
 ## Superseded — do not reinstate
+
+`frontend_build.yml` is superseded by `panel_bundle.yml`, which drops the bundle-freshness
+gate that blocked merges over a build artefact; `release.yml` rebuilds the bundle before
+packing the zip. `skill_audit.py` fails a repo still carrying the old file.
 
 `create-dev-pr.yml` auto-opened a draft PR on every push to a non-main branch. Four problems,
 the first fatal: it **cannot serve fork-based contributions**, since a `push` workflow never

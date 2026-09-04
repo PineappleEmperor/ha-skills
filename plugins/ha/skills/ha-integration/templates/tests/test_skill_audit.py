@@ -39,6 +39,31 @@ def test_missing_canonical_workflows_are_listed(repo) -> None:
     assert any(".gitignore" in f for f in fails)
 
 
+def test_a_panel_repo_must_carry_the_panel_workflow(repo) -> None:
+    """`frontend/` without `panel_bundle.yml` leaves the panel's TypeScript unchecked.
+
+    The workflow was never required, so the two real panel repos sat on its superseded
+    predecessor with nothing objecting.
+    """
+    (repo / "frontend").mkdir()
+    (repo / "frontend/package.json").write_text("{}")
+    fails, _ = audit.check_canonical_files(audit.Repo(repo))
+    assert any("panel_bundle.yml" in f and "frontend/" in f for f in fails)
+
+
+def test_a_repo_without_a_panel_is_not_asked_for_the_panel_workflow(repo) -> None:
+    """On a repo with no `frontend/` the workflow's own first run fails; never demand it."""
+    fails, _ = audit.check_canonical_files(audit.Repo(repo))
+    assert not any("panel_bundle.yml" in f for f in fails)
+
+
+def test_the_superseded_frontend_workflow_is_refused(repo) -> None:
+    """`frontend_build.yml` gated merges on a build artefact; `panel_bundle.yml` replaced it."""
+    (repo / ".github/workflows/frontend_build.yml").write_text("name: old\n")
+    fails, _ = audit.check_canonical_files(audit.Repo(repo))
+    assert any("frontend_build.yml" in f and "panel_bundle.yml" in f for f in fails)
+
+
 def test_bare_tag_pins_fail(repo) -> None:
     """A tag can be repointed at new code that runs with the workflow's token."""
     _wf(repo, "a.yml", "jobs:\n  x:\n    steps:\n      - uses: actions/checkout@v7\n")

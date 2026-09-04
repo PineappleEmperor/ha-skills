@@ -89,7 +89,11 @@ What to ask, what to generate, and the conventions the generated code follows. R
 **The CI stack — copy whole, do not author.** Missing files here are ~13 separate audit
 failures on the first run, so this is not an optional last step:
 
-- `.github/workflows/` — all twelve of `templates/.github/workflows/`
+- `.github/workflows/` — eleven of the twelve in `templates/.github/workflows/`. The
+  twelfth, `panel_bundle.yml`, belongs only to an integration that serves a panel and is
+  copied with `frontend/` per `reference/panels.md`; on a repo with no `frontend/` its own
+  first run fails. `skill_audit.py` requires it once `frontend/` exists and fails the
+  superseded `frontend_build.yml`
 - `.github/dependabot.yml` and `.github/release-drafter.yml`
 - `scripts/` — all of `templates/scripts/`; `skill_audit.py` fails a repo missing any of
   `manifest_gate.py`, `commit_summary.py`, `release_notes.py`, `check_release_notes.py`,

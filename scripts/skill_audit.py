@@ -195,6 +195,21 @@ def check_canonical_files(repo: Repo) -> Result:
             for w in INTEGRATION_ONLY
             if not repo.exists(f".github/workflows/{w}.yml")
         ]
+    # Panel repos only: on a repo with no frontend/ the workflow's own first run fails,
+    # and nothing required it on the repos that have one, so both real panel repos sat
+    # on the superseded frontend_build.yml with nothing objecting.
+    if repo.exists("frontend/package.json") and not repo.exists(
+        ".github/workflows/panel_bundle.yml"
+    ):
+        fails.append(
+            "missing .github/workflows/panel_bundle.yml (frontend/ exists, so the panel's "
+            "TypeScript is checked by nothing)"
+        )
+    if repo.exists(".github/workflows/frontend_build.yml"):
+        fails.append(
+            "frontend_build.yml is superseded by panel_bundle.yml (it gated merges on a "
+            "build artefact; release.yml rebuilds the bundle before packing the zip)"
+        )
     for f, why in (
         (".github/release-drafter.yml", ""),
         (".github/dependabot.yml", ""),
