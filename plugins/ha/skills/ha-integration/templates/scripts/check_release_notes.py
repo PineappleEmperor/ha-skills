@@ -47,7 +47,8 @@ def check(notes: str, version: str | None = None) -> list[str]:
         ):
             problems.append(
                 f"{version} is a major release with no Breaking Changes section; "
-                "mark the breaking commit `type!:`, not just the PR title")
+                "mark the breaking commit `type!:`, not just the PR title"
+            )
     # The empty-range sentinel on a published release. release_notes.py emits it when
     # `PREV..HEAD` holds no commits, which happens when PREV resolved to the release
     # being written. v7.2.0 published a 25-character body over a range of nine commits,
@@ -55,12 +56,15 @@ def check(notes: str, version: str | None = None) -> list[str]:
     if notes.strip() == "_No user-facing changes._":
         problems.append(
             "release body is the empty-range sentinel; the previous tag resolved to the "
-            "release being written, so the whole changelog was dropped")
+            "release being written, so the whole changelog was dropped"
+        )
 
     # The placeholder a draft is created with. Publishing a draft that no push has
     # updated ships this verbatim.
     if notes.strip() in {"", "pending"}:
-        problems.append("release body is the draft placeholder; no push ever wrote notes to it")
+        problems.append(
+            "release body is the draft placeholder; no push ever wrote notes to it"
+        )
 
     # release-drafter's own body, one line per PR with an @author. The drafter owns
     # the draft and its version; the type-grouped body is written over the top in a
@@ -69,7 +73,8 @@ def check(notes: str, version: str | None = None) -> list[str]:
     if any(ENTRY.match(line.strip()) for line in notes.splitlines()):
         problems.append(
             "release body is release-drafter's PR-per-line output; the type-grouped "
-            "generator never overwrote it")
+            "generator never overwrote it"
+        )
 
     # A bullet repeating the section heading it sits under. This shipped for two
     # versions because the design note called the case "rare" and nobody measured
@@ -93,13 +98,17 @@ def main() -> int:
     src = ap.add_mutually_exclusive_group(required=True)
     src.add_argument("--tag", help="release tag to fetch with gh")
     src.add_argument("--file", help="local markdown file")
-    ap.add_argument("--version", help="version being released, to check major/breaking agreement")
+    ap.add_argument(
+        "--version", help="version being released, to check major/breaking agreement"
+    )
     args = ap.parse_args()
 
     if args.tag:
         out = subprocess.run(
             ["gh", "release", "view", args.tag, "--json", "body", "--jq", ".body"],
-            capture_output=True, text=True, check=False,
+            capture_output=True,
+            text=True,
+            check=False,
         )
         if out.returncode:
             sys.exit(f"could not read release {args.tag}: {out.stderr.strip()}")
@@ -114,7 +123,9 @@ def main() -> int:
         return 0
     for p in problems:
         print(f"::error::{p}")
-    print(f"\n{len(problems)} problem(s). The notes are what users read; fix them before publishing.")
+    print(
+        f"\n{len(problems)} problem(s). The notes are what users read; fix them before publishing."
+    )
     return 1
 
 

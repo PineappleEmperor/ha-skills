@@ -9,7 +9,9 @@ import json
 import pathlib
 
 _SCRIPTS = pathlib.Path(__file__).resolve().parents[1] / "scripts"
-_SPEC = importlib.util.spec_from_file_location("skill_meta_audit", _SCRIPTS / "skill_meta_audit.py")
+_SPEC = importlib.util.spec_from_file_location(
+    "skill_meta_audit", _SCRIPTS / "skill_meta_audit.py"
+)
 audit = importlib.util.module_from_spec(_SPEC)
 assert _SPEC.loader is not None
 _SPEC.loader.exec_module(audit)
@@ -31,7 +33,8 @@ def test_docs_naming_a_dead_job_fails(tmp_path) -> None:
     (skill / "SKILL.md").write_text("the `pr-checks.yml` workflow runs on every PR\n")
     (skill / "reference/github-actions.md").write_text(
         "| Job | `needs:` | Does |\n|---|---|---|\n"
-        "| `label` | — | labels |\n| `commit-summary` | — | writes the body |\n")
+        "| `label` | — | labels |\n| `commit-summary` | — | writes the body |\n"
+    )
 
     fails, _ = audit.check_docs_match_templates(audit.Repo(tmp_path))
     assert any("commit-summary" in f for f in fails)
@@ -51,7 +54,8 @@ def test_docs_may_name_a_workflow_that_is_gone(tmp_path) -> None:
     (skill / "SKILL.md").write_text(
         "Superseded: `pr-labeler.yml` is folded into pr-checks.\n"
         "Historical note: `create-dev-pr.yml` raced the labeler.\n"
-        "Add `update_manifest_floors.yml` when the manifest carries `>=` floors.\n")
+        "Add `update_manifest_floors.yml` when the manifest carries `>=` floors.\n"
+    )
     (skill / "reference/github-actions.md").write_text("")
     assert audit.check_docs_match_templates(audit.Repo(tmp_path)) == ([], [])
 
@@ -65,7 +69,11 @@ def test_skill_without_a_name_field_fails(tmp_path) -> None:
 
 def test_description_summarising_the_skill_fails(tmp_path) -> None:
     """A description that says what the skill does gets followed instead of the skill."""
-    _skill(tmp_path, "ha-thing", "name: ha-thing\ndescription: Material 3 type scale and tokens")
+    _skill(
+        tmp_path,
+        "ha-thing",
+        "name: ha-thing\ndescription: Material 3 type scale and tokens",
+    )
     fails, _ = audit.check_skill_frontmatter(audit.Repo(tmp_path))
     assert any("must start with 'Use when'" in f for f in fails)
 
@@ -79,8 +87,12 @@ def test_name_must_match_its_directory(tmp_path) -> None:
 
 def test_valid_frontmatter_passes_and_size_only_warns(tmp_path) -> None:
     """Well-formed frontmatter passes; an oversized body is advice, not a failure."""
-    _skill(tmp_path, "ha-thing", "name: ha-thing\ndescription: Use when doing a thing",
-           body="word " * 5001)
+    _skill(
+        tmp_path,
+        "ha-thing",
+        "name: ha-thing\ndescription: Use when doing a thing",
+        body="word " * 5001,
+    )
     fails, warns = audit.check_skill_frontmatter(audit.Repo(tmp_path))
     assert fails == []
     assert any("move heavy sections" in w for w in warns)
@@ -88,16 +100,24 @@ def test_valid_frontmatter_passes_and_size_only_warns(tmp_path) -> None:
 
 def test_reference_link_to_a_missing_file_fails(tmp_path) -> None:
     """A renamed reference file leaves the router pointing at nothing."""
-    _skill(tmp_path, "ha-thing", "name: ha-thing\ndescription: Use when doing a thing",
-           body="Read [scaffold](reference/scaffold.md) first.\n")
+    _skill(
+        tmp_path,
+        "ha-thing",
+        "name: ha-thing\ndescription: Use when doing a thing",
+        body="Read [scaffold](reference/scaffold.md) first.\n",
+    )
     fails, _ = audit.check_reference_links(audit.Repo(tmp_path))
     assert any("links reference/scaffold.md" in f for f in fails)
 
 
 def test_orphan_reference_file_fails(tmp_path) -> None:
     """A reference file nothing links to is never read again."""
-    _skill(tmp_path, "ha-thing", "name: ha-thing\ndescription: Use when doing a thing",
-           body="No links here.\n")
+    _skill(
+        tmp_path,
+        "ha-thing",
+        "name: ha-thing\ndescription: Use when doing a thing",
+        body="No links here.\n",
+    )
     ref = tmp_path / "plugins/ha/skills/ha-thing/reference"
     ref.mkdir()
     (ref / "orphan.md").write_text("content\n")
@@ -107,8 +127,12 @@ def test_orphan_reference_file_fails(tmp_path) -> None:
 
 def test_backticked_reference_counts_as_a_link(tmp_path) -> None:
     """The skill cites some references in backticks rather than as markdown links."""
-    _skill(tmp_path, "ha-thing", "name: ha-thing\ndescription: Use when doing a thing",
-           body="See `reference/patterns.md` for the rules.\n")
+    _skill(
+        tmp_path,
+        "ha-thing",
+        "name: ha-thing\ndescription: Use when doing a thing",
+        body="See `reference/patterns.md` for the rules.\n",
+    )
     ref = tmp_path / "plugins/ha/skills/ha-thing/reference"
     ref.mkdir()
     (ref / "patterns.md").write_text("content\n")
@@ -150,17 +174,34 @@ def _templates(root, ruleset_contexts=(), workflows=()):
     (t / ".github/workflows").mkdir(parents=True)
     for w in workflows:
         (t / ".github/workflows" / w).write_text("jobs: {}\n")
-    (t / "ruleset.json").write_text(json.dumps({"rules": [
-        {"type": "required_status_checks", "parameters": {
-            "required_status_checks": [{"context": c} for c in ruleset_contexts]}}]}))
+    (t / "ruleset.json").write_text(
+        json.dumps(
+            {
+                "rules": [
+                    {
+                        "type": "required_status_checks",
+                        "parameters": {
+                            "required_status_checks": [
+                                {"context": c} for c in ruleset_contexts
+                            ]
+                        },
+                    }
+                ]
+            }
+        )
+    )
     (root / "plugins/ha/skills/ha-thing/reference").mkdir(parents=True, exist_ok=True)
     return t
 
 
 def test_a_pointer_to_a_moved_section_fails(tmp_path) -> None:
     """The exact defect: "*Merge discipline* in `SKILL.md`" after it moved to discipline.md."""
-    _skill(tmp_path, "ha-thing", "name: ha-thing\ndescription: Use when doing a thing",
-           body="The full rule is *Merge discipline* in `reference/discipline.md`.\n")
+    _skill(
+        tmp_path,
+        "ha-thing",
+        "name: ha-thing\ndescription: Use when doing a thing",
+        body="The full rule is *Merge discipline* in `reference/discipline.md`.\n",
+    )
     ref = tmp_path / "plugins/ha/skills/ha-thing/reference"
     ref.mkdir(exist_ok=True)
     (ref / "discipline.md").write_text("# Something else\n\ntext\n")
@@ -186,7 +227,9 @@ def test_a_wrong_context_count_fails(tmp_path) -> None:
     _skill(tmp_path, "ha-thing", "name: ha-thing\ndescription: Use when doing a thing")
     _templates(tmp_path, ruleset_contexts=("A", "B"))
     ref = tmp_path / "plugins/ha/skills/ha-thing/reference"
-    (ref / "github-setup.md").write_text("`A` and `B`. It requires the nine job-name contexts.\n")
+    (ref / "github-setup.md").write_text(
+        "`A` and `B`. It requires the nine job-name contexts.\n"
+    )
     fails, _ = audit.check_required_contexts_documented(audit.Repo(tmp_path))
     assert any("claim nine required contexts" in f for f in fails)
 
@@ -211,8 +254,12 @@ def test_an_emptied_document_fails(tmp_path) -> None:
     a document with its content removed. Found by emptying each governing doc in turn and
     watching which ones the audit noticed; `audit.md` was the one it did not.
     """
-    _skill(tmp_path, "ha-thing", "name: ha-thing\ndescription: Use when doing a thing",
-           body="See `reference/gutted.md`.\n")
+    _skill(
+        tmp_path,
+        "ha-thing",
+        "name: ha-thing\ndescription: Use when doing a thing",
+        body="See `reference/gutted.md`.\n",
+    )
     ref = tmp_path / "plugins/ha/skills/ha-thing/reference"
     ref.mkdir(exist_ok=True)
 
@@ -242,15 +289,22 @@ def test_a_wall_of_prose_is_flagged_but_a_long_list_is_not(tmp_path) -> None:
     ref = tmp_path / "plugins/ha/skills/ha-thing/reference"
     ref.mkdir(exist_ok=True)
 
-    (ref / "wall.md").write_text("# W\n\n" + "sentence words here about a rule " * 45 + "\n")
+    (ref / "wall.md").write_text(
+        "# W\n\n" + "sentence words here about a rule " * 45 + "\n"
+    )
     _, warns = audit.check_paragraph_length(audit.Repo(tmp_path))
     assert any("prose run" in w for w in warns)
 
-    (ref / "wall.md").write_text("# W\n\n" + "\n".join(
-        f"- item {i} with several words in it" for i in range(60)) + "\n")
+    (ref / "wall.md").write_text(
+        "# W\n\n"
+        + "\n".join(f"- item {i} with several words in it" for i in range(60))
+        + "\n"
+    )
     _, warns = audit.check_paragraph_length(audit.Repo(tmp_path))
     assert not any("prose run" in w for w in warns)
 
-    (ref / "wall.md").write_text("# W\n\n```python\n" + "x = 1  # a comment with words\n" * 60 + "```\n")
+    (ref / "wall.md").write_text(
+        "# W\n\n```python\n" + "x = 1  # a comment with words\n" * 60 + "```\n"
+    )
     _, warns = audit.check_paragraph_length(audit.Repo(tmp_path))
     assert not any("prose run" in w for w in warns)

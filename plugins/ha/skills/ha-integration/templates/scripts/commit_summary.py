@@ -14,7 +14,9 @@ import pathlib
 import re
 import sys
 
-TYPE = re.compile(r"^(?P<type>[a-zA-Z]+)(\((?P<scope>[^)]*)\))?(?P<bang>!)?:\s*(?P<desc>.*)$")
+TYPE = re.compile(
+    r"^(?P<type>[a-zA-Z]+)(\((?P<scope>[^)]*)\))?(?P<bang>!)?:\s*(?P<desc>.*)$"
+)
 
 # Types the release-drafter autolabeler folds into `chore` -> 🧰 Maintenance.
 MAINT = frozenset({"chore", "docs", "refactor", "perf", "test", "build", "ci", "style"})
@@ -159,7 +161,9 @@ def main() -> int:
     """Print the title, label or winning group for the subjects on stdin or in a file."""
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--mode", choices=("winning", "title", "label"), default="title")
-    ap.add_argument("--subjects", default="-", help="file of commit subjects, or - for stdin")
+    ap.add_argument(
+        "--subjects", default="-", help="file of commit subjects, or - for stdin"
+    )
     args = ap.parse_args()
 
     if args.subjects == "-":

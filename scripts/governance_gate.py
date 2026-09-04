@@ -67,7 +67,9 @@ TIERS: dict[str, tuple[str, ...]] = {
     # an unreadable governing doc fails the gate OPEN, deleting one bought a keyless write.
     # Demonstrated end-to-end — a governing doc moved aside, then the search guard disarmed
     # through the live server with no key at all.
-    "docs/workflow-map.md": ("plugins/ha/skills/ha-integration/reference/discipline.md",),
+    "docs/workflow-map.md": (
+        "plugins/ha/skills/ha-integration/reference/discipline.md",
+    ),
     "plugins/ha/skills/ha-integration/reference/": (
         "plugins/ha/skills/ha-integration/reference/discipline.md",
     ),
@@ -215,7 +217,9 @@ def valid_edit_keys(rel: str, now: float | None = None) -> set[str]:
     body = _file_hash(rel)
     return {
         _edit_key_for(tier, rel, int(t // ROTATION_SECONDS), docs, body),
-        _edit_key_for(tier, rel, int((t - ROTATION_SECONDS) // ROTATION_SECONDS), docs, body),
+        _edit_key_for(
+            tier, rel, int((t - ROTATION_SECONDS) // ROTATION_SECONDS), docs, body
+        ),
     }
 
 
@@ -369,12 +373,14 @@ def _closure_hash(rel: str, name: str) -> str | None:
     try:
         source = (REPO / rel).read_text(encoding="utf-8")
         segments = _closure(source, name, rel)
-    except (OSError, GateError):
+    except OSError, GateError:
         return None
     return hashlib.sha256(_closure_text(source, segments).encode()).hexdigest()
 
 
-def _function_key_for(tier: str, rel: str, name: str, bucket: int, docs: str, body: str) -> str:
+def _function_key_for(
+    tier: str, rel: str, name: str, bucket: int, docs: str, body: str
+) -> str:
     mac = hmac.new(
         _SALT.encode(),
         f"{bucket}:{tier}:{docs}:{rel}:fn:{name}:{body}".encode(),
@@ -435,7 +441,9 @@ def get_function(path: str, name: str, receipt_key: str | None) -> str:
     try:
         source = (REPO / rel).read_text(encoding="utf-8")
     except OSError:
-        raise GateError(f"{rel} does not exist; a new file is made with get_file then patch_file") from None
+        raise GateError(
+            f"{rel} does not exist; a new file is made with get_file then patch_file"
+        ) from None
     segments = _closure(source, name, rel)
     lines = source.splitlines()
     spans = ", ".join(f"{s}-{e}" for s, e, _ in segments)
@@ -565,7 +573,9 @@ def patch_file(
         )
 
     after = _apply(before, old_string, new_string, rel)
-    if scope is not None and not _inside(before, old_string, _closure(before, scope, rel)):
+    if scope is not None and not _inside(
+        before, old_string, _closure(before, scope, rel)
+    ):
         raise GateError(
             f"old_string lies outside the text get_function returned for {scope!r} in {rel}; "
             f"read the function that contains it, or the whole file with get_file"

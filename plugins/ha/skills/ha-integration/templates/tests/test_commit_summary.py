@@ -19,6 +19,7 @@ _SPEC.loader.exec_module(cs)
 
 # --- classify ---------------------------------------------------------------
 
+
 @pytest.mark.parametrize(
     ("subject", "group", "desc"),
     [
@@ -65,6 +66,7 @@ def test_classify(subject: str, group: str, desc: str) -> None:
 
 # --- the version-bump filter (the regression that shipped) ------------------
 
+
 @pytest.mark.parametrize(
     "subject",
     [
@@ -82,7 +84,7 @@ def test_classify(subject: str, group: str, desc: str) -> None:
 )
 def test_release_plumbing_is_dropped(subject: str) -> None:
     """The manifest/plugin bump is plumbing, not a changelog entry."""
-    assert cs.group([subject, "fix: real change"]) ["maint"] == []
+    assert cs.group([subject, "fix: real change"])["maint"] == []
 
 
 @pytest.mark.parametrize(
@@ -102,6 +104,7 @@ def test_dependency_bumps_survive(subject: str) -> None:
 
 
 # --- winning (drives the title suggestion) ----------------------------------
+
 
 @pytest.mark.parametrize(
     ("subjects", "expected"),
@@ -133,6 +136,7 @@ def test_every_group_has_a_title_suggestion() -> None:
     for key in cs.ORDER:
         assert key in cs.SUGGESTIONS
 
+
 def test_title_uses_a_labellable_type_from_the_winning_commit() -> None:
     """`--mode winning` returns a changelog category, which is not a title type.
 
@@ -142,7 +146,10 @@ def test_title_uses_a_labellable_type_from_the_winning_commit() -> None:
     """
     assert cs.title_for(["docs: describe the ci"]) == "docs: describe the ci"
     assert cs.title_for(["feat: add a thing", "fix: correct it"]) == "feat: add a thing"
-    assert cs.title_for(["feat!: drop python 3.13", "docs: note it"]) == "feat!: drop python 3.13"
+    assert (
+        cs.title_for(["feat!: drop python 3.13", "docs: note it"])
+        == "feat!: drop python 3.13"
+    )
     # A type with no label of its own is Maintenance, so it is said as chore.
     assert cs.title_for(["refactor: tidy internals"]) == "chore: tidy internals"
     # A version bump is release plumbing and never the headline.

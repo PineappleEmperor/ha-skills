@@ -21,39 +21,52 @@ def test_unchanged_vs_last_release_fails() -> None:
     """A manifest equal to the last release has not been bumped."""
     assert not ok("1.1.0", "1.1.0", "1.1.0", ["fix"])
 
+
 def test_feature_minor_bump_passes() -> None:
     """A feature label earns exactly a minor bump."""
     assert ok("1.1.0", "1.1.0", "1.2.0", ["feature"])
+
 
 def test_feature_only_patch_under_bumps() -> None:
     """A feature label with only a patch bump is under-bumped."""
     assert not ok("1.1.0", "1.1.0", "1.1.1", ["feature"])
 
+
 def test_chore_rides_in_cycle_minor() -> None:  # the shipped regression
     """A chore may sit at the minor already merged this cycle."""
     assert ok("1.1.0", "1.2.0", "1.2.0", ["chore"])
+
 
 def test_chore_overbump_beyond_cycle_fails() -> None:
     """A chore may not exceed the in-cycle version on main."""
     assert not ok("1.1.0", "1.2.0", "2.0.0", ["chore"])
 
+
 def test_breaking_major_passes() -> None:
     """A breaking label earns a major bump."""
     assert ok("1.1.0", "1.2.0", "2.0.0", ["xfeat"])
+
 
 def test_prerelease_only_needs_to_differ() -> None:
     """A prerelease is not held to the label floor, only to being new."""
     assert ok("1.1.0", "1.1.0", "2.0.0rc1", ["feature"])
     assert not ok("2.0.0rc1", "2.0.0rc1", "2.0.0rc1", ["feature"])
 
-def test_final_graduates_prerelease() -> None:  # 2.0.0rc19 -> 2.0.0, even feature-labelled
+
+def test_final_graduates_prerelease() -> (
+    None
+):  # 2.0.0rc19 -> 2.0.0, even feature-labelled
     """A final that graduates its own rc line passes without a label-derived bump."""
     assert ok("2.0.0rc19", "2.0.0rc20", "2.0.0", ["feature"])
-    assert not ok("2.0.0", "2.0.0", "2.0.0", ["feature"])  # already final -> still must bump
+    assert not ok(
+        "2.0.0", "2.0.0", "2.0.0", ["feature"]
+    )  # already final -> still must bump
+
 
 def test_dependabot_exempt() -> None:
     """Dependabot PRs carry no version change and are exempt."""
     assert ok("1.1.0", "1.1.0", "1.1.0", [], dependabot=True)
+
 
 def test_no_managed_label_passes_when_changed() -> None:
     """Without a managed label the version only has to differ."""
@@ -65,6 +78,7 @@ def test_no_managed_label_passes_when_changed() -> None:
 # so the generated notes had no Breaking Changes section. The reverse ships a
 # breaking change as a minor. Neither was caught, because the version came from
 # the title and the notes came from the commits.
+
 
 def test_breaking_title_without_breaking_commit_fails() -> None:
     """A major claimed by the title with no `!` commit would major with empty notes."""
@@ -103,18 +117,30 @@ def test_dependabot_still_exempt_with_a_count() -> None:
     ok, _ = evaluate("6.5.0", "6.5.0", "6.5.1", [], dependabot=True, breaking_commits=1)
     assert ok
 
+
 def test_suggest_prints_the_version_the_labels_imply(capsys) -> None:
     """The advisory check in a tag-driven repo needs a number, not a verdict.
 
     No PR carries a bump there, so there is nothing to validate — the useful output
     is what the next release will be if this PR merges.
     """
-    assert manifest_gate.main(["--suggest", "--last-release", "0.1.0", "--labels", "feature"]) == 0
+    assert (
+        manifest_gate.main(
+            ["--suggest", "--last-release", "0.1.0", "--labels", "feature"]
+        )
+        == 0
+    )
     assert capsys.readouterr().out.strip() == "v0.2.0"
 
-    assert manifest_gate.main(["--suggest", "--last-release", "0.1.0", "--labels", "fix"]) == 0
+    assert (
+        manifest_gate.main(["--suggest", "--last-release", "0.1.0", "--labels", "fix"])
+        == 0
+    )
     assert capsys.readouterr().out.strip() == "v0.1.1"
 
     # No increment-bearing label implies no release, which is not the same as a patch.
-    assert manifest_gate.main(["--suggest", "--last-release", "0.1.0", "--labels", ""]) == 0
+    assert (
+        manifest_gate.main(["--suggest", "--last-release", "0.1.0", "--labels", ""])
+        == 0
+    )
     assert capsys.readouterr().out.strip() == "v0.1.0"

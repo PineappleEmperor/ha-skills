@@ -15,7 +15,9 @@ import pathlib
 import pytest
 
 _SCRIPTS = pathlib.Path(__file__).resolve().parents[1] / "scripts"
-_SPEC = importlib.util.spec_from_file_location("governance_gate", _SCRIPTS / "governance_gate.py")
+_SPEC = importlib.util.spec_from_file_location(
+    "governance_gate", _SCRIPTS / "governance_gate.py"
+)
 gs = importlib.util.module_from_spec(_SPEC)
 assert _SPEC.loader is not None
 _SPEC.loader.exec_module(gs)
@@ -53,7 +55,9 @@ def test_governed_and_ungoverned_paths_resolve(repo) -> None:
 def test_specific_tier_wins_over_general(monkeypatch, repo) -> None:
     """Ordering matters: a file with its own tier must not fall into the broader one."""
     monkeypatch.setattr(
-        gs, "TIERS", {"scripts/special.py": ("docs/rules.md",), "scripts/": ("docs/rules.md",)}
+        gs,
+        "TIERS",
+        {"scripts/special.py": ("docs/rules.md",), "scripts/": ("docs/rules.md",)},
     )
     assert gs.resolve_tier("scripts/special.py") == "scripts/special.py"
     assert gs.resolve_tier("scripts/other.py") == "scripts/"
@@ -65,7 +69,9 @@ def test_specific_tier_wins_over_general(monkeypatch, repo) -> None:
 def test_key_is_stable_within_a_window_and_rotates_across(repo) -> None:
     """The clock enters the key by bucket, so it holds for the window and then turns."""
     now = 10_000.0
-    assert gs.current_receipt_key("scripts/", now) == gs.current_receipt_key("scripts/", now + 1)
+    assert gs.current_receipt_key("scripts/", now) == gs.current_receipt_key(
+        "scripts/", now + 1
+    )
     assert gs.current_receipt_key("scripts/", now) != gs.current_receipt_key(
         "scripts/", now + gs.ROTATION_SECONDS
     )
@@ -148,7 +154,9 @@ def test_a_new_file_can_be_created_through_the_gate(repo) -> None:
     """Otherwise a governed directory becomes unextendable once other writers are denied."""
     docs_key = gs.current_receipt_key("scripts/")
     gs.get_file("scripts/new.py", docs_key)
-    gs.patch_file("scripts/new.py", "", "fresh = 1\n", gs.current_edit_key("scripts/new.py"))
+    gs.patch_file(
+        "scripts/new.py", "", "fresh = 1\n", gs.current_edit_key("scripts/new.py")
+    )
     assert (repo / "scripts/new.py").read_text() == "fresh = 1\n"
 
 
@@ -173,7 +181,9 @@ def test_the_report_shows_the_actual_diff(repo) -> None:
     out = gs.patch_file("scripts/t.py", "a = 1", "a = 9\nextra = 1", edit_key)
     assert "+2 -1" in out
     assert "-a = 1" in out and "+a = 9" in out and "+extra = 1" in out
-    assert "b = 2" in out, "surrounding context must be shown, not just the changed lines"
+    assert "b = 2" in out, (
+        "surrounding context must be shown, not just the changed lines"
+    )
 
 
 def test_the_report_says_so_when_nothing_changed(repo) -> None:
@@ -315,13 +325,23 @@ def test_a_function_read_returns_it_with_everything_it_uses(module) -> None:
     """
     docs_key = gs.current_receipt_key("scripts/")
     out = gs.get_function(module, "check_one", docs_key)
-    for needed in ("def check_one", "def _helper", "LIMIT = 3", "import re", "CHECKS = ("):
+    for needed in (
+        "def check_one",
+        "def _helper",
+        "LIMIT = 3",
+        "import re",
+        "CHECKS = (",
+    ):
         assert needed in out, needed
-    assert "def check_two" not in out, "an unrelated function is not part of the closure"
+    assert "def check_two" not in out, (
+        "an unrelated function is not part of the closure"
+    )
     assert gs.current_function_key(module, "check_one") in out
 
 
-def test_a_function_key_unlocks_a_patch_inside_it_and_refuses_one_outside(module) -> None:
+def test_a_function_key_unlocks_a_patch_inside_it_and_refuses_one_outside(
+    module,
+) -> None:
     """The key covers exactly the text returned; the rest of the file stays locked."""
     docs_key = gs.current_receipt_key("scripts/")
     gs.get_function(module, "check_one", docs_key)
@@ -333,7 +353,9 @@ def test_a_function_key_unlocks_a_patch_inside_it_and_refuses_one_outside(module
     assert "return _helper(repo) + 1" in (gs.REPO / module).read_text()
 
 
-def test_a_function_key_dies_with_its_closure_and_survives_unrelated_edits(module) -> None:
+def test_a_function_key_dies_with_its_closure_and_survives_unrelated_edits(
+    module,
+) -> None:
     """Bound to the closure, not the file: an edit elsewhere must not force a re-read."""
     key = gs.current_function_key(module, "check_one")
     text = (gs.REPO / module).read_text()
@@ -348,7 +370,9 @@ def test_a_patch_with_a_function_key_hands_back_a_function_key(module) -> None:
     docs_key = gs.current_receipt_key("scripts/")
     gs.get_function(module, "check_one", docs_key)
     out = gs.patch_file(
-        module, "return _helper(repo)", "return _helper(repo) + 1",
+        module,
+        "return _helper(repo)",
+        "return _helper(repo) + 1",
         gs.current_function_key(module, "check_one"),
     )
     fresh = gs.current_function_key(module, "check_one")
@@ -363,7 +387,9 @@ def test_a_fixture_named_as_a_parameter_is_part_of_the_closure(repo) -> None:
         "@pytest.fixture\ndef thing():\n    return 1\n\n\n"
         "def test_it(thing):\n    assert thing == 1\n"
     )
-    out = gs.get_function("scripts/test_x.py", "test_it", gs.current_receipt_key("scripts/"))
+    out = gs.get_function(
+        "scripts/test_x.py", "test_it", gs.current_receipt_key("scripts/")
+    )
     assert "def thing" in out
 
 
@@ -403,7 +429,9 @@ def test_a_twin_patch_lands_on_both_copies(twins) -> None:
     _, edit_key = _keys()
     out = gs.patch_twins("scripts/t.py", "a = 1", "a = 9", edit_key)
     assert (twins / "scripts/t.py").read_text().startswith("a = 9")
-    assert (twins / "scripts/t.py").read_text() == (twins / "tmpl/scripts/t.py").read_text()
+    assert (twins / "scripts/t.py").read_text() == (
+        twins / "tmpl/scripts/t.py"
+    ).read_text()
     assert "tmpl/scripts/t.py" in out
 
 
@@ -452,7 +480,9 @@ def test_every_key_carries_the_gate_id(module) -> None:
         assert f"-{gs.GATE_ID}-" in key, key
 
 
-def test_a_key_from_another_gate_is_refused_and_the_restart_is_named(monkeypatch, module) -> None:
+def test_a_key_from_another_gate_is_refused_and_the_restart_is_named(
+    monkeypatch, module
+) -> None:
     """All four key checks name the restart when the key's id is not this gate's."""
     docs_key, edit_key = _keys()
     fn_key = gs.current_function_key(module, "check_one")

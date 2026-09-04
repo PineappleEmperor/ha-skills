@@ -39,7 +39,8 @@ def collect(root: pathlib.Path) -> dict[str, str | None]:
     pyproject = _read(root / "pyproject.toml")
     m = RUFF_TARGET.search(pyproject)
     found["pyproject.toml ruff target-version"] = (
-        f"{m.group('major')}.{m.group('minor')}" if m else None)
+        f"{m.group('major')}.{m.group('minor')}" if m else None
+    )
 
     pyright = _read(root / "pyrightconfig.json")
     if pyright:
@@ -68,8 +69,10 @@ def problems(root: pathlib.Path) -> list[str]:
     # follows whatever HA published today.
     reqs = _read(root / "requirements.test.txt")
     if reqs and not PHCC.search(reqs):
-        out.append("requirements.test.txt does not pin pytest-homeassistant-custom-component "
-                   "(the suite would test against whichever HA release is current)")
+        out.append(
+            "requirements.test.txt does not pin pytest-homeassistant-custom-component "
+            "(the suite would test against whichever HA release is current)"
+        )
     return out
 
 

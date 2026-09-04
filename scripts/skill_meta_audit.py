@@ -58,12 +58,14 @@ def check_docs_match_templates(repo: Repo) -> Result:
     for wf in (tmpl / ".github/workflows").glob("*.yml"):
         try:
             data = yaml.safe_load(wf.read_text()) or {}
-        except (OSError, yaml.YAMLError):
+        except OSError, yaml.YAMLError:
             continue
         jobs |= set((data.get("jobs") or {}).keys())
 
     fails = []
-    for doc in sorted((tmpl.parent).glob("SKILL.md")) + sorted((tmpl.parent / "reference").glob("*.md")):
+    for doc in sorted((tmpl.parent).glob("SKILL.md")) + sorted(
+        (tmpl.parent / "reference").glob("*.md")
+    ):
         section = ""
         for n, line in enumerate(doc.read_text().splitlines(), 1):
             if line.startswith("#"):
@@ -74,17 +76,25 @@ def check_docs_match_templates(repo: Repo) -> Result:
             # was excusing.
             if DOCS_EXCUSED.search(line) or DOCS_EXCUSED.search(section):
                 continue
-            fails += [f"{doc.name}:{n} names a workflow that is not shipped: {name}"
-                      for name in re.findall(r"`([a-z0-9_.-]+\.yml)`", line)
-                      if name not in shipped and name not in DOCS_OPTIONAL]
+            fails += [
+                f"{doc.name}:{n} names a workflow that is not shipped: {name}"
+                for name in re.findall(r"`([a-z0-9_.-]+\.yml)`", line)
+                if name not in shipped and name not in DOCS_OPTIONAL
+            ]
             # The job table in the workflow reference, identified by its `needs:`
             # column so that a settings table elsewhere is not read as job names.
             if (
                 doc.name == "github-actions.md"
-                and (m := re.match(r"\|\s*`([a-z0-9-]+)`\s*\|\s*(?:—|`[a-z0-9-]+`)\s*\|", line))
+                and (
+                    m := re.match(
+                        r"\|\s*`([a-z0-9-]+)`\s*\|\s*(?:—|`[a-z0-9-]+`)\s*\|", line
+                    )
+                )
                 and m.group(1) not in jobs
             ):
-                fails.append(f"{doc.name}:{n} documents a job that no workflow defines: {m.group(1)}")
+                fails.append(
+                    f"{doc.name}:{n} documents a job that no workflow defines: {m.group(1)}"
+                )
     return fails, []
 
 
@@ -109,20 +119,30 @@ def check_skill_frontmatter(repo: Repo) -> Result:
         if "name" not in fields:
             fails.append(f"{skill.parent.name}/SKILL.md frontmatter has no name field")
         elif fields["name"].strip() != skill.parent.name:
-            fails.append(f"{skill.parent.name}/SKILL.md name field is {fields['name'].strip()!r}")
+            fails.append(
+                f"{skill.parent.name}/SKILL.md name field is {fields['name'].strip()!r}"
+            )
         if "description" not in fields:
-            fails.append(f"{skill.parent.name}/SKILL.md frontmatter has no description field")
+            fails.append(
+                f"{skill.parent.name}/SKILL.md frontmatter has no description field"
+            )
         elif not fields["description"].lstrip().startswith("Use when"):
-            fails.append(f"{skill.parent.name}/SKILL.md description must start with 'Use when' "
-                         "and state triggers, not what the skill does")
+            fails.append(
+                f"{skill.parent.name}/SKILL.md description must start with 'Use when' "
+                "and state triggers, not what the skill does"
+            )
         if len(fm) > 1024:
-            fails.append(f"{skill.parent.name}/SKILL.md frontmatter is {len(fm)} chars (max 1024)")
+            fails.append(
+                f"{skill.parent.name}/SKILL.md frontmatter is {len(fm)} chars (max 1024)"
+            )
         # Token budget: a skill loads in full once triggered. Past a few thousand words the
         # heavy sections belong in reference/ files, loaded only when the mode needs them.
         words = len(parts[2].split())
         if words > 5000:
-            warns.append(f"{skill.parent.name}/SKILL.md is {words} words — move heavy sections "
-                         "to reference/ files and leave pointers")
+            warns.append(
+                f"{skill.parent.name}/SKILL.md is {words} words — move heavy sections "
+                "to reference/ files and leave pointers"
+            )
     return fails, warns
 
 
@@ -139,12 +159,17 @@ def check_reference_links(repo: Repo) -> Result:
         text = skill.read_text()
         linked = set(re.findall(r"\]\((reference/[A-Za-z0-9._-]+\.md)\)", text))
         linked |= set(re.findall(r"`(reference/[A-Za-z0-9._-]+\.md)`", text))
-        fails += [f"{skill.parent.name}/SKILL.md links {target}, which does not exist"
-                  for target in sorted(linked) if not (skill.parent / target).is_file()]
+        fails += [
+            f"{skill.parent.name}/SKILL.md links {target}, which does not exist"
+            for target in sorted(linked)
+            if not (skill.parent / target).is_file()
+        ]
         if ref_dir.is_dir():
-            fails += [f"{skill.parent.name}/reference/{f.name} is linked from nothing"
-                      for f in sorted(ref_dir.glob("*.md"))
-                      if f"reference/{f.name}" not in linked]
+            fails += [
+                f"{skill.parent.name}/reference/{f.name} is linked from nothing"
+                for f in sorted(ref_dir.glob("*.md"))
+                if f"reference/{f.name}" not in linked
+            ]
     return fails, []
 
 
@@ -156,22 +181,31 @@ def check_named_sections(repo: Repo) -> Result:
     check passed throughout, because the file existed — only the section did not.
     """
     fails = []
-    ref = re.compile(r"\*([A-Z][^*\n]{3,60}?)\* in [`\[]+(?:reference/)?([A-Za-z0-9._-]+\.md)")
+    ref = re.compile(
+        r"\*([A-Z][^*\n]{3,60}?)\* in [`\[]+(?:reference/)?([A-Za-z0-9._-]+\.md)"
+    )
     for manifest in sorted(repo.root.glob("plugins/*/skills/*/SKILL.md")):
         skill = manifest.parent
         for doc in sorted(skill.rglob("*.md")):
             if "evals" in doc.parts or "templates" in doc.parts:
                 continue
             for section, target in ref.findall(doc.read_text()):
-                path = skill / "reference" / target if target != "SKILL.md" else manifest
+                path = (
+                    skill / "reference" / target if target != "SKILL.md" else manifest
+                )
                 if not path.is_file():
                     fails.append(f"{doc.name} points at {target}, which does not exist")
                     continue
-                headings = [line.lstrip("# ").strip().lower()
-                            for line in path.read_text().splitlines() if line.startswith("#")]
+                headings = [
+                    line.lstrip("# ").strip().lower()
+                    for line in path.read_text().splitlines()
+                    if line.startswith("#")
+                ]
                 if not any(section.strip().lower() in h for h in headings):
-                    fails.append(f"{doc.name} points at '{section}' in {target}, "
-                                 "which has no such heading")
+                    fails.append(
+                        f"{doc.name} points at '{section}' in {target}, "
+                        "which has no such heading"
+                    )
     return fails, []
 
 
@@ -186,18 +220,38 @@ def check_required_contexts_documented(repo: Repo) -> Result:
     if not tmpl or not (tmpl / "ruleset.json").is_file():
         return [], []
     data = json.loads((tmpl / "ruleset.json").read_text())
-    contexts = [c["context"] for r in data.get("rules", [])
-                if r.get("type") == "required_status_checks"
-                for c in r["parameters"]["required_status_checks"]]
-    prose = "".join(p.read_text() for p in sorted((tmpl.parent / "reference").glob("*.md")))
-    fails = [f"required context {c!r} is in ruleset.json but named in no reference file"
-             for c in contexts if f"`{c}`" not in prose]
+    contexts = [
+        c["context"]
+        for r in data.get("rules", [])
+        if r.get("type") == "required_status_checks"
+        for c in r["parameters"]["required_status_checks"]
+    ]
+    prose = "".join(
+        p.read_text() for p in sorted((tmpl.parent / "reference").glob("*.md"))
+    )
+    fails = [
+        f"required context {c!r} is in ruleset.json but named in no reference file"
+        for c in contexts
+        if f"`{c}`" not in prose
+    ]
     for count in re.findall(r"the (\w+) job-name contexts", prose):
-        words = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6,
-                 "seven": 7, "eight": 8, "nine": 9, "ten": 10}
+        words = {
+            "one": 1,
+            "two": 2,
+            "three": 3,
+            "four": 4,
+            "five": 5,
+            "six": 6,
+            "seven": 7,
+            "eight": 8,
+            "nine": 9,
+            "ten": 10,
+        }
         n = words.get(count.lower(), None if not count.isdigit() else int(count))
         if n is not None and n != len(contexts):
-            fails.append(f"the docs claim {count} required contexts; ruleset.json has {len(contexts)}")
+            fails.append(
+                f"the docs claim {count} required contexts; ruleset.json has {len(contexts)}"
+            )
     return fails, []
 
 
@@ -210,11 +264,17 @@ def check_shipped_workflows_documented(repo: Repo) -> Result:
     tmpl = _template_dir(repo)
     if not tmpl or not (tmpl / ".github/workflows").is_dir():
         return [], []
-    prose = "".join(p.read_text() for p in sorted((tmpl.parent / "reference").glob("*.md")))
-    missing = [w.name for w in sorted((tmpl / ".github/workflows").glob("*.yml"))
-               if w.name not in prose]
-    return [f"shipped workflow {m} is documented nowhere in reference/" for m in missing], []
-
+    prose = "".join(
+        p.read_text() for p in sorted((tmpl.parent / "reference").glob("*.md"))
+    )
+    missing = [
+        w.name
+        for w in sorted((tmpl / ".github/workflows").glob("*.yml"))
+        if w.name not in prose
+    ]
+    return [
+        f"shipped workflow {m} is documented nowhere in reference/" for m in missing
+    ], []
 
 
 def check_document_integrity(repo: Repo) -> Result:
@@ -242,14 +302,22 @@ def check_document_integrity(repo: Repo) -> Result:
             if not any(line.strip() for line in lines):
                 fails.append(f"{rel}: file is empty — delete it or restore its content")
                 continue
-            heads = [line.lstrip("# ").strip() for line in lines if re.match(r"^#{2,3} ", line)]
+            heads = [
+                line.lstrip("# ").strip()
+                for line in lines
+                if re.match(r"^#{2,3} ", line)
+            ]
             # The index is the bullet run BEFORE the first heading. Bullets after one are
             # content, and treating them as index entries flags every checklist in the set.
             first_head = next(
-                (i for i, line in enumerate(lines) if re.match(r"^#{2,3} ", line)), len(lines)
+                (i for i, line in enumerate(lines) if re.match(r"^#{2,3} ", line)),
+                len(lines),
             )
-            index = [line.lstrip("- ").strip() for line in lines[:first_head]
-                     if line.startswith("- ")]
+            index = [
+                line.lstrip("- ").strip()
+                for line in lines[:first_head]
+                if line.startswith("- ")
+            ]
             fenced = False
             for i, line in enumerate(lines):
                 if line.lstrip().startswith("```"):
@@ -259,38 +327,60 @@ def check_document_integrity(repo: Repo) -> Result:
                     continue
                 # a heading whose section has no body
                 if re.match(r"^#{2,3} ", line):
-                    nxt = next((rest for rest in lines[i + 1:] if rest.strip()), "")
+                    nxt = next((rest for rest in lines[i + 1 :] if rest.strip()), "")
                     if nxt.startswith("#") or not nxt:
-                        fails.append(f"{rel}:{i + 1} heading {line.strip('# ')!r} has no body")
+                        fails.append(
+                            f"{rel}:{i + 1} heading {line.strip('# ')!r} has no body"
+                        )
                     # A heading is a label, not the first half of a sentence its body
                     # finishes. Both halves then read wrong on their own, and the index
                     # inherits the fragment.
-                    elif line.rstrip().endswith(":") or nxt.lstrip()[:1] in ("—", "(") \
-                            or (nxt[:1].isalpha() and nxt[:1].islower()):
-                        fails.append(f"{rel}:{i + 1} heading {line.strip('# ')!r} runs on "
-                                     f"into its body: …{nxt.lstrip()[:40]!r}")
+                    elif (
+                        line.rstrip().endswith(":")
+                        or nxt.lstrip()[:1] in ("—", "(")
+                        or (nxt[:1].isalpha() and nxt[:1].islower())
+                    ):
+                        fails.append(
+                            f"{rel}:{i + 1} heading {line.strip('# ')!r} runs on "
+                            f"into its body: …{nxt.lstrip()[:40]!r}"
+                        )
                 # prose cut mid-sentence before a list or heading
-                if line.strip() and not line.startswith(("#", "-", "*", ">", "|", " ")) \
-                        and line.rstrip()[-1:] not in ".:;)`\"" :
-                    nxt = next((rest for rest in lines[i + 1:] if rest.strip()), "")
+                if (
+                    line.strip()
+                    and not line.startswith(("#", "-", "*", ">", "|", " "))
+                    and line.rstrip()[-1:] not in '.:;)`"'
+                ):
+                    nxt = next((rest for rest in lines[i + 1 :] if rest.strip()), "")
                     if nxt.startswith(("- ", "#")):
-                        fails.append(f"{rel}:{i + 1} sentence ends mid-clause: …{line.rstrip()[-40:]!r}")
+                        fails.append(
+                            f"{rel}:{i + 1} sentence ends mid-clause: …{line.rstrip()[-40:]!r}"
+                        )
             # Only judge a bullet run that IS an index: most of its entries match headings.
             # A run of reference links or definitions matches none, and flagging those buries
             # the real finding — a stale entry left behind when a heading was renamed.
             matched = [e for e in index if e in heads]
             if index and len(matched) >= max(2, len(index) // 2):
-                fails += [f"{rel}: index lists {entry!r} but no such heading exists"
-                          for entry in index if entry not in heads]
+                fails += [
+                    f"{rel}: index lists {entry!r} but no such heading exists"
+                    for entry in index
+                    if entry not in heads
+                ]
                 # The other direction: a heading added later and never indexed. A reader who
                 # navigates by the index never learns the section is there.
-                fails += [f"{rel}: heading {head!r} is missing from the index"
-                          for head in heads if head not in index]
+                fails += [
+                    f"{rel}: heading {head!r} is missing from the index"
+                    for head in heads
+                    if head not in index
+                ]
             # One blank line separates blocks; two is always debris — usually where a block
             # was deleted. The old threshold was four, which let every real case through.
-            fails += [f"{rel}:{j + 1} blank run" for j in range(len(lines) - 1)
-                      if not lines[j].strip() and not lines[j + 1].strip()
-                      and (j == 0 or lines[j - 1].strip())]
+            fails += [
+                f"{rel}:{j + 1} blank run"
+                for j in range(len(lines) - 1)
+                if not lines[j].strip()
+                and not lines[j + 1].strip()
+                and (j == 0 or lines[j - 1].strip())
+            ]
     return fails, []
 
 
@@ -315,8 +405,10 @@ def check_paragraph_length(repo: Repo) -> Result:
             try:
                 text = doc.read_text()
             except OSError as exc:
-                warns.append(f"{doc}: unreadable ({exc.strerror}) — an audit cannot "
-                             "vouch for a file it could not open")
+                warns.append(
+                    f"{doc}: unreadable ({exc.strerror}) — an audit cannot "
+                    "vouch for a file it could not open"
+                )
                 continue
             # Measure the longest run of PROSE, not of any block. A bullet list has no
             # blank lines between items, so counting blocks flagged well-structured lists
@@ -325,15 +417,19 @@ def check_paragraph_length(repo: Repo) -> Result:
             # hides mid-paragraph and gets applied unconditionally.
             fenced = False
             run: list[str] = []
+
             def flush(run=run, doc=doc):
                 if not run:
                     return
                 words = sum(len(line.split()) for line in run)
                 if words > 200:
                     first = " ".join(" ".join(run).split())[:60]
-                    warns.append(f"{doc.relative_to(repo.root)}: {words}-word prose run — "
-                                 f"break it up ({first}...)")
+                    warns.append(
+                        f"{doc.relative_to(repo.root)}: {words}-word prose run — "
+                        f"break it up ({first}...)"
+                    )
                 run.clear()
+
             for line in text.splitlines():
                 if line.lstrip().startswith("```"):
                     fenced = not fenced
@@ -347,10 +443,16 @@ def check_paragraph_length(repo: Repo) -> Result:
     return [], warns
 
 
-CHECKS = (check_docs_match_templates, check_skill_frontmatter, check_reference_links,
-          check_named_sections, check_required_contexts_documented,
-          check_shipped_workflows_documented, check_document_integrity,
-          check_paragraph_length)
+CHECKS = (
+    check_docs_match_templates,
+    check_skill_frontmatter,
+    check_reference_links,
+    check_named_sections,
+    check_required_contexts_documented,
+    check_shipped_workflows_documented,
+    check_document_integrity,
+    check_paragraph_length,
+)
 
 
 def audit(root: pathlib.Path) -> Result:
@@ -374,7 +476,9 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.list:
         for check in CHECKS:
-            print(f"{check.__name__[len('check_'):]:26} {(check.__doc__ or '').strip().splitlines()[0]}")
+            print(
+                f"{check.__name__[len('check_') :]:26} {(check.__doc__ or '').strip().splitlines()[0]}"
+            )
         return 0
 
     fails, warns = audit(pathlib.Path(args.root))
@@ -382,7 +486,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f"⚠️  WARN: {w}")
     for f in fails:
         print(f"❌ FAIL: {f}")
-    print("skill authoring audit FAILED" if fails else "✅ skill authoring audit passed")
+    print(
+        "skill authoring audit FAILED" if fails else "✅ skill authoring audit passed"
+    )
     return 1 if fails else 0
 
 
