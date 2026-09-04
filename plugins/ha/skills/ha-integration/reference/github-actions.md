@@ -32,8 +32,8 @@ Resolve it in this order:
 
 It contains the whole stack, mirroring the target repo: `.github/workflows/*.yml`,
 `.github/dependabot.yml`, `.github/release-drafter.yml`, `scripts/*`, `tests/*`, `hooks/*`,
-`frontend/*`, plus `conftest.py`, `requirements.test.txt`, `ruleset.json` and `.gitignore` at
-the root.
+`frontend/*`, plus `conftest.py`, `pyproject.toml`, `requirements.test.txt`, `ruleset.json`
+and `.gitignore` at the root.
 
 ### If none of those find it, stop and say so
 
@@ -57,7 +57,7 @@ Any other difference is drift.
 | File | Allowed change |
 |---|---|
 | `.github/workflows/python_validate.yml` | `python-version`, **only** when HA's minimum Python has moved and the template is stale — fix the template too, and move ruff's `target-version` and `pyrightconfig.json` in the same commit or `version_sync.py` fails the repo |
-| lint/format config (`pyproject.toml`, ruff) | exclusions needed to leave copied files unformatted |
+| `pyproject.toml` | a `[project]` table carrying no version, and pytest or pyright options — never the `[tool.ruff]` tables, which are Home Assistant core's rule set and under which the shipped `scripts/` and `tests/` are already lint- and format-clean, so no exclusion is ever needed |
 | any workflow | an action pin **newer** than the template's, where Dependabot has already bumped yours — keep the newer pin and update the template |
 | `frontend/package.json` | `<domain>` and `<name>` placeholders → this integration's values |
 | `requirements.test.txt` | uncomment the `home-assistant-frontend` pin, panel repos only |
@@ -176,8 +176,11 @@ before zipping — and attaches it to the published release so HACS has an asset
 Uploads with the `gh` CLI; `actions/upload-release-asset@v1` is archived, so do not reinstate
 it.
 
-**`python_validate.yml`** + **`requirements.test.txt`** — ruff, pyright and pytest on HA's
-floor Python. No matrix, deliberately: a single-value matrix renames the check-run out of the
+**`python_validate.yml`** + **`requirements.test.txt`** — `ruff check .` and
+`ruff format --check .` under the shipped `pyproject.toml`, pyright on `custom_components/`,
+and pytest, all on HA's floor Python. The whole repo is linted, not the integration alone:
+the copied `scripts/` and `tests/` are held to the same rules, and are clean under them as
+shipped. No matrix, deliberately: a single-value matrix renames the check-run out of the
 ruleset. Keep the Python version in lockstep with `pyproject.toml` and `pyrightconfig.json`.
 The pytest step fails on a red test, warns when `tests/` is absent so a fresh scaffold is loud
 rather than silently green, and hard-fails when `tests/` exists without

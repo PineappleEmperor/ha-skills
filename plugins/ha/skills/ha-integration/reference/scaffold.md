@@ -57,9 +57,12 @@ What to ask, what to generate, and the conventions the generated code follows. R
   > **The tag is the version, not the committed manifest** — how that works, and why no PR
   > carries a bump, is `reference/versioning.md`. What matters here: `skill_audit.py` fails a
   > `zip_release` repo whose `release.yml` does not patch the manifest before zipping.
-- `pyproject.toml` — ruff/pyright config, **and `asyncio_mode = "auto"` under
-  `[tool.pytest.ini_options]`**; without it the async tests never run and `skill_audit.py`
-  fails the repo once `tests/` exists. The block to copy is in `reference/testing.md`.
+- `pyproject.toml` — copy `templates/pyproject.toml` verbatim. Its `[tool.ruff]` tables are
+  Home Assistant core's own rule set adapted for a custom integration (`google` docstrings,
+  Python 3.14, no `from __future__ import annotations`), and its pytest table carries the
+  `asyncio_mode = "auto"` without which the async tests never run and `skill_audit.py`
+  fails the repo once `tests/` exists. The shipped `scripts/` and `tests/` are lint- and
+  format-clean under those tables; a copy that relaxes them is drift.
 - `pyrightconfig.json`
 - `requirements.test.txt` — **required**; copy `templates/requirements.test.txt`. Why the pin matters, and what breaks without it: `reference/testing.md`.
 - `conftest.py` — **required, at the repo root, not in `tests/`**; copy `templates/conftest.py`. Why it must be at the root: `reference/testing.md`.
@@ -154,7 +157,7 @@ Always `domain` first, `name` second, then remaining keys alphabetically:
 
 ## Implementation patterns, file structure, typing & testing
 
-See **`reference/patterns.md`** — `__init__`/coordinator/entity/notify patterns, `entry.runtime_data`, `DeviceInfo`, the modern `NotifyEntity` path, `from __future__ import annotations` + typed-`ConfigEntry` rules, the file-split conventions, with the **mock-the-boundary** testing rules in `reference/testing.md`.
+See **`reference/patterns.md`** — `__init__`/coordinator/entity/notify patterns, `entry.runtime_data`, `DeviceInfo`, the modern `NotifyEntity` path, the typing rules (no `from __future__ import annotations`, typed `ConfigEntry`), the file-split conventions, with the **mock-the-boundary** testing rules in `reference/testing.md`.
 
 ---
 
@@ -166,7 +169,7 @@ scaffold must set up:
 - Module docstring on every file. **This one may be multi-line** — a file-level explanation of a load-bearing constraint belongs here, not demoted to a comment.
 - Short **single-line** docstrings on all public functions and classes. `skill_audit.py` fails a *multi-line* one **inside `custom_components/` only** — copied `scripts/` and `tests/` are not checked, and module docstrings are exempt. It does not check that a docstring is present at all; that part is on you.
 - No inline comments unless the WHY is genuinely non-obvious
-- ruff + pylint compliant; pyright standard mode
+- `ruff check .` and `ruff format --check .` clean under the shipped `pyproject.toml`; pyright standard mode
 
 ---
 

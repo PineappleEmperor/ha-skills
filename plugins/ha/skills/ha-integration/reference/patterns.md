@@ -20,7 +20,7 @@ snippet. Panel code is `reference/panels.md`; tests are `reference/testing.md`.
 - Config entry migration
 - File structure conventions
 - Typing
-- Always add at top of every file
+- Do not add `from __future__ import annotations`
 - `TYPE_CHECKING` for expensive or circular imports
 - Typed `ConfigEntry`
 - Avoid `# type: ignore`
@@ -39,7 +39,7 @@ snippet. Panel code is `reference/panels.md`; tests are `reference/testing.md`.
 | `` `ConfigEntry` `` mutation | options updates without a reload loop |
 | Logging | Silver `log-when-unavailable`, HA conventions |
 | Custom services | registration, schema, `services.yaml` + `strings.json` |
-| Typing | `from __future__ import annotations`, `TYPE_CHECKING` |
+| Typing | no `from __future__ import annotations`, `TYPE_CHECKING`, typed `ConfigEntry` |
 
 ### `__init__.py`
 
@@ -289,11 +289,12 @@ Split files by responsibility. Rule of thumb: if `__init__.py` exceeds ~100 line
 
 Complete, correct typing is a **Platinum requirement** — not cosmetic. It catches contract violations between platforms, coordinator data shapes, and config entry contents at development time rather than runtime. Every file must pass `python -m pyright custom_components/` with zero errors before a PR is ready. Suppressions are failures, not fixes.
 
-### Always add at top of every file
-```python
-from __future__ import annotations
-```
-Enables deferred annotation evaluation — avoids forward-reference quoting and circular import issues.
+### Do not add `from __future__ import annotations`
+
+Python 3.14, HA's floor, defers annotation evaluation natively (PEP 649), so forward
+references and `TYPE_CHECKING`-only imports work without it. The import only switches Python
+back to the older stringified behaviour, which some runtime tooling handles worse. Core bans
+it, and the shipped `pyproject.toml` enforces the ban through ruff (`TID251`).
 
 ### `TYPE_CHECKING` for expensive or circular imports
 ```python

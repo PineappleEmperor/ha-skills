@@ -30,11 +30,8 @@ The code patterns being tested are `reference/patterns.md`.
 **3. A `config_flow.py` that imports**, whenever `manifest.json` sets `"config_flow": true`.
 HA imports the flow module *during entry setup*, not only when a user opens the flow, so a manifest claiming a config flow without the module fails the setup test with `Error importing platform config_flow from integration <domain>` — which reads as a test problem and is a wiring problem. Found by running the setup test against an integration whose `__init__.py` had no `async_setup_entry` at all.
 
-```toml
-[tool.pytest.ini_options]
-asyncio_mode = "auto"
-testpaths = ["tests"]
-```
+The shipped `templates/pyproject.toml` carries that table alongside the ruff rules; copy
+the file rather than the block.
 
 No `pythonpath` entry is needed: a root conftest already puts the repo root on `sys.path`, so `pytest` works from any directory (verified with `pytest`, `python -m pytest`, and from inside `tests/`).
 
@@ -82,6 +79,6 @@ In a setup test, after `async_setup` + `async_block_till_done`, the entities may
 
 ### Standalone helper scripts
 
-A CI tool under `scripts/` trips `T201` (print) and `INP001` (implicit namespace package) — add `"scripts/*" = ["T20", "INP001"]` to ruff `per-file-ignores`. Tests legitimately reach into private members; HA core ignores `SLF001` under `tests/` — mirror that (`"tests/**" = [..., "SLF001"]`). And `result["type"]`/`["errors"]`/`["reason"]` on a flow `ConfigFlowResult` are `reportTypedDictNotRequiredAccess` under pyright — use `result.get("type")` etc. in tests.
+The shipped `pyproject.toml` already exempts `scripts/*` from `T201` (print) and `INP001` (implicit namespace package), and `tests/**` from `INP001`, `PTH` and `SLF001` — tests legitimately reach into private members, and HA core ignores that rule under its own `tests/` too. Nothing needs adding for the copied tooling; it passes `ruff check` and `ruff format --check` as shipped. And `result["type"]`/`["errors"]`/`["reason"]` on a flow `ConfigFlowResult` are `reportTypedDictNotRequiredAccess` under pyright — use `result.get("type")` etc. in tests.
 
 ---

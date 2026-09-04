@@ -108,7 +108,7 @@ Apply the same patterns and code style as a scaffold.
 
 ## Lint & quality check
 
-1. Run `ruff check custom_components/` — fix all actionable issues; suppress intentional ones with `# noqa` and a reason
+1. Run `ruff check .` and `ruff format --check .` under the shipped `pyproject.toml` — fix all actionable issues; suppress intentional ones with `# noqa` and a reason
 2. Run `python -m pyright custom_components/` — fix all actionable issues
 3. Check `quality_scale.yaml` exists; if not, offer to create it
 4. Check `manifest.json` — correct `documentation` URL pointing to the repo, keys in order (`domain`, `name`, then alphabetical)
