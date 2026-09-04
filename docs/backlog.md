@@ -8,7 +8,11 @@ Status: `open` · `fixed` (with commit) · `wontfix` (with reason).
 
 ## Open
 
-Nothing open. Rows 73-81 are cleared below; rows 1-72 are cleared under *Fixed*.
+| # | Finding | Where |
+|---|---|---|
+| 82 | **The skill ships no ruff configuration, so every integration invents its own.** `scaffold.md` lists `pyproject.toml — ruff/pyright config` among the files to generate and ships nothing to copy; `testing.md` tells a scaffold to add `per-file-ignores` that presume an extended rule set it never names; `patterns.md` cites `G004`, which ruff's defaults do not enable. Surveyed 2026-09-04: `settleup-ha`, `ocado-ha` and `ha-pimoroni-unicorn` carry HA core's `[tool.ruff]` verbatim at ruff 0.12, still naming `homeassistant` as the first-party package; `ha-lego` an explicit 27-group list of its own; `pineapple-core-ha` and `ha-immich` `select = ["ALL"]` with two different ignore lists; `hass-claude-usage` E/F/W/UP; `ha-ci-testing` only `target-version`. Each repo re-excludes the shipped `scripts/` and `tests/` by hand (`pineapple-core-ha` switches off 13 rules for them). Measured: under HA core's current config the shipped tooling has 75 findings and the testbed integration none; under `ALL`, 726. Ship `templates/pyproject.toml` as core's `[tool.ruff]` adapted for a custom integration (`target-version`, `custom_components` first-party, `voluptuous` as `vol`, core-only paths dropped, `scripts/*` exempt from `T20` and `INP001`, `tests/**` from `INP001`, `SLF001` and `PTH`), bring the shipped tooling to that bar and `ruff format` it (11 of 12 shipped files would be reformatted today), then return the template's ruff step to `ruff check .` and add the file to the scaffold list and the adaptations table. Two of core's choices need a decision first: core bans `from __future__ import annotations` on 3.14 while `patterns.md` mandates it in every file and `check_antipatterns` warns when it is absent; and core's `google` docstring convention against the `pep257` two repos chose | `reference/scaffold.md` *Repo root*, `reference/testing.md` *Standalone helper scripts*, `reference/patterns.md` *Always add at top of every file*, `templates/.github/workflows/python_validate.yml` *Ruff*, no `templates/pyproject.toml` |
+
+Rows 73-81 are cleared below; rows 1-72 are cleared under *Fixed*.
 
 ### From the gate rebuild (2026-09-03) — cleared 2026-09-04
 
