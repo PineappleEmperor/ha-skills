@@ -8,7 +8,24 @@ Status: `open` · `fixed` (with commit) · `wontfix` (with reason).
 
 ## Open
 
-Rows 73-84 are cleared below; rows 1-72 are cleared under *Fixed*.
+Open: rows 89, 92, 93, 95 and 96. Every other row from 73 up is cleared below, with its
+commit; rows 1-72 are cleared under *Fixed*.
+
+### From the independent review of rows 84-90 (2026-09-04)
+
+A reviewer with no access to the session's reasoning read the diff `724723f..HEAD` against
+the rows' claims. Seven discrepancies; the invariants (twins byte-identical, workflow copies
+YAML-equal, subjects well-formed, no attribution trailers, four mutants killed) held.
+
+| # | Finding | Fix | Commit |
+|---|---|---|---|
+| 91 | **`github-actions.md` gave two rules for one action.** The adaptations row said a Python bump moves every workflow's `python-version`; the `python_validate.yml` paragraph 120 lines down still said lockstep with `pyproject.toml` and `pyrightconfig.json` only, so a maintainer following it leaves four workflows behind and `version_sync.py` reddens the audit, the outcome row 84 claimed the docs now prevent | The paragraph now says the workflow's `python-version` is one of the declarations `version_sync.py` compares and points at the table | `2beabf5` |
+| 92 | **Nothing ties "runs a shipped script" to "sets up Python".** `version_sync.py` compares only declarations that exist, so a workflow with no setup-python step is invisible to it, and no audit check asks whether a step running `scripts/*.py` or `python3` had one. A thirteenth workflow calling `commit_summary.py` on the runner's interpreter reproduces row 84 with every check green. Live instance: `release.yml` runs a `python3 -` heredoc with no setup-python, harmless only because it imports `json` and `pathlib` | open | — |
+| 93 | **`version_sync.py`'s own docstrings still describe the single-workflow behaviour**: "four places", "the CI workflow", "checked against the workflow's `python-version`", and `thin()`'s "all three". The code compares every workflow; its documentation says one | open | — |
+| 94 | **This file's `## Open` line said rows 73-84 were cleared while a table of rows 85-90 sat under it**, five of them already cleared. A reader scanning the heading saw six open rows | The line now names the open rows and says the rest are cleared with commits | the commit carrying this row |
+| 95 | **`panel_bundle.yml`'s guard comment points the wrong way**: "the cache step above" names a step that is below it. Cosmetic, but a workflow file, so the fix needs a testbed run like any other | open | — |
+| 96 | **Commit `f18c224` carries two imperatives**, "clear rows 86 to 88 and record the stale rename", and the shipped `commit-msg` hook accepted it. The hook rejects comma-joined dual subjects and not `and`-joined ones. The commit is pushed and stays; whether the hook should catch `and` is the open question, since "add tests and docs" is one change | open | — |
+| 97 | **`workflow-map.md` items 10 and 11 were orphaned** between the rule that closes the resolved list and the `## Still open` heading, so they sat under no heading | The rule moved below them | `f3c4c5f` |
 
 ### From the testbed run (2026-09-04)
 
