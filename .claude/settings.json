@@ -65,6 +65,10 @@
           {
             "type": "command",
             "command": "python3 /home/juicebox/claude-skills/scripts/no_shell_search.py"
+          },
+          {
+            "type": "command",
+            "command": "python3 /home/juicebox/claude-skills/scripts/no_git_stash.py"
           }
         ]
       }
