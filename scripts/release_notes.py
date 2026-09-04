@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate release notes grouped by commit type, the way HACS repos do it.
+r"""Generate release notes grouped by commit type, the way HACS repos do it.
 
 release-drafter's `$CHANGES` categorises each **PR** by its single label, so a
 `fix:` commit inside a `feat:`-titled PR is filed under Features. Across a release
@@ -23,17 +23,15 @@ Output shape:
     **Full Changelog**: [v1.2.0...v1.3.0](…/compare/v1.2.0...v1.3.0)
 
 Usage:
-    release_notes.py --range v1.2.0..HEAD --repo-url https://github.com/o/r \\
+    release_notes.py --range v1.2.0..HEAD --repo-url https://github.com/o/r \
                      --previous v1.2.0 --version 1.3.0
 """
 
-from __future__ import annotations
-
 import argparse
+from pathlib import Path
 import re
 import subprocess
 import sys
-from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import commit_summary as cs  # same classifier the PR body uses
@@ -111,6 +109,7 @@ def new_contributors(github_notes: str, *, include_bots: bool = False) -> str:
 def build(rev_range: str, repo_url: str | None = None, head: str = "HEAD",
           previous: str | None = None, version: str | None = None,
           github_notes: str | None = None, include_bots: bool = False) -> str:
+    """The release body for rev_range: grouped subjects, contributors, compare link."""
     groups: dict[str, list[str]] = {k: [] for k in ORDER}
     seen: set[tuple[str, str]] = set()
 
@@ -148,6 +147,7 @@ def build(rev_range: str, repo_url: str | None = None, head: str = "HEAD",
 
 
 def main() -> int:
+    """Print the release body for the range on the command line."""
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--range", required=True, help="git revision range, e.g. v1.2.0..HEAD")
     ap.add_argument("--head", default="HEAD", help="tip used to resolve PR attribution")
@@ -162,7 +162,7 @@ def main() -> int:
     args = ap.parse_args()
     gh_notes = None
     if args.github_notes_file:
-        with open(args.github_notes_file, encoding="utf-8") as fh:
+        with Path(args.github_notes_file).open(encoding="utf-8") as fh:
             gh_notes = fh.read()
     print(build(args.range, args.repo_url, args.head, args.previous, args.version,
                 github_notes=gh_notes, include_bots=args.include_bots), end="")

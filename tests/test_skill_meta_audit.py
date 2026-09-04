@@ -4,9 +4,8 @@ These live apart from test_skill_audit.py for the same reason the scripts do: no
 here can fire in a scaffolded integration, so nothing here ships to one.
 """
 
-from __future__ import annotations
-
 import importlib.util
+import json
 import pathlib
 
 _SCRIPTS = pathlib.Path(__file__).resolve().parents[1] / "scripts"
@@ -72,12 +71,14 @@ def test_description_summarising_the_skill_fails(tmp_path) -> None:
 
 
 def test_name_must_match_its_directory(tmp_path) -> None:
+    """The name field is how a skill is invoked, so it must be the directory's name."""
     _skill(tmp_path, "ha-thing", "name: ha-other\ndescription: Use when doing a thing")
     fails, _ = audit.check_skill_frontmatter(audit.Repo(tmp_path))
     assert any("name field is 'ha-other'" in f for f in fails)
 
 
 def test_valid_frontmatter_passes_and_size_only_warns(tmp_path) -> None:
+    """Well-formed frontmatter passes; an oversized body is advice, not a failure."""
     _skill(tmp_path, "ha-thing", "name: ha-thing\ndescription: Use when doing a thing",
            body="word " * 5001)
     fails, warns = audit.check_skill_frontmatter(audit.Repo(tmp_path))
@@ -115,9 +116,11 @@ def test_backticked_reference_counts_as_a_link(tmp_path) -> None:
 
 
 def test_a_non_skill_sibling_directory_is_not_audited(tmp_path) -> None:
-    """`skills/.claude/` is tooling, not a skill — and skipping dot-paths by name would
-    hide a real skill's reference file that happened to live under one. A skill is a
-    directory with a SKILL.md."""
+    """A sibling directory with no SKILL.md is not a skill and is not judged.
+
+    Skipping dot-paths by name would instead hide a real skill's reference file that
+    happened to live under one. A skill is a directory with a SKILL.md.
+    """
     skills = tmp_path / "plugins/ha/skills"
     (skills / ".claude").mkdir(parents=True)
     (skills / ".claude/loop.md").write_text("word " * 300)
@@ -147,7 +150,6 @@ def _templates(root, ruleset_contexts=(), workflows=()):
     (t / ".github/workflows").mkdir(parents=True)
     for w in workflows:
         (t / ".github/workflows" / w).write_text("jobs: {}\n")
-    import json
     (t / "ruleset.json").write_text(json.dumps({"rules": [
         {"type": "required_status_checks", "parameters": {
             "required_status_checks": [{"context": c} for c in ruleset_contexts]}}]}))

@@ -11,8 +11,6 @@ and CI stayed green while linting a version nobody runs.
 from it and is checked against the workflow's `python-version`.
 """
 
-from __future__ import annotations
-
 import argparse
 import json
 import pathlib
@@ -96,6 +94,7 @@ def thin(root: pathlib.Path) -> list[str]:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Report disagreements and thin coverage; exit 1 on a disagreement."""
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--root", default=".", help="repository root to inspect")
     args = ap.parse_args(argv)

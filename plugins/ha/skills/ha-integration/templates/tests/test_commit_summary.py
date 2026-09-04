@@ -3,8 +3,6 @@
 Load the standalone script by path — it is not an importable package.
 """
 
-from __future__ import annotations
-
 import importlib.util
 import pathlib
 

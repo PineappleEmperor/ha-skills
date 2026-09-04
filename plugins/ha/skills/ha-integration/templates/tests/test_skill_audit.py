@@ -8,6 +8,7 @@ for weeks. Each check here is a function, so each gets its own case.
 import importlib.util
 import json
 import pathlib
+import subprocess
 
 import pytest
 
@@ -30,6 +31,7 @@ def _wf(repo, name, body):
 
 
 def test_missing_canonical_workflows_are_listed(repo) -> None:
+    """Every absent canonical file is named, not just the first."""
     fails, _ = audit.check_canonical_files(audit.Repo(repo))
     assert any("pr-checks.yml" in f for f in fails)
     assert any(".gitignore" in f for f in fails)
@@ -50,7 +52,7 @@ def test_sha_without_a_version_comment_fails(repo) -> None:
 
 
 def test_documented_mutable_refs_are_exempt(repo) -> None:
-    """hacs and hassfest each document a mutable ref; pinning stops tracking them."""
+    """HACS and hassfest each document a mutable ref; pinning stops tracking them."""
     _wf(repo, "a.yml", "jobs:\n  x:\n    steps:\n      - uses: hacs/action@main\n"
                        "      - uses: home-assistant/actions/hassfest@master\n")
     assert audit.check_action_pins(audit.Repo(repo)) == ([], [])
@@ -74,6 +76,7 @@ def test_v6_drafter_categories_fail(repo) -> None:
 
 
 def test_when_shaped_categories_pass(repo) -> None:
+    """The v7 `when:` shape is the one that matches."""
     (repo / ".github/release-drafter.yml").write_text(
         "categories:\n  - title: Features\n    semver-increment: minor\n    when:\n"
         "      labels:\n        - feature\n")
@@ -251,6 +254,7 @@ def test_platform_enum_form_is_understood(repo) -> None:
 
 
 def test_matching_platforms_pass(repo) -> None:
+    """A module beside every PLATFORMS entry is the wired state."""
     pkg = repo / "custom_components/acmedev"
     pkg.mkdir(parents=True)
     (pkg / "manifest.json").write_text('{"domain": "acmedev"}')
@@ -280,6 +284,7 @@ def test_a_required_context_no_job_produces_fails(repo) -> None:
 
 
 def test_every_required_context_produced_passes(repo) -> None:
+    """A ruleset whose every context has a producing job is the healthy state."""
     _wf(repo, "pr-checks.yml", "jobs:\n  label:\n    name: CC labelling\n    steps: []\n")
     _ruleset(repo, "CC labelling")
     assert audit.check_required_contexts_have_producers(audit.Repo(repo)) == ([], [])
@@ -402,21 +407,21 @@ def test_title_check_pinned_to_the_base_sha_fails(repo) -> None:
 
 
 def test_title_check_on_the_base_ref_passes(repo) -> None:
+    """base.ref is the base branch head, the same ref the workflow itself is loaded from."""
     _wf(repo, "pr-checks.yml", _pr_checks("base.ref"))
     assert audit.check_pr_checks_shape(audit.Repo(repo)) == ([], [])
 
 
 def _cloned_repo(tmp_path, workflow: str) -> pathlib.Path:
     """A working clone whose origin/main carries `workflow` as pr-checks.yml."""
-    import subprocess
     src = tmp_path / "src"
     (src / ".github/workflows").mkdir(parents=True)
     (src / ".github/workflows/pr-checks.yml").write_text(workflow)
     git = ["git", "-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false",
            "-c", "core.hooksPath=/dev/null"]
-    subprocess.run(git + ["init", "-q", "-b", "main"], cwd=src, check=True)
-    subprocess.run(git + ["add", "."], cwd=src, check=True)
-    subprocess.run(git + ["commit", "-q", "-m", "chore: init"], cwd=src, check=True)
+    subprocess.run([*git, "init", "-q", "-b", "main"], cwd=src, check=True)
+    subprocess.run([*git, "add", "."], cwd=src, check=True)
+    subprocess.run([*git, "commit", "-q", "-m", "chore: init"], cwd=src, check=True)
     work = tmp_path / "work"
     subprocess.run(["git", "clone", "-q", str(src), str(work)], check=True)
     return work

@@ -18,9 +18,8 @@ Usage:
     check_release_notes.py --file notes.md     # a local file
 """
 
-from __future__ import annotations
-
 import argparse
+import pathlib
 import re
 import subprocess
 import sys
@@ -89,6 +88,7 @@ def check(notes: str, version: str | None = None) -> list[str]:
 
 
 def main() -> int:
+    """Check one release body, from a tag or a file, and report every problem."""
     ap = argparse.ArgumentParser(description=__doc__)
     src = ap.add_mutually_exclusive_group(required=True)
     src.add_argument("--tag", help="release tag to fetch with gh")
@@ -105,7 +105,7 @@ def main() -> int:
             sys.exit(f"could not read release {args.tag}: {out.stderr.strip()}")
         notes = out.stdout
     else:
-        with open(args.file, encoding="utf-8") as fh:
+        with pathlib.Path(args.file).open(encoding="utf-8") as fh:
             notes = fh.read()
 
     problems = check(notes, args.tag or args.version)

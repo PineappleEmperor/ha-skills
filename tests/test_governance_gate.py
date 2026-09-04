@@ -9,8 +9,6 @@ real governing docs. The gate module is imported rather than the server, so CI, 
 only pytest and pyyaml, never needs the MCP SDK.
 """
 
-from __future__ import annotations
-
 import importlib.util
 import pathlib
 
@@ -47,6 +45,7 @@ def _keys(rel="scripts/t.py"):
 
 
 def test_governed_and_ungoverned_paths_resolve(repo) -> None:
+    """A path under a tier prefix resolves to it; anything else is ungoverned."""
     assert gs.resolve_tier("scripts/t.py") == "scripts/"
     assert gs.resolve_tier("README.md") is None
 
@@ -64,6 +63,7 @@ def test_specific_tier_wins_over_general(monkeypatch, repo) -> None:
 
 
 def test_key_is_stable_within_a_window_and_rotates_across(repo) -> None:
+    """The clock enters the key by bucket, so it holds for the window and then turns."""
     now = 10_000.0
     assert gs.current_receipt_key("scripts/", now) == gs.current_receipt_key("scripts/", now + 1)
     assert gs.current_receipt_key("scripts/", now) != gs.current_receipt_key(
@@ -87,6 +87,7 @@ def test_editing_a_governing_doc_invalidates_outstanding_keys(repo) -> None:
 
 
 def test_the_two_key_kinds_are_not_interchangeable(repo) -> None:
+    """A docs receipt proves the rules were read, not the file; it unlocks no patch."""
     docs_key, _ = _keys()
     with pytest.raises(gs.GateError):
         gs.patch_file("scripts/t.py", "a = 1", "a = 9", docs_key)
@@ -96,6 +97,7 @@ def test_the_two_key_kinds_are_not_interchangeable(repo) -> None:
 
 
 def test_reading_a_governed_file_requires_the_docs_receipt(repo) -> None:
+    """The rules are read before the file, never instead of it."""
     with pytest.raises(gs.GateError):
         gs.get_file("scripts/t.py", None)
     out = gs.get_file("scripts/t.py", gs.current_receipt_key("scripts/"))
@@ -123,6 +125,7 @@ def test_a_file_receipt_dies_when_the_file_changes(repo) -> None:
 
 
 def test_a_receipt_for_one_file_does_not_unlock_another(repo) -> None:
+    """The path is part of the key, so reading one file buys no write to its neighbour."""
     (repo / "scripts/other.py").write_text("z = 0\n")
     _, edit_key = _keys("scripts/t.py")
     with pytest.raises(gs.GateError):
@@ -158,6 +161,7 @@ def test_an_empty_old_string_will_not_clobber_an_existing_file(repo) -> None:
 
 
 def test_an_absent_old_string_is_refused(repo) -> None:
+    """No match means the caller's picture of the file is wrong; nothing is written."""
     _, edit_key = _keys()
     with pytest.raises(gs.GateError):
         gs.patch_file("scripts/t.py", "nowhere", "somewhere", edit_key)
@@ -192,6 +196,7 @@ def test_refusal_never_contains_a_key(repo) -> None:
 
 
 def test_paths_outside_the_repo_are_refused(repo) -> None:
+    """Every spelling of an escape resolves outside the repo and is refused."""
     for attempt in ("../escape.txt", "/etc/passwd", "scripts/../../escape.txt"):
         with pytest.raises(gs.GateError):
             gs.safe_relpath(attempt)
@@ -216,6 +221,7 @@ def test_ungoverned_files_are_not_writable_through_the_gate(repo) -> None:
 
 
 def test_unknown_tier_is_refused(repo) -> None:
+    """A tier nothing governs has no docs to receipt; asking for one is refused."""
     with pytest.raises(gs.GateError):
         gs.get_docs("nope/")
 
@@ -234,6 +240,7 @@ def test_unreadable_governing_doc_fails_open(repo) -> None:
 
 
 def test_emitted_docs_carry_the_key_and_the_content(repo) -> None:
+    """One reply holds both the receipt and the rules it receipts."""
     out = gs.get_docs("scripts/")
     assert gs.current_receipt_key("scripts/") in out
     assert "the rules" in out
@@ -293,6 +300,7 @@ CHECKS = (check_one, check_two)
 
 @pytest.fixture
 def module(repo):
+    """The audit-shaped module written into the governed tree, as its relative path."""
     (repo / "scripts/mod.py").write_text(_MODULE)
     return "scripts/mod.py"
 
@@ -336,6 +344,7 @@ def test_a_function_key_dies_with_its_closure_and_survives_unrelated_edits(modul
 
 
 def test_a_patch_with_a_function_key_hands_back_a_function_key(module) -> None:
+    """The rolling key keeps the kind it was given: a function read stays function-scoped."""
     docs_key = gs.current_receipt_key("scripts/")
     gs.get_function(module, "check_one", docs_key)
     out = gs.patch_file(
@@ -359,6 +368,7 @@ def test_a_fixture_named_as_a_parameter_is_part_of_the_closure(repo) -> None:
 
 
 def test_an_unknown_function_and_an_unparseable_file_are_refused(module) -> None:
+    """No closure can be taken from a missing name or a file that does not parse."""
     docs_key = gs.current_receipt_key("scripts/")
     with pytest.raises(gs.GateError):
         gs.get_function(module, "check_nine", docs_key)
@@ -398,6 +408,7 @@ def test_a_twin_patch_lands_on_both_copies(twins) -> None:
 
 
 def test_a_twin_patch_works_from_the_shipped_side(twins) -> None:
+    """Either copy may be the one read; the patch reaches both regardless."""
     docs_key = gs.current_receipt_key("tmpl/")
     gs.get_file("tmpl/scripts/t.py", docs_key)
     gs.patch_twins(
@@ -417,6 +428,7 @@ def test_twins_that_already_differ_are_refused(twins) -> None:
 
 
 def test_a_file_without_a_twin_is_refused(repo) -> None:
+    """A file that ships nowhere has nothing to mirror to; patch_file is the right tool."""
     _, edit_key = _keys()
     with pytest.raises(gs.GateError):
         gs.patch_twins("scripts/t.py", "a = 1", "a = 9", edit_key)
@@ -441,6 +453,7 @@ def test_every_key_carries_the_gate_id(module) -> None:
 
 
 def test_a_key_from_another_gate_is_refused_and_the_restart_is_named(monkeypatch, module) -> None:
+    """All four key checks name the restart when the key's id is not this gate's."""
     docs_key, edit_key = _keys()
     fn_key = gs.current_function_key(module, "check_one")
     born_as = gs.GATE_ID
@@ -471,6 +484,7 @@ def test_a_stale_key_from_this_gate_is_not_blamed_on_a_restart(repo) -> None:
 
 
 def test_a_missing_key_still_names_the_gate(repo) -> None:
+    """Even with nothing to diagnose, the refusal says which gate is speaking."""
     with pytest.raises(gs.GateError) as excinfo:
         gs.get_file("scripts/t.py", None)
     assert gs.GATE_ID in str(excinfo.value)

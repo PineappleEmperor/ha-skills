@@ -12,11 +12,16 @@ Each check here is a function returning problems, so each has a test.
 """
 
 import argparse
+import ast
 import json
+import os
 import pathlib
 import re
+import struct
 import subprocess
 import sys
+
+import yaml
 
 Result = tuple[list[str], list[str]]  # (failures, warnings)
 
@@ -62,34 +67,37 @@ class Repo:
     """The repository under audit, and the small facts every check needs."""
 
     def __init__(self, root: pathlib.Path) -> None:
+        """Locate the integration package and the workflow directory under root."""
         self.root = root
         components = sorted(root.glob("custom_components/*/"))
         self.cc = components[0] if components else None
         self.workflows = root / ".github/workflows"
 
     def text(self, rel: str) -> str:
+        """The file's text, or empty when it does not exist."""
         p = self.root / rel
         return p.read_text(encoding="utf-8", errors="replace") if p.is_file() else ""
 
     def yaml(self, rel: str) -> dict:
-        import yaml as _yaml
+        """The file parsed as YAML, or empty when absent or unparseable."""
         try:
-            return _yaml.safe_load(self.text(rel)) or {}
-        except (OSError, _yaml.YAMLError):
+            return yaml.safe_load(self.text(rel)) or {}
+        except (OSError, yaml.YAMLError):
             return {}
 
     def exists(self, rel: str) -> bool:
+        """Whether the path exists under root."""
         return (self.root / rel).exists()
 
     def workflow_files(self) -> list[pathlib.Path]:
+        """Every workflow file, sorted, or none when the directory is absent."""
         return sorted(self.workflows.glob("*.y*ml")) if self.workflows.is_dir() else []
 
     def steps(self, path: pathlib.Path) -> list[tuple[str, dict]]:
         """Every (job name, step) pair in one workflow."""
-        import yaml as _yaml
         try:
-            doc = _yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-        except (OSError, _yaml.YAMLError):
+            doc = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        except (OSError, yaml.YAMLError):
             return []
         return [(jn, s or {}) for jn, job in (doc.get("jobs") or {}).items()
                 for s in (job or {}).get("steps", []) or []]
@@ -101,19 +109,17 @@ def _live(run: str) -> str:
     A name mentioned only in a comment is documentation, not an invocation — matching
     the raw body counted pr-checks.yml's explanation of manifest_gate.py as wiring.
     """
-    return "\n".join(l for l in run.splitlines() if not l.lstrip().startswith("#"))
+    return "\n".join(line for line in run.splitlines() if not line.lstrip().startswith("#"))
 
 
 def check_canonical_files(repo: Repo) -> Result:
     """Every workflow and config the stack cannot run without."""
     fails, warns = [], []
-    for w in CANONICAL:
-        if not repo.exists(f".github/workflows/{w}.yml"):
-            fails.append(f"missing .github/workflows/{w}.yml")
+    fails += [f"missing .github/workflows/{w}.yml" for w in CANONICAL
+              if not repo.exists(f".github/workflows/{w}.yml")]
     if repo.cc:
-        for w in INTEGRATION_ONLY:
-            if not repo.exists(f".github/workflows/{w}.yml"):
-                fails.append(f"missing .github/workflows/{w}.yml")
+        fails += [f"missing .github/workflows/{w}.yml" for w in INTEGRATION_ONLY
+                  if not repo.exists(f".github/workflows/{w}.yml")]
     for f, why in (
         (".github/release-drafter.yml", ""),
         (".github/dependabot.yml", ""),
@@ -131,7 +137,9 @@ def check_no_tracked_artefacts(repo: Repo) -> Result:
                              text=True, check=False).stdout
     except OSError:
         return [], []
-    tracked = [l for l in out.splitlines() if re.search(r"__pycache__|\.py[cod]$", l)]
+    tracked = [
+        line for line in out.splitlines() if re.search(r"__pycache__|\.py[cod]$", line)
+    ]
     if tracked:
         return ["compiled Python artefacts are tracked (git rm --cached, and add them "
                 "to .gitignore): " + ", ".join(tracked[:5])], []
@@ -168,8 +176,8 @@ def check_scripts_wired(repo: Repo) -> Result:
             fails.append(f"scripts/{s.name} ships with this skill but no workflow step "
                          f"runs it (the check it performs never runs)")
             continue
-        marked = any(l.lstrip().startswith("#") and "skill-audit: local-tool" in l
-                     for l in s.read_text(errors="replace").splitlines())
+        marked = any(line.lstrip().startswith("#") and "skill-audit: local-tool" in line
+                     for line in s.read_text(errors="replace").splitlines())
         if not marked:
             fails.append(f"scripts/{s.name} is not run by any workflow step. If it is a "
                          f"developer utility rather than a CI check, add a comment line "
@@ -208,7 +216,7 @@ def check_previous_tag(repo: Repo) -> Result:
         run = str(step.get("run", ""))
         if "release_notes.py" not in run:
             continue
-        prev = next((l for l in run.splitlines() if re.match(r"\s*PREV=", l)), "")
+        prev = next((line for line in run.splitlines() if re.match(r"\s*PREV=", line)), "")
         if "--limit 1 " in prev or prev.rstrip().endswith("--limit 1"):
             return [
                 (
@@ -426,9 +434,8 @@ def check_pr_checks_shape(repo: Repo) -> Result:
     late = [jn for jn, steps in _jobs_steps(repo, rel).items()
             if any("actions/checkout" in str(s.get("uses", "")) for s in steps)
             and "actions/checkout" not in str((steps[0] or {}).get("uses", ""))]
-    for jn in late:
-        fails.append(f"pr-checks.yml: actions/checkout must be the FIRST step of job '{jn}' "
-                     f"(it clears the workspace)")
+    fails += [f"pr-checks.yml: actions/checkout must be the FIRST step of job '{jn}' "
+              f"(it clears the workspace)" for jn in late]
     return fails, warns
 
 
@@ -444,9 +451,11 @@ def check_no_run_interpolation(repo: Repo) -> Result:
     for wf in repo.workflow_files():
         for jn, steps in _jobs_steps(repo, f".github/workflows/{wf.name}").items():
             for s in steps:
-                for expr in re.findall(r"\$\{\{\s*([^}]+?)\s*\}\}", str(s.get("run", ""))):
-                    fails.append(f"{wf.name} interpolates ${{{{ {expr} }}}} inside a run: block "
-                                 f"in '{s.get('name') or jn}' (pass it through env:)")
+                fails += [
+                    f"{wf.name} interpolates ${{{{ {expr} }}}} inside a run: block "
+                    f"in '{s.get('name') or jn}' (pass it through env:)"
+                    for expr in re.findall(r"\$\{\{\s*([^}]+?)\s*\}\}", str(s.get("run", "")))
+                ]
     return fails, []
 
 
@@ -498,13 +507,13 @@ def check_pr_openers(repo: Repo) -> Result:
     # different delivery model declares its own with a marker rather than being named
     # here — this file ships to every scaffolded integration and should not carry the
     # filenames of repos it never runs in.
-    SANCTIONED = ("auto_draft_pr.yml",)
+    sanctioned = ("auto_draft_pr.yml",)
     for wf in repo.workflow_files():
         text = wf.read_text(errors="replace")
-        if "gh pr create" in text and wf.name not in SANCTIONED \
+        if "gh pr create" in text and wf.name not in sanctioned \
                 and "# skill-audit: sanctioned-opener" not in text:
             fails.append(f"{wf.name} opens PRs with 'gh pr create' (only "
-                         + ", ".join(SANCTIONED) + " may, or mark it "
+                         + ", ".join(sanctioned) + " may, or mark it "
                          "'# skill-audit: sanctioned-opener' with a reason)")
     opener = repo.text(".github/workflows/auto_draft_pr.yml")
     if opener:
@@ -537,10 +546,9 @@ def check_platforms_have_modules(repo: Repo) -> Result:
             if m:
                 names += re.findall(r"[\"\']([a-z_]+)[\"\']", m.group("body"))
                 names += [p.split(".")[-1].lower() for p in re.findall(r"Platform\.([A-Z_]+)", m.group("body"))]
-        for name in dict.fromkeys(names):
-            if not (pkg / f"{name}.py").is_file():
-                fails.append(f"{pkg.name}: PLATFORMS names {name!r} but {pkg.name}/{name}.py "
-                             "does not exist — the entry will fail to set up")
+        fails += [f"{pkg.name}: PLATFORMS names {name!r} but {pkg.name}/{name}.py "
+                  "does not exist — the entry will fail to set up"
+                  for name in dict.fromkeys(names) if not (pkg / f"{name}.py").is_file()]
     return fails, []
 
 
@@ -555,7 +563,8 @@ def check_antipatterns(repo: Repo) -> Result:
         if any(re.search(pattern, t) for t in blob.values()):
             fails.append(message)
     bare = [f"{p}" for p, t in blob.items()
-            if any("# type: ignore" in l and "import-untyped" not in l for l in t.splitlines())]
+            if any("# type: ignore" in line and "import-untyped" not in line
+                   for line in t.splitlines())]
     if bare:
         fails.append("bare # type: ignore (Platinum: only [import-untyped] with a reason): "
                      + ", ".join(str(p.name) for p in map(pathlib.Path, bare[:3])))
@@ -640,7 +649,6 @@ def check_docstrings(repo: Repo) -> Result:
     """Single-line docstrings on functions and classes; modules are exempt."""
     if not repo.cc:
         return [], []
-    import ast
     bad = []
     for f in sorted(repo.cc.rglob("*.py")):
         try:
@@ -665,7 +673,6 @@ def check_commit_hook(repo: Repo) -> Result:
     if not hook.is_file():
         return [], ["no .githooks/commit-msg (terse-subject + AI-trailer rejection)"]
     fails, warns = [], []
-    import os
     if not os.access(hook, os.X_OK):
         fails.append(".githooks/commit-msg is not executable (chmod +x)")
     text = hook.read_text()
@@ -691,7 +698,6 @@ def check_brand_assets(repo: Repo) -> Result:
     """A present icon.png with no @2x is the classic 'icon shows only sometimes' bug."""
     if not repo.cc:
         return [], []
-    import struct
     brand = repo.cc / "brand"
     if not brand.is_dir():
         return [f"missing {brand.relative_to(repo.root)}/ (HACS check-brands fails without icon.png)"], []
@@ -722,7 +728,6 @@ def check_self_diff(repo: Repo) -> Result:
     tmpl = _template_dir(repo)
     if not tmpl or not (tmpl / ".github").is_dir():
         return [], []
-    import yaml as _yaml
     sanctioned = {"release_drafter.yml", "pr-checks.yml", "python_validate.yml"}
     bad = []
     for tf in sorted((tmpl / ".github").rglob("*.yml")):
@@ -733,9 +738,9 @@ def check_self_diff(repo: Repo) -> Result:
         if not rf.exists():
             continue
         try:
-            if _yaml.safe_load(tf.read_text()) != _yaml.safe_load(rf.read_text()):
+            if yaml.safe_load(tf.read_text()) != yaml.safe_load(rf.read_text()):
                 bad.append(str(rel))
-        except (OSError, _yaml.YAMLError):
+        except (OSError, yaml.YAMLError):
             continue
     if bad:
         return ["this repo's .github/ diverges from its own templates/ (see the sanctioned "
@@ -863,12 +868,11 @@ def _job_names(wf_dir: pathlib.Path) -> dict[str, str]:
     renames it again — `lint-and-type (3.14)` — which is why the templates ship a scalar
     python-version.
     """
-    import yaml as _yaml
     out: dict[str, str] = {}
     for wf in sorted(wf_dir.glob("*.y*ml")):
         try:
-            doc = _yaml.safe_load(wf.read_text(encoding="utf-8")) or {}
-        except (OSError, _yaml.YAMLError):
+            doc = yaml.safe_load(wf.read_text(encoding="utf-8")) or {}
+        except (OSError, yaml.YAMLError):
             continue
         for jid, job in (doc.get("jobs") or {}).items():
             out[str((job or {}).get("name") or jid)] = wf.name
@@ -947,7 +951,6 @@ def _base_ref(repo: Repo) -> str | None:
 
 def _job_names_at(repo: Repo, ref: str) -> dict[str, str] | None:
     """Check-run name -> workflow, read from `ref` rather than the working tree."""
-    import yaml as _yaml
     try:
         ls = subprocess.run(["git", "ls-tree", "--name-only", ref, ".github/workflows/"],
                             cwd=repo.root, capture_output=True, text=True, check=False)
@@ -964,8 +967,8 @@ def _job_names_at(repo: Repo, ref: str) -> dict[str, str] | None:
         if show.returncode != 0:
             continue
         try:
-            doc = _yaml.safe_load(show.stdout) or {}
-        except _yaml.YAMLError:
+            doc = yaml.safe_load(show.stdout) or {}
+        except yaml.YAMLError:
             continue
         for jid, job in (doc.get("jobs") or {}).items():
             out[str((job or {}).get("name") or jid)] = pathlib.Path(path).name
@@ -1094,6 +1097,7 @@ def audit(root: pathlib.Path) -> Result:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the audit against --root, or list the checks; exit 1 on any failure."""
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--root", default=".", help="repository to audit")
     # The skill used to enumerate these rules in prose, which went stale the moment the

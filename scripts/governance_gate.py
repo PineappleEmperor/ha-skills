@@ -39,8 +39,7 @@ WHAT IS COPIED DELIBERATELY:
     ambiguous match): wrongly refusing costs one confusing error, wrongly allowing costs the gate.
 """
 
-from __future__ import annotations
-
+import ast
 import difflib
 import hashlib
 import hmac
@@ -167,6 +166,7 @@ def _cause(key: str | None) -> str:
 
 
 def current_receipt_key(tier: str, now: float | None = None) -> str | None:
+    """The tier's docs key for this rotation window, or None when a doc is unreadable."""
     docs = _docs_hash(tier)
     if docs is None:
         return None
@@ -187,6 +187,7 @@ def valid_receipt_keys(tier: str, now: float | None = None) -> set[str]:
 
 
 def current_edit_key(rel: str, now: float | None = None) -> str | None:
+    """The file's edit key as it stands, or None when ungoverned or its docs are unreadable."""
     tier = resolve_tier(rel)
     if tier is None:
         return None
@@ -230,7 +231,7 @@ def receipt_line(tier: str) -> str:
 
 def safe_relpath(path: str) -> str:
     """Repo-relative path, refusing anything that escapes the repo. Fail closed."""
-    p = pathlib.Path(path) if os.path.isabs(path) else (REPO / path)
+    p = pathlib.Path(path) if pathlib.Path(path).is_absolute() else (REPO / path)
     resolved = p.resolve()
     try:
         return str(resolved.relative_to(REPO))
@@ -241,6 +242,7 @@ def safe_relpath(path: str) -> str:
 
 
 def get_docs(tier: str) -> str:
+    """Emit the tier's receipt line and then every doc that governs it, in full."""
     if tier not in TIERS:
         raise GateError(f"unknown tier {tier!r}; known tiers: {sorted(TIERS)}")
     if current_receipt_key(tier) is None:
@@ -306,8 +308,6 @@ def _closure(source: str, name: str, rel: str) -> list[tuple[int, int, str]]:
     context that made a line wrong, which is how this repo shipped a defect as fixed, twice.
     A slice the parser picks cannot omit anything the patch can reach.
     """
-    import ast
-
     try:
         tree = ast.parse(source)
     except SyntaxError as exc:
@@ -384,6 +384,7 @@ def _function_key_for(tier: str, rel: str, name: str, bucket: int, docs: str, bo
 
 
 def current_function_key(rel: str, name: str, now: float | None = None) -> str | None:
+    """The function's key over its closure as it stands, or None when it cannot be taken."""
     tier = resolve_tier(rel)
     if tier is None:
         return None

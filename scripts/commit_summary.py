@@ -9,9 +9,8 @@ inline heredoc cannot be, and a silently-wrong classifier corrupts release notes
 without ever failing a build.
 """
 
-from __future__ import annotations
-
 import argparse
+import pathlib
 import re
 import sys
 
@@ -157,6 +156,7 @@ def title_for(subjects: list[str]) -> str:
 
 
 def main() -> int:
+    """Print the title, label or winning group for the subjects on stdin or in a file."""
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--mode", choices=("winning", "title", "label"), default="title")
     ap.add_argument("--subjects", default="-", help="file of commit subjects, or - for stdin")
@@ -165,7 +165,7 @@ def main() -> int:
     if args.subjects == "-":
         subjects = sys.stdin.read().splitlines()
     else:
-        with open(args.subjects, encoding="utf-8") as fh:
+        with pathlib.Path(args.subjects).open(encoding="utf-8") as fh:
             subjects = fh.read().splitlines()
 
     if args.mode == "title":

@@ -1,5 +1,4 @@
 """Decide whether a PR's manifest version is a valid bump for its label."""
-from __future__ import annotations
 
 import argparse
 import re
@@ -10,10 +9,12 @@ _PRERELEASE = re.compile(r"(rc|alpha|beta|a|b|dev)[0-9]*$", re.IGNORECASE)
 
 
 def is_prerelease(version: str) -> bool:
+    """Whether the version carries a PEP 440 prerelease suffix."""
     return _PRERELEASE.search(version) is not None
 
 
 def parse_semver(version: str) -> Version:
+    """The (major, minor, patch) triple, tolerating a prerelease suffix."""
     match = re.match(r"^([0-9]+)\.([0-9]+)\.([0-9]+)", version)  # de-anchored: tolerate rcN
     if not match:
         raise ValueError(f"cannot parse version: {version!r}")
@@ -21,6 +22,7 @@ def parse_semver(version: str) -> Version:
 
 
 def label_bump(labels: list[str]) -> str | None:
+    """The semver tier the PR's labels imply, or None when none is managed."""
     joined = " ".join(labels).lower()
     if re.search(r"xfeat|xfeature|major", joined):
         return "major"
@@ -47,6 +49,7 @@ def _fmt(version: Version) -> str:
 def evaluate(last_release: str, main_version: str, pr_version: str,
              labels: list[str], *, dependabot: bool = False,
              breaking_commits: int | None = None) -> tuple[bool, str]:
+    """Whether pr_version is a valid bump for the labels, and why."""
     if dependabot:
         return True, "dependabot exempt"
 
@@ -100,6 +103,7 @@ def evaluate(last_release: str, main_version: str, pr_version: str,
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Print the verdict, or with --suggest the version the labels imply."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--last-release", required=True)
     parser.add_argument("--main-version", default="")

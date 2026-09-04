@@ -3,8 +3,6 @@
 Load the standalone script by path; it is not an importable package.
 """
 
-from __future__ import annotations
-
 import importlib.util
 import pathlib
 import sys
@@ -70,9 +68,10 @@ def test_no_changes_says_so(monkeypatch) -> None:
 
 def _crn():
     """The notes checker, loaded from scripts/ like the other single-file tools."""
-    import importlib.util as _il
-    spec = _il.spec_from_file_location("check_release_notes", _SCRIPTS / "check_release_notes.py")
-    mod = _il.module_from_spec(spec)
+    spec = importlib.util.spec_from_file_location(
+        "check_release_notes", _SCRIPTS / "check_release_notes.py"
+    )
+    mod = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
     spec.loader.exec_module(mod)
     return mod

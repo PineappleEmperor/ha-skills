@@ -25,8 +25,6 @@ variable. Both require deliberately routing around the guard rather than driftin
 is the failure this addresses.
 """
 
-from __future__ import annotations
-
 import json
 import re
 import shlex
@@ -65,6 +63,7 @@ def banned_tool(command: str) -> str | None:
 
 
 def main() -> int:
+    """Read the hook payload on stdin and deny the call when it carries a search."""
     try:
         payload = json.load(sys.stdin)
     except ValueError:

@@ -3,8 +3,6 @@
 Load the standalone script by path; it is not an importable package.
 """
 
-from __future__ import annotations
-
 import importlib.util
 import json
 import pathlib
@@ -77,6 +75,7 @@ def test_a_single_declaration_warns_rather_than_passing_silently(tmp_path) -> No
 
 
 def test_two_declarations_are_compared_not_warned(tmp_path) -> None:
+    """Two values are enough to compare, so the thin warning must not fire."""
     (tmp_path / ".github/workflows").mkdir(parents=True)
     (tmp_path / ".github/workflows/python_validate.yml").write_text(
         "jobs:\n  t:\n    steps:\n      - uses: actions/setup-python@v6\n"
