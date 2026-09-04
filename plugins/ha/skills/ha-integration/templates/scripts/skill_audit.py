@@ -391,6 +391,46 @@ def check_no_placeholders(repo: Repo) -> Result:
     return fails, []
 
 
+# `python` or `python3` as a shell word: the start of the block, after whitespace, or after
+# a shell operator. `pipx`, `python-version` and paths like `bin/python3x` do not match.
+_PYTHON_CALL = re.compile(r"(?:^|[\s;&|(])python3?(?=\s|$)", re.MULTILINE)
+
+
+def check_python_steps_have_a_setup(repo: Repo) -> Result:
+    """A step that runs Python with no setup-python before it runs on the runner's own.
+
+    The shipped scripts are written to the Python floor the stack declares, and four
+    workflows ran them on ubuntu-latest's own interpreter, which rejected their syntax.
+    Comparing the declared versions cannot see this: a job that declares no version has
+    nothing to compare. Judged per job, because each job is its own runner, in this
+    repo's workflows and, when this is the skill repo, in the shipped ones.
+    """
+    dirs = [repo.workflows]
+    tmpl = _template_dir(repo)
+    if tmpl:
+        dirs.append(tmpl / ".github/workflows")
+    fails = []
+    for wf_dir in dirs:
+        if not wf_dir.is_dir():
+            continue
+        for wf in sorted(wf_dir.glob("*.y*ml")):
+            ready: set[str] = set()
+            for jn, step in repo.steps(wf):
+                if "actions/setup-python" in str(step.get("uses", "")):
+                    ready.add(jn)
+                    continue
+                if jn not in ready and _PYTHON_CALL.search(
+                    _live(str(step.get("run", "")))
+                ):
+                    fails.append(
+                        f"{wf.relative_to(repo.root)} job '{jn}' step "
+                        f"'{step.get('name') or jn}' runs Python on the runner's own "
+                        f"interpreter; put actions/setup-python before it so it runs on "
+                        f"the declared floor"
+                    )
+    return fails, []
+
+
 def check_label_events(repo: Repo) -> Result:
     """`labeled` plus `cancel-in-progress` makes cancelled runs look like failures."""
     if not repo.exists(".github/workflows/pr-checks.yml"):
@@ -1444,6 +1484,7 @@ CHECKS = (
     check_previous_tag,
     check_zip_release_patches_manifest,
     check_no_placeholders,
+    check_python_steps_have_a_setup,
     check_label_events,
     check_release_drafter_wiring,
     check_classifier_not_inlined,

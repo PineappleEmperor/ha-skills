@@ -533,6 +533,48 @@ def test_a_placeholder_in_a_with_value_fails(repo) -> None:
     assert len(fails) == 1 and "<domain>" in fails[0]
 
 
+def test_python_run_without_a_setup_step_fails(repo) -> None:
+    """A step that runs Python before any setup-python step runs on the runner's own.
+
+    Four shipped workflows did exactly this, and the runner's interpreter rejected the
+    scripts' syntax. Comparing declared versions cannot see a job that declares none.
+    """
+    _wf(
+        repo,
+        "a.yml",
+        "jobs:\n  x:\n    steps:\n      - uses: actions/checkout@abc # v1\n"
+        "      - name: Gate\n        run: python3 scripts/manifest_gate.py --suggest\n",
+    )
+    fails, _ = audit.check_python_steps_have_a_setup(audit.Repo(repo))
+    assert len(fails) == 1
+    assert "a.yml" in fails[0] and "'Gate'" in fails[0] and "setup-python" in fails[0]
+
+
+def test_python_run_after_a_setup_step_passes(repo) -> None:
+    """The ordinary shape: setup-python, then the script."""
+    _wf(
+        repo,
+        "a.yml",
+        "jobs:\n  x:\n    steps:\n      - uses: actions/checkout@abc # v1\n"
+        "      - uses: actions/setup-python@def # v7\n        with:\n"
+        "          python-version: '3.14'\n"
+        "      - run: |\n          python3 - <<'PY'\n          print(1)\n          PY\n",
+    )
+    assert audit.check_python_steps_have_a_setup(audit.Repo(repo)) == ([], [])
+
+
+def test_a_setup_step_in_another_job_does_not_count(repo) -> None:
+    """Jobs run on separate runners; a setup in one job leaves the other on the default."""
+    _wf(
+        repo,
+        "a.yml",
+        "jobs:\n  x:\n    steps:\n      - uses: actions/setup-python@def # v7\n"
+        "  y:\n    steps:\n      - run: python -m pytest\n",
+    )
+    fails, _ = audit.check_python_steps_have_a_setup(audit.Repo(repo))
+    assert len(fails) == 1 and "job 'y'" in fails[0]
+
+
 def _pr_checks(ref: str) -> str:
     """A pr-checks.yml carrying every string the shape check requires, checking out `ref`."""
     return (

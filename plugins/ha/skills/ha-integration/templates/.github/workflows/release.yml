@@ -16,6 +16,12 @@ jobs:
         with:
           persist-credentials: false
 
+      # Every step that runs Python runs it on the floor the stack declares, never on the
+      # runner's own interpreter; skill_audit.py fails a job that does otherwise.
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.14'
+
       # The tag is the version. HACS installs the asset built here, so the manifest
       # inside this zip is what users actually get, and patching it means no PR has
       # to carry a hand-written bump. frenck/spook patches the same way, from the
