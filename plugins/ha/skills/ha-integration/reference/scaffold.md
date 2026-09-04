@@ -74,7 +74,7 @@ What to ask, what to generate, and the conventions the generated code follows. R
 - `README.md` — **include the AI-assistance disclaimer** as a GitHub `> [!NOTE]` admonition box. Link the skill name to its public repo. Template:
   ```markdown
   > [!NOTE]
-  > **AI assistance:** I'm a programmer; this project is built with AI (Claude, via Claude Code) for implementation, code review, and QA — under human direction, guided by my [`ha-integration`](https://github.com/PineappleEmperor/pineapple-claude-hacs) skill. Architecture and final review are mine; every change is human-reviewed before it merges.
+  > **AI assistance:** I'm a programmer; this project is built with AI (Claude, via Claude Code) for implementation, code review, and QA — under human direction, guided by my [`ha-integration`](https://github.com/PineappleEmperor/ha-skills) skill. Architecture and final review are mine; every change is human-reviewed before it merges.
   ```
 - `LICENSE` — the full text of the chosen licence (MIT unless told otherwise), so GitHub
   resolves an SPDX identifier and the HACS `license` check passes.
