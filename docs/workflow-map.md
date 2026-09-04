@@ -228,9 +228,6 @@ the files above.
    hard-fails the moment a `quality_scale.yaml` rule claims `done` without a test behind it,
    which is where the claim actually has to be honest. The step already hard-fails when
    `tests/` exists but `requirements.test.txt` does not.
-
----
-
 10. ~~**The GitHub-querying checks are inert in CI.**~~ **Resolved.** The audit step passes
     `GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}`, and on the testbed's 2026-09-04 run the ruleset,
     live-context and dependency-graph checks all executed under it: the only warning the
@@ -244,6 +241,8 @@ the files above.
     cache step dies. Backlog rows 85-88 carry the finding and the process gap behind it: every
     check in this repo reads a workflow, none runs one, and a template this repo does not
     carry has no execution path at all. Merge, rc and final are the rest of the cycle.
+
+---
 
 ## Still open
 
