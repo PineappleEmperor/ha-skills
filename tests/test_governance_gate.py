@@ -558,3 +558,21 @@ def test_find_files_matches_a_glob_by_name(repo) -> None:
     (repo / "scripts/u.py").write_text("")
     assert gs.find_files("scripts/*.py") == ["scripts/t.py", "scripts/u.py"]
     assert gs.find_files("**/*.md") == ["README.md", "docs/rules.md"]
+
+
+def test_find_files_refuses_a_glob_that_leaves_the_repo(repo) -> None:
+    """`../*` reached the home directory on first review; a glob is a path too."""
+    (repo.parent / "outside.md").write_text("")
+    with pytest.raises(gs.GateError):
+        gs.find_files("../*.md")
+    with pytest.raises(gs.GateError):
+        gs.find_files("scripts/../../*.md")
+
+
+def test_every_skipped_directory_is_skipped_by_both_tools(repo) -> None:
+    """All six never-candidate directories, for the name search and the content search."""
+    for d in sorted(gs._SKIPPED_DIRS):
+        (repo / d).mkdir()
+        (repo / d / "x.py").write_text("b = 2\n")
+    assert gs.locate(r"b = 2") == ["scripts/t.py"]
+    assert gs.find_files("**/*.py") == ["scripts/t.py"]

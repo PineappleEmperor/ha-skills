@@ -59,7 +59,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'echo \"[read-dont-search] A search LOCATES; it does not VERIFY. It cannot tell you a thing is correct, and no matches is not evidence that it is fixed — that mistake shipped a defect as resolved in this repo. Use this only to find candidate files, then READ each one in full before concluding anything. If you are judging content, open the file instead.\"'"
+            "command": "bash -c 'echo \"[read-dont-search] A search LOCATES; it does not VERIFY. It cannot tell you a thing is correct, and no matches is not evidence that it is fixed — that mistake shipped a defect as resolved in this repo. Use this only to find candidate files, as you would the gate's locate and find_files, then READ each one in full before concluding anything. If you are judging content, open the file instead.\"'"
           }
         ]
       },

@@ -668,12 +668,29 @@ def locate(pattern: str, under: str = "") -> list[str]:
 
 
 def find_files(glob: str) -> list[str]:
-    """Repo-relative paths matching a glob by name, skipping what is never a candidate."""
-    return [
-        str(p.relative_to(REPO))
-        for p in sorted(REPO.glob(glob))
-        if p.is_file() and not (_SKIPPED_DIRS & set(p.relative_to(REPO).parts[:-1]))
-    ]
+    """Repo-relative paths matching a glob by name, skipping what is never a candidate.
+
+    A glob is a path, and `..` in one walks out of the repository: `../*` returned the
+    home directory's dotfiles on first review. Refused up front, and every hit is resolved
+    and re-checked, so a symlink cannot do the same thing quietly.
+    """
+    if (
+        ".." in pathlib.PurePosixPath(glob).parts
+        or pathlib.PurePosixPath(glob).is_absolute()
+    ):
+        raise GateError(
+            "glob must stay inside the repository; `..` and absolute paths are refused"
+        )
+    hits: list[str] = []
+    for p in sorted(REPO.glob(glob)):
+        if not p.is_file() or _SKIPPED_DIRS & set(p.relative_to(REPO).parts[:-1]):
+            continue
+        try:
+            p.resolve().relative_to(REPO)
+        except ValueError:
+            continue
+        hits.append(str(p.relative_to(REPO)))
+    return hits
 
 
 def patch_twins(
