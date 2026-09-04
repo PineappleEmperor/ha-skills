@@ -118,5 +118,30 @@ def patch_twins(
         return f"REFUSED: {exc}"
 
 
+@mcp.tool()
+def locate(pattern: str, under: str = "") -> str:
+    """Name the files whose text matches a regex. Paths only, never a matching line.
+
+    The sanctioned search: it can tell you where to read and nothing else, so its output
+    cannot be quoted as evidence and an empty result cannot be read as "fixed". Skips .git,
+    .tmp, caches and environments; `under` narrows the walk to one repo-relative prefix.
+    Read every path it returns, in full, before concluding anything.
+    """
+    try:
+        hits = gate.locate(pattern, under)
+    except gate.GateError as exc:
+        return f"REFUSED: {exc}"
+    return (
+        "\n".join(hits) if hits else "no file matches; that is not evidence of anything"
+    )
+
+
+@mcp.tool()
+def find_files(glob: str) -> str:
+    """Name the files matching a glob by path, e.g. `scripts/*.py` or `**/*.md`."""
+    hits = gate.find_files(glob)
+    return "\n".join(hits) if hits else "no file matches"
+
+
 if __name__ == "__main__":
     mcp.run()

@@ -518,3 +518,43 @@ def test_a_missing_key_still_names_the_gate(repo) -> None:
     with pytest.raises(gs.GateError) as excinfo:
         gs.get_file("scripts/t.py", None)
     assert gs.GATE_ID in str(excinfo.value)
+
+
+def test_locate_returns_paths_and_never_a_line(repo) -> None:
+    """A locate names the files a pattern occurs in and nothing of their content.
+
+    A search that returns lines gets quoted as evidence; one that returns only paths
+    cannot be, so the file has to be read. That is the whole difference between this and
+    the shell grep the hook refuses.
+    """
+    (repo / "docs/other.md").write_text("no match here\n")
+    out = gs.locate(r"b = 2")
+    assert out == ["scripts/t.py"]
+    assert "b = 2" not in "\n".join(out)
+
+
+def test_locate_skips_scratch_and_git(repo) -> None:
+    """`.tmp/`, `.git/` and caches are never candidates."""
+    for d in (".tmp", ".git", "__pycache__"):
+        (repo / d).mkdir()
+        (repo / d / "x.py").write_text("b = 2\n")
+    assert gs.locate(r"b = 2") == ["scripts/t.py"]
+
+
+def test_locate_can_be_narrowed_to_a_prefix(repo) -> None:
+    """`under` limits the walk to one subtree, so a broad pattern stays cheap."""
+    (repo / "docs/rules.md").write_text("the rules\nb = 2\n")
+    assert gs.locate(r"b = 2", under="docs/") == ["docs/rules.md"]
+
+
+def test_locate_refuses_a_prefix_outside_the_repo(repo) -> None:
+    """The walk never leaves the repository, like every other gate operation."""
+    with pytest.raises(gs.GateError):
+        gs.locate("x", under="../")
+
+
+def test_find_files_matches_a_glob_by_name(repo) -> None:
+    """Name search is the other half of locating: which files exist at all."""
+    (repo / "scripts/u.py").write_text("")
+    assert gs.find_files("scripts/*.py") == ["scripts/t.py", "scripts/u.py"]
+    assert gs.find_files("**/*.md") == ["README.md", "docs/rules.md"]

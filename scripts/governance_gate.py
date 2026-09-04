@@ -45,6 +45,7 @@ import hashlib
 import hmac
 import os
 import pathlib
+import re
 import secrets
 import time
 
@@ -612,6 +613,67 @@ def twin_of(rel: str) -> str | None:
         if rel.startswith(sub):
             return TWIN_ROOT + rel
     return None
+
+
+# Never candidates for a locate: version control, scratch, caches, environments.
+_SKIPPED_DIRS = {
+    ".git",
+    ".tmp",
+    "__pycache__",
+    ".venv",
+    "node_modules",
+    ".pytest_cache",
+}
+_LOCATE_CAP = 200
+
+
+def _walk(under: str) -> list[pathlib.Path]:
+    """Every file under a repo-relative prefix, skipping what is never a candidate."""
+    start = REPO / safe_relpath(under) if under else REPO
+    found: list[pathlib.Path] = []
+    for path in sorted(start.rglob("*")):
+        if not path.is_file():
+            continue
+        if _SKIPPED_DIRS & set(path.relative_to(REPO).parts[:-1]):
+            continue
+        found.append(path)
+    return found
+
+
+def locate(pattern: str, under: str = "") -> list[str]:
+    """Repo-relative paths of files whose text matches the regex. Paths only, never a line.
+
+    The one search this gate offers. A search that returns matching lines gets quoted as
+    evidence, and an empty result gets read as "fixed"; one that returns only paths can be
+    neither, so the file still has to be read. Capped, so a broad pattern reports that it
+    was broad instead of flooding the caller.
+    """
+    try:
+        rx = re.compile(pattern)
+    except re.error as exc:
+        raise GateError(f"pattern does not compile: {exc}") from None
+    hits: list[str] = []
+    for path in _walk(under):
+        try:
+            text = path.read_text(encoding="utf-8")
+        except OSError, UnicodeDecodeError:
+            continue
+        if rx.search(text):
+            hits.append(str(path.relative_to(REPO)))
+            if len(hits) > _LOCATE_CAP:
+                raise GateError(
+                    f"more than {_LOCATE_CAP} files match; narrow the pattern or the prefix"
+                )
+    return hits
+
+
+def find_files(glob: str) -> list[str]:
+    """Repo-relative paths matching a glob by name, skipping what is never a candidate."""
+    return [
+        str(p.relative_to(REPO))
+        for p in sorted(REPO.glob(glob))
+        if p.is_file() and not (_SKIPPED_DIRS & set(p.relative_to(REPO).parts[:-1]))
+    ]
 
 
 def patch_twins(
