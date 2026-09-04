@@ -42,10 +42,10 @@ REASON = (
     "[read-dont-search] Blocked {tool}. A search LOCATES; it does not VERIFY, and an empty "
     "result is not evidence a thing is fixed — that mistake shipped a defect as resolved in "
     "this repo twice. This fires wherever the search is, including buried in a pipeline, "
-    "xargs, sudo or find -exec. Use the Grep TOOL to find candidate files, then READ each one "
-    "in full before concluding anything; if this session has no Grep tool, say so rather "
-    "than substituting a scan. To filter structured DATA use jq or python; to understand "
-    "SOURCE, open it."
+    "xargs, sudo or find -exec. To find candidate files use the governance gate's `locate` "
+    "(regex, paths only) or `find_files` (glob), or the Grep tool where the session has "
+    "one; then READ each candidate in full before concluding anything. To filter "
+    "structured DATA use jq or python; to understand SOURCE, open it."
 )
 
 

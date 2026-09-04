@@ -48,7 +48,7 @@
           },
           {
             "type": "command",
-            "command": "bash -c 'echo \"[read-the-file] READ THE FILES YOU ARE WORKING ON, IN FULL, BEFORE SAYING ANYTHING ABOUT THEM. Not a slice, not a chunk, not the first 120 lines — the whole file. A search LOCATES; it does not VERIFY, and an empty result is not evidence a thing is fixed; that mistake shipped a defect as resolved here twice. Shell grep/rg/ag/ack is BLOCKED, and a python or awk line-scanner over source is the same thing wearing a hat — also banned. Filtering structured DATA with jq is fine; scanning SOURCE is not. If you catch yourself sampling a file to confirm a hunch, stop and open it.\"'"
+            "command": "bash -c 'echo \"[read-the-file] READ THE FILES YOU ARE WORKING ON, IN FULL, BEFORE SAYING ANYTHING ABOUT THEM. Not a slice, not a chunk, not the first 120 lines — the whole file. A search LOCATES; it does not VERIFY, and an empty result is not evidence a thing is fixed; that mistake shipped a defect as resolved here twice. Shell grep/rg/ag/ack is BLOCKED, and a python or awk line-scanner over source is the same thing wearing a hat — also banned. To find candidate files use the governance gate's locate (regex, paths only) or find_files (glob); then read each candidate in full. Filtering structured DATA with jq is fine; scanning SOURCE is not. If you catch yourself sampling a file to confirm a hunch, stop and open it.\"'"
           }
         ]
       }
