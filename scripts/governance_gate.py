@@ -373,7 +373,7 @@ def _closure_hash(rel: str, name: str) -> str | None:
     try:
         source = (REPO / rel).read_text(encoding="utf-8")
         segments = _closure(source, name, rel)
-    except (OSError, GateError):
+    except OSError, GateError:
         return None
     return hashlib.sha256(_closure_text(source, segments).encode()).hexdigest()
 

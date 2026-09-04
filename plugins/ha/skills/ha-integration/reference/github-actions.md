@@ -56,7 +56,7 @@ Any other difference is drift.
 
 | File | Allowed change |
 |---|---|
-| `.github/workflows/python_validate.yml` | `python-version`, **only** when HA's minimum Python has moved and the template is stale — fix the template too, and move ruff's `target-version` and `pyrightconfig.json` in the same commit or `version_sync.py` fails the repo |
+| any workflow | `python-version`, **only** when HA's minimum Python has moved and the template is stale — fix the template too, and move every other workflow's, ruff's `target-version` and `pyrightconfig.json` in the same commit or `version_sync.py` fails the repo |
 | `pyproject.toml` | a `[project]` table carrying no version, and pytest or pyright options — never the `[tool.ruff]` tables, which are Home Assistant core's rule set and under which the shipped `scripts/` and `tests/` are already lint- and format-clean, so no exclusion is ever needed |
 | any workflow | an action pin **newer** than the template's, where Dependabot has already bumped yours — keep the newer pin and update the template |
 | `frontend/package.json` | `<domain>` and `<name>` placeholders → this integration's values |

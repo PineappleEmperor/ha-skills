@@ -61,7 +61,7 @@ def check_docs_match_templates(repo: Repo) -> Result:
     for wf in (tmpl / ".github/workflows").glob("*.yml"):
         try:
             data = yaml.safe_load(wf.read_text()) or {}
-        except (OSError, yaml.YAMLError):
+        except OSError, yaml.YAMLError:
             continue
         jobs |= set((data.get("jobs") or {}).keys())
 
