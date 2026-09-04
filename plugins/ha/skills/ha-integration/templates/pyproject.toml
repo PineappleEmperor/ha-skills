@@ -17,6 +17,13 @@
 [tool.ruff]
 target-version = "py314"
 
+# Four shipped workflows (auto_draft_pr, pr-checks, quality_audit, release_drafter) run
+# scripts/ with the runner's own python3 and no setup-python step: 3.12 on ubuntu-latest.
+# A script must parse there. Under this target ruff refuses 3.14-only syntax in scripts/
+# and the formatter stops introducing it; the 3.14 floor above is for the integration.
+[tool.ruff.per-file-target-version]
+"scripts/*" = "py312"
+
 [tool.ruff.lint]
 select = [
   "A001",

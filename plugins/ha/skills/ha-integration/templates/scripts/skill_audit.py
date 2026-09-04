@@ -146,7 +146,7 @@ class Repo:
         """The file parsed as YAML, or empty when absent or unparseable."""
         try:
             return yaml.safe_load(self.text(rel)) or {}
-        except OSError, yaml.YAMLError:
+        except (OSError, yaml.YAMLError):
             return {}
 
     def exists(self, rel: str) -> bool:
@@ -161,7 +161,7 @@ class Repo:
         """Every (job name, step) pair in one workflow."""
         try:
             doc = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-        except OSError, yaml.YAMLError:
+        except (OSError, yaml.YAMLError):
             return []
         return [
             (jn, s or {})
@@ -970,7 +970,7 @@ def check_self_diff(repo: Repo) -> Result:
         try:
             if yaml.safe_load(tf.read_text()) != yaml.safe_load(rf.read_text()):
                 bad.append(str(rel))
-        except OSError, yaml.YAMLError:
+        except (OSError, yaml.YAMLError):
             continue
     if bad:
         return [
@@ -1140,7 +1140,7 @@ def _job_names(wf_dir: pathlib.Path) -> dict[str, str]:
     for wf in sorted(wf_dir.glob("*.y*ml")):
         try:
             doc = yaml.safe_load(wf.read_text(encoding="utf-8")) or {}
-        except OSError, yaml.YAMLError:
+        except (OSError, yaml.YAMLError):
             continue
         for jid, job in (doc.get("jobs") or {}).items():
             out[str((job or {}).get("name") or jid)] = wf.name
@@ -1151,7 +1151,7 @@ def _required_contexts(ruleset: pathlib.Path) -> list[str]:
     """The status-check contexts a ruleset JSON makes required."""
     try:
         doc = json.loads(ruleset.read_text(encoding="utf-8"))
-    except OSError, ValueError:
+    except (OSError, ValueError):
         return []
     return [
         c["context"]
