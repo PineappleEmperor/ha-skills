@@ -11,8 +11,6 @@ which could be unit-tested, which is the same trap the skill warns about elsewhe
 Each check here is a function returning problems, so each has a test.
 """
 
-from __future__ import annotations
-
 import argparse
 import json
 import pathlib
@@ -561,9 +559,9 @@ def check_antipatterns(repo: Repo) -> Result:
     if bare:
         fails.append("bare # type: ignore (Platinum: only [import-untyped] with a reason): "
                      + ", ".join(str(p.name) for p in map(pathlib.Path, bare[:3])))
-    init = repo.cc / "__init__.py"
-    if init.is_file() and "from __future__ import annotations" not in init.read_text(errors="replace"):
-        warns.append("no 'from __future__ import annotations' in __init__.py")
+    # `from __future__ import annotations` is deliberately not demanded: Python 3.14
+    # defers annotation evaluation natively, core bans the import, and the shipped
+    # pyproject.toml enforces that ban through ruff.
     return fails, warns
 
 

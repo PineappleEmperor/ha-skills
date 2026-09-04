@@ -5,8 +5,6 @@ repo and grepping its output, which is why several of its checks silently did no
 for weeks. Each check here is a function, so each gets its own case.
 """
 
-from __future__ import annotations
-
 import importlib.util
 import json
 import pathlib
@@ -476,3 +474,12 @@ def test_live_check_counts_jobs_the_base_branch_defines(tmp_path, monkeypatch) -
     monkeypatch.setattr(audit.subprocess, "run", fake_run)
 
     assert audit.check_live_required_contexts(audit.Repo(work)) == ([], [])
+
+
+def test_the_future_import_is_not_demanded(repo) -> None:
+    """Python 3.14 defers annotations itself; the shipped ruff config bans the import."""
+    pkg = repo / "custom_components/acmedev"
+    pkg.mkdir(parents=True)
+    (pkg / "manifest.json").write_text('{"domain": "acmedev"}')
+    (pkg / "__init__.py").write_text('DOMAIN = "acmedev"\n')
+    assert audit.check_antipatterns(audit.Repo(repo)) == ([], [])
