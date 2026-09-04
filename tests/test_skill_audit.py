@@ -216,6 +216,26 @@ def test_shipped_script_absent_from_this_repo_is_not_drift(tmp_path) -> None:
     assert audit.check_template_scripts_match(audit.Repo(tmp_path)) == ([], [])
 
 
+def test_a_shipped_workflow_this_repo_lacks_is_named_as_unexercised(tmp_path) -> None:
+    """A template with no counterpart here is run by nothing, and the audit must say so.
+
+    `panel_bundle.yml` was edited eight times over three weeks without one execution:
+    this repo carries no copy, so its CI never ran it, and the silent skip here meant
+    no run ever mentioned that. Its first run anywhere failed.
+    """
+    tmpl = tmp_path / "plugins/ha/skills/demo/templates"
+    (tmpl / ".github/workflows").mkdir(parents=True)
+    (tmpl / ".github/workflows/only_shipped.yml").write_text("name: x\n")
+    (tmpl / ".github/workflows/both.yml").write_text("name: y\n")
+    (tmp_path / ".github/workflows").mkdir(parents=True)
+    (tmp_path / ".github/workflows/both.yml").write_text("name: y\n")
+    fails, warns = audit.check_self_diff(audit.Repo(tmp_path))
+    assert fails == []
+    assert len(warns) == 1
+    assert "only_shipped.yml" in warns[0] and "both.yml" not in warns[0]
+    assert "runs it" in warns[0]
+
+
 def test_list_mode_names_every_check(capsys) -> None:
     """The skill points readers at --list instead of enumerating rules that go stale."""
     assert audit.main(["--list"]) == 0

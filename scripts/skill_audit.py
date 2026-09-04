@@ -975,24 +975,38 @@ def check_self_diff(repo: Repo) -> Result:
         return [], []
     sanctioned = {"release_drafter.yml", "pr-checks.yml", "python_validate.yml"}
     bad = []
+    unexercised = []
     for tf in sorted((tmpl / ".github").rglob("*.yml")):
         rel = tf.relative_to(tmpl)
         if rel.name in sanctioned:
             continue
         rf = repo.root / rel
         if not rf.exists():
+            # A template this repo does not carry is compared with nothing and, since
+            # this repo's CI runs only the workflows it carries, run by nothing. Skipping
+            # it silently let panel_bundle.yml go three weeks and eight edits without one
+            # execution; its first run anywhere failed.
+            unexercised.append(str(rel))
             continue
         try:
             if yaml.safe_load(tf.read_text()) != yaml.safe_load(rf.read_text()):
                 bad.append(str(rel))
         except OSError, yaml.YAMLError:
             continue
+    warns = (
+        [
+            "shipped but carried by nothing here, so no CI run of this repo runs it; a "
+            "testbed sync is its only execution: " + ", ".join(unexercised)
+        ]
+        if unexercised
+        else []
+    )
     if bad:
         return [
             "this repo's .github/ diverges from its own templates/ (see the sanctioned "
             "adaptations table in reference/github-actions.md): " + ", ".join(bad)
-        ], []
-    return [], []
+        ], warns
+    return [], warns
 
 
 def check_template_scripts_match(repo: Repo) -> Result:
