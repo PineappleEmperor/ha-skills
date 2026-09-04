@@ -8,7 +8,13 @@ Status: `open` · `fixed` (with commit) · `wontfix` (with reason).
 
 ## Open
 
-Nothing open. Rows 73-84 are cleared below; rows 1-72 are cleared under *Fixed*.
+Rows 73-84 are cleared below; rows 1-72 are cleared under *Fixed*.
+
+### From the testbed run (2026-09-04)
+
+| # | Finding | Fix | Commit |
+|---|---|---|---|
+| 85 | **`panel_bundle.yml` fails on any repo without a panel the first time it lands.** Its path filter names its own file, so the scaffold commit or a template resync triggers it, and on `ha-ci-testing` (no `frontend/`) the job died at setup-node's cache step: `Some specified paths were not resolved, unable to cache dependencies`. The docs disagree about whether it belongs there at all: `scaffold.md` says copy all twelve workflows, `github-actions.md` says path-filtered, panel repos only. Dropped from the testbed PR to keep the cycle moving | open | — |
 
 ### From the ruff survey (2026-09-04) — cleared 2026-09-04
 
