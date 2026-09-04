@@ -42,7 +42,15 @@ jobs:
           [ -f requirements.test.txt ] && uv pip install --system -r requirements.test.txt || true
 
       - name: Ruff
-        run: ruff check custom_components/
+        # Integration code under this repo's own rules. The shipped tooling under
+        # ruff's defaults and nothing else: that is the bar the skill holds scripts/
+        # and tests/ to, and a stricter local rule set must not be able to redden
+        # files it did not write (an HA-style `select = ALL` finds ~700 in them).
+        # Linting custom_components/ alone let the shipped copies rot unseen.
+        run: |
+          ruff check custom_components/
+          ruff check --isolated scripts/
+          if [ -d tests ]; then ruff check --isolated tests/; fi
 
       - name: Pyright
         run: python -m pyright custom_components/

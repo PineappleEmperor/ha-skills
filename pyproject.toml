@@ -1,0 +1,5 @@
+# Lint config for this repo's own tooling. A scaffolded integration carries its own
+# pyproject.toml; this one exists so the IDE and CI judge scripts/ and tests/ by the
+# same rules, and so version_sync.py has a second declaration to compare against.
+[tool.ruff]
+target-version = "py313"

@@ -31,5 +31,8 @@ jobs:
       # PyYAML because skill_audit.py parses workflows, and the tests import it.
       # A local venv that happens to have it installed hides this; the job must
       # name every import the suite reaches.
-      - run: uv pip install --system --quiet pytest pyyaml
+      - run: uv pip install --system --quiet pytest pyyaml ruff
+      # scripts/ and tests/ ship to every scaffolded repo, whose own CI lints them
+      # with ruff; they must pass here first. pyproject.toml carries the config.
+      - run: ruff check .
       - run: python -m pytest tests/ -q
