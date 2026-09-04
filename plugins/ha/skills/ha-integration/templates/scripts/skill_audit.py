@@ -77,7 +77,7 @@ class Repo:
         import yaml as _yaml
         try:
             return _yaml.safe_load(self.text(rel)) or {}
-        except Exception:
+        except (OSError, _yaml.YAMLError):
             return {}
 
     def exists(self, rel: str) -> bool:
@@ -91,7 +91,7 @@ class Repo:
         import yaml as _yaml
         try:
             doc = _yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-        except Exception:
+        except (OSError, _yaml.YAMLError):
             return []
         return [(jn, s or {}) for jn, job in (doc.get("jobs") or {}).items()
                 for s in (job or {}).get("steps", []) or []]
@@ -200,7 +200,6 @@ def check_single_body_writer(repo: Repo) -> Result:
 
 def check_previous_tag(repo: Repo) -> Result:
     """`--limit 1` on a release event returns the release being written."""
-    rel = "path:.github/workflows/release_drafter.yml"
     if not repo.exists(".github/workflows/release_drafter.yml"):
         return [], []
     doc = repo.yaml(".github/workflows/release_drafter.yml")
@@ -213,9 +212,13 @@ def check_previous_tag(repo: Repo) -> Result:
             continue
         prev = next((l for l in run.splitlines() if re.match(r"\s*PREV=", l)), "")
         if "--limit 1 " in prev or prev.rstrip().endswith("--limit 1"):
-            return ["release_drafter.yml resolves the previous tag with `--limit 1` while "
+            return [
+                (
+                    "release_drafter.yml resolves the previous tag with `--limit 1` while "
                     "triggering on `release: published`; that returns the release being "
-                    "written and the notes come out empty. Exclude the current tag."], []
+                    "written and the notes come out empty. Exclude the current tag."
+                )
+            ], []
     return [], []
 
 
@@ -226,8 +229,12 @@ def check_zip_release_patches_manifest(repo: Repo) -> Result:
     if not re.search(r'"zip_release"\s*:\s*true', repo.text("hacs.json")):
         return [], []
     if "manifest.json" not in repo.text(".github/workflows/release.yml"):
-        return ["release.yml builds a zip_release asset without setting the manifest "
-                "version from the tag (see templates/.github/workflows/release.yml)"], []
+        return [
+            (
+                "release.yml builds a zip_release asset without setting the manifest "
+                "version from the tag (see templates/.github/workflows/release.yml)"
+            )
+        ], []
     return [], []
 
 
@@ -272,9 +279,13 @@ def check_label_events(repo: Repo) -> Result:
     cancels = bool((doc.get("concurrency") or {}).get("cancel-in-progress"))
     hazard = types & {"labeled", "unlabeled"}
     if hazard and cancels:
-        return [f"pr-checks.yml triggers on {sorted(hazard)} with cancel-in-progress. A bot "
+        return [
+            (
+                f"pr-checks.yml triggers on {sorted(hazard)} with cancel-in-progress. A bot "
                 f"applying several labels starts a run per label; the cancelled ones make "
-                f"the status rollup FAILURE and the PR unmergeable."], []
+                f"the status rollup FAILURE and the PR unmergeable."
+            )
+        ], []
     return [], []
 
 
@@ -333,7 +344,7 @@ def check_claims_have_tests(repo: Repo) -> Result:
                          "cannot install the suite)")
         if repo.exists("conftest.py"):
             conftest = repo.text("conftest.py")
-            if not re.search(r"^import custom_components", conftest, re.M):
+            if not re.search(r"^import custom_components", conftest, re.MULTILINE):
                 fails.append("conftest.py does not import custom_components (HA will not "
                              "discover the integration)")
             if "enable_custom_integrations" not in conftest:
@@ -348,10 +359,15 @@ def check_claims_have_tests(repo: Repo) -> Result:
     elif done:
         fails.append(f"quality_scale marks {done} rule(s) done but there is no tests/ "
                      f"directory — a done without a test is a claim, not evidence")
-    if repo.exists("requirements.test.txt") and repo.cc:
-        if not re.search(r"pytest-homeassistant-custom-component\s*==", repo.text("requirements.test.txt")):
-            warns.append("pytest-homeassistant-custom-component is unpinned (it hard-pins the "
-                         "HA version the suite tests against)")
+    if (
+        repo.exists("requirements.test.txt")
+        and repo.cc
+        and not re.search(
+            r"pytest-homeassistant-custom-component\s*==", repo.text("requirements.test.txt")
+        )
+    ):
+        warns.append("pytest-homeassistant-custom-component is unpinned (it hard-pins the "
+                     "HA version the suite tests against)")
     return fails, warns
 
 
@@ -448,7 +464,7 @@ def check_no_ignored_validations(repo: Repo) -> Result:
     fails = []
     for w in ("hacs_validate", "hassfest_validate"):
         rel = f".github/workflows/{w}.yml"
-        if repo.exists(rel) and re.search(r"^\s*ignore:", repo.text(rel), re.M):
+        if repo.exists(rel) and re.search(r"^\s*ignore:", repo.text(rel), re.MULTILINE):
             fails.append(f"{w}.yml sets ignore: — ignoring any check disqualifies the repo "
                          f"from the HACS default store")
     return fails, []
@@ -575,7 +591,8 @@ def check_quality_scale_and_manifest(repo: Repo) -> Result:
         warns.append("frontend/package.json has no test script; the panel's presentation "
                      "logic is unproven")
     if re.search(r'"(frontend|panel_custom)"', m) and \
-            not re.search(r"^\s*home-assistant-frontend==", repo.text("requirements.test.txt"), re.M):
+            not re.search(r"^\s*home-assistant-frontend==", repo.text("requirements.test.txt"),
+                          re.MULTILINE):
         fails.append("manifest depends on frontend/panel_custom but requirements.test.txt has "
                      "no home-assistant-frontend pin (every setup test will fail in CI with: "
                      "No module named 'hass_frontend')")
@@ -595,8 +612,12 @@ def check_autolabeler_title_only(repo: Repo) -> Result:
     cfg = repo.yaml(".github/release-drafter.yml")
     bad = [r.get("label") for r in cfg.get("autolabeler", []) or [] if set(r) - {"label", "title"}]
     if bad:
-        return [f"release-drafter.yml autolabeler has non-title rules (title-only, or labels "
-                f"flap): {bad}"], []
+        return [
+            (
+                f"release-drafter.yml autolabeler has non-title rules (title-only, or labels "
+                f"flap): {bad}"
+            )
+        ], []
     return [], []
 
 
@@ -608,8 +629,12 @@ def check_drafter_categories(repo: Repo) -> Result:
     bad = [c.get("title") or c.get("type") for c in cfg.get("categories") or []
            if "labels" in c or "label" in c]
     if bad:
-        return [f"release-drafter categories use the v6 top-level `labels:`; v7 matches under "
-                f"`when:` and these never match, so the version resolves to a patch bump: {bad}"], []
+        return [
+            (
+                f"release-drafter categories use the v6 top-level `labels:`; v7 matches under "
+                f"`when:` and these never match, so the version resolves to a patch bump: {bad}"
+            )
+        ], []
     return [], []
 
 
@@ -712,7 +737,7 @@ def check_self_diff(repo: Repo) -> Result:
         try:
             if _yaml.safe_load(tf.read_text()) != _yaml.safe_load(rf.read_text()):
                 bad.append(str(rel))
-        except Exception:
+        except (OSError, _yaml.YAMLError):
             continue
     if bad:
         return ["this repo's .github/ diverges from its own templates/ (see the sanctioned "
@@ -786,8 +811,12 @@ def check_release_token(repo: Repo) -> Result:
     # Either sanctioned source: the PAT, or the GitHub App pair the App path mints from.
     if "RELEASE_TOKEN" in names or {"APP_ID", "APP_PRIVATE_KEY"} <= names:
         return [], []
-    return ["auto_draft_pr.yml is present but neither RELEASE_TOKEN nor the "
-            "APP_ID/APP_PRIVATE_KEY pair is set (see SKILL.md, RELEASE_TOKEN)"], []
+    return [
+        (
+            "auto_draft_pr.yml is present but neither RELEASE_TOKEN nor the "
+            "APP_ID/APP_PRIVATE_KEY pair is set (see SKILL.md, RELEASE_TOKEN)"
+        )
+    ], []
 
 
 def check_required_status_checks(repo: Repo) -> Result:
@@ -804,14 +833,22 @@ def check_required_status_checks(repo: Repo) -> Result:
     branch = subprocess.run(["gh", "api", f"repos/{slug}", "--jq", ".default_branch"],
                             cwd=repo.root, capture_output=True, text=True, check=False).stdout.strip()
     if not branch:
-        return [], [f"could not read {slug} (token lacks permission?) — required status checks "
-                    "NOT CHECKED, not passed"]
+        return [], [
+            (
+                f"could not read {slug} (token lacks permission?) — required status checks "
+                "NOT CHECKED, not passed"
+            )
+        ]
     rules = subprocess.run(["gh", "api", f"repos/{slug}/rules/branches/{branch}", "--jq",
                             "[.[].type]"], cwd=repo.root, capture_output=True, text=True,
                            check=False).stdout.strip()
     if not rules:
-        return [], [f"could not read branch rules for {branch} (token lacks permission?) — "
-                    f"verify required status checks by hand"]
+        return [], [
+            (
+                f"could not read branch rules for {branch} (token lacks permission?) — "
+                f"verify required status checks by hand"
+            )
+        ]
     fails, warns = [], []
     if "required_status_checks" not in rules:
         fails.append(f"no required status checks on {branch} — every workflow in this stack is "
@@ -833,7 +870,7 @@ def _job_names(wf_dir: pathlib.Path) -> dict[str, str]:
     for wf in sorted(wf_dir.glob("*.y*ml")):
         try:
             doc = _yaml.safe_load(wf.read_text(encoding="utf-8")) or {}
-        except Exception:
+        except (OSError, _yaml.YAMLError):
             continue
         for jid, job in (doc.get("jobs") or {}).items():
             out[str((job or {}).get("name") or jid)] = wf.name
@@ -844,7 +881,7 @@ def _required_contexts(ruleset: pathlib.Path) -> list[str]:
     """The status-check contexts a ruleset JSON makes required."""
     try:
         doc = json.loads(ruleset.read_text(encoding="utf-8"))
-    except Exception:
+    except (OSError, ValueError):
         return []
     return [c["context"] for r in doc.get("rules") or []
             if r.get("type") == "required_status_checks"
@@ -930,7 +967,7 @@ def _job_names_at(repo: Repo, ref: str) -> dict[str, str] | None:
             continue
         try:
             doc = _yaml.safe_load(show.stdout) or {}
-        except Exception:
+        except _yaml.YAMLError:
             continue
         for jid, job in (doc.get("jobs") or {}).items():
             out[str((job or {}).get("name") or jid)] = pathlib.Path(path).name
@@ -957,21 +994,35 @@ def check_live_required_contexts(repo: Repo) -> Result:
     branch = subprocess.run(["gh", "api", f"repos/{slug}", "--jq", ".default_branch"],
                             cwd=repo.root, capture_output=True, text=True, check=False).stdout.strip()
     if not branch:
-        return [], [f"could not read {slug} (token lacks permission?) — live required contexts "
-                    "NOT CHECKED, not passed"]
+        return [], [
+            (
+                f"could not read {slug} (token lacks permission?) — live required contexts "
+                "NOT CHECKED, not passed"
+            )
+        ]
     out = subprocess.run(
         ["gh", "api", f"repos/{slug}/rules/branches/{branch}", "--jq",
-         '[.[] | select(.type == "required_status_checks") '
-         '| .parameters.required_status_checks[].context]'],
+         (
+             '[.[] | select(.type == "required_status_checks") '
+             '| .parameters.required_status_checks[].context]'
+         )],
         cwd=repo.root, capture_output=True, text=True, check=False)
     if out.returncode != 0 or not out.stdout.strip():
-        return [], [f"could not read branch rules for {branch} (token lacks permission?) — "
-                    "live required contexts NOT CHECKED, not passed"]
+        return [], [
+            (
+                f"could not read branch rules for {branch} (token lacks permission?) — "
+                "live required contexts NOT CHECKED, not passed"
+            )
+        ]
     try:
         contexts = json.loads(out.stdout)
     except ValueError:
-        return [], [f"unexpected branch-rules response for {branch} — live required contexts "
-                    "NOT CHECKED, not passed"]
+        return [], [
+            (
+                f"unexpected branch-rules response for {branch} — live required contexts "
+                "NOT CHECKED, not passed"
+            )
+        ]
     produced = _job_names(repo.workflows)
     on_base = _job_names_at(repo, f"origin/{branch}")
     judged = ".github/workflows/ in the working tree (no base branch to consult)"
@@ -1005,8 +1056,12 @@ def check_dependency_graph(repo: Repo) -> Result:
                            cwd=repo.root, capture_output=True, text=True, check=False)
     if probe.returncode == 0 and probe.stdout.strip():
         return [], []
-    return [f"{slug} ships dependency_review.yml but its dependency graph is off, so that "
-            "check fails on every PR — enable it at Settings -> Advanced Security"], []
+    return [
+        (
+            f"{slug} ships dependency_review.yml but its dependency graph is off, so that "
+            "check fails on every PR — enable it at Settings -> Advanced Security"
+        )
+    ], []
 
 
 CHECKS = (

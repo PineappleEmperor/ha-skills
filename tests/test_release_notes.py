@@ -24,11 +24,11 @@ def test_groups_by_commit_type_not_pr_label(monkeypatch) -> None:
     commit of a PR under that PR's single label, so a `fix:` in a `feat:`-titled
     PR lands under Features and a reader finds no Fixes section.
     """
-    log = "\n".join([
-        "aaa\x00feat: add polling",
-        "bbb\x00fix: close the session",
-        "ccc\x00chore: tidy",
-    ])
+    log = (
+        "aaa\x00feat: add polling\n"
+        "bbb\x00fix: close the session\n"
+        "ccc\x00chore: tidy"
+    )
     monkeypatch.setattr(rn, "_git", lambda *a: log)
     monkeypatch.setattr(rn, "pr_for", lambda sha, head: "7")
     out = rn.build("v1..HEAD", repo_url="https://x/y", head="HEAD")
@@ -41,11 +41,11 @@ def test_groups_by_commit_type_not_pr_label(monkeypatch) -> None:
 
 def test_merge_commits_and_version_bumps_are_dropped(monkeypatch) -> None:
     """Neither is a changelog entry."""
-    log = "\n".join([
-        "aaa\x00Merge pull request #3 from o/b",
-        "bbb\x00chore: bump manifest version to v1.2.3",
-        "ccc\x00fix: a real change",
-    ])
+    log = (
+        "aaa\x00Merge pull request #3 from o/b\n"
+        "bbb\x00chore: bump manifest version to v1.2.3\n"
+        "ccc\x00fix: a real change"
+    )
     monkeypatch.setattr(rn, "_git", lambda *a: log)
     monkeypatch.setattr(rn, "pr_for", lambda sha, head: None)
     out = rn.build("v1..HEAD")
@@ -110,16 +110,16 @@ def test_drafter_body_means_the_generator_never_ran() -> None:
     assert not any("release-drafter" in p for p in crn.check("## 🔧 Fixes\n\n- close the session ([#12](u))\n"))
 
 
-GH_NOTES = "\n".join([
-    "## What's Changed",
-    "* fix: close the session by @someone in https://x/y/pull/7",
-    "",
-    "## New Contributors",
-    "* @newbie made their first contribution in https://x/y/pull/7",
-    "* @dependabot[bot] made their first contribution in https://x/y/pull/8",
-    "",
-    "**Full Changelog**: https://x/y/compare/v1.0.0...v1.1.0",
-])
+GH_NOTES = (
+    "## What's Changed\n"
+    "* fix: close the session by @someone in https://x/y/pull/7\n"
+    "\n"
+    "## New Contributors\n"
+    "* @newbie made their first contribution in https://x/y/pull/7\n"
+    "* @dependabot[bot] made their first contribution in https://x/y/pull/8\n"
+    "\n"
+    "**Full Changelog**: https://x/y/compare/v1.0.0...v1.1.0"
+)
 
 
 def test_new_contributors_takes_only_that_section() -> None:
@@ -139,10 +139,10 @@ def test_new_contributors_drops_bots() -> None:
 
 def test_new_contributors_empty_when_only_bots() -> None:
     """Filtering can empty the section, and a bare heading is worse than none."""
-    notes = "\n".join([
-        "## New Contributors",
-        "* @dependabot[bot] made their first contribution in https://x/y/pull/8",
-    ])
+    notes = (
+        "## New Contributors\n"
+        "* @dependabot[bot] made their first contribution in https://x/y/pull/8"
+    )
     assert rn.new_contributors(notes) == ""
 
 

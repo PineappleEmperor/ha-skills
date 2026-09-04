@@ -21,7 +21,6 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import json
 import re
 import subprocess
 import sys
@@ -41,11 +40,15 @@ def check(notes: str, version: str | None = None) -> list[str]:
     if version:
         major = version.lstrip("v").split(".")[0]
         minor_patch = version.lstrip("v").split(".")[1:]
-        if major.isdigit() and int(major) > 0 and minor_patch[:2] == ["0", "0"]:
-            if "Breaking Change" not in notes:
-                problems.append(
-                    f"{version} is a major release with no Breaking Changes section; "
-                    "mark the breaking commit `type!:`, not just the PR title")
+        if (
+            major.isdigit()
+            and int(major) > 0
+            and minor_patch[:2] == ["0", "0"]
+            and "Breaking Change" not in notes
+        ):
+            problems.append(
+                f"{version} is a major release with no Breaking Changes section; "
+                "mark the breaking commit `type!:`, not just the PR title")
     # The empty-range sentinel on a published release. release_notes.py emits it when
     # `PREV..HEAD` holds no commits, which happens when PREV resolved to the release
     # being written. v7.2.0 published a 25-character body over a range of nine commits,
@@ -96,7 +99,7 @@ def main() -> int:
     if args.tag:
         out = subprocess.run(
             ["gh", "release", "view", args.tag, "--json", "body", "--jq", ".body"],
-            capture_output=True, text=True,
+            capture_output=True, text=True, check=False,
         )
         if out.returncode:
             sys.exit(f"could not read release {args.tag}: {out.stderr.strip()}")

@@ -30,14 +30,13 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import json
 import re
 import subprocess
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-import commit_summary as cs  # noqa: E402  same classifier the PR body uses
+import commit_summary as cs  # same classifier the PR body uses
 
 MERGE = re.compile(r"^Merge pull request #(?P<pr>\d+) ")
 ORDER = ("breaking", "feat", "fix", "maint", "other")
@@ -62,7 +61,7 @@ def pr_for(sha: str, head: str) -> str | None:
     """
     out = subprocess.run(
         ("git", "log", "--merges", "--reverse", "--format=%s", f"{sha}..{head}", "--ancestry-path"),
-        capture_output=True, text=True,
+        capture_output=True, text=True, check=False,
     ).stdout
     for line in out.splitlines():
         if m := MERGE.match(line):

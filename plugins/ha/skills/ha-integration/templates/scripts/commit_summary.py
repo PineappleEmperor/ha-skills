@@ -32,7 +32,7 @@ BUMP = re.compile(
     r"^[a-z]+(\([^)]*\))?:\s*bump\s+(the\s+)?"
     r"((manifest|plugin|integration|skill|marketplace|ha)\s+)*"
     r"(version\b|to\s+v?\d+\.\d+)",
-    re.I,
+    re.IGNORECASE,
 )
 
 ORDER = ("breaking", "feat", "fix", "maint", "other")
@@ -162,9 +162,11 @@ def main() -> int:
     ap.add_argument("--subjects", default="-", help="file of commit subjects, or - for stdin")
     args = ap.parse_args()
 
-    src = sys.stdin if args.subjects == "-" else open(args.subjects, encoding="utf-8")
-    with src as fh:
-        subjects = fh.read().splitlines()
+    if args.subjects == "-":
+        subjects = sys.stdin.read().splitlines()
+    else:
+        with open(args.subjects, encoding="utf-8") as fh:
+            subjects = fh.read().splitlines()
 
     if args.mode == "title":
         print(title_for(subjects))

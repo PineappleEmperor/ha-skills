@@ -19,7 +19,9 @@ import pathlib
 import re
 import sys
 
-PHCC = re.compile(r"^\s*pytest-homeassistant-custom-component\s*==\s*(?P<version>\S+)", re.M)
+PHCC = re.compile(
+    r"^\s*pytest-homeassistant-custom-component\s*==\s*(?P<version>\S+)", re.MULTILINE
+)
 RUFF_TARGET = re.compile(r'target-version\s*=\s*"py(?P<major>\d)(?P<minor>\d+)"')
 PY_VERSION = re.compile(r'python-version:\s*["\']?(?P<version>\d+\.\d+)')
 
@@ -84,8 +86,12 @@ def thin(root: pathlib.Path) -> list[str]:
     missing = [k for k, v in found.items() if v is None]
     declared = {k: v for k, v in found.items() if v is not None}
     if len(declared) < 2:
-        return [f"only {len(declared)} python version declared; nothing to compare "
-                f"(absent: {', '.join(missing)})"]
+        return [
+            (
+                f"only {len(declared)} python version declared; nothing to compare "
+                f"(absent: {', '.join(missing)})"
+            )
+        ]
     return []
 
 
