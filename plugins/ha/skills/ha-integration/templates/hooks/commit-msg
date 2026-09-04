@@ -22,6 +22,15 @@ if ! printf '%s' "$subject" | grep -Eq '^(feat|fix|docs|style|refactor|perf|test
 fi
 case "$subject" in *.) echo "commit-msg: subject must not end in a period." >&2; exit 1 ;; esac
 
+# One commit, one change. "clear rows 86 to 88 and record the stale rename" passed every
+# rule above and carried two; the release notes list a subject once, under one heading,
+# so the second change is invisible to the reader. An `and` after the colon is the tell.
+if printf '%s' "$subject" | sed 's/^[^:]*: //' | grep -Eqw 'and'; then
+  echo "commit-msg: one change per commit — this subject joins two with 'and'. Split it." >&2
+  echo "    $subject" >&2
+  exit 1
+fi
+
 # Editorialising words. A subject can pass every shape rule above and still say nothing
 # a reader can act on — "catch prose naming a job nobody ships" is well formed, and does
 # not name the thing it changed. These words are where that creeps in.
