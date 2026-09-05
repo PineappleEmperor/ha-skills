@@ -49,7 +49,7 @@ def check(
     """Return a list of problems; empty means the notes are well formed."""
     problems: list[str] = []
 
-    # A major with nothing under Breaking Changes; a first release has nothing to break.
+    # A major with nothing under Breaking Changes.
     if version and not first_release:
         major = version.lstrip("v").split(".")[0]
         minor_patch = version.lstrip("v").split(".")[1:]
