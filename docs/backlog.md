@@ -8,10 +8,34 @@ Status: `open` · `fixed` (with commit) · `wontfix` (with reason).
 
 ## Open
 
-Open: rows 89, 98 and 99. Every other row from 73 up is cleared below, with its commit;
-rows 1-72 are cleared under *Fixed*. The testbed cycle that proved rows 85, 92 and 95 ran
-end to end on 2026-09-04: draft PR, eight required contexts, merge, rc publish, final
-publish, asset, notes and draft cleanup.
+Open: rows 89, 98, 99 and 103-112. Every other row from 73 up is cleared below, with its
+commit; rows 1-72 are cleared under *Fixed*. The testbed cycle that proved rows 85, 92 and
+95 ran end to end on 2026-09-04: draft PR, eight required contexts, merge, rc publish,
+final publish, asset, notes and draft cleanup.
+
+### From the reviews of the three new repositories (2026-09-05)
+
+Row 98's homes were populated on 2026-09-04 and each tree was read by a reviewer with no
+session context before its first commit. Twenty-two discrepancies across the three; the
+invariants held (workflow_call only, one named secret, every pin a SHA with a version
+comment, no `${{ }}` in a `run:`, setup-python before every Python step, tests green).
+A row here whose fix lands in another repository names that repository's commit.
+
+| # | Finding | Fix | Commit |
+|---|---|---|---|
+| 100 | **`ha-panel-ci` stated the release-time rebuild four times**: the workflow header, the Build step's comment, the stale-bundle warning text and a README section all restated what `release.yml` in `ha-integration-ci` does and why. One source: that file | The header now says gating on a build artefact blocked merges and points at `release.yml` for what ships; the other three restatements are deleted, and the README section keeps only the contract that the two build steps must agree | `ha-panel-ci` first commit |
+| 101 | **`ha-panel-ci` shipped no `.tmp/` ignore and no Dependabot entry for the frontend templates**, whose version ranges every consumer copies and which would otherwise rot in place | Both added | `ha-panel-ci` first commit |
+| 102 | **`ha-panel-ci`'s README stated the Dependabot cadence twice and the `npm` command pair twice** | The table row says what the file moves; the release section refers to the block above rather than repeating it | `ha-panel-ci` first commit |
+| 103 | **`release-flow`'s commit hook is not executable and a `.write-probe` file is left in the tree.** Both are sandbox residue: the hook was written by a tool that cannot set a mode, and the probe proved the directory writable. Neither can be fixed from here | Maintainer step: `chmod +x .githooks/commit-msg`, `rm .write-probe` | open |
+| 104 | **`release-flow`'s README states twice that Dependabot moves the SHA and the version comment together** (the pointers section and the versions section) | open | — |
+| 105 | **The drafter config accepts seven labels nothing produces or validates.** `categories` match `xfeature`, `major`, `enhancement`, `bugfix`, `bug`, `minor` and `patch` alongside the four the autolabeler writes; `title-check` compares only the four, so a hand-applied `enhancement` files a PR under Features while the commits say `fix`, and the gate stays green. Inherited from `templates/.github/release-drafter.yml`, so this repo's copy and `release-flow`'s both carry it | Decide, then apply to both copies: categories match only the four managed labels; the bump-only `version-resolver` entries stay as the hand override, since `title-check` ignores them by design | open |
+| 106 | **`commit_summary.py`'s docstring names a `commit-summary` job that no longer exists** and says it builds a marked block in a PR body; `title-check` posts a comment and nothing edits a body. In this repo's twins and in `release-flow`'s copy | open | — |
+| 107 | **Twelve of the audit's checks have no failing-path test.** Eight are referenced by no test at all (`no_tracked_artefacts`, `label_events`, `classifier_not_inlined`, `no_run_interpolation`, `quality_scale_and_manifest`, `autolabeler_title_only`, `brand_assets`, `release_token`); four are driven only to pass (`previous_tag`, `release_drafter_wiring`, `antipatterns`, `required_status_checks`). The README claims every check has a test. Pre-existing in this repo's copy; the audit's home is now `ha-integration-ci`, so the tests land there | open | — |
+| 108 | **`version_sync.py` seeds `python_validate.yml` as an absent declaration**, a filename no pointer-model consumer carries, so the thin-coverage warning names a phantom. Under pointers a consumer's workflows declare no Python version at all: the declaration that matters is the reusable workflow's, which `quality-audit.yml` checks out beside the tree as `.ha-integration-ci/` | Drop the seed; collect from `.ha-integration-ci/.github/workflows/` too when present, keyed by repository, so a consumer's floor is compared against the CI it runs | open |
+| 109 | **`ha-integration-ci`'s test fixtures still use the underscore filenames** in every `test_version_sync.py` case and two `test_skill_audit.py` cases, while the audit requires the hyphenated pointer names | open | — |
+| 110 | **Two of `release-flow`'s four pointers are judged by nothing.** `POINTERS` in the rewritten audit omits `release-drafter.yml` and `auto-draft-pr.yml`, so a body in their place passes; `release-drafter` also fell out of `CANONICAL` without a stated reason, and the README's description of `check_canonical_files` omits the three unconditional files | `POINTERS` names all eight; `release-drafter` returns to `CANONICAL`; the README says what the check requires | open |
+| 111 | **`check_pointers` fails the repository that owns the bodies.** Run on `ha-integration-ci` it reports its three reusable workflows as copies. A workflow whose only trigger is `workflow_call` is a definition, not a consumer's copy; the check should say so and skip it | open | — |
+| 112 | **`ha-integration-ci`'s README states the `job_workflow_sha` checkout twice** (the opening and the version model) | open | — |
 
 ### From the CI contract of 2026-08-21, reconciled 2026-09-04
 
