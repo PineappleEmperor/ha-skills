@@ -9,10 +9,11 @@ Status: `open` · `fixed` (with commit) · `wontfix` (with reason).
 ## Open
 
 Open: rows 89, 98, 99 and 103. Every other row from 73 up is cleared below, with its
-commit; rows 1-72 are cleared under *Fixed*. Rows 100-112 name the first commit of another
-repository where that is where the fix lives; each of those trees is ready to commit. The
-testbed cycle that proved rows 85, 92 and 95 ran end to end on 2026-09-04: draft PR,
-eight required contexts, merge, rc publish, final publish, asset, notes and draft cleanup.
+commit or as `wontfix`; rows 1-72 are cleared under *Fixed*. Rows 100-102 and 104-112 name
+the first commit of another repository where that is where the fix lives; each of those
+trees is ready to commit. The testbed cycle that proved rows 85, 92 and 95 ran end to end
+on 2026-09-04: draft PR, eight required contexts, merge, rc publish, final publish, asset,
+notes and draft cleanup.
 
 ### From the reviews of the three new repositories (2026-09-05)
 
