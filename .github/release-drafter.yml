@@ -18,7 +18,7 @@ autolabeler:
       - '/^(feat|feature)(\(.+\))?:/i'
 # One category per label the autolabeler writes; no aliases, no bump-only labels.
 categories:
-  - title: '🚨 Breaking Change'
+  - title: '🚨 Breaking Changes'
     semver-increment: major
     when:
       labels:
