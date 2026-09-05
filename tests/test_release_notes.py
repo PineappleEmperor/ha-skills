@@ -18,12 +18,7 @@ _SPEC.loader.exec_module(rn)
 
 
 def test_groups_by_commit_type_not_pr_label(monkeypatch) -> None:
-    """A fix inside a feature PR belongs under Fixes.
-
-    This is the whole reason the notes are generated: release-drafter files every
-    commit of a PR under that PR's single label, so a `fix:` in a `feat:`-titled
-    PR lands under Features and a reader finds no Fixes section.
-    """
+    """A fix inside a feature PR lands under Fixes."""
     log = "aaa\x00feat: add polling\nbbb\x00fix: close the session\nccc\x00chore: tidy"
     monkeypatch.setattr(rn, "_git", lambda *a: log)
     monkeypatch.setattr(rn, "pr_for", lambda sha, head: "7")
@@ -85,12 +80,7 @@ def _crn():
 
 
 def test_empty_range_sentinel_is_flagged() -> None:
-    """A published body of `_No user-facing changes._` means the range was wrong.
-
-    v7.2.0 shipped a 25-character body over nine commits, because the previous tag
-    resolved to the release being written. Everything else about the body was valid,
-    so only a check for the sentinel itself catches it.
-    """
+    """A body that is only the empty-range sentinel."""
     crn = _crn()
     assert any(
         "empty-range sentinel" in p for p in crn.check("_No user-facing changes._")
@@ -108,12 +98,7 @@ def test_draft_placeholder_is_flagged() -> None:
 
 
 def test_drafter_body_means_the_generator_never_ran() -> None:
-    """release-drafter writes one line per PR; the type-grouped body replaces it.
-
-    If that replacement step never runs the release still has a body, so every
-    text-shape check passes while the notes group fixes under whichever label the
-    PR carried — the exact defect the generator exists to avoid.
-    """
+    """A body still in release-drafter's PR-per-line shape."""
     crn = _crn()
     drafter = "## Fixes\n\n- fix: close the session @dev (#12)\n"
     assert any("release-drafter" in p for p in crn.check(drafter))

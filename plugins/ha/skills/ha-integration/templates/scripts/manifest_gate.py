@@ -61,11 +61,9 @@ def evaluate(
     if dependabot:
         return True, "dependabot exempt"
 
-    # The version comes from the label, which comes from the PR TITLE. The release
-    # notes come from the COMMIT subjects. Nothing compared the two, so a PR titled
-    # `feat!:` with no `!` on any commit shipped a major whose notes had no Breaking
-    # Changes section, and a `!` commit under a `feat:` title shipped a breaking
-    # change as a minor. Both directions are caught here, before the version lands.
+    # The label comes from the title and the notes from the commits; this holds the
+    # two to agree about being breaking, in both directions (the incident is in
+    # check_release_notes.py, which guards the published body the same way).
     # NOT CALLED BY THE SHIPPED STACK. The canonical repo is tag-driven — no PR carries a
     # version — so `evaluate()` has no input and pr-checks.yml only uses `--suggest`. The
     # breaking-marker rule it implements now lives in the label gate, which compares the
@@ -126,9 +124,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--suggest",
         action="store_true",
-        help="print the version the labels imply and exit; used by the "
-        "advisory check in a tag-driven repo, where no PR carries "
-        "a bump to validate",
+        help="print the version the labels imply and exit",
     )
     parser.add_argument("--labels", default="", help="comma-separated label names")
     parser.add_argument("--dependabot", action="store_true")

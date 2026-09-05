@@ -51,8 +51,7 @@ def check(notes: str, version: str | None = None) -> list[str]:
             )
     # The empty-range sentinel on a published release. release_notes.py emits it when
     # `PREV..HEAD` holds no commits, which happens when PREV resolved to the release
-    # being written. v7.2.0 published a 25-character body over a range of nine commits,
-    # and every check passed because the body it validated was well formed.
+    # being written.
     if notes.strip() == "_No user-facing changes._":
         problems.append(
             "release body is the empty-range sentinel; the previous tag resolved to the "

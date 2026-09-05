@@ -74,21 +74,17 @@ def test_no_managed_label_passes_when_changed() -> None:
 
 
 # --- title/commit breaking agreement -----------------------------------------
-# v7.0.0 was labelled major from a `feat!:` PR title while no commit carried `!`,
-# so the generated notes had no Breaking Changes section. The reverse ships a
-# breaking change as a minor. Neither was caught, because the version came from
-# the title and the notes came from the commits.
 
 
 def test_breaking_title_without_breaking_commit_fails() -> None:
-    """A major claimed by the title with no `!` commit would major with empty notes."""
+    """A breaking label with no `!` commit."""
     ok, reason = evaluate("6.5.0", "6.5.0", "7.0.0", ["xfeat"], breaking_commits=0)
     assert not ok
     assert "no commit" in reason
 
 
 def test_breaking_commit_without_breaking_title_fails() -> None:
-    """A `!` commit under a non-breaking title would ship a breaking change as a minor."""
+    """A `!` commit under a non-breaking label."""
     ok, reason = evaluate("6.5.0", "6.5.0", "6.6.0", ["feature"], breaking_commits=1)
     assert not ok
     assert "without a" in reason
@@ -119,11 +115,7 @@ def test_dependabot_still_exempt_with_a_count() -> None:
 
 
 def test_suggest_prints_the_version_the_labels_imply(capsys) -> None:
-    """The advisory check in a tag-driven repo needs a number, not a verdict.
-
-    No PR carries a bump there, so there is nothing to validate — the useful output
-    is what the next release will be if this PR merges.
-    """
+    """`--suggest` prints the next version, not a verdict."""
     assert (
         manifest_gate.main(
             ["--suggest", "--last-release", "0.1.0", "--labels", "feature"]
