@@ -8,7 +8,7 @@ Status: `open` · `fixed` (with commit) · `wontfix` (with reason).
 
 ## Open
 
-Open: rows 89, 98, 99 and 134-138; rows 119 and 124 are folded into 99. Every other row from 73
+Open: rows 89, 98, 99 and 134-139; rows 119 and 124 are folded into 99. Every other row from 73
 up is cleared below, with its commit or as `wontfix`; rows 1-72 are cleared under *Fixed*.
 Rows 100-102, 104-115, 120, 121, 129, 130 and 133 name the first commit of another
 repository where that is where the fix lives; each of those trees is ready to commit. The
@@ -91,6 +91,7 @@ they found:
 | 136 | **"Pointer" is a word of ours; GitHub's are "reusable workflow" and "caller workflow".** Every README, `skill_audit.py` (`POINTERS`, `check_pointers`), its tests and the reference docs say pointer | **Decided 2026-09-05:** adopt GitHub's terms everywhere current; rows in this log keep the word they were written with | open | — |
 | 137 | **ha-integration-ci and ha-panel-ci run no PR gate of their own.** Their READMEs deferred the release-flow caller workflows until release-flow had a tag; it has `v1.0.0rc1` | **Decided 2026-09-05:** add the four caller workflows, the drafter config and the hook to both now at rc1, move to `v1.0.0` with everything else; `RELEASE_TOKEN` exists in both | open | — |
 | 138 | **The check-run naming rule is spelled out in two READMEs** (`release-flow/README.md:207-208`, `ha-integration-ci/README.md:120-121`); `ha-panel-ci`'s points at one of them. The same reviewer paired two `skill_audit.py` fail messages with release-flow README reasons (fork PRs get a read-only token; Dependabot's labels with `cancel-in-progress`) | `ha-integration-ci`'s README points at release-flow's for the rule and keeps only its table. The fail messages stay, as row 129 decided for the hook: output telling the reader what to do is not documentation | open | — |
+| 139 | **`check_release_notes.py` fails a repository's first `v1.0.0` for having no Breaking Changes section.** The major check reads only the version: any `X.0.0` with `X > 0` must carry the section. An initial `1.0.0` has no previous release to have broken from, so release-flow's drafter run on the push after row 134 failed on its own `v1.0.0` draft (run 33992701650) after the pin step had done its job. `v1.0.0rc1` passed the same check only because the `rc1` suffix defeats the `.0.0` test. Found by the rc cycle; twins in this repo and `release-flow`'s copy | The check needs to know whether a previous full release exists: `check(..., first_release=True)` skips the major rule, `--first-release` on the command line, and `release-drafter.yml` passes it when `PREV` is empty. A test for the first release and one for a real major with no section | open | — |
 
 ### From the CI contract of 2026-08-21, reconciled 2026-09-04
 
