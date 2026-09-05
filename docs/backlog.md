@@ -9,7 +9,7 @@ Status: `open` · `fixed` (with commit) · `wontfix` (with reason).
 ## Open
 
 Open: rows 89, 98, 99 and 103. Every other row from 73 up is cleared below, with its
-commit or as `wontfix`; rows 1-72 are cleared under *Fixed*. Rows 100-102 and 104-112 name
+commit or as `wontfix`; rows 1-72 are cleared under *Fixed*. Rows 100-102 and 104-113 name
 the first commit of another repository where that is where the fix lives; each of those
 trees is ready to commit. The testbed cycle that proved rows 85, 92 and 95 ran end to end
 on 2026-09-04: draft PR, eight required contexts, merge, rc publish, final publish, asset,
@@ -38,6 +38,7 @@ A row here whose fix lands in another repository names that repository's commit.
 | 110 | **Two of `release-flow`'s four pointers are judged by nothing.** `POINTERS` in the rewritten audit omits `release-drafter.yml` and `auto-draft-pr.yml`, so a body in their place passes; `release-drafter` also fell out of `CANONICAL` without a stated reason, and the README's description of `check_canonical_files` omits the three unconditional files | Done as stated; `auto-draft-pr` is judged when carried and never required, since it needs a secret, and the comment on `POINTERS` says so. Two tests seen failing first | `ha-integration-ci` first commit |
 | 111 | **`check_pointers` fails the repository that owns the bodies.** Run on `ha-integration-ci` it reports its three reusable workflows as copies. A workflow whose only trigger is `workflow_call` is a definition, not a consumer's copy; the check should say so and skip it | A file whose trigger set is exactly `{workflow_call}` is skipped, with the reason in place; the same file with a second trigger is still a copy. Seen failing first; run on `ha-integration-ci` the three spurious FAILs are gone and the remaining ones describe its unpushed state | `ha-integration-ci` first commit |
 | 112 | **`ha-integration-ci`'s README states the `job_workflow_sha` checkout twice** (the opening and the version model) | The opening points at the version model | `ha-integration-ci` first commit |
+| 113 | **The superseded-label step maps two title types to `chore`; the autolabeler maps eight.** `pr-checks.yml`'s removal step reads `^(chore\|docs)` where the drafter config reads `chore\|docs\|refactor\|perf\|test\|build\|ci\|style`, so a PR retitled from `feat:` to `refactor:` gains `chore` from the autolabeler and keeps `feature`, listing under two categories, the case the step exists to prevent. Found by the second review of `release-flow`; the same line ships in this repo's `pr-checks.yml` and its template | The step's regex carries the autolabeler's eight types, with the coupling to the drafter config named beside it; all three copies. Five titles run against the new regex: three maintenance types map to `chore`, `feat:` and `revert:` do not. A workflow change, so the testbed run is its proof: this repo's own next PR exercises its copy, and `release-flow`'s copy runs on that repo's first PR | `5c1b01a`; `release-flow` first commit |
 
 ### From the CI contract of 2026-08-21, reconciled 2026-09-04
 
