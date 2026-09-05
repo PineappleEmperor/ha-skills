@@ -8,7 +8,7 @@ Status: `open` · `fixed` (with commit) · `wontfix` (with reason).
 
 ## Open
 
-Open: rows 89, 98 and 99; rows 119 and 124 are folded into 99. Every other row from 73
+Open: rows 89, 98, 99 and 134; rows 119 and 124 are folded into 99. Every other row from 73
 up is cleared below, with its commit or as `wontfix`; rows 1-72 are cleared under *Fixed*.
 Rows 100-102, 104-115, 120, 121, 129, 130 and 133 name the first commit of another
 repository where that is where the fix lives; each of those trees is ready to commit. The
@@ -81,6 +81,12 @@ they found:
 | 131 | **`versioning.md:22` quotes a `version-resolver` config key that 9403de5 deleted.** "The `version-resolver` still picks the highest for the bump" described the override block; the drafter's built-in resolution of the highest category increment is what still happens | Say release-drafter resolves the highest increment, without naming a config key | c0e3b3c |
 | 132 | **Commit d56e031's subject said the docstrings were pointed at the readme; the diff only cut them.** Nothing in this repo's scripts names a README. Row 106's fix text also still described the caller-naming docstring that commit removed | Recommitted as 1491607, "cut script docstrings down to what the code does"; row 106 says what happened to the docstring after b2d6014 | 3ef5444 |
 | 133 | **Nine restatements left across `ha-integration-ci` and `ha-panel-ci`** after row 121. README-internal: the domain derived from the manifest (`README.md:13` and `:49-50`); "no tag, so no commit to pin" (`:76-77` for this repository, `:179-180` for `release-flow`). `skill_audit.py` docstring or comment against the README: a tag is mutable (`skill_audit.py:562`, `README.md:159-160`); a placeholder is a bash redirect (`:384`, `README.md:50-52`); dependency-review, HACS and hassfest are settings over an action (`:41-43`, `README.md:104-105`, near verbatim); the orphaned required context that blocked a PR (`:1139-1146`, `:1234-1240`, `README.md:37-39`); a called workflow runs in the caller's event (`:591-592`, `README.md:16-19`). Script against script: why the harness pin matters (`version_sync.py:72-73`, `skill_audit.py:554-556`). Cross-repo: `ha-panel-ci/README.md:25` restates that the all-zeros SHA is a placeholder before pointing at `ha-integration-ci`'s README | The README says each once; the check docstrings name the failure they report and nothing else; the harness-pin reason lives in `version_sync.py`, whose check is the one that reports it; `ha-panel-ci`'s sentence is a pointer only. Done as stated; `skill_audit.py`'s unpinned-harness warning also lost its parenthetical reason | `ha-integration-ci` and `ha-panel-ci` first commits |
+
+### From the v1.0.0rc1 cycle of the three CI repositories (2026-09-05)
+
+| # | Finding | Fix | Commit |
+|---|---|---|---|
+| 134 | **A repository whose only published release is a prerelease drafts `v0.0.1`.** release-drafter counts only full releases as "the last release"; with `release-flow` at `v1.0.0rc1` and nothing else, the drafter run on the next push to `main` logged "No published release found", resolved `0.0.1` and renamed the existing `v1.0.0` draft to `v0.0.1` (run 33987439098). The notes step then failed on `release not found`, which was a race with the maintainer deleting the orphan `v0.0.1` drafts at the same moment, not a second defect. The ha-lego cycle of 2026-09-04 never saw this because a full release already existed there; the first release of every CI repository is an rc, so it recurs on each. Same logic in this repo's copied `release_drafter.yml` bodies, which row 98 replaces with pointers | **Decide:** when the newest published release is a prerelease, the draft's version is that release's base (`v1.0.0rc1` → `1.0.0`), passed to release-drafter as its `version` input so it neither resolves nor renames; otherwise the drafter resolves from the merged labels as now. Publishing an rc thereby commits the base version for the final, which is what an rc line means. The README's release-drafter paragraph states the rule; a consumer sees it on the next `release-flow` tag | open | — |
 
 ### From the CI contract of 2026-08-21, reconciled 2026-09-04
 
