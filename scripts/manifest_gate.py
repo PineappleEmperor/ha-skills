@@ -62,17 +62,9 @@ def evaluate(
     if dependabot:
         return True, "dependabot exempt"
 
-    # The label comes from the title and the notes from the commits; this holds the
-    # two to agree about being breaking, in both directions (the incident is in
-    # check_release_notes.py, which guards the published body the same way).
-    # NOT CALLED BY THE SHIPPED STACK. The canonical repo is tag-driven — no PR carries a
-    # version — so `evaluate()` has no input and pr-checks.yml only uses `--suggest`. The
-    # breaking-marker rule it implements now lives in the label gate, which compares the
-    # label against what the commits entitle the PR to. Kept for a repo that genuinely
-    # gates a committed version; delete it with the rest if that stops being a case.
-    # PRECONDITION if you do use it: labels must already be reconciled. The autolabeler
-    # only ADDS, so a PR retitled from `feat!:` to `fix:` keeps a stale `xfeat` and this
-    # would reject it.
+    # Label (from the title) and commits must agree about being breaking. Not called by
+    # the shipped stack, which uses only --suggest; kept for a repo that gates a
+    # committed version, and correct only once the PR's labels are reconciled.
     if breaking_commits is not None:
         claims_breaking = label_bump(labels) == "major"
         if claims_breaking and breaking_commits == 0:

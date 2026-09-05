@@ -1,17 +1,5 @@
 #!/usr/bin/env python3
-"""Check the release body a reader actually gets.
-
-The release description is the artefact users read, and nothing checked it until
-v7.2.0 shipped a 25-character body over a range of nine commits. Every check ran
-green, because they all inspected the shape of the text rather than asking whether
-the text was the changelog at all. What is asserted here is that it is:
-
-  - not the empty-range sentinel, which means the whole changelog was dropped
-  - not the placeholder the drafter config's `template` creates a draft with
-  - not release-drafter's own PR-per-line body, which means the type-grouped
-    generator never overwrote it
-  - a major release states what broke
-  - no bullet merely repeats the heading it sits under
+"""Check the release body a reader actually gets; each check names its problem.
 
 Usage:
     check_release_notes.py --tag v1.2.3        # a published or draft release

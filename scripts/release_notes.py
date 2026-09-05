@@ -1,14 +1,5 @@
 #!/usr/bin/env python3
-r"""Generate release notes grouped by commit type, the way HACS repos do it.
-
-release-drafter's `$CHANGES` categorises each **PR** by its single label, so a
-`fix:` commit inside a `feat:`-titled PR is filed under Features. Across a release
-that scatters one kind of change over several headings, and a reader looking for
-"what was fixed" finds no Fixes section.
-
-Surveyed 2026-08-15 against alexa_media_player, alandtse/tesla, hacs/integration
-and SonoffLAN. All four group by the type of change at the top level, one line per
-change, each linking to the PR it came from. None nests commits under a PR entry.
+r"""Generate release notes grouped by commit type.
 
 Output shape:
 
