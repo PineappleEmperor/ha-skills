@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Enforce terse commits: subject <=72 chars, no narrative body, no AI-attribution trailers.
-# Body lines allowed only as trailers (Key: value), Closes/Refs/Fixes #N, or any body when a
-# BREAKING CHANGE footer is present. Enable once per clone: git config core.hooksPath .githooks
+# Body lines allowed only as trailers (Key: value) or Closes/Refs/Fixes #N. A breaking
+# change is marked `type!:` in the subject, never by footer: nothing in the stack reads a
+# footer. Enable once per clone: git config core.hooksPath .githooks
 msg_file="$1"
 subject="$(grep -v '^#' "$msg_file" | sed -n '1p')"
 
@@ -47,8 +48,11 @@ if grep -v '^#' "$msg_file" | grep -Eqi '^Co-authored-by:[[:space:]]*Claude|^Cla
   exit 1
 fi
 
-if grep -q 'BREAKING CHANGE' "$msg_file"; then
-  exit 0
+# The subject's `!` is the only breaking marker the labeler, the gate and the notes read,
+# so a footer declares a break nothing acts on: it would ship as a non-breaking change.
+if grep -v '^#' "$msg_file" | grep -Eqi '^BREAKING[ -]CHANGE:'; then
+  echo "commit-msg: a BREAKING CHANGE footer is read by nothing here. Mark the subject '<type>!:' instead." >&2
+  exit 1
 fi
 
 bad=""

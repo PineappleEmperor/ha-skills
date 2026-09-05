@@ -16,14 +16,16 @@ notes are built from. Labels, gates and the release model are `reference/version
 **Commit format:**
 ```
 <type>[(<scope>)][!]: <description>
-
-[optional body — one blank line after description]
-
-[optional footers — BREAKING CHANGE: <detail>]
 ```
 
+Ten types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`,
+`chore`. A scope is tolerated and never generated. **`!` is the only breaking marker.**
+The labeler, the gate and the release notes read the subject and nothing else, so a
+`BREAKING CHANGE:` footer declares a break that nothing acts on and the change ships as
+non-breaking; the hook rejects the footer for that reason.
+
 ### Keep messages short
-Tight imperative subject; **subject-only by default**. Add a body ONLY when the *why* is non-obvious, or for breaking changes / migration notes — never to restate what the diff already shows. Long bodies that narrate the change are noise. Subject in imperative mood, lowercase after the colon, no trailing period.
+Tight imperative subject; **subject-only by default**. Add a body ONLY when the *why* is non-obvious, or for migration notes — never to restate what the diff already shows. Long bodies that narrate the change are noise. Subject in imperative mood, lowercase after the colon, no trailing period.
 
 ### No AI-attribution trailers
 Don't append `Co-Authored-By: Claude`, tool/session links, or any "generated with…" line to commits — keep the authorship history clean. (If a harness injects such trailers by default, strip them.) A `Co-Authored-By:` for a *real* human collaborator is fine.
