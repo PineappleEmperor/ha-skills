@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Group a PR's commit subjects by Conventional Commit type.
 
-Used by the `commit-summary` job in .github/workflows/pr-checks.yml to build the
-marked block in a PR body, and by the `title-check` job to suggest a title type.
+Used by the `title-check` job in .github/workflows/pr-checks.yml to name the label a
+PR's commits entitle it to and the title type to suggest when the label disagrees,
+and by the draft-PR opener to title the PR it opens.
 
 Lives in a script, not inline in the workflow, so it can be unit-tested — an
 inline heredoc cannot be, and a silently-wrong classifier corrupts release notes
