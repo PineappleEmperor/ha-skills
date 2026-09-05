@@ -19,35 +19,40 @@ autolabeler:
   - label: "feature"
     title:
       - '/^(feat|feature)(\(.+\))?:/i'
+# Each category matches exactly the one label the autolabeler above writes for it, and
+# nothing else: pr-checks.yml's title-check compares only these four against what the
+# commits entitle the PR to, so an alias it does not know (`enhancement`, `bug`) would
+# file a PR under a heading the gate never validated.
 categories:
   - title: '🚨 Breaking Change'
     semver-increment: major
     when:
       labels:
         - 'xfeat'
-        - 'xfeature'
-        - 'major'
   - title: '🚀 Features'
     semver-increment: minor
     when:
       labels:
-        - 'feat'
         - 'feature'
-        - 'enhancement'
   - title: '🔧 Fixes'
     semver-increment: patch
     when:
       labels:
         - 'fix'
-        - 'bugfix'
-        - 'bug'
   - title: '🧰 Maintenance'
     semver-increment: patch
     when:
       labels:
         - 'chore'
-  # Bump-only labels: they set the increment without being changelog sections.
+  # Bump-only labels, applied by hand: they set the increment without being changelog
+  # sections, and title-check ignores them by design, so they are the one sanctioned
+  # override of the bump the commits imply.
   # `version-resolver.<level>.labels` is deprecated; this is its replacement.
+  - type: version-resolver
+    semver-increment: major
+    when:
+      labels:
+        - 'major'
   - type: version-resolver
     semver-increment: minor
     when:
