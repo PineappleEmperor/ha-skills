@@ -18,7 +18,7 @@ if ! printf '%s' "$subject" | grep -Eq '^(feat|fix|docs|style|refactor|perf|test
 fi
 case "$subject" in *.) echo "commit-msg: subject must not end in a period." >&2; exit 1 ;; esac
 
-# One change per commit: an `and` after the colon.
+# An `and` after the colon.
 if printf '%s' "$subject" | sed 's/^[^:]*: //' | grep -Eqw 'and'; then
   echo "commit-msg: one change per commit — this subject joins two with 'and'. Split it." >&2
   echo "    $subject" >&2

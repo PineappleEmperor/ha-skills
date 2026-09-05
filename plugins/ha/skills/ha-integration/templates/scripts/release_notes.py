@@ -113,7 +113,7 @@ def build(
             continue
         sha, subject = line.split("\0", 1)
         if MERGE.match(subject) or cs.BUMP.match(subject):
-            continue  # merge noise and release plumbing
+            continue
         key, desc = cs.classify(subject)
         if (key, desc) in seen:  # a rebase can replay a subject verbatim
             continue

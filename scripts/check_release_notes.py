@@ -23,7 +23,7 @@ BREAKING_HEADING = cs.HEADINGS["breaking"]
 
 
 def placeholder_from(config: pathlib.Path) -> str | None:
-    """The drafter config's `template` block, which every draft starts life with."""
+    """The drafter config's `template` block."""
     if not config.is_file():
         return None
     lines = config.read_text(encoding="utf-8").splitlines()
@@ -45,10 +45,7 @@ def check(
     """Return a list of problems; empty means the notes are well formed."""
     problems: list[str] = []
 
-    # A major bump with nothing under Breaking Changes. The version comes from the
-    # PR label, which is set from the PR TITLE, but the notes are built from COMMIT
-    # subjects. Mark a PR `feat!:` and leave the `!` off every commit and the release
-    # majors with no statement of what broke. v7.0.0 shipped exactly this.
+    # A major with nothing under Breaking Changes.
     if version:
         major = version.lstrip("v").split(".")[0]
         minor_patch = version.lstrip("v").split(".")[1:]
@@ -62,26 +59,21 @@ def check(
                 f"{version} is a major release with no Breaking Changes section; "
                 "mark the breaking commit `type!:`, not just the PR title"
             )
-    # The empty-range sentinel on a published release. release_notes.py emits it when
-    # `PREV..HEAD` holds no commits, which happens when PREV resolved to the release
-    # being written.
+    # The empty-range sentinel.
     if notes.strip() == EMPTY_RANGE:
         problems.append(
             "release body is the empty-range sentinel; the previous tag resolved to the "
             "release being written, so the whole changelog was dropped"
         )
 
-    # Publishing a draft that no push has updated ships the config's template verbatim.
+    # The drafter config's template, or nothing at all.
     body = notes.strip()
     if not body or (placeholder and body == placeholder):
         problems.append(
             "release body is the draft placeholder; no push ever wrote notes to it"
         )
 
-    # release-drafter's own body, one line per PR with an @author. The drafter owns
-    # the draft and its version; the type-grouped body is written over the top in a
-    # later step. Seeing the drafter's shape here means that step never ran, so the
-    # release lists PR titles filed under whichever label the PR happened to carry.
+    # release-drafter's own body: one line per PR with an @author.
     if any(ENTRY.match(line.strip()) for line in notes.splitlines()):
         problems.append(
             "release body is release-drafter's PR-per-line output; the type-grouped "
