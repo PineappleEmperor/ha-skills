@@ -137,32 +137,34 @@ def test_every_group_has_a_title_suggestion() -> None:
         assert key in cs.SUGGESTIONS
 
 
-def test_title_uses_a_labellable_type_from_the_winning_commit() -> None:
-    """`--mode winning` returns a changelog category, which is not a title type.
-
-    `maint` covers chore/docs/refactor/…, so putting it in a title produced "maint:",
-    which lint_pr rejects and the autolabeler maps to nothing. The title takes both
-    type and text from the same commit in the winning category.
-    """
+def test_title_uses_the_winning_commit_s_own_type() -> None:
+    """The title carries the type and text of the winning commit, not its category."""
     assert cs.title_for(["docs: describe the ci"]) == "docs: describe the ci"
     assert cs.title_for(["feat: add a thing", "fix: correct it"]) == "feat: add a thing"
     assert (
         cs.title_for(["feat!: drop python 3.13", "docs: note it"])
         == "feat!: drop python 3.13"
     )
-    # A type with no label of its own is Maintenance, so it is said as chore.
-    assert cs.title_for(["refactor: tidy internals"]) == "chore: tidy internals"
-    # A version bump is release plumbing and never the headline.
+    assert cs.title_for(["refactor: tidy internals"]) == "refactor: tidy internals"
+    assert cs.title_for(["perf: cache it", "ci: pin it"]) == "perf: cache it"
     assert cs.title_for(["fix: one", "chore: bump to 7.3.0"]) == "fix: one"
 
 
-def test_the_label_a_prs_commits_entitle_it_to() -> None:
-    """The autolabeler reads the TITLE; this reads the COMMITS, so the two can disagree.
+def test_a_type_outside_the_allowlist_is_retyped_chore() -> None:
+    """`revert:` is a valid commit type that no PR title may carry."""
+    assert (
+        cs.title_for(["revert: undo the flow change"]) == "chore: undo the flow change"
+    )
 
-    The disagreement is the whole point: a `fix:`-titled PR carrying a `feat!:` commit is
-    labelled `fix`, files under Fixes and resolves a patch bump for a change that breaks
-    users. Nothing caught that, because the check only asked whether *a* label existed.
-    """
+
+def test_the_allowlist_is_the_ten_types() -> None:
+    """The types a title may carry are the two that label and the eight that fold."""
+    expected = {"feat", "fix"} | set(cs.MAINT)
+    assert set(cs.LABELLABLE) == expected
+
+
+def test_the_label_a_prs_commits_entitle_it_to() -> None:
+    """A `fix:` title over a `feat!:` commit: the commits, not the title, decide."""
     assert cs.label_for(["feat!: drop python 3.13", "fix: tidy"]) == "xfeat"
     assert cs.label_for(["feat: add a thing", "fix: correct it"]) == "feature"
     assert cs.label_for(["fix: correct it"]) == "fix"

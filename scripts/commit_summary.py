@@ -106,16 +106,12 @@ def winning(subjects: list[str]) -> str:
     return "maint"
 
 
-# Types the autolabeler maps to a release category. Anything else — `refactor:`,
-# `perf:`, `ci:` — is a valid Conventional Commit that carries no label, so a PR
-# titled with one gets no category and no version increment. Those become `chore:`.
-LABELLABLE = frozenset({"feat", "fix", "chore", "docs"})
+# The types a PR title may carry: the two that label on their own and the eight that
+# fold into `chore`. Any other commit type (`revert:`) is retyped `chore:` in a title.
+LABELLABLE = frozenset({"feat", "fix"}) | MAINT
 
-# The managed labels, and which one a PR's COMMITS entitle it to. The autolabeler
-# derives its label from the TITLE, so these two can disagree — a `fix:` title over a
-# `feat!:` commit gets `fix`, files under Fixes, and resolves a patch bump for a change
-# that breaks users. Comparing the two is what makes the label *correct* rather than
-# merely present.
+# The managed labels, and which one a PR's COMMITS entitle it to; the title-derived
+# label is compared against this, which is what makes it correct rather than present.
 MANAGED_LABELS = frozenset({"xfeat", "feature", "fix", "chore"})
 LABEL_FOR = {
     "breaking": "xfeat",
