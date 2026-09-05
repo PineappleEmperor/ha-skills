@@ -24,8 +24,8 @@ Copying the templates, and what may be changed in a copy, is `reference/github-a
 on.** GitHub suppresses workflow events caused by `GITHUB_TOKEN`, so a PR opened with it
 fires no `pull_request_target`: no checks run, the required ones never report, and the PR is
 permanently unmergeable. That is why `create-dev-pr.yml` was removed. Without the secret the
-opener does not fall back to `GITHUB_TOKEN` — it prints a `::notice::` and exits 0, so the run
-is green and no PR appears. Nothing red tells you it is missing; `skill_audit.py` is what
+opener does not fall back to `GITHUB_TOKEN` — it prints a `::warning::` and exits 0, so the
+run is green with an annotation and no PR appears. Nothing red tells you it is missing; `skill_audit.py` is what
 fails a repo that ships the opener with neither the secret nor the App pair set.
 
 The **release** path needs no token: both the full release and its next rc are kept as

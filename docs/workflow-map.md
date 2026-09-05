@@ -43,7 +43,7 @@ a candidate for removal regardless of whether it works.
 | `hassfest_validate.yml` | `push: main`, `pull_request`, daily cron | `Hassfest manifest validation` | ✅ | `contents: read` | `home-assistant/actions/hassfest@master` (mutable) | red on manifest/quality-scale violation |
 | `dependency_review.yml` | `pull_request` | `Dependency review` | ✅ | `contents: read` | dependency graph **enabled** | red at `high` severity; **permanently red if the graph is off** |
 | `panel_bundle.yml` | push/PR, **path-filtered** | `Panel type-check and tests` | ❌ can't be | `contents: read` | `frontend/`, npm | red on a type error or a failing panel test |
-| `auto_draft_pr.yml` | `push` to any branch but `main` | `Auto draft PR` | ❌ not a check | `contents: read` | `RELEASE_TOKEN`, `commit_summary.py` | **silent no-op** — `::notice::` and exit 0 |
+| `auto_draft_pr.yml` | `push` to any branch but `main` | `Auto draft PR` | ❌ not a check | `contents: read` | `RELEASE_TOKEN`, `commit_summary.py` | no-op without the token; what it emits is `reference/github-setup.md` |
 | `release_drafter.yml` | `push: main`, `release: published` | `Auto draft releases` | ❌ not a check | `contents: write`, `pull-requests: write` | `release_notes.py`, `check_release_notes.py` | red on the release path only |
 | `release.yml` | `release: published` | `Auto release zip` | ❌ not a check | `contents: write` | npm, when `frontend/` exists | red → HACS install fails with `Could not download` |
 | `issue_stale.yml` | weekly cron, `workflow_dispatch` | `Mark stale` | ❌ not a check | `issues: write`, `pull-requests: write` | none | labels only; never closes |
@@ -122,7 +122,7 @@ sequenceDiagram
     ADP->>GH: gh pr create --draft (title from commits)
     Note over ADP,GH: opened with RELEASE_TOKEN,<br/>so pull_request_target DOES fire
   else token absent
-    ADP-->>Dev: ::notice:: skipped — run stays green, no PR appears
+    ADP-->>Dev: skipped, run stays green, no PR appears
   end
   GH->>PRC: pull_request_target
   PRC->>PRC: label (autolabeler + remove superseded)
