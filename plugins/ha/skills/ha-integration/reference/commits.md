@@ -18,8 +18,10 @@ notes are built from. Labels, gates and the release model are `reference/version
 <type>[(<scope>)][!]: <description>
 ```
 
-Ten types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`,
-`chore`. A scope is tolerated and never generated. **`!` is the only breaking marker.**
+Ten types a PR title may carry: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`,
+`test`, `build`, `ci`, `chore`. A commit may also be `revert:`; the draft opener retypes
+that as `chore:` in the title it builds. A scope is tolerated and never generated. **`!`
+is the only breaking marker.**
 The labeler, the gate and the release notes read the subject and nothing else, so a
 `BREAKING CHANGE:` footer declares a break that nothing acts on and the change ships as
 non-breaking; the hook rejects the footer for that reason.
