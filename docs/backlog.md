@@ -8,7 +8,7 @@ Status: `open` · `fixed` (with commit) · `wontfix` (with reason).
 
 ## Open
 
-Open: rows 89, 98, 99 and 134-137; rows 119 and 124 are folded into 99. Every other row from 73
+Open: rows 89, 98, 99 and 134-138; rows 119 and 124 are folded into 99. Every other row from 73
 up is cleared below, with its commit or as `wontfix`; rows 1-72 are cleared under *Fixed*.
 Rows 100-102, 104-115, 120, 121, 129, 130 and 133 name the first commit of another
 repository where that is where the fix lives; each of those trees is ready to commit. The
@@ -90,6 +90,7 @@ they found:
 | 135 | **`pointers/` in each CI repository is a stored copy of the consumer's caller file, and the SHA inside it drifts.** Dependabot scans only `.github/workflows/`, so after every CI release the copy still pins the previous one; ha-skills `templates/` would drift the same way. The directory serves only "somewhere to copy from", which a README usage block already is, and which is how actions/checkout and release-drafter document themselves | **Decided 2026-09-05:** delete `pointers/` from the three repositories. Each README carries one usage block per reusable workflow with `@{{sha}} # {{tag}}` tokens and the two `gh api` commands that resolve them from the latest release; the skill scaffolds from that block, a human copies it. `skill_audit.py` fails a `{{` left in a consumer as it fails `<placeholder>`. The row 98 second half then turns ha-skills `templates/.github/workflows/` into caller stubs resolved at scaffold time | open | — |
 | 136 | **"Pointer" is a word of ours; GitHub's are "reusable workflow" and "caller workflow".** Every README, `skill_audit.py` (`POINTERS`, `check_pointers`), its tests and the reference docs say pointer | **Decided 2026-09-05:** adopt GitHub's terms everywhere current; rows in this log keep the word they were written with | open | — |
 | 137 | **ha-integration-ci and ha-panel-ci run no PR gate of their own.** Their READMEs deferred the release-flow caller workflows until release-flow had a tag; it has `v1.0.0rc1` | **Decided 2026-09-05:** add the four caller workflows, the drafter config and the hook to both now at rc1, move to `v1.0.0` with everything else; `RELEASE_TOKEN` exists in both | open | — |
+| 138 | **The check-run naming rule is spelled out in two READMEs** (`release-flow/README.md:207-208`, `ha-integration-ci/README.md:120-121`); `ha-panel-ci`'s points at one of them. The same reviewer paired two `skill_audit.py` fail messages with release-flow README reasons (fork PRs get a read-only token; Dependabot's labels with `cancel-in-progress`) | `ha-integration-ci`'s README points at release-flow's for the rule and keeps only its table. The fail messages stay, as row 129 decided for the hook: output telling the reader what to do is not documentation | open | — |
 
 ### From the CI contract of 2026-08-21, reconciled 2026-09-04
 
