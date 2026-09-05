@@ -90,11 +90,28 @@ def test_empty_range_sentinel_is_flagged() -> None:
     )
 
 
-def test_draft_placeholder_is_flagged() -> None:
-    """A draft is created with `pending`; publishing one no push touched ships that."""
+def test_draft_placeholder_is_flagged(tmp_path) -> None:
+    """A body that is the drafter config's `template`, or empty."""
     crn = _crn()
-    assert any("draft placeholder" in p for p in crn.check("pending"))
+    cfg = tmp_path / "release-drafter.yml"
+    cfg.write_text("template: |\n  _Release notes were not generated._\n")
+    placeholder = crn.placeholder_from(cfg)
+    assert placeholder == "_Release notes were not generated._"
+    assert any(
+        "draft placeholder" in p
+        for p in crn.check(
+            "_Release notes were not generated._\n", placeholder=placeholder
+        )
+    )
     assert any("draft placeholder" in p for p in crn.check("   \n"))
+    assert not any("draft placeholder" in p for p in crn.check("## 🔧 Fixes\n\n- x"))
+
+
+def test_a_missing_config_leaves_only_the_empty_body_check(tmp_path) -> None:
+    """No drafter config beside the checkout."""
+    crn = _crn()
+    assert crn.placeholder_from(tmp_path / "absent.yml") is None
+    assert not any("draft placeholder" in p for p in crn.check("pending"))
 
 
 def test_drafter_body_means_the_generator_never_ran() -> None:

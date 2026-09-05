@@ -7,7 +7,7 @@ green, because they all inspected the shape of the text rather than asking wheth
 the text was the changelog at all. What is asserted here is that it is:
 
   - not the empty-range sentinel, which means the whole changelog was dropped
-  - not the `pending` placeholder a draft is created with
+  - not the placeholder the drafter config's `template` creates a draft with
   - not release-drafter's own PR-per-line body, which means the type-grouped
     generator never overwrote it
   - a major release states what broke
@@ -26,9 +26,29 @@ import sys
 
 ENTRY = re.compile(r"^- (?P<title>.+?) @\S+ \(#(?P<pr>\d+)\)\s*$")
 TYPE_PREFIX = re.compile(r"^[a-zA-Z]+(\([^)]*\))?!?:\s*")
+DRAFTER_CONFIG = pathlib.Path(".github/release-drafter.yml")
 
 
-def check(notes: str, version: str | None = None) -> list[str]:
+def placeholder_from(config: pathlib.Path) -> str | None:
+    """The drafter config's `template` block, which every draft starts life with."""
+    if not config.is_file():
+        return None
+    lines = config.read_text(encoding="utf-8").splitlines()
+    block: list[str] = []
+    for i, line in enumerate(lines):
+        if re.match(r"^template:\s*\|", line):
+            for follow in lines[i + 1 :]:
+                if follow.strip() and not follow.startswith((" ", "\t")):
+                    break
+                block.append(follow.strip())
+            break
+    text = "\n".join(block).strip()
+    return text or None
+
+
+def check(
+    notes: str, version: str | None = None, placeholder: str | None = None
+) -> list[str]:
     """Return a list of problems; empty means the notes are well formed."""
     problems: list[str] = []
 
@@ -58,9 +78,9 @@ def check(notes: str, version: str | None = None) -> list[str]:
             "release being written, so the whole changelog was dropped"
         )
 
-    # The placeholder a draft is created with. Publishing a draft that no push has
-    # updated ships this verbatim.
-    if notes.strip() in {"", "pending"}:
+    # Publishing a draft that no push has updated ships the config's template verbatim.
+    body = notes.strip()
+    if not body or (placeholder and body == placeholder):
         problems.append(
             "release body is the draft placeholder; no push ever wrote notes to it"
         )
@@ -75,9 +95,7 @@ def check(notes: str, version: str | None = None) -> list[str]:
             "generator never overwrote it"
         )
 
-    # A bullet repeating the section heading it sits under. This shipped for two
-    # versions because the design note called the case "rare" and nobody measured
-    # it; it was 3 of 8 merged PRs. An assumption in a comment is not a check.
+    # A bullet repeating the section heading it sits under.
     section: str | None = None
     for line in notes.splitlines():
         if line.startswith("## "):
@@ -100,6 +118,11 @@ def main() -> int:
     ap.add_argument(
         "--version", help="version being released, to check major/breaking agreement"
     )
+    ap.add_argument(
+        "--config",
+        default=str(DRAFTER_CONFIG),
+        help="drafter config whose `template` is the draft placeholder",
+    )
     args = ap.parse_args()
 
     if args.tag:
@@ -116,7 +139,9 @@ def main() -> int:
         with pathlib.Path(args.file).open(encoding="utf-8") as fh:
             notes = fh.read()
 
-    problems = check(notes, args.tag or args.version)
+    problems = check(
+        notes, args.tag or args.version, placeholder_from(pathlib.Path(args.config))
+    )
     if not problems:
         print("release notes render correctly")
         return 0
