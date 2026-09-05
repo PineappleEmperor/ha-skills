@@ -36,7 +36,7 @@ The vocabularies are deliberately narrower than Conventional Commits and they ar
 
 **The two run independently.** `lint_pr.yml` and `pr-checks.yml` are separate workflows on the same trigger, so a title `lint_pr` rejects still reaches the autolabeler — the rejection is a red check, not a gate on labelling.
 
-The `title-check` job reads the PR's **actual labels** rather than re-implementing the regexes, so it also fires when the autolabeler did not run, when a label was removed by hand, or when a repo's `lint_pr.yml` has drifted off the allowlist. `needs: label` guarantees the autolabeler has already run; the job fails when the label is not the one the commits entitle the PR to, comments the title type that would fix it, and does not edit the title — that's the author's call. Don't hand-patch the label either; the autolabeler rewrites it on the next `synchronize`. What the job enforces, and why it is the gate, is `reference/github-actions.md`.
+The `title-check` job reads the PR's **actual labels** rather than re-implementing the regexes, so it also fires when the autolabeler did not run, when a label was removed by hand, or when a repo's `lint_pr.yml` has drifted off the allowlist. `needs: label` guarantees the autolabeler has already run. Don't hand-patch the label; the autolabeler rewrites it on the next `synchronize`. What the job enforces, and why it is the gate, is `reference/github-actions.md`.
 
 ### Prerelease (rc) cycle
 
