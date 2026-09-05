@@ -8,8 +8,9 @@ Status: `open` · `fixed` (with commit) · `wontfix` (with reason).
 
 ## Open
 
-Open: rows 89, 98, 99 and 103; rows 119 and 124 are folded into 99. Every other row from 73
-up is cleared below, with its commit or as `wontfix`; rows 1-72 are cleared under *Fixed*.
+Open: rows 89, 98, 99, 103, 129, 130, 131 and 133; rows 119 and 124 are folded into 99.
+Every other row from 73 up is cleared below, with its commit or as `wontfix`; rows 1-72 are
+cleared under *Fixed*.
 Rows 100-102, 104-115, 120 and 121 name the first commit of another repository where that
 is where the fix lives; each of those trees is ready to commit. The testbed cycle that
 proved rows 85, 92 and 95 ran end to end on 2026-09-04: draft PR, eight required contexts,
@@ -67,6 +68,20 @@ auditors named kept in the row so nothing is re-found.
 | 126 | **`manifest_gate.label_bump` still accepts the six alias labels row 105 deleted.** `xfeature`, `major`, `minor`, `patch`, `bugfix` and `bug` map to a tier there while the config and the gate know only the four managed labels. Harmless today, since `--suggest` is only ever fed the one label the gate validated, but it is the vocabulary in a fifth place with a different answer | `label_bump` resolves exact managed labels only, through a table derived from `commit_summary.LABEL_FOR` and `BUMP_FOR`; the seven aliases return no tier and a test says so | 5601141 |
 | 127 | **The release vocabulary is data written into three scripts.** The group order, the heading per group, the label per group and the semver tier per group are literal in `commit_summary.py`, `release_notes.py` and `manifest_gate.py`, and the empty-range sentinel string is literal in `release_notes.py` and `check_release_notes.py`; row 125 is what that duplication produced. `release_notes.py` already imports `commit_summary`, so the other two can derive from it too | `commit_summary.py` carries `ORDER`, `HEADINGS`, `LABEL_FOR`, `BUMP_FOR`, `EMPTY_RANGE` and `MANAGED_LABELS`; `release_notes.py`, `manifest_gate.py` and `check_release_notes.py` import them, and a test in each says so | 5601141 |
 | 128 | **The third audit also paired every test docstring with the behaviour it tests** (forty-odd lines such as "Dependabot PRs are exempt" in `manifest_gate.py` and in its test). A one-line test docstring that names the scenario necessarily names the behaviour the code implements; row 121's rule already removed the reasons, and removing the scenario names would leave tests without names | `wontfix`: a test's name is not a restatement of the code it exercises | — |
+
+### From the fourth single-source review (2026-09-05, after rows 117-127 cleared)
+
+Three context-free reviewers read `release-flow`, `ha-integration-ci` with `ha-panel-ci`, and
+this repo's diff since 8eba434. No defects; every suite green; twins byte-identical. What
+they found:
+
+| # | Finding | Fix | Commit |
+|---|---|---|---|
+| 129 | **Five restatements left in `release-flow`** after row 120: the bump-commit "release plumbing" reason in `commit_summary.py:19-21` and again as an inline comment in `release_notes.py:116`; the drafter's PR-per-line body and why it is overwritten in `README.md:61-64` and `check_release_notes.py:81-84`; the template placeholder in `release-drafter.yml:40` and `check_release_notes.py:26,74`; "one change per commit" in `README.md:163` and `.githooks/commit-msg:21`; the `!`-only rule in `README.md:164-165` and the hook's own error message at `commit-msg:43`. The first four are this repo's twins too | The script comments say only what the code matches; the hook comment is the label `# An `and` after the colon.`. The hook's error message stays: it is output that tells the committer what to do, not documentation | open | — |
+| 130 | **`release-flow`'s README lists four things `check_release_notes.py` fails on; the script has five.** `README.md:75-78` names the placeholder, the empty-range sentinel, the drafter's output and a major with no Breaking Changes section; `check_release_notes.py:91-100` also fails a bullet that repeats its section heading | The README names the fifth | open | — |
+| 131 | **`versioning.md:22` quotes a `version-resolver` config key that 9403de5 deleted.** "The `version-resolver` still picks the highest for the bump" described the override block; the drafter's built-in resolution of the highest category increment is what still happens | Say release-drafter resolves the highest increment, without naming a config key | open | — |
+| 132 | **Commit d56e031's subject said the docstrings were pointed at the readme; the diff only cut them.** Nothing in this repo's scripts names a README. Row 106's fix text also still described the caller-naming docstring that commit removed | Recommitted as 1491607, "cut script docstrings down to what the code does"; row 106 says what happened to the docstring after b2d6014 | 3ef5444 |
+| 133 | **Nine restatements left across `ha-integration-ci` and `ha-panel-ci`** after row 121. README-internal: the domain derived from the manifest (`README.md:13` and `:49-50`); "no tag, so no commit to pin" (`:76-77` for this repository, `:179-180` for `release-flow`). `skill_audit.py` docstring or comment against the README: a tag is mutable (`skill_audit.py:562`, `README.md:159-160`); a placeholder is a bash redirect (`:384`, `README.md:50-52`); dependency-review, HACS and hassfest are settings over an action (`:41-43`, `README.md:104-105`, near verbatim); the orphaned required context that blocked a PR (`:1139-1146`, `:1234-1240`, `README.md:37-39`); a called workflow runs in the caller's event (`:591-592`, `README.md:16-19`). Script against script: why the harness pin matters (`version_sync.py:72-73`, `skill_audit.py:554-556`). Cross-repo: `ha-panel-ci/README.md:25` restates that the all-zeros SHA is a placeholder before pointing at `ha-integration-ci`'s README | The README says each once; the check docstrings name the failure they report and nothing else; the harness-pin reason lives in `version_sync.py`, whose check is the one that reports it; `ha-panel-ci`'s sentence is a pointer only | open | — |
 
 ### From the CI contract of 2026-08-21, reconciled 2026-09-04
 
