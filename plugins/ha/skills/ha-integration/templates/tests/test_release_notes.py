@@ -65,7 +65,19 @@ def test_compare_link_appended(monkeypatch) -> None:
 def test_no_changes_says_so(monkeypatch) -> None:
     """An empty range must not render an empty document."""
     monkeypatch.setattr(rn, "_git", lambda *a: "")
-    assert rn.build("v1..HEAD").strip() == "_No user-facing changes._"
+    assert rn.build("v1..HEAD").strip() == rn.EMPTY_RANGE
+
+
+def test_headings_and_order_come_from_the_shared_vocabulary(monkeypatch) -> None:
+    """One table in commit_summary.py names every heading; the breaking one is plural."""
+    assert rn.ORDER is rn.cs.ORDER
+    expected = {k: f"## {v}" for k, v in rn.cs.HEADINGS.items()}
+    assert expected == rn.HEADINGS
+    assert rn.cs.HEADINGS["breaking"] == "🚨 Breaking Changes"
+    log = "aaa\x00feat!: drop it"
+    monkeypatch.setattr(rn, "_git", lambda *a: log)
+    monkeypatch.setattr(rn, "pr_for", lambda sha, head: None)
+    assert rn.build("v1..HEAD").startswith("## 🚨 Breaking Changes")
 
 
 def _crn():
@@ -82,9 +94,8 @@ def _crn():
 def test_empty_range_sentinel_is_flagged() -> None:
     """A body that is only the empty-range sentinel."""
     crn = _crn()
-    assert any(
-        "empty-range sentinel" in p for p in crn.check("_No user-facing changes._")
-    )
+    assert crn.EMPTY_RANGE is rn.EMPTY_RANGE
+    assert any("empty-range sentinel" in p for p in crn.check(rn.EMPTY_RANGE))
     assert not any(
         "empty-range sentinel" in p for p in crn.check("## 🔧 Fixes\n\n- a real change")
     )

@@ -32,15 +32,46 @@ BUMP = re.compile(
     re.IGNORECASE,
 )
 
+# The release vocabulary, in one place: the groups in severity order, the heading each
+# takes in the notes, the label a PR of that group carries, the semver tier that label
+# resolves, and the title type to suggest. release_notes.py and manifest_gate.py derive
+# from these; the drafter config's categories must match HEADINGS for the four labelled
+# groups, and release-flow's test_vocabulary.py holds it to that.
 ORDER = ("breaking", "feat", "fix", "maint", "other")
+HEADINGS = {
+    "breaking": "🚨 Breaking Changes",
+    "feat": "🚀 Features",
+    "fix": "🔧 Fixes",
+    "maint": "🧰 Maintenance",
+    "other": "📦 Other",
+}
+LABEL_FOR = {
+    "breaking": "xfeat",
+    "feat": "feature",
+    "fix": "fix",
+    "maint": "chore",
+    "other": "chore",
+}
+BUMP_FOR = {
+    "breaking": "major",
+    "feat": "minor",
+    "fix": "patch",
+    "maint": "patch",
+    "other": "patch",
+}
+EMPTY_RANGE = "_No user-facing changes._"
 
 # Suggested PR title type per winning commit group: (title, category, semver bump).
 SUGGESTIONS = {
-    "breaking": ("`feat!:` (or any `type!:`)", "🚨 Breaking Change", "major"),
-    "feat": ("`feat:`", "🚀 Features", "minor"),
-    "fix": ("`fix:`", "🔧 Fixes", "patch"),
-    "maint": ("`chore:`", "🧰 Maintenance", "patch"),
-    "other": ("`chore:`", "🧰 Maintenance", "patch"),
+    "breaking": (
+        "`feat!:` (or any `type!:`)",
+        HEADINGS["breaking"],
+        BUMP_FOR["breaking"],
+    ),
+    "feat": ("`feat:`", HEADINGS["feat"], BUMP_FOR["feat"]),
+    "fix": ("`fix:`", HEADINGS["fix"], BUMP_FOR["fix"]),
+    "maint": ("`chore:`", HEADINGS["maint"], BUMP_FOR["maint"]),
+    "other": ("`chore:`", HEADINGS["maint"], BUMP_FOR["other"]),
 }
 
 
@@ -98,16 +129,9 @@ def winning(subjects: list[str]) -> str:
 # fold into `chore`. Any other commit type (`revert:`) is retyped `chore:` in a title.
 LABELLABLE = frozenset({"feat", "fix"}) | MAINT
 
-# The managed labels, and which one a PR's COMMITS entitle it to; the title-derived
-# label is compared against this, which is what makes it correct rather than present.
-MANAGED_LABELS = frozenset({"xfeat", "feature", "fix", "chore"})
-LABEL_FOR = {
-    "breaking": "xfeat",
-    "feat": "feature",
-    "fix": "fix",
-    "maint": "chore",
-    "other": "chore",
-}
+# The title-derived label is compared against the one the COMMITS entitle the PR to,
+# which is what makes it correct rather than present.
+MANAGED_LABELS = frozenset(LABEL_FOR.values())
 
 
 def label_for(subjects: list[str]) -> str:

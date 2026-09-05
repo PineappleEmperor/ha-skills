@@ -1,11 +1,18 @@
 """Decide whether a PR's manifest version is a valid bump for its label."""
 
 import argparse
+from pathlib import Path
 import re
 import sys
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import commit_summary as cs  # the one table of labels and the tier each resolves
+
 Version = tuple[int, int, int]
 _PRERELEASE = re.compile(r"(rc|alpha|beta|a|b|dev)[0-9]*$", re.IGNORECASE)
+# Highest tier first, so a PR carrying two managed labels resolves the larger bump.
+_TIER_RANK = {"major": 0, "minor": 1, "patch": 2}
+_TIER_FOR_LABEL = {cs.LABEL_FOR[group]: cs.BUMP_FOR[group] for group in cs.ORDER}
 
 
 def is_prerelease(version: str) -> bool:
@@ -25,14 +32,8 @@ def parse_semver(version: str) -> Version:
 
 def label_bump(labels: list[str]) -> str | None:
     """The semver tier the PR's labels imply, or None when none is managed."""
-    joined = " ".join(labels).lower()
-    if re.search(r"xfeat|xfeature|major", joined):
-        return "major"
-    if re.search(r"feat|feature|minor", joined):
-        return "minor"
-    if re.search(r"fix|patch|chore|bugfix|bug", joined):
-        return "patch"
-    return None
+    tiers = [_TIER_FOR_LABEL[lab] for lab in labels if lab.lower() in _TIER_FOR_LABEL]
+    return min(tiers, key=_TIER_RANK.__getitem__) if tiers else None
 
 
 def _bump(base: Version, tier: str) -> Version:
@@ -73,7 +74,7 @@ def evaluate(
     # only ADDS, so a PR retitled from `feat!:` to `fix:` keeps a stale `xfeat` and this
     # would reject it.
     if breaking_commits is not None:
-        claims_breaking = bool({"xfeat", "xfeature", "major"} & set(labels))
+        claims_breaking = label_bump(labels) == "major"
         if claims_breaking and breaking_commits == 0:
             return False, (
                 "PR title marks a breaking change but no commit does. "

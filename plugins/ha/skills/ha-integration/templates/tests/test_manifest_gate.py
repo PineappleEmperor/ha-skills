@@ -69,6 +69,25 @@ def test_no_managed_label_passes_when_changed() -> None:
     assert ok("1.1.0", "1.1.0", "1.1.5", [])
 
 
+def test_only_the_four_managed_labels_imply_a_tier() -> None:
+    """The alias labels the drafter config no longer carries."""
+    aliases = ("xfeature", "major", "enhancement", "minor", "bugfix", "bug", "patch")
+    for alias in aliases:
+        assert manifest_gate.label_bump([alias]) is None
+    assert manifest_gate.label_bump(["xfeat"]) == "major"
+    assert manifest_gate.label_bump(["feature"]) == "minor"
+    assert manifest_gate.label_bump(["fix"]) == "patch"
+    assert manifest_gate.label_bump(["chore", "fix"]) == "patch"
+    assert manifest_gate.label_bump(["chore", "feature"]) == "minor"
+
+
+def test_the_tier_per_label_comes_from_the_shared_vocabulary() -> None:
+    """One table in commit_summary.py decides both the label and its tier."""
+    cs = manifest_gate.cs
+    for group in cs.ORDER:
+        assert manifest_gate.label_bump([cs.LABEL_FOR[group]]) == cs.BUMP_FOR[group]
+
+
 # --- title/commit breaking agreement -----------------------------------------
 
 

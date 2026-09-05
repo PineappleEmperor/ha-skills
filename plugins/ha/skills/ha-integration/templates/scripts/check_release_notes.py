@@ -24,9 +24,14 @@ import re
 import subprocess
 import sys
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import commit_summary as cs  # the sentinel and the headings the notes are built from
+
 ENTRY = re.compile(r"^- (?P<title>.+?) @\S+ \(#(?P<pr>\d+)\)\s*$")
 TYPE_PREFIX = re.compile(r"^[a-zA-Z]+(\([^)]*\))?!?:\s*")
 DRAFTER_CONFIG = pathlib.Path(".github/release-drafter.yml")
+EMPTY_RANGE = cs.EMPTY_RANGE
+BREAKING_HEADING = cs.HEADINGS["breaking"]
 
 
 def placeholder_from(config: pathlib.Path) -> str | None:
@@ -63,7 +68,7 @@ def check(
             major.isdigit()
             and int(major) > 0
             and minor_patch[:2] == ["0", "0"]
-            and "Breaking Change" not in notes
+            and BREAKING_HEADING not in notes
         ):
             problems.append(
                 f"{version} is a major release with no Breaking Changes section; "
@@ -72,7 +77,7 @@ def check(
     # The empty-range sentinel on a published release. release_notes.py emits it when
     # `PREV..HEAD` holds no commits, which happens when PREV resolved to the release
     # being written.
-    if notes.strip() == "_No user-facing changes._":
+    if notes.strip() == EMPTY_RANGE:
         problems.append(
             "release body is the empty-range sentinel; the previous tag resolved to the "
             "release being written, so the whole changelog was dropped"

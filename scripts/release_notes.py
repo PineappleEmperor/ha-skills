@@ -37,14 +37,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import commit_summary as cs  # same classifier the PR body uses
 
 MERGE = re.compile(r"^Merge pull request #(?P<pr>\d+) ")
-ORDER = ("breaking", "feat", "fix", "maint", "other")
-HEADINGS = {
-    "breaking": "## 🚨 Breaking Changes",
-    "feat": "## 🚀 Features",
-    "fix": "## 🔧 Fixes",
-    "maint": "## 🧰 Maintenance",
-    "other": "## 📦 Other",
-}
+ORDER = cs.ORDER
+HEADINGS = {key: f"## {title}" for key, title in cs.HEADINGS.items()}
+EMPTY_RANGE = cs.EMPTY_RANGE
 
 
 def _git(*args: str) -> str:
@@ -143,7 +138,7 @@ def build(
             out += [HEADINGS[key], "", *groups[key], ""]
 
     if not out:
-        return "_No user-facing changes._"
+        return EMPTY_RANGE
 
     if github_notes and (
         block := new_contributors(github_notes, include_bots=include_bots)
