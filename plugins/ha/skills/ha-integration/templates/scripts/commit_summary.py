@@ -22,14 +22,9 @@ TYPE = re.compile(
 # Types the release-drafter autolabeler folds into `chore` -> 🧰 Maintenance.
 MAINT = frozenset({"chore", "docs", "refactor", "perf", "test", "build", "ci", "style"})
 
-# The manifest/plugin version bump is release plumbing, not a changelog entry.
-# Anchored on the SHAPE ("bump … version"), not on "any bump mentioning something
-# version-shaped": an earlier pattern ended in `to v?\d+\.\d+`, which silently ate
-# `chore: bump actions/checkout from 6.0.0 to 7.0.1` — i.e. every semver dependency
-# bump vanished from the notes.
-# Release plumbing, not a changelog entry. The noun list stays closed on purpose:
-# allowing arbitrary words before "to <semver>" would swallow every Dependabot
-# bump ("bump aiohttp to 3.10.1"), which is a real change and must reach the notes.
+# The manifest/plugin version bump is release plumbing, not a changelog entry. The noun
+# list stays closed on purpose: allowing arbitrary words before "to <semver>" would
+# swallow every Dependabot bump, which is a real change and must reach the notes.
 BUMP = re.compile(
     r"^[a-z]+(\([^)]*\))?:\s*bump\s+(the\s+)?"
     r"((manifest|plugin|integration|skill|marketplace|ha)\s+)*"
@@ -38,13 +33,6 @@ BUMP = re.compile(
 )
 
 ORDER = ("breaking", "feat", "fix", "maint", "other")
-
-# No group labels. release-drafter already files each PR under one category
-# heading, so a label inside the entry repeats it four lines later and, when a PR
-# spans types, files fixes under Features. Measured across one session: 3 of 8
-# merged PRs spanned more than one type, so this was not the rare case it was
-# documented as. The commits keep their severity order; the category above names
-# the PR, and the bullets say what it contained.
 
 # Suggested PR title type per winning commit group: (title, category, semver bump).
 SUGGESTIONS = {

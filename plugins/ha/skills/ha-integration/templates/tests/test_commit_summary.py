@@ -39,7 +39,6 @@ _SPEC.loader.exec_module(cs)
         ("fix!: change the payload shape", "breaking", "change the payload shape"),
         ("chore(deps)!: require python 3.14", "breaking", "require python 3.14"),
         ("feat(coordinator): add polling", "feat", "add polling"),
-        # `revert:` is Conventional but maps to no autolabeler rule.
         ("revert: undo the flow change", "other", "undo the flow change"),
         # Case-insensitive type.
         ("FEAT: shout", "feat", "shout"),
@@ -91,7 +90,6 @@ def test_release_plumbing_is_dropped(subject: str) -> None:
     "subject",
     [
         "chore: bump actions/checkout from 6 to 7",
-        # The shipped regression: `to v?\d+\.\d+` ate every semver dependency bump.
         "chore: bump actions/checkout from 6.0.0 to 7.0.1",
         "chore: bump pytest-homeassistant-custom-component from 0.13.350 to 0.13.354",
         "chore: bump homeassistant floor to 2026.8.0",

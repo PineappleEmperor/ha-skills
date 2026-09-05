@@ -1,11 +1,8 @@
 name-template: 'v$RESOLVED_VERSION'
 tag-template: 'v$RESOLVED_VERSION'
-# Sole labeler keyed on the PR TITLE only — a human writes that title, so it must use
-# a mapped type or the PR gets no label and no release category. Mapped: feat|feature,
-# fix, and chore|docs|refactor|perf|test|build|ci|style (all -> chore); any `type!:` ->
-# xfeat. NOT mapped: `revert:`, which lint_pr's allowlist rejects for that reason. Keep
-# these rules and that allowlist in step. No branch rules (they flapped when the branch
-# name disagreed with the commits). Breaking `!` must precede `feature`.
+# What these rules mean, and the type and label vocabulary they must stay in step with,
+# is reference/commits.md and reference/versioning.md in the ha-integration skill.
+# Title rules only; the breaking `!` rule must precede `feature`.
 autolabeler:
   - label: "xfeat"
     title:
@@ -19,11 +16,7 @@ autolabeler:
   - label: "feature"
     title:
       - '/^(feat|feature)(\(.+\))?:/i'
-# Each category matches exactly the one label the autolabeler above writes for it, and
-# nothing else: pr-checks.yml's title-check compares only these four against what the
-# commits entitle the PR to, so an alias it does not know (`enhancement`, `bug`) would
-# file a PR under a heading the gate never validated. No bump-only override labels
-# either, for the same reason: a wrong bump is fixed by fixing the commit type.
+# One category per label the autolabeler writes; no aliases, no bump-only labels.
 categories:
   - title: '🚨 Breaking Change'
     semver-increment: major

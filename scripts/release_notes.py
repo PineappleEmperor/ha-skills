@@ -80,16 +80,7 @@ def pr_for(sha: str, head: str) -> str | None:
 
 
 def new_contributors(github_notes: str, *, include_bots: bool = False) -> str:
-    """The `## New Contributors` block out of GitHub's own generated notes.
-
-    Two workflows used to write the release body and raced, so a published release
-    carried both this file's output and GitHub's whole `## What's Changed` block.
-    Dropping GitHub's generator outright would have lost first-time contributors,
-    which nothing else produces, so take that one section and leave the rest.
-
-    Sourced rather than recomputed: "first contribution" is GitHub's definition and
-    reimplementing it would drift.
-    """
+    """The `## New Contributors` block out of GitHub's own generated notes."""
     out: list[str] = []
     for line in github_notes.splitlines():
         if line.startswith("## "):

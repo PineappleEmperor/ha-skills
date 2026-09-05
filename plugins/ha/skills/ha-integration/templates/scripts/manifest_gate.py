@@ -93,9 +93,7 @@ def evaluate(
         return True, "prerelease differs from last release"
     pr = parse_semver(pr_version)
     if pr == base:
-        # Graduating an rc line to its same-number final (2.0.0rc19 -> 2.0.0): the
-        # de-anchored parse makes both (x,y,z), but AwesomeVersion knows final > its
-        # own prerelease, so allow it instead of demanding a label-derived bump.
+        # A final graduating its own rc line parses to the same triple.
         if is_prerelease(last_release):
             return True, f"final v{pr_version} graduates prerelease {last_release}"
         return False, f"manifest v{pr_version} == last release; bump it"

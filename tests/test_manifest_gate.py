@@ -32,7 +32,7 @@ def test_feature_only_patch_under_bumps() -> None:
     assert not ok("1.1.0", "1.1.0", "1.1.1", ["feature"])
 
 
-def test_chore_rides_in_cycle_minor() -> None:  # the shipped regression
+def test_chore_rides_in_cycle_minor() -> None:
     """A chore may sit at the minor already merged this cycle."""
     assert ok("1.1.0", "1.2.0", "1.2.0", ["chore"])
 
@@ -53,14 +53,10 @@ def test_prerelease_only_needs_to_differ() -> None:
     assert not ok("2.0.0rc1", "2.0.0rc1", "2.0.0rc1", ["feature"])
 
 
-def test_final_graduates_prerelease() -> (
-    None
-):  # 2.0.0rc19 -> 2.0.0, even feature-labelled
-    """A final that graduates its own rc line passes without a label-derived bump."""
+def test_final_graduates_prerelease() -> None:
+    """A final that graduates its own rc line, and one that is already final."""
     assert ok("2.0.0rc19", "2.0.0rc20", "2.0.0", ["feature"])
-    assert not ok(
-        "2.0.0", "2.0.0", "2.0.0", ["feature"]
-    )  # already final -> still must bump
+    assert not ok("2.0.0", "2.0.0", "2.0.0", ["feature"])
 
 
 def test_dependabot_exempt() -> None:
