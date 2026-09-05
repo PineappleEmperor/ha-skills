@@ -51,6 +51,9 @@ jobs:
       # (fix -> feat), the old label lingers and the PR lists under two
       # release-drafter categories. Remove superseded labels, keyed on the
       # same title the autolabeler reads (removal-only -> cannot flap).
+      # The type lists below are the autolabeler's, from .github/release-drafter.yml,
+      # and must stay in step with it: this once mapped only chore|docs, so a PR
+      # retitled feat -> refactor gained `chore` and kept `feature`.
       - name: Remove superseded type labels
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -59,7 +62,7 @@ jobs:
           PR: ${{ github.event.pull_request.number }}
         run: |
           if   printf '%s' "$TITLE" | grep -qiE '^[a-z]+(\([^)]*\))?!:';        then WIN=xfeat
-          elif printf '%s' "$TITLE" | grep -qiE '^(chore|docs)(\([^)]*\))?:';   then WIN=chore
+          elif printf '%s' "$TITLE" | grep -qiE '^(chore|docs|refactor|perf|test|build|ci|style)(\([^)]*\))?:'; then WIN=chore
           elif printf '%s' "$TITLE" | grep -qiE '^fix(\([^)]*\))?:';            then WIN=fix
           elif printf '%s' "$TITLE" | grep -qiE '^(feat|feature)(\([^)]*\))?:'; then WIN=feature
           else exit 0  # title maps to no managed label; leave labels untouched
