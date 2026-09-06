@@ -67,8 +67,9 @@ TIERS: dict[str, tuple[str, ...]] = {
     # this the gate is trivially defeated: the docs were writable by ordinary means, and since
     # an unreadable governing doc fails the gate OPEN, deleting one bought a keyless write.
     # Demonstrated end-to-end — a governing doc moved aside, then the search guard disarmed
-    # through the live server with no key at all. The same failure follows a governing doc
-    # being retired while a tier still names it; the suite checks every doc named here exists.
+    # through the live server with no key at all. Retiring a governing doc does the same thing
+    # by accident: deleting `docs/workflow-map.md` left the two workflow tiers below naming it,
+    # and both went OPEN. The suite checks every doc named here exists and is not empty.
     "plugins/ha/skills/ha-integration/reference/": (
         "plugins/ha/skills/ha-integration/reference/discipline.md",
     ),
