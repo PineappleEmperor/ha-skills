@@ -34,12 +34,11 @@ Check the working directory, pick a mode, then **read that mode's reference file
 | **Modify** | `custom_components/` exists and something is being added or changed | `reference/patterns.md`. Adding a platform also touches `strings.json`/`translations/` and the tier claim — see `reference/quality-scale.md` |
 | **Test** | writing or fixing tests for an integration | `reference/testing.md` — the root `conftest.py` and `asyncio_mode` prerequisites decide whether the suite runs at all |
 | **Lint** | hygiene pass over existing code | this file, *Lint* below |
-| **Audit** | verify the skill was actually followed | `scripts/skill_audit.py --list` (or the skill's `templates/scripts/skill_audit.py` if the repo never copied it), then `reference/audit.md` |
-| **Release / repo setup** | first release, tokens, required checks | `reference/github-setup.md` — token, ruleset, dependency graph, required contexts. Then `reference/versioning.md` for how the version is decided, `reference/commits.md` for what the notes are built from, `reference/github-actions.md` for what each workflow must do |
+| **Audit** | verify the skill was actually followed | `skill_audit.py --list` from a checkout of ha-integration-ci, then `reference/audit.md` |
+| **Release / repo setup** | first release, tokens, required checks | `reference/github-setup.md` — token, ruleset, dependency graph, required contexts. Then `reference/versioning.md` for how the version is decided, `reference/commits.md` for commit subjects and titles, `reference/github-actions.md` for what the scaffold carries |
 
-The audit script lives at `scripts/skill_audit.py` in a repo that copied the templates.
-Auditing a repo that never did — the case where the audit matters most — means running the
-skill's own copy at `templates/scripts/skill_audit.py` against the repo root.
+The audit script lives in ha-integration-ci; a consumer runs it through the `quality-audit`
+caller, and by hand from a checkout of that repository with `--root <repo>`.
 
 Reading a Home Assistant log is a different skill — `ha-triage`. How a panel **looks**
 (type scale, colour, spacing, touch targets) is `ha-panel-design`. How a panel is **built and
@@ -54,10 +53,9 @@ served** — the committed bundle, its staleness check, registration and cache-b
   Conventional Commit type. The PR body is for reviewers and is never generated.
 - **Never merge a red check**, and never merge by disabling one. Why, and the exceptions that
   are not exceptions, in `reference/discipline.md`.
-- **Templates are copied, not paraphrased.** Every deviation from `templates/` must be a listed
-  adaptation — see `reference/audit.md`.
-- **No `${{ }}` inside any `run:`** and no job checks out PR-authored code. `reference/github-actions.md`
-  holds the workflow contracts.
+- **Callers, not bodies; copies, not paraphrases.** The scaffold calls the CI repositories'
+  reusable workflows and copies a few configs; every deviation must be a listed adaptation —
+  see `reference/audit.md`.
 - **Cached facts go stale silently.** Anything captured more than ~3 months ago gets re-derived
   before it is trusted — the table and its re-derivation commands are in `reference/freshness.md`.
 
@@ -68,11 +66,11 @@ served** — the committed bundle, its staleness check, registration and cache-b
 | `reference/scaffold.md` | what to ask, what to generate, manifest key order, code style |
 | `reference/patterns.md` | the code patterns every mode applies, plus file structure and typing |
 | `reference/testing.md` | harness prerequisites, and mocking the boundary rather than your own code |
-| `reference/commits.md` | commit subjects, why the PR body stays empty, what the notes are built from |
+| `reference/commits.md` | commit subjects and titles, why the PR body stays empty |
 | `reference/github-setup.md` | RELEASE_TOKEN, required checks, dependency graph, supply chain |
-| `reference/github-actions.md` | what each workflow must do, where `templates/` lives, and what may be changed in a copy |
-| `reference/versioning.md` | tag-driven releases, labels, the draft model, the version gate |
-| `reference/dependabot.md` | what it bumps, what it cannot reach, its effect on the gate |
+| `reference/github-actions.md` | what the scaffold carries and where each piece comes from, what may be changed in a copy |
+| `reference/versioning.md` | where the version comes from, publishing an rc and a final |
+| `reference/dependabot.md` | what it bumps, including the callers' pins, and what it cannot reach |
 | `reference/quality-scale.md` | the canonical rule set and what each tier demands |
 | `reference/panels.md` | integrations that serve a custom panel |
 | `reference/discipline.md` | commit, PR, merge and debugging discipline |
@@ -124,11 +122,11 @@ workflows present and correct, documented patterns applied, antipatterns gone,
 
 Two layers:
 
-1. **Mechanical gate** — `scripts/skill_audit.py`, run by `quality_audit.yml` on every PR.
-   `scripts/skill_audit.py --list` prints every check and why it exists.
+1. **Mechanical gate** — ha-integration-ci's `skill_audit.py`, run by the `quality-audit`
+   caller on every PR; `--list` prints every check.
 2. **Judgement checklist** — `reference/audit.md`. The items a grep can't decide.
 
-⚠️ **Green CI is not evidence the templates were copied.** Why the gate cannot tell you that,
+⚠️ **Green CI is not evidence the copied files match.** Why the gate cannot tell you that,
 and how to check it yourself, is the first item of the judgement checklist.
 
 ---
