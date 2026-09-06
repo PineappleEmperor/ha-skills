@@ -3,23 +3,19 @@
 An integration's CI is three repositories of reusable workflows. The scaffold carries one
 caller workflow per reusable workflow plus a few copied configs; it carries no workflow body
 and no script. What each workflow does, and why, is the README of the repository that owns
-it:
-
-- [release-flow](https://github.com/PineappleEmperor/release-flow): PR labelling, the label
-  gate, the title lint, the draft-PR opener, release drafting and notes; the drafter config
-  and commit hook a consumer copies.
-- [ha-integration-ci](https://github.com/PineappleEmperor/ha-integration-ci): Python
-  validation, the conformance audit, the release zip; the version model every consumer
-  follows, and what the audit checks.
-- [ha-panel-ci](https://github.com/PineappleEmperor/ha-panel-ci): the panel check and the
-  `frontend/` templates.
-
-GitHub-side settings (token, ruleset, required checks) are `reference/github-setup.md`.
+it. GitHub-side settings (token, ruleset, required checks) are `reference/github-setup.md`.
 
 - What a scaffold carries
 - Where `templates/` lives
 - Sanctioned adaptations — the complete list
+- The plain workflows
 - Superseded — do not reinstate
+
+| Repository | Owns |
+|---|---|
+| [release-flow](https://github.com/PineappleEmperor/release-flow) | PR labelling, the label gate, the title lint, the draft-PR opener, release drafting and notes; the drafter config and commit hook a consumer copies |
+| [ha-integration-ci](https://github.com/PineappleEmperor/ha-integration-ci) | Python validation, the conformance audit, the release zip; the version model every consumer follows, and what the audit checks |
+| [ha-panel-ci](https://github.com/PineappleEmperor/ha-panel-ci) | the panel check and the `frontend/` templates |
 
 ## What a scaffold carries
 
