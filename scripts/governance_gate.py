@@ -67,20 +67,16 @@ TIERS: dict[str, tuple[str, ...]] = {
     # this the gate is trivially defeated: the docs were writable by ordinary means, and since
     # an unreadable governing doc fails the gate OPEN, deleting one bought a keyless write.
     # Demonstrated end-to-end — a governing doc moved aside, then the search guard disarmed
-    # through the live server with no key at all.
-    "docs/workflow-map.md": (
-        "plugins/ha/skills/ha-integration/reference/discipline.md",
-    ),
+    # through the live server with no key at all. The same failure follows a governing doc
+    # being retired while a tier still names it; the suite checks every doc named here exists.
     "plugins/ha/skills/ha-integration/reference/": (
         "plugins/ha/skills/ha-integration/reference/discipline.md",
     ),
     "docs/backlog.md": ("plugins/ha/skills/ha-integration/reference/discipline.md",),
     ".github/workflows/": (
-        "docs/workflow-map.md",
         "plugins/ha/skills/ha-integration/reference/github-actions.md",
     ),
     "plugins/ha/skills/ha-integration/templates/.github/workflows/": (
-        "docs/workflow-map.md",
         "plugins/ha/skills/ha-integration/reference/github-actions.md",
     ),
     "plugins/ha/skills/ha-integration/templates/": (
