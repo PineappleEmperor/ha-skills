@@ -52,9 +52,9 @@ Once per process — per-entry registration races when two entries set up in par
 
 ### The bundle must be committed
 
-HACS ships the repo as-is and runs no build step on the user's machine, so the esbuild output has to live inside `custom_components/<domain>/panel/` to reach the release zip. Copy `templates/frontend/{package.json,tsconfig.json}` and `templates/.github/workflows/panel_bundle.yml`. **This differs from a Lovelace *card* repo**, which attaches the built `.js` as a release asset — an integration cannot, because the asset isn't in the zip HACS installs.
+HACS ships the repo as-is and runs no build step on the user's machine, so the esbuild output has to live inside `custom_components/<domain>/panel/` to reach the release zip. The `frontend/` templates and the `panel-bundle.yml` caller come from ha-panel-ci's README. **This differs from a Lovelace *card* repo**, which attaches the built `.js` as a release asset — an integration cannot, because the asset isn't in the zip HACS installs.
 
-**What users install is always a fresh build.** `release.yml` runs `npm run build` immediately before packing the zip, so a stale committed bundle cannot reach anyone; it warns instead. The rebuild lives in `release.yml` rather than its own workflow because two workflows on the same `release: published` event cannot be ordered, and a rebuild finishing after the zip was packed would ship the exact staleness it was meant to prevent.
+**What users install is always a fresh build.** ha-integration-ci's `release.yml` rebuilds the bundle before packing the zip, and its README says why; a stale committed bundle cannot reach anyone and only draws a warning.
 
 A stale committed bundle is still worth avoiding — it makes the repo lie about what its source produces, and the symptom is "the fix I made isn't there" when someone reads the committed file. Run `npm run build` and commit the result.
 
@@ -98,11 +98,10 @@ export function displayName(item: Pick<Set, "name">): string { ... }   // "{?}" 
 
 The cases worth testing are the ones where the vendor's data is not what you would draw:
 a placeholder standing in for an unannounced name, a missing price, a date that has already
-passed, a sort comparator, a unit formatter. `templates/frontend/package.json` ships
-`vitest` and a `test` script for this; it needs no config file, since vitest's default
-include pattern already picks up `frontend/test/*.test.ts`. The runner never reaches users:
-`release.yml` zips `custom_components/<domain>/` only, so `frontend/` is CI-time weight and
-nothing more.
+passed, a sort comparator, a unit formatter. ha-panel-ci's `frontend/package.json` ships
+`vitest` and a `test` script for this, and its README says where the tests go. The runner
+never reaches users: the release zip holds `custom_components/<domain>/` only, so
+`frontend/` is CI-time weight and nothing more.
 
 The same reasoning applies to anything the panel sends. A service call built in TypeScript
 against a schema declared in Python has no shared definition and no compiler to link them —
