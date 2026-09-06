@@ -1,7 +1,7 @@
 # ha-skills
 
 An installable [Claude Code](https://claude.com/claude-code) plugin for building **Home
-Assistant custom integrations**, with the CI templates those repos need.
+Assistant custom integrations**, and the scaffold that wires them to their CI.
 
 > [!NOTE]
 > **AI assistance:** I'm a programmer; these skills and my HA integrations are built with
@@ -46,7 +46,7 @@ ln -s "$PWD/ha-skills/plugins/ha/skills/ha-panel-design/SKILL.md" ~/.claude/comm
 ```
 
 That gets you the guidance without the templates. When it needs them the skill asks where
-you cloned the repo; it will not write the CI from memory.
+you cloned the repo; it will not write a CI file from memory.
 
 ## Using the skills
 
@@ -73,33 +73,29 @@ When the task touches a HA custom panel or any display/UI layer, invoke the
 `ha-panel-design` skill before changing it. Re-invoke after a `/compact`.
 ```
 
-## The CI templates
+## The CI stack
 
-Scaffolding an integration copies a working CI setup into it, from
-[`templates/`](plugins/ha/skills/ha-integration/templates):
+An integration's CI lives in three repositories of reusable workflows, and a scaffolded
+integration calls them rather than carrying their bodies, so a CI release reaches every
+integration as a Dependabot PR:
 
-| | |
+| Repository | Owns |
 |---|---|
-| **PR checks** | One workflow whose jobs are ordered with `needs:`. Labels the PR from its title, checks the title is labellable, collects the commit subjects into the PR body, and says what version the labels imply. |
-| **Draft PRs** | Pushing a branch opens a draft PR whose title comes from the commits, so it is never typed twice. Gated on the pusher being the repo owner, since the PR is authored by whoever owns the token that opens it. |
-| **Validation** | hassfest, the eight HACS checks, ruff and pyright, and pytest with the Home Assistant test plugin already wired up. |
-| **Release** | The release tag is the version: `manifest.json` is written from it at publish, so no PR carries a bump. Two drafts are kept current — the full release and its next rc — and shipping either is publishing it. Notes are generated from the commit subjects, grouped by type, measured from the last full release, and validated before they publish, alongside the zip asset HACS installs from. |
-| **Conformance** | `skill_audit.py` runs on every PR and fails on a missing workflow, a stale action pin, a deprecated pattern, a `quality_scale.yaml` claiming rules it has no tests for, or a branch with no required status checks. |
-| **Repo setup** | A `commit-msg` hook, a `.gitignore`, a licence HACS can identify, and a branch ruleset, without which every check above is advisory and a red PR still merges. One secret, `RELEASE_TOKEN`, because GitHub ignores events caused by the default token, so a PR opened with it would never be checked. |
-| **Panels** | An esbuild pipeline that fails the build when the committed bundle is stale, plus the frontend test runner. |
+| [release-flow](https://github.com/PineappleEmperor/release-flow) | PR labelling and the label gate, the title lint, the draft-PR opener, release drafting and notes; the commit hook and drafter config a consumer copies. Generic to any repository using Conventional Commits. |
+| [ha-integration-ci](https://github.com/PineappleEmperor/ha-integration-ci) | Python validation, the conformance audit, the release zip HACS installs from; the version model every consumer follows. |
+| [ha-panel-ci](https://github.com/PineappleEmperor/ha-panel-ci) | The panel type-check and tests, and the `frontend/` templates. |
 
-The templates are copied byte-for-byte, with one permitted substitution. Write them from the
-skill's prose instead and you get something that looks right and drifts silently, so the
-audit looks for the files themselves.
+Each README says what its workflows do and why, and carries the caller blocks a consumer
+copies. What the scaffold carries beyond those, from
+[`templates/`](plugins/ha/skills/ha-integration/templates), is the skill's
+`reference/github-actions.md`.
 
 ## Development
 
-The skills are treated as code. `commit_summary.py`, `release_notes.py`,
-`check_release_notes.py` and `manifest_gate.py` have unit tests that run on every PR, and
-this repo runs the PR checks it scaffolds, including `skill_audit.py` against itself — the
-integration-only checks skip where there is no `custom_components/`.
+The skills are treated as code: this repo is a consumer of release-flow like any
+integration, and its own tooling has unit tests that run on every PR.
 
-Changes to the release machinery are proven on
+Changes to the CI repositories are proven on
 [ha-ci-testing](https://github.com/PineappleEmperor/ha-ci-testing), a throwaway integration
 that runs the whole cycle — branch, draft PR, merge, release candidate, final — because the
 parts that break only execute when something publishes.
