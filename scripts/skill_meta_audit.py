@@ -49,10 +49,22 @@ DOCS_EXCUSED = re.compile(
 # the reader builds when a manifest carries `>=` requirements, so the skill explains
 # it rather than scaffolding it into every repo.
 DOCS_OPTIONAL = {"update_manifest_floors.yml"}
+# The caller workflows a scaffold copies from the CI repositories' READMEs; the table in
+# reference/github-actions.md is the list.
+DOCS_CALLERS = {
+    "pr-checks.yml",
+    "lint-pr.yml",
+    "auto-draft-pr.yml",
+    "release-drafter.yml",
+    "python-validate.yml",
+    "quality-audit.yml",
+    "release.yml",
+    "panel-bundle.yml",
+}
 
 
 def check_docs_match_templates(repo: Repo) -> Result:
-    """Every workflow and job the skill's docs name must exist in templates/."""
+    """Every workflow the docs name must be a caller or a file in templates/."""
     tmpl = _template_dir(repo)
     if not tmpl or not (tmpl / ".github/workflows").is_dir():
         return [], []
@@ -82,7 +94,9 @@ def check_docs_match_templates(repo: Repo) -> Result:
             fails += [
                 f"{doc.name}:{n} names a workflow that is not shipped: {name}"
                 for name in re.findall(r"`([a-z0-9_.-]+\.yml)`", line)
-                if name not in shipped and name not in DOCS_OPTIONAL
+                if name not in shipped
+                and name not in DOCS_OPTIONAL
+                and name not in DOCS_CALLERS
             ]
             # The job table in the workflow reference, identified by its `needs:`
             # column so that a settings table elsewhere is not read as job names.
@@ -237,7 +251,7 @@ def check_required_contexts_documented(repo: Repo) -> Result:
         for c in contexts
         if f"`{c}`" not in prose
     ]
-    for count in re.findall(r"the (\w+) job-name contexts", prose):
+    for count in re.findall(r"[Tt]he (\w+) (?:job-name |required )?contexts", prose):
         words = {
             "one": 1,
             "two": 2,

@@ -63,6 +63,24 @@ def test_docs_may_name_a_workflow_that_is_gone(tmp_path) -> None:
     assert audit.check_docs_match_templates(audit.Repo(tmp_path)) == ([], [])
 
 
+def test_docs_may_name_a_caller_the_ci_readmes_own(tmp_path) -> None:
+    """The eight callers are copied from the CI READMEs, never from templates/."""
+    skill = tmp_path / "plugins/ha/skills/ha-integration"
+    (skill / "templates/.github/workflows").mkdir(parents=True)
+    (skill / "reference").mkdir()
+    (skill / "SKILL.md").write_text(
+        "A scaffold carries `pr-checks.yml`, `lint-pr.yml`, `auto-draft-pr.yml`,\n"
+        "`release-drafter.yml`, `python-validate.yml`, `quality-audit.yml`,\n"
+        "`release.yml` and, for a panel, `panel-bundle.yml`.\n"
+    )
+    (skill / "reference/github-actions.md").write_text("")
+    assert audit.check_docs_match_templates(audit.Repo(tmp_path)) == ([], [])
+
+    (skill / "SKILL.md").write_text("A scaffold carries `python_validate.yml`.\n")
+    fails, _ = audit.check_docs_match_templates(audit.Repo(tmp_path))
+    assert any("python_validate.yml" in f for f in fails)
+
+
 def test_skill_without_a_name_field_fails(tmp_path) -> None:
     """ha-panel-design shipped seven releases with no name in its frontmatter."""
     _skill(tmp_path, "ha-panel-design", "description: Use when changing a panel")
@@ -232,6 +250,12 @@ def test_a_wrong_context_count_fails(tmp_path) -> None:
     ref = tmp_path / "plugins/ha/skills/ha-thing/reference"
     (ref / "github-setup.md").write_text(
         "`A` and `B`. It requires the nine job-name contexts.\n"
+    )
+    fails, _ = audit.check_required_contexts_documented(audit.Repo(tmp_path))
+    assert any("claim nine required contexts" in f for f in fails)
+
+    (ref / "github-setup.md").write_text(
+        "`A` and `B`. It requires the nine contexts the scaffold's workflows produce.\n"
     )
     fails, _ = audit.check_required_contexts_documented(audit.Repo(tmp_path))
     assert any("claim nine required contexts" in f for f in fails)
