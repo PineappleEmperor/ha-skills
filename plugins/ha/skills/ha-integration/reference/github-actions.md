@@ -73,7 +73,7 @@ Any other difference from the README block or the template is drift.
 | `frontend/package.json` | `<domain>` and `<name>` placeholders → this integration's values, as ha-panel-ci's README says |
 | `requirements.test.txt` | uncomment the `home-assistant-frontend` pin, panel repos only |
 | `ruleset.json` | drop a context the repo does not produce |
-| `.github/workflows/auto-draft-pr.yml` | pass a token minted from a GitHub App instead of `RELEASE_TOKEN`; `reference/github-setup.md` has the step |
+| the four plain workflows | an action pin **newer** than the template's, where Dependabot has already bumped yours — keep the newer pin |
 
 **This table is the only list.** `reference/audit.md` points here; if they ever appear to
 disagree, this table wins.
