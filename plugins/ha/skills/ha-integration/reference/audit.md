@@ -1,6 +1,6 @@
 # Audit — the judgement checklist
 
-The audit items a grep cannot decide. `scripts/skill_audit.py --list` covers the mechanical ones.
+The audit items a grep cannot decide. ha-integration-ci's `skill_audit.py --list` covers the mechanical ones.
 
 ## Judgement checklist (read the code — a grep can't decide these)
 
@@ -20,10 +20,9 @@ The audit items a grep cannot decide. `scripts/skill_audit.py --list` covers the
 - **Commit/PR discipline:** subjects and titles follow `reference/commits.md`, which names the types a title may carry. The version model is `reference/versioning.md` — check the repo against that, not against memory.
 - **Cached facts still true.** Re-derive any row in the cached-facts table (`reference/freshness.md`) captured more than ~3 months ago, using the command in its *Re-derive with* column. Report each as still-current or stale-with-the-new-value, and update every consumer listed on that row in one pass.
 
-**A green gate is not a green suite.** What `skill_audit.py` checks is its README's *What
-the audit checks now* in ha-integration-ci; it compares nothing against `templates/`, which
-is why the per-file comparison above is a human item, and it never runs the repo's tests.
-Run what CI runs — `ruff`, `pyright`, `pytest`, `version_sync.py` — before reporting an
-audit clean.
+**A green gate is not a green suite.** What `skill_audit.py` checks is *What the audit
+checks now* in ha-integration-ci's README; the per-file comparison above is a human item
+because nothing mechanical does it, and the audit never runs the repo's tests. Run what CI
+runs — `ruff`, `pyright`, `pytest`, `version_sync.py` — before reporting an audit clean.
 
 **Report:** per-item pass/fail with `file:line` evidence · what the mechanical gate caught · remaining manual work. Fix findings before claiming the tier.

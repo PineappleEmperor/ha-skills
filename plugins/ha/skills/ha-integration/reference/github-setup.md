@@ -108,11 +108,9 @@ Two ways to get this wrong, both of which block every PR permanently:
   Python-only PR. Do not require it.
 
 A skipped job satisfies a required check, so job-level `if:` guards are fine; a cancelled
-run does not, which is why the `pr-checks` caller's trigger types are what they are
-(release-flow's README, *Calling the workflows*). A matrix job's check-run is named
-`<job name> (<value>)`, which is why the reusable workflows carry a scalar `python-version`
-(ha-integration-ci's README, *Implementation notes*); never assume a context equals the job
-name.
+run does not (release-flow's README, *Calling the workflows*, on the `pr-checks` trigger
+types). Never assume a context equals the job name: a matrix suffixes it
+(ha-integration-ci's README, *Implementation notes*).
 
 ### `Dependency review` needs the dependency graph enabled
 
@@ -140,8 +138,8 @@ limit.
 
 ## Supply chain
 
-`dependency-review.yml` and `issue_stale.yml` are the two plain workflows described in
-`reference/github-actions.md`. Every `uses:` in the scaffold, callers included, is pinned by
+`dependency-review.yml` and `issue_stale.yml` are two of the four plain workflows described
+in `reference/github-actions.md`. Every `uses:` in the scaffold, callers included, is pinned by
 commit SHA with the version in a trailing comment, for the reason the version model in
 ha-integration-ci's README gives; `skill_audit.py` fails a bare tag or an uncommented SHA.
 How Dependabot maintains those pins is `reference/dependabot.md`.

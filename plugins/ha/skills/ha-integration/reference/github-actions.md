@@ -98,9 +98,10 @@ or `.sh` that no workflow runs is a local tool and says so with `# skill-audit: 
 
 ## Superseded — do not reinstate
 
-`frontend_build.yml` (replaced by ha-panel-ci's `panel-bundle.yml`) and `create-dev-pr.yml`
-(replaced by release-flow's `auto-draft-pr.yml`) fail the audit where they survive; the
-underscore-named copies of every reusable workflow (`python_validate.yml`, `release_drafter.yml`
-and the rest) are bodies a caller replaces, and the audit requires each hyphenated caller
-and fails a body found in its place. `pr-labeler.yml`, `pr-title-check.yml`, `pr-commit-summary.yml` and
-`check-manifest-version.yml` are older still and have no successor of their own name.
+`frontend_build.yml` is replaced by ha-panel-ci's `panel-bundle.yml` and `create-dev-pr.yml`
+by release-flow's `auto-draft-pr.yml`; the underscore-named copies of every reusable
+workflow (`python_validate.yml`, `release_drafter.yml` and the rest) are bodies a caller
+replaces. What the audit does with each is *What the audit checks now* in
+ha-integration-ci's README. `pr-labeler.yml`, `pr-title-check.yml`,
+`pr-commit-summary.yml` and `check-manifest-version.yml` are older still and have no
+successor of their own name.
