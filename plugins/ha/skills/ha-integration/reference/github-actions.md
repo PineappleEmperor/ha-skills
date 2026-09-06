@@ -29,6 +29,7 @@ it. GitHub-side settings (token, ruleset, required checks) are `reference/github
 | `.github/dependabot.yml` | this skill's `templates/`; what it must contain is `reference/dependabot.md` |
 | `ruleset.json`, `pyproject.toml`, `conftest.py`, `requirements.test.txt`, `.gitignore`, `CLAUDE.md` snippet | this skill's `templates/` and `reference/scaffold.md` |
 | `frontend/package.json`, `frontend/tsconfig.json` (panel repos only) | ha-panel-ci's `frontend/` |
+| `scripts/bootstrap_repo.sh` | this skill's `templates/scripts/`; when to run it is `reference/github-setup.md` |
 
 Every caller block ends in `@{{sha}} # {{tag}}`. Resolve both with the two commands printed
 under the block before writing the file; a `{{` left in a workflow fails the audit. From then
@@ -53,8 +54,8 @@ Resolve it in this order:
 
 It holds the copied files of the table above: the four plain workflows,
 `.github/dependabot.yml`, `conftest.py`, `pyproject.toml`, `requirements.test.txt`,
-`ruleset.json`, `.gitignore` and `hooks/` (optional per-turn reminders for your own
-`~/.claude`, installed per the header in each script).
+`ruleset.json`, `.gitignore`, `scripts/bootstrap_repo.sh` and `hooks/` (optional per-turn
+reminders for your own `~/.claude`, installed per the header in each script).
 
 If none of those find it, report which paths you checked and ask for the skill's location.
 Do not write any of those files from memory.

@@ -34,7 +34,7 @@ gh repo edit "$REPO" \
   --enable-issues
 echo "  topics and issues set"
 
-# dependency_review.yml FAILS rather than skipping when the graph is off, so a repo
+# dependency-review.yml FAILS rather than skipping when the graph is off, so a repo
 # that never enabled it carries a permanently red required check. Observed on a test
 # repo: every other workflow passed and Dependency review failed alone.
 if gh api "repos/$REPO/dependency-graph/sbom" >/dev/null 2>&1; then
@@ -70,7 +70,7 @@ if gh secret list --json name --jq '.[].name' | grep -qx RELEASE_TOKEN; then
   echo "  RELEASE_TOKEN already set"
 else
   echo
-  echo "RELEASE_TOKEN is required by auto_draft_pr.yml. Create a fine-grained PAT with"
+  echo "RELEASE_TOKEN is required by auto-draft-pr.yml. Create a fine-grained PAT with"
   echo "Contents: Read and write, Pull requests: Read and write, scoped to this repo."
   read -rsp "Paste it (or press Enter to skip): " TOKEN
   echo
