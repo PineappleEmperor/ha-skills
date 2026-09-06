@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Enforces the commit rules in the ha-integration skill's reference/commits.md.
-# Enable once per clone: git config core.hooksPath .githooks
+# Enforces the commit rules in release-flow's README.md. Enable once per clone:
+# git config core.hooksPath .githooks
 msg_file="$1"
 subject="$(grep -v '^#' "$msg_file" | sed -n '1p')"
 

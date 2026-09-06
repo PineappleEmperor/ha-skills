@@ -1,7 +1,6 @@
 name-template: 'v$RESOLVED_VERSION'
 tag-template: 'v$RESOLVED_VERSION'
-# What these rules mean, and the type and label vocabulary they must stay in step with,
-# is reference/commits.md and reference/versioning.md in the ha-integration skill.
+# What these rules mean, and the vocabulary they must stay in step with, is release-flow's README.md.
 # Title rules only; the breaking `!` rule must precede `feature`.
 autolabeler:
   - label: "xfeat"
