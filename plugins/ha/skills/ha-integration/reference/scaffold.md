@@ -52,7 +52,7 @@ What to ask, what to generate, and the conventions the generated code follows. R
   `/compact`, since compaction can drop the skill's guidance from context.
   ```
   (`templates/hooks/` holds optional per-turn reminders for a user's own `~/.claude`; the canonical, shareable enforcement is this `CLAUDE.md` rule, which ships with the repo.)
-- `hacs.json` — `name` is the only strict requirement, but the canonical setup ships a **zip release**: `{"name": "My Integration", "content_in_root": false, "zip_release": true, "filename": "<domain>.zip"}` (add `"homeassistant": "<oldest HA you actually test>"`; `runtime_data` alone needs 2024.2+, so do not copy an older floor from an example). `zip_release` makes HACS download a release **asset** named `<filename>` instead of the tag source archive — so it **requires** the `release.yml` *Create Release ZIP* workflow (`templates/.github/workflows/release.yml`) to build and attach that asset on every published release. **Without that workflow, HACS install fails with `Could not download`** (the symptom of a `zip_release` repo whose release has no attached zip). Drop `zip_release`/`filename` only if you deliberately want HACS to pull the whole tagged repo archive instead.
+- `hacs.json` — `name` is the only strict requirement, but the canonical setup ships a **zip release**: `{"name": "My Integration", "content_in_root": false, "zip_release": true, "filename": "<domain>.zip"}` (add `"homeassistant": "<oldest HA you actually test>"`; `runtime_data` alone needs 2024.2+, so do not copy an older floor from an example). `zip_release` makes HACS download a release **asset** named `<filename>` instead of the tag source archive — so it **requires** ha-integration-ci's `release.yml`, through the scaffold's `release.yml` caller, to build and attach that asset on every published release. **Without that workflow, HACS install fails with `Could not download`** (the symptom of a `zip_release` repo whose release has no attached zip). Drop `zip_release`/`filename` only if you deliberately want HACS to pull the whole tagged repo archive instead.
 
   > **The tag is the version, not the committed manifest** — how that works, and why no PR
   > carries a bump, is `reference/versioning.md`. What matters here: `skill_audit.py` fails a
@@ -120,7 +120,7 @@ A placeholder may start as an SVG rasterised with `cairosvg` (ImageMagick's MSVG
 | `topics` | Repo has at least one topic | GitHub repo settings → About |
 | `license` | An SPDX-identifiable `LICENSE` in the repo | File in repo |
 
-The `description`, `issues`, `topics` and `license` checks fail silently until the first `hacs_validate` run — they're GitHub settings, not files.
+The `description`, `issues`, `topics` and `license` checks fail silently until the first `hacs-validate` run — they're GitHub settings, not files.
 
 ## manifest.json key order
 
