@@ -596,21 +596,6 @@ def patch_file(
     return f"wrote {rel}\n" + _report(before, after, rel) + tail
 
 
-# The shipped copies of scripts/ and tests/ live here; the audit's check_template_scripts_match
-# fails the repo when a pair differs by a byte.
-TWIN_ROOT = "plugins/ha/skills/ha-integration/templates/"
-
-
-def twin_of(rel: str) -> str | None:
-    """The shipped copy of a repo script or test, or the repo copy of a shipped one."""
-    for sub in ("scripts/", "tests/"):
-        if rel.startswith(TWIN_ROOT + sub):
-            return rel[len(TWIN_ROOT) :]
-        if rel.startswith(sub):
-            return TWIN_ROOT + rel
-    return None
-
-
 # Never candidates for a locate: version control, scratch, caches, environments.
 _SKIPPED_DIRS = {
     ".git",
@@ -687,27 +672,3 @@ def find_files(glob: str) -> list[str]:
             continue
         hits.append(str(p.relative_to(REPO)))
     return hits
-
-
-def patch_twins(
-    path: str, old_string: str, new_string: str, edit_key: str | None
-) -> str:
-    """Apply one patch to a script or test and to its shipped copy, which must already match.
-
-    A fix that reaches one copy and not the other is the drift the audit exists to catch;
-    this makes it unreachable rather than merely detected, and spares the second read. Twins
-    that already differ are refused, because mirroring a patch onto a drifted copy would
-    bury the drift instead of fixing it.
-    """
-    rel = safe_relpath(path)
-    twin = twin_of(rel)
-    if twin is None or not (REPO / twin).is_file():
-        raise GateError(f"{rel} has no shipped twin; patch it alone with patch_file")
-    if (REPO / rel).read_bytes() != (REPO / twin).read_bytes():
-        raise GateError(
-            f"{rel} and {twin} already differ; align them first (the audit's "
-            f"check_template_scripts_match names the drift), then patch both"
-        )
-    out = patch_file(rel, old_string, new_string, edit_key)
-    (REPO / twin).write_bytes((REPO / rel).read_bytes())
-    return out + f"\nmirrored to {twin}: byte-identical to {rel}"

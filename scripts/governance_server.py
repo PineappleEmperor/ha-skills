@@ -103,22 +103,6 @@ def patch_file(
 
 
 @mcp.tool()
-def patch_twins(
-    path: str, old_string: str, new_string: str, EditKey: str | None = None
-) -> str:
-    """Apply one patch to a script or test and to its shipped copy under templates/.
-
-    Same key, same rules as patch_file, applied to both copies, which must already be
-    byte-identical — twins that have drifted are refused so the drift is fixed rather than
-    buried. Saves the second read, and makes a fix that reaches only one copy impossible.
-    """
-    try:
-        return gate.patch_twins(path, old_string, new_string, EditKey)
-    except gate.GateError as exc:
-        return f"REFUSED: {exc}"
-
-
-@mcp.tool()
 def locate(pattern: str, under: str = "") -> str:
     """Name the files whose text matches a regex. Paths only, never a matching line.
 

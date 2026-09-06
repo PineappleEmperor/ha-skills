@@ -272,7 +272,14 @@ def test_emitted_docs_carry_the_key_and_the_content(repo) -> None:
 
 def test_the_old_tool_names_are_gone(repo) -> None:
     """A renamed tool that keeps its old alias is two names for one gate, and docs drift."""
-    for old in ("get_governing_docs", "get_governed_file", "governed_edit"):
+    for old in (
+        "get_governing_docs",
+        "get_governed_file",
+        "governed_edit",
+        "patch_twins",
+        "twin_of",
+        "TWIN_ROOT",
+    ):
         assert not hasattr(gs, old), old
 
 
@@ -416,65 +423,6 @@ def test_an_unknown_function_and_an_unparseable_file_are_refused(module) -> None
     with pytest.raises(gs.GateError) as excinfo:
         gs.get_function(module, "check_one", docs_key)
     assert "get_file" in str(excinfo.value)
-
-
-# --------------------------------------------------------------------- twins
-
-
-@pytest.fixture
-def twins(repo, monkeypatch):
-    """A script and its shipped copy, byte-identical, both governed."""
-    (repo / "tmpl/scripts").mkdir(parents=True)
-    (repo / "tmpl/scripts/t.py").write_text((repo / "scripts/t.py").read_text())
-    monkeypatch.setattr(gs, "TWIN_ROOT", "tmpl/")
-    monkeypatch.setattr(
-        gs, "TIERS", {"tmpl/": ("docs/rules.md",), "scripts/": ("docs/rules.md",)}
-    )
-    return repo
-
-
-def test_a_twin_patch_lands_on_both_copies(twins) -> None:
-    """The shipped copy is what integrations get; a fix that reaches only one is drift.
-
-    Two fixes once landed in scripts/ and never reached templates/scripts/. The audit now
-    catches that after the fact; this makes it impossible in the first place, and halves the
-    reads, since the twin never has to be read separately.
-    """
-    _, edit_key = _keys()
-    out = gs.patch_twins("scripts/t.py", "a = 1", "a = 9", edit_key)
-    assert (twins / "scripts/t.py").read_text().startswith("a = 9")
-    assert (twins / "scripts/t.py").read_text() == (
-        twins / "tmpl/scripts/t.py"
-    ).read_text()
-    assert "tmpl/scripts/t.py" in out
-
-
-def test_a_twin_patch_works_from_the_shipped_side(twins) -> None:
-    """Either copy may be the one read; the patch reaches both regardless."""
-    docs_key = gs.current_receipt_key("tmpl/")
-    gs.get_file("tmpl/scripts/t.py", docs_key)
-    gs.patch_twins(
-        "tmpl/scripts/t.py", "a = 1", "a = 9", gs.current_edit_key("tmpl/scripts/t.py")
-    )
-    assert (twins / "scripts/t.py").read_text().startswith("a = 9")
-
-
-def test_twins_that_already_differ_are_refused(twins) -> None:
-    """Mirroring a patch onto a copy that has drifted would bury the drift, not fix it."""
-    (twins / "tmpl/scripts/t.py").write_text("drifted\n")
-    _, edit_key = _keys()
-    with pytest.raises(gs.GateError) as excinfo:
-        gs.patch_twins("scripts/t.py", "a = 1", "a = 9", edit_key)
-    assert "differ" in str(excinfo.value)
-    assert (twins / "scripts/t.py").read_text().startswith("a = 1")
-
-
-def test_a_file_without_a_twin_is_refused(repo) -> None:
-    """A file that ships nowhere has nothing to mirror to; patch_file is the right tool."""
-    _, edit_key = _keys()
-    with pytest.raises(gs.GateError):
-        gs.patch_twins("scripts/t.py", "a = 1", "a = 9", edit_key)
-    assert (repo / "scripts/t.py").read_text().startswith("a = 1")
 
 
 # ------------------------------------------------------------------- gate id
