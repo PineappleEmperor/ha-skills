@@ -66,10 +66,7 @@ What to ask, what to generate, and the conventions the generated code follows. R
 - `pyrightconfig.json`
 - `requirements.test.txt` — **required**; copy `templates/requirements.test.txt`. Why the pin matters, and what breaks without it: `reference/testing.md`.
 - `conftest.py` — **required, at the repo root, not in `tests/`**; copy `templates/conftest.py`. Why it must be at the root: `reference/testing.md`.
-- `tests/` — one file per module under test, plus the template's own tests for the tooling it
-  ships. `skill_audit.py` requires `test_manifest_gate.py` and `test_commit_summary.py`; copy
-  the rest of `templates/tests/` alongside whichever scripts you keep. Testing rules are
-  `reference/testing.md`.
+- `tests/` — one file per module under test. Testing rules are `reference/testing.md`.
 
 - `README.md` — **include the AI-assistance disclaimer** as a GitHub `> [!NOTE]` admonition box. Link the skill name to its public repo. Template:
   ```markdown
@@ -80,27 +77,18 @@ What to ask, what to generate, and the conventions the generated code follows. R
   resolves an SPDX identifier and the HACS `license` check passes.
 - `.gitignore` — copy `templates/.gitignore`. Covers `__pycache__/`, caches, venvs, HA dev artefacts (`.storage/`, `home-assistant.log*`, the `_v2.db`), and `device_map.md` (the `ha-triage` device map holds a home's IP/device layout and must never be committed). **Not optional:** without it a local `pytest` run plus a `git add -A` commits `.pyc` files, and a `.pyc` under `templates/` is then copied verbatim into every repo scaffolded from the skill. `skill_audit.py` fails on any tracked compiled artefact.
 - `ruleset.json` — copy `templates/ruleset.json` to the repo root; what it requires and why is `reference/github-setup.md`.
-- `.githooks/commit-msg` — copy `templates/hooks/commit-msg`, `chmod +x`. Terse-subject + AI-trailer rejection. **Enable once per clone: `git config core.hooksPath .githooks`** — an unenabled hook is a file, not a guard. Document that line in `CLAUDE.md`.
+- `.githooks/commit-msg` — release-flow's, per `reference/commits.md`; `chmod +x`. **Enable once per clone: `git config core.hooksPath .githooks`** — an unenabled hook is a file, not a guard. Document that line in `CLAUDE.md`.
 - `custom_components/{domain}/brand/icon.png` — **256×256**, required by HACS brands validation
 - `custom_components/{domain}/brand/icon@2x.png` — **512×512** (see HiDPI note below)
 - `custom_components/{domain}/brand/logo.png` — landscape, shortest side **128–256**
 - `custom_components/{domain}/brand/logo@2x.png` — landscape, shortest side **256–512**
 
-**The CI stack — copy whole, do not author.** Missing files here are ~13 separate audit
-failures on the first run, so this is not an optional last step:
-
-- `.github/workflows/` — eleven of the twelve in `templates/.github/workflows/`. The
-  twelfth, `panel_bundle.yml`, belongs only to an integration that serves a panel and is
-  copied with `frontend/` per `reference/panels.md`; on a repo with no `frontend/` its own
-  first run fails. `skill_audit.py` requires it once `frontend/` exists and fails the
-  superseded `frontend_build.yml`
-- `.github/dependabot.yml` and `.github/release-drafter.yml`
-- `scripts/` — all of `templates/scripts/`; `skill_audit.py` fails a repo missing any of
-  `manifest_gate.py`, `commit_summary.py`, `release_notes.py`, `check_release_notes.py`,
-  `version_sync.py`
-
-What each workflow is for, and the only changes allowed in a copy, is
-`reference/github-actions.md`.
+**The CI stack — callers and copies, never authored.** Missing files here are separate
+audit failures on the first run, so this is not an optional last step. The table in
+`reference/github-actions.md` says which files the scaffold carries and where each is
+copied from; the caller blocks come from the CI repositories' READMEs with their
+`{{sha}} # {{tag}}` tokens resolved, and `panel-bundle.yml` with `frontend/` belongs only
+to an integration that serves a panel, per `reference/panels.md`.
 
 ### Brand assets are served from the integration's own `brand/` folder
 
@@ -179,6 +167,6 @@ scaffold must set up:
 
 ## Commit conventions, versioning & CI gating
 
-See **`reference/commits.md`** for commit subjects and what the notes are built from, and **`reference/versioning.md`** for the semver mapping, the prerelease/rc cycle, the **last-published-release** version gate, Dependabot, and the `GITHUB_TOKEN` workflow-suppression footgun.
+See **`reference/commits.md`** for commit subjects and titles, **`reference/versioning.md`** for where the version comes from and how an rc and a final are published, and **`reference/github-actions.md`** for what the scaffold carries.
 
 ---
