@@ -250,11 +250,7 @@ def test_unreadable_governing_doc_fails_open(repo) -> None:
 
 
 def test_every_governing_doc_in_the_real_tier_map_exists() -> None:
-    """A tier naming a doc that is gone is silently OPEN, since an unreadable doc fails open.
-
-    Deleting `docs/workflow-map.md` left two tiers naming it, and the whole workflow tree
-    became writable with no key at all.
-    """
+    """A tier naming a doc that is gone is silently OPEN; the TIERS comment says why."""
     for tier, docs in gs.TIERS.items():
         for rel in docs:
             path = gs.REPO / rel
