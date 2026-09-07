@@ -49,8 +49,6 @@ import re
 import secrets
 import time
 
-REPO = pathlib.Path(__file__).resolve().parents[1]
-
 RECEIPT_PREFIX = "I-HAVE-READ-THE-GOVERNING-DOCS"
 EDIT_PREFIX = "I-HAVE-READ-THE-WHOLE-FILE"
 _SALT = secrets.token_hex(8)
@@ -62,7 +60,7 @@ GATE_ID = secrets.token_hex(2)
 ROTATION_SECONDS = int(os.environ.get("GOVERNANCE_ROTATION_SECONDS", "3600"))
 
 # Governed path prefix -> the docs that govern it. FIRST match wins, so specific before general.
-TIERS: dict[str, tuple[str, ...]] = {
+SKILL_TIERS: dict[str, tuple[str, ...]] = {
     # The governing docs govern THEMSELVES, via the doc about how changes are made. Without
     # this the gate is trivially defeated: the docs were writable by ordinary means, and since
     # an unreadable governing doc fails the gate OPEN, deleting one bought a keyless write.
@@ -93,9 +91,39 @@ TIERS: dict[str, tuple[str, ...]] = {
     ),
 }
 
+# A CI repository — release-flow, ha-integration-ci, ha-panel-ci — holds the workflows and
+# scripts every consumer runs, and its README is the source for them, so the README governs
+# them and itself. Rewriting it therefore kills every outstanding key, as a reference doc
+# does above.
+CI_TIERS: dict[str, tuple[str, ...]] = {
+    ".github/workflows/": ("README.md",),
+    "scripts/": ("README.md",),
+    "tests/": ("README.md",),
+    "README.md": ("README.md",),
+}
+
 
 class GateError(Exception):
     """Refusal that reaches the caller as a tool error, never as a crash."""
+
+
+def profile(name: str) -> dict[str, tuple[str, ...]]:
+    """The tier map called `name`, or a refusal naming the ones that exist."""
+    maps = {"skill": SKILL_TIERS, "ci": CI_TIERS}
+    if name not in maps:
+        raise GateError(f"unknown profile {name!r}; known profiles: {sorted(maps)}")
+    return maps[name]
+
+
+# Which repository this gate guards, and by which rules. Both come from the environment so
+# that one gate serves any repository: a second instance rooted at a CI repository guards
+# that repository, rather than the skill repository guarding only itself while the code
+# every consumer runs sits behind nothing. Defaults keep the skill repository working with
+# no configuration at all.
+REPO = pathlib.Path(
+    os.environ.get("GOVERNANCE_ROOT") or pathlib.Path(__file__).resolve().parents[1]
+).resolve()
+TIERS = profile(os.environ.get("GOVERNANCE_PROFILE", "skill"))
 
 
 def resolve_tier(rel: str) -> str | None:

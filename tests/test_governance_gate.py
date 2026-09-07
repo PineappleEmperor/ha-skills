@@ -52,6 +52,60 @@ def test_governed_and_ungoverned_paths_resolve(repo) -> None:
     assert gs.resolve_tier("README.md") is None
 
 
+def test_the_root_and_the_tier_map_come_from_the_environment(monkeypatch) -> None:
+    """One gate serves any repository, so a CI repository gets one of its own.
+
+    Every path this module touches hangs off `REPO`, which it took from its own location —
+    so the gate could only ever guard the repository it was checked out into. The CI
+    repositories hold the workflows and scripts every consumer runs and were guarded by
+    nothing, and every edit made to them off a search rather than a read was made there.
+    """
+    assert gs.profile("skill") is gs.SKILL_TIERS
+    assert gs.profile("ci") is gs.CI_TIERS
+    with pytest.raises(gs.GateError):
+        gs.profile("nonesuch")
+
+    # A CI repository's README is the source for its workflows, so it governs them — and
+    # itself, so that rewriting it kills every outstanding key the way a reference doc does.
+    for tier in (".github/workflows/", "scripts/", "tests/", "README.md"):
+        assert gs.CI_TIERS[tier] == ("README.md",)
+
+
+def test_a_ci_repository_root_governs_its_own_files(tmp_path, monkeypatch) -> None:
+    """Rooted at a CI repository, the same gate refuses the same way it does here."""
+    (tmp_path / ".github/workflows").mkdir(parents=True)
+    (tmp_path / ".github/workflows/pr-checks.yml").write_text("on:\n  workflow_call:\n")
+    (tmp_path / "README.md").write_text("# release-flow\n\nthe contract\n")
+    monkeypatch.setattr(gs, "REPO", tmp_path)
+    monkeypatch.setattr(gs, "TIERS", gs.CI_TIERS)
+
+    assert gs.resolve_tier(".github/workflows/pr-checks.yml") == ".github/workflows/"
+    assert gs.resolve_tier("README.md") == "README.md"
+
+    with pytest.raises(gs.GateError):
+        gs.patch_file(
+            ".github/workflows/pr-checks.yml", "workflow_call:", "push:", None
+        )
+
+    docs_key = gs.current_receipt_key(".github/workflows/")
+    gs.get_file(".github/workflows/pr-checks.yml", docs_key)
+    gs.patch_file(
+        ".github/workflows/pr-checks.yml",
+        "workflow_call:",
+        "workflow_call: {}",
+        gs.current_edit_key(".github/workflows/pr-checks.yml"),
+    )
+    assert (
+        "workflow_call: {}"
+        in (tmp_path / ".github/workflows/pr-checks.yml").read_text()
+    )
+
+    # Rewriting the README kills every key it governs, since it is what they were read against.
+    stale = gs.current_receipt_key("scripts/")
+    (tmp_path / "README.md").write_text("# release-flow\n\nrewritten\n")
+    assert stale not in gs.valid_receipt_keys("scripts/")
+
+
 def test_specific_tier_wins_over_general(monkeypatch, repo) -> None:
     """Ordering matters: a file with its own tier must not fall into the broader one."""
     monkeypatch.setattr(
