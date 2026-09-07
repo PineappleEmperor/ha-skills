@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """Authoring audit for the skills in THIS repository.
 
-`skill_audit.py` answers "was the ha-integration skill followed in this integration"
-and ships to every scaffolded repo. These checks answer "are the skills in this
-repository well built" — frontmatter the spec requires, a router whose links resolve,
-docs that describe workflows the templates actually ship, prose a reader can act on.
-None of it can fire in a consuming repo, which has no `plugins/*/skills/`, so shipping
-it there would be dead weight in a file people are asked to read.
+ha-integration-ci's `skill_audit.py` answers "was the ha-integration skill followed in
+this integration", and every consumer runs it through `quality-audit.yml`. These checks
+answer "are the skills in this repository well built" — frontmatter the spec requires, a
+router whose links resolve, docs that describe workflows the templates actually ship,
+prose a reader can act on. None of it can fire in a consuming repo, which has no
+`plugins/*/skills/`, so it lives here and ships nowhere.
 
-Exit 1 on any FAIL. Runs locally and in `quality_audit.yml`.
+Exit 1 on any FAIL. Runs locally and in this repository's `ci.yml`.
 """
 
 import argparse
