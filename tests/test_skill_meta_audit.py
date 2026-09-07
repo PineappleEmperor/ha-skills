@@ -81,6 +81,73 @@ def test_docs_may_name_a_caller_the_ci_readmes_own(tmp_path) -> None:
     assert any("python_validate.yml" in f for f in fails)
 
 
+def test_a_named_skill_path_that_does_not_exist_fails(tmp_path) -> None:
+    """Deleting the shipped scripts left five files still naming them by path.
+
+    A comment or docstring that names `templates/tests/test_manifest_gate.py` after the
+    file is gone sends a reader to build a fixture that cannot be built. The workflow
+    names were already checked; the paths were not, and a delete pass is exactly when
+    they rot.
+    """
+    skill = tmp_path / "plugins/ha/skills/ha-integration"
+    (skill / "templates/scripts").mkdir(parents=True)
+    (skill / "reference").mkdir()
+    (skill / "templates/scripts/bootstrap_repo.sh").write_text("#!/bin/sh\n")
+    (skill / "SKILL.md").write_text("Run `templates/scripts/bootstrap_repo.sh` once.\n")
+    (skill / "conftest.py").write_text(
+        '"""Build one with `templates/tests/test_manifest_gate.py`."""\n'
+    )
+    (skill / "evals").mkdir()
+    (skill / "evals/make_fixture.sh").write_text(
+        'cp "$SKILL/templates/scripts/manifest_gate.py" scripts/\n'
+    )
+    fails, _ = audit.check_named_paths_exist(audit.Repo(tmp_path))
+    assert any("templates/tests/test_manifest_gate.py" in f for f in fails)
+    # Bare in a shell string, which is how the fixture builder names one.
+    assert any("templates/scripts/manifest_gate.py" in f for f in fails)
+    assert not any("bootstrap_repo.sh" in f for f in fails)
+
+
+def test_a_path_into_another_skill_resolves_against_that_skill(tmp_path) -> None:
+    """`ha-triage` points at `ha-integration/reference/discipline.md`, which is correct."""
+    _skill(
+        tmp_path,
+        "ha-triage",
+        "name: ha-triage\ndescription: Use when triaging",
+        body="Trace it per `ha-integration/reference/discipline.md`.\n",
+    )
+    _skill(
+        tmp_path,
+        "ha-integration",
+        "name: ha-integration\ndescription: Use when building an integration",
+    )
+    ref = tmp_path / "plugins/ha/skills/ha-integration/reference"
+    ref.mkdir()
+    (ref / "discipline.md").write_text("# D\n\ntext\n")
+    assert audit.check_named_paths_exist(audit.Repo(tmp_path)) == ([], [])
+
+
+def test_a_named_path_in_a_superseded_passage_is_not_a_finding(tmp_path) -> None:
+    """The backlog and the superseded sections name deleted files on purpose."""
+    skill = tmp_path / "plugins/ha/skills/ha-integration"
+    (skill / "templates").mkdir(parents=True)
+    (skill / "reference").mkdir()
+    (skill / "reference/github-actions.md").write_text(
+        "## Superseded — do not reinstate\n\n"
+        "`templates/scripts/skill_audit.sh` was replaced by the audit repository's.\n"
+    )
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs/backlog.md").write_text(
+        "| 149 | `templates/scripts/skill_audit.sh` in each | delete it | open |\n"
+    )
+    # A recorded eval run describes the tree as it stood on its date.
+    (skill / "evals/results").mkdir(parents=True)
+    (skill / "evals/results/01-with-skill.md").write_text(
+        "Date: 2026-08-11. Its plan listed `templates/hooks/commit-msg`.\n"
+    )
+    assert audit.check_named_paths_exist(audit.Repo(tmp_path)) == ([], [])
+
+
 def test_skill_without_a_name_field_fails(tmp_path) -> None:
     """ha-panel-design shipped seven releases with no name in its frontmatter."""
     _skill(tmp_path, "ha-panel-design", "description: Use when changing a panel")

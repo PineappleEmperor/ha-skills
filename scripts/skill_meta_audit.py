@@ -115,6 +115,66 @@ def check_docs_match_templates(repo: Repo) -> Result:
     return fails, []
 
 
+# A path into a skill's own tree. Only these three roots: no other repository in the
+# stack has a directory by any of those names, so a hit is always about this one. Two
+# forms, because the stale paths came in both: backticked in prose, where a bare
+# directory counts, and bare in code, where `"$SKILL/templates/scripts/x.sh"` is how a
+# script names one — there an extension is required, or every mention of `templates/`
+# in a sentence would match.
+_SKILL_PATH = re.compile(
+    r"`((?:templates|reference|evals)/[A-Za-z0-9._/-]+)`"
+    r"|((?:templates|reference|evals)/[A-Za-z0-9._/-]+\.[A-Za-z0-9]+)"
+)
+
+
+def check_named_paths_exist(repo: Repo) -> Result:
+    """A path into the skill that a file names must be a path the skill has.
+
+    `check_docs_match_templates` judges workflow NAMES; nothing judged paths, and a
+    delete pass is exactly when they rot. Removing the shipped scripts left five files
+    pointing at `templates/scripts/…` and `templates/tests/…` that no longer exist,
+    including a docstring telling the reader to build a fixture that cannot be built.
+
+    Scoped to `templates/`, `reference/` and `evals/` because no other repository in the
+    stack has directories by those names, so a hit is always about this one. Three things
+    name a deleted file on purpose and are not judged: `docs/`, which this check never
+    reads; a superseded passage, line by line; and `evals/results/`, where each file is a
+    dated record of one run and describes the tree as it stood that day.
+
+    A path resolves against ANY skill in the repository, not only the one that names it:
+    one skill pointing into another's reference set writes `ha-integration/reference/…`,
+    and judging that against the naming skill alone would fail two correct pointers.
+    """
+    fails = []
+    skills = [m.parent for m in sorted(repo.root.glob("plugins/*/skills/*/SKILL.md"))]
+    for manifest in sorted(repo.root.glob("plugins/*/skills/*/SKILL.md")):
+        skill = manifest.parent
+        for doc in sorted(skill.rglob("*")):
+            if not doc.is_file() or doc.suffix in {".pyc", ".png", ".zip"}:
+                continue
+            if "results" in doc.parts:
+                continue
+            try:
+                lines = doc.read_text(encoding="utf-8").splitlines()
+            except OSError, UnicodeDecodeError:
+                continue
+            section = ""
+            for n, line in enumerate(lines, 1):
+                if line.startswith("#"):
+                    section = line
+                if DOCS_EXCUSED.search(line) or DOCS_EXCUSED.search(section):
+                    continue
+                fails += [
+                    f"{doc.relative_to(repo.root)}:{n} names {target}, "
+                    f"which no skill in this repository has"
+                    for target in (
+                        m for pair in _SKILL_PATH.findall(line) for m in pair if m
+                    )
+                    if not any((s / target).exists() for s in skills)
+                ]
+    return fails, []
+
+
 def check_skill_frontmatter(repo: Repo) -> Result:
     """Each SKILL.md must carry the frontmatter the skill spec requires.
 
@@ -533,6 +593,7 @@ def check_doc_examples(repo: Repo) -> Result:
 
 CHECKS = (
     check_docs_match_templates,
+    check_named_paths_exist,
     check_skill_frontmatter,
     check_reference_links,
     check_named_sections,
