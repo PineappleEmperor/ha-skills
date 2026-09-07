@@ -1,9 +1,11 @@
-# Lint configuration for this repository's own tooling. scripts/ and tests/ ship
-# byte-for-byte to every scaffolded integration, so they are held to the rules a scaffold
-# runs: the [tool.ruff] tables below are those of templates/pyproject.toml, which is what
-# a scaffold copies. This repo is not an integration, so the pytest table it carries is
-# absent here, and the integration-only paths in per-file-ignores match nothing. Files
-# under templates/ are judged by templates/pyproject.toml itself, as a scaffold would.
+# Lint configuration for this repository's own tooling. Nothing under scripts/ or tests/
+# ships anywhere — they are the governance gate, the guard hooks and the authoring audit,
+# all of which only make sense here — but they are held to the rules a scaffold runs
+# anyway, so one rule set governs everything written in this stack: the [tool.ruff] tables
+# below are those of templates/pyproject.toml, which is what a scaffold copies. This repo
+# is not an integration, so the pytest table it carries is absent here, and the
+# integration-only paths in per-file-ignores match nothing. Files under templates/ are
+# judged by templates/pyproject.toml itself, as a scaffold would.
 
 [tool.ruff]
 target-version = "py314"
