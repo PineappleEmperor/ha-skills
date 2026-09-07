@@ -8,6 +8,132 @@ SKILL="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DEST="${2:-$(mktemp -d "${TMPDIR:-/tmp}/ha-eval-${SCENARIO}-XXXXXX")}"
 DOMAIN=acmedev   # NOT a core domain: a custom `demo` is shadowed by core's
 
+# The pins a fixture is built with. They are deliberately literal: a scenario tests
+# whether an agent compares what it wrote against the source, not whether the pin is
+# today's, and resolving them live would make the fixture need the network. Refresh
+# them from each README's two `gh api` commands whenever a scenario needs a current one.
+RF=8b41d48fc9bd3e7aea1d2ffdde98ca6205fdd16a   # release-flow v1.0.1
+RF_TAG=v1.0.1
+CI=c8b557e9f094cd855c5aecebf2edee8934d23fc4   # ha-integration-ci v1.0.0
+CI_TAG=v1.0.0
+
+# The seven caller workflows a scaffold carries, as their READMEs give them. A scenario
+# that wants one drifted overwrites it afterwards.
+write_callers() {
+  mkdir -p .github/workflows
+  cat > .github/workflows/pr-checks.yml <<YML
+name: PR Checks
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, edited]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: pr-checks-\${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  pr:
+    uses: PineappleEmperor/release-flow/.github/workflows/pr-checks.yml@$RF # $RF_TAG
+YML
+  cat > .github/workflows/lint-pr.yml <<YML
+name: Lint PR
+
+on:
+  pull_request_target:
+    types: [opened, edited, synchronize, reopened]
+
+permissions: {}
+
+jobs:
+  lint:
+    permissions:
+      pull-requests: read
+    uses: PineappleEmperor/release-flow/.github/workflows/lint-pr.yml@$RF # $RF_TAG
+YML
+  cat > .github/workflows/auto-draft-pr.yml <<YML
+name: Draft PR
+
+on:
+  push:
+    branches-ignore: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  draft:
+    uses: PineappleEmperor/release-flow/.github/workflows/auto-draft-pr.yml@$RF # $RF_TAG
+    secrets:
+      release-token: \${{ secrets.RELEASE_TOKEN }}
+YML
+  cat > .github/workflows/release-drafter.yml <<YML
+name: Release Drafter
+
+on:
+  push:
+    branches: [main]
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release:
+    uses: PineappleEmperor/release-flow/.github/workflows/release-drafter.yml@$RF # $RF_TAG
+YML
+  cat > .github/workflows/python-validate.yml <<YML
+name: Python Validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    uses: PineappleEmperor/ha-integration-ci/.github/workflows/python-validate.yml@$CI # $CI_TAG
+YML
+  cat > .github/workflows/quality-audit.yml <<YML
+name: Quality Audit
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    uses: PineappleEmperor/ha-integration-ci/.github/workflows/quality-audit.yml@$CI # $CI_TAG
+YML
+  cat > .github/workflows/release.yml <<YML
+name: Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    uses: PineappleEmperor/ha-integration-ci/.github/workflows/release.yml@$CI # $CI_TAG
+YML
+}
+
 mkdir -p "$DEST/custom_components/$DOMAIN"
 cd "$DEST"
 
@@ -47,47 +173,64 @@ case "$SCENARIO" in
     # this only guarantees nothing is pre-seeded here.
     ;;
   02)
-    # Audit-time: a full CI stack that LOOKS right and passes skill_audit.sh,
-    # but whose workflows were written from the prose rather than copied.
-    mkdir -p .github/workflows scripts tests
-    cp "$SKILL/templates/scripts/skill_audit.sh" scripts/
-    cp "$SKILL/templates/scripts/manifest_gate.py" scripts/
-    cp "$SKILL/templates/tests/test_manifest_gate.py" tests/
-    cp "$SKILL/templates/conftest.py" .
-    cat > pyproject.toml <<'TOML'
-[tool.pytest.ini_options]
-asyncio_mode = "auto"
-testpaths = ["tests"]
-TOML
-    # The premise is a repo that passes the mechanical gate, so the test wiring
-    # has to be complete — the scenario is about paraphrase, not missing files.
-    cp "$SKILL/templates/requirements.test.txt" .
-    cp "$SKILL/templates/.github/dependabot.yml" "$SKILL/templates/.github/release-drafter.yml" .github/
-    for w in "$SKILL"/templates/.github/workflows/*.yml; do
-      cp "$w" ".github/workflows/$(basename "$w")"
-    done
-    sed -i "s|<domain>|$DOMAIN|g" .github/workflows/release.yml
-    # The drift: lint_pr rewritten from the description. Drops
-    # pull_request_target, the permissions block and the token env — all
-    # invisible to a checklist that only asks "does the file exist".
-    cat > .github/workflows/lint_pr.yml <<'YML'
-name: Lint PR Title
+    # Audit-time: a repo that passes the mechanical gate clean, with two planted
+    # divergences that only a per-file comparison finds. The premise is the green
+    # gate, so the base has to be a genuinely conforming repo — building one by hand
+    # means enumerating 52 quality-scale rules and a brand icon, and re-enumerating
+    # them every time the audit grows a check. The testbed IS that repo, so the
+    # fixture takes it and plants the drift. History is stripped: the scenario is
+    # about diffing against the templates and the READMEs, and a fixture that still
+    # had its own `origin/main` would give the answer away with `git diff`.
+    if ! git clone -q --depth 1 https://github.com/PineappleEmperor/ha-ci-testing .tb 2>/dev/null; then
+      echo "scenario 02 needs to clone PineappleEmperor/ha-ci-testing" >&2
+      exit 3
+    fi
+    rm -rf .tb/.git
+    cp -R .tb/. . && rm -rf .tb
+    rm -rf "custom_components/$DOMAIN"
+    # Drift 1, in a file that is still copied byte-for-byte: hacs-validate rewritten
+    # from its one-line description. It drops the daily schedule and the `category`
+    # input, so the check runs on nothing and reports green.
+    cat > .github/workflows/hacs-validate.yml <<'YML'
+name: HACS Validation
 
 on:
   pull_request:
-    types: [opened, edited, synchronize]
+
+permissions:
+  contents: read
 
 jobs:
-  main:
+  hacs:
+    name: HACS validation
     runs-on: ubuntu-latest
     steps:
-      - uses: amannn/action-semantic-pull-request@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: hacs/action@main
+YML
+    # Drift 2, the caller-model shape of the same mistake: the `uses:` is right, so
+    # check_callers and check_action_pins both pass, but the trigger and permissions
+    # were written from memory. Under `pull_request` a fork PR gets a read-only token,
+    # so the labelling the called workflow does silently stops working on forks.
+    cat > .github/workflows/pr-checks.yml <<'YML'
+name: PR Checks
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, edited]
+
+permissions:
+  contents: read
+
+jobs:
+  pr:
+    uses: PineappleEmperor/release-flow/.github/workflows/pr-checks.yml@8b41d48fc9bd3e7aea1d2ffdde98ca6205fdd16a # v1.0.1
 YML
     ;;
   03)
     # First-test-time: integration + CI present, no tests/ and no pytest config.
     mkdir -p .github/workflows
-    cp "$SKILL/templates/.github/workflows/python_validate.yml" .github/workflows/
+    write_callers
     cp "$SKILL/templates/requirements.test.txt" .
     printf '[tool.ruff]\ntarget-version = "py314"\n' > pyproject.toml
     ;;

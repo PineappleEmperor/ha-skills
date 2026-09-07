@@ -12,8 +12,9 @@ as a broken test rather than missing setup.
 ./make_fixture.sh 03
 ```
 
-Fixture has the integration, `python_validate.yml` and a pinned
-`requirements.test.txt`; no `tests/`, no pytest config.
+Fixture has the integration, the seven caller workflows and a pinned
+`requirements.test.txt`; no `tests/`, no pytest config. `python-validate.yml` is
+the caller that will run the suite once one exists.
 
 ## Prompt
 
