@@ -12,6 +12,7 @@ Exit 1 on any FAIL. Runs locally and in this repository's `ci.yml`.
 """
 
 import argparse
+import itertools
 import json
 import pathlib
 import re
@@ -115,9 +116,7 @@ def check_docs_match_templates(repo: Repo) -> Result:
     return fails, []
 
 
-# A path into a skill's own tree. Only these three roots: no other repository in the
-# stack has a directory by any of those names, so a hit is always about this one. Two
-# forms, because the stale paths came in both: backticked in prose, where a bare
+# Two forms, because the stale paths came in both: backticked in prose, where a bare
 # directory counts, and bare in code, where `"$SKILL/templates/scripts/x.sh"` is how a
 # script names one — there an extension is required, or every mention of `templates/`
 # in a sentence would match.
@@ -136,10 +135,12 @@ def check_named_paths_exist(repo: Repo) -> Result:
     including a docstring telling the reader to build a fixture that cannot be built.
 
     Scoped to `templates/`, `reference/` and `evals/` because no other repository in the
-    stack has directories by those names, so a hit is always about this one. Three things
-    name a deleted file on purpose and are not judged: `docs/`, which this check never
-    reads; a superseded passage, line by line; and `evals/results/`, where each file is a
-    dated record of one run and describes the tree as it stood that day.
+    stack has directories by those names, so a hit is always about this one. Four things
+    name a path that is not a claim about this tree and are not judged: `docs/`, which
+    this check never reads; a subsection whose heading supersedes what it describes; the
+    dated records under `evals/results/`, each of which describes the tree as it stood on
+    its day; and a line carrying a URL or inside a fence, where the path belongs to
+    another project or to an illustration.
 
     A path resolves against ANY skill in the repository, not only the one that names it:
     one skill pointing into another's reference set writes `ha-integration/reference/…`,
@@ -152,16 +153,28 @@ def check_named_paths_exist(repo: Repo) -> Result:
         for doc in sorted(skill.rglob("*")):
             if not doc.is_file() or doc.suffix in {".pyc", ".png", ".zip"}:
                 continue
-            if "results" in doc.parts:
+            parts = doc.relative_to(skill).parts
+            if ("evals", "results") in itertools.pairwise(parts):
                 continue
             try:
                 lines = doc.read_text(encoding="utf-8").splitlines()
             except OSError, UnicodeDecodeError:
                 continue
             section = ""
+            fenced = False
             for n, line in enumerate(lines, 1):
-                if line.startswith("#"):
+                if line.lstrip().startswith("```"):
+                    fenced = not fenced
+                    continue
+                # Only a subsection excuses its body. A document title matching by
+                # accident — "Removed features and what replaced them" — would otherwise
+                # silence every line in the file.
+                if re.match(r"^#{2,} ", line):
                     section = line
+                elif line.startswith("# "):
+                    section = ""
+                if fenced or "://" in line:
+                    continue
                 if DOCS_EXCUSED.search(line) or DOCS_EXCUSED.search(section):
                     continue
                 fails += [

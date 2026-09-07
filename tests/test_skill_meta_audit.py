@@ -148,6 +148,48 @@ def test_a_named_path_in_a_superseded_passage_is_not_a_finding(tmp_path) -> None
     assert audit.check_named_paths_exist(audit.Repo(tmp_path)) == ([], [])
 
 
+def test_only_the_eval_results_directory_is_excused_as_a_record(tmp_path) -> None:
+    """Excusing every directory named `results` would excuse a reference set inside one."""
+    skill = tmp_path / "plugins/ha/skills/ha-integration"
+    (skill / "templates").mkdir(parents=True)
+    (skill / "reference/results").mkdir(parents=True)
+    (skill / "SKILL.md").write_text("body\n")
+    (skill / "reference/results/notes.md").write_text(
+        "It runs `templates/scripts/does_not_exist.sh` on setup.\n"
+    )
+    fails, _ = audit.check_named_paths_exist(audit.Repo(tmp_path))
+    assert any("does_not_exist.sh" in f for f in fails)
+
+
+def test_a_title_carrying_a_trigger_word_does_not_excuse_the_file(tmp_path) -> None:
+    """A document called "Removed features" would otherwise silence every line under it."""
+    skill = tmp_path / "plugins/ha/skills/ha-integration"
+    (skill / "templates").mkdir(parents=True)
+    (skill / "reference").mkdir()
+    (skill / "SKILL.md").write_text("body\n")
+    (skill / "reference/history.md").write_text(
+        "# Removed features and what replaced them\n\n"
+        "The current tool is `templates/scripts/current_tool.py`.\n"
+    )
+    fails, _ = audit.check_named_paths_exist(audit.Repo(tmp_path))
+    assert any("current_tool.py" in f for f in fails)
+
+
+def test_a_path_in_a_url_or_a_code_fence_is_not_a_claim_about_this_repo(
+    tmp_path,
+) -> None:
+    """A link to another project, and an illustrative example, name nothing of ours."""
+    skill = tmp_path / "plugins/ha/skills/ha-integration"
+    (skill / "templates").mkdir(parents=True)
+    (skill / "reference").mkdir()
+    (skill / "SKILL.md").write_text("body\n")
+    (skill / "reference/links.md").write_text(
+        "See https://github.com/example/repo/blob/main/templates/scripts/theirs.py\n\n"
+        "```bash\ncp x templates/scripts/my_example.sh\n```\n"
+    )
+    assert audit.check_named_paths_exist(audit.Repo(tmp_path)) == ([], [])
+
+
 def test_skill_without_a_name_field_fails(tmp_path) -> None:
     """ha-panel-design shipped seven releases with no name in its frontmatter."""
     _skill(tmp_path, "ha-panel-design", "description: Use when changing a panel")
