@@ -9,6 +9,10 @@ __pycache__/
 .venv/
 venv/
 
+# Panel repos only, and harmless in the rest: the first `npm ci` in frontend/ writes a
+# few hundred megabytes here, and `git add -A` after it commits the lot.
+node_modules/
+
 # Home Assistant test/dev artefacts
 .storage/
 home-assistant.log*
