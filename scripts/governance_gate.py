@@ -103,6 +103,16 @@ CI_TIERS: dict[str, tuple[str, ...]] = {
 }
 
 
+# Files whose PATCHES are checked for claims about other governed files. The register is
+# the one place whose whole purpose is to assert things about the rest of the repository,
+# so it is the one place where naming a file is a claim rather than a mention.
+CLAIM_CHECKED = ("docs/backlog.md",)
+# Repo-relative path -> the rotation window in which the gate last served it whole.
+_SERVED: dict[str, int] = {}
+# A path inside a backtick, which is how every row names a file.
+_NAMED = re.compile(r"`([A-Za-z0-9_./-]+\.[A-Za-z0-9]+)`")
+
+
 class GateError(Exception):
     """Refusal that reaches the caller as a tool error, never as a crash."""
 
@@ -259,6 +269,34 @@ def receipt_line(tier: str) -> str:
     )
 
 
+def _record_served(rel: str, now: float | None = None) -> None:
+    """Remember that the gate handed this path over whole, in this rotation window."""
+    _SERVED[rel] = int((time.time() if now is None else now) // ROTATION_SECONDS)
+
+
+def unread_claims(text: str, now: float | None = None) -> list[str]:
+    """Governed files the text names that the gate has not served in the current window.
+
+    Row 89: an edit key proves the file being *written* was read; nothing proves the files
+    it makes claims about were. A row once asserted that two reference docs contradicted
+    each other, under a perfectly valid key for the register, and neither had been opened.
+
+    A path is only demanded when this gate could actually have served it — governed here,
+    and present. Rows name another repository's `scripts/` by bare path and name deleted
+    files deliberately; demanding those would make the register unwritable rather than
+    more honest.
+    """
+    bucket = int((time.time() if now is None else now) // ROTATION_SECONDS)
+    named = dict.fromkeys(_NAMED.findall(text))
+    return [
+        rel
+        for rel in named
+        if resolve_tier(rel) is not None
+        and (REPO / rel).exists()
+        and _SERVED.get(rel, -2) < bucket - 1
+    ]
+
+
 def safe_relpath(path: str) -> str:
     """Repo-relative path, refusing anything that escapes the repo. Fail closed."""
     p = pathlib.Path(path) if pathlib.Path(path).is_absolute() else (REPO / path)
@@ -308,6 +346,7 @@ def get_file(path: str, receipt_key: str | None) -> str:
         body = (REPO / rel).read_text(encoding="utf-8")
     except OSError:
         body = ""
+    _record_served(rel)
     return "\n".join(
         [
             (
@@ -597,6 +636,16 @@ def patch_file(
             f"the file moved under you - re-read rather than resending a previous value."
             + _cause(edit_key)
         )
+
+    if rel in CLAIM_CHECKED:
+        unread = unread_claims(new_string)
+        if unread:
+            raise GateError(
+                f"{rel} is where this repository states what is true of itself, and this "
+                f"patch makes a claim about {', '.join(unread)} without the gate having "
+                f"served {'it' if len(unread) == 1 else 'them'} this hour. Read each with "
+                f"get_file, then write the row."
+            )
 
     after = _apply(before, old_string, new_string, rel)
     if scope is not None and not _inside(

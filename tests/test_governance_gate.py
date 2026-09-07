@@ -106,6 +106,78 @@ def test_a_ci_repository_root_governs_its_own_files(tmp_path, monkeypatch) -> No
     assert stale not in gs.valid_receipt_keys("scripts/")
 
 
+def _backlog(repo, monkeypatch):
+    """A repo whose backlog is governed, and whose claims are therefore checked."""
+    (repo / "docs/backlog.md").write_text("# Backlog\n\n| # | Finding |\n|---|---|\n")
+    monkeypatch.setattr(
+        gs,
+        "TIERS",
+        {"scripts/": ("docs/rules.md",), "docs/backlog.md": ("docs/rules.md",)},
+    )
+    monkeypatch.setattr(gs, "_SERVED", {})
+    docs_key = gs.current_receipt_key("docs/backlog.md")
+    gs.get_file("docs/backlog.md", docs_key)
+    return gs.current_edit_key("docs/backlog.md")
+
+
+def test_a_backlog_row_naming_an_unread_governed_file_is_refused(repo, monkeypatch):
+    """Row 89: the edit key proves the backlog was read, never the file it makes a claim about.
+
+    Row 85 was written under a valid key for the backlog and asserted, wrongly, that two
+    reference files contradicted each other. Nothing asked whether either had been opened.
+    """
+    key = _backlog(repo, monkeypatch)
+    with pytest.raises(gs.GateError) as excinfo:
+        gs.patch_file(
+            "docs/backlog.md",
+            "|---|---|\n",
+            "|---|---|\n| 1 | `scripts/t.py` drops the guard |\n",
+            key,
+        )
+    assert "scripts/t.py" in str(excinfo.value)
+
+    # Reading it is the whole requirement; the same patch then lands.
+    gs.get_file("scripts/t.py", gs.current_receipt_key("scripts/"))
+    gs.patch_file(
+        "docs/backlog.md",
+        "|---|---|\n",
+        "|---|---|\n| 1 | `scripts/t.py` drops the guard |\n",
+        gs.current_edit_key("docs/backlog.md"),
+    )
+    assert "drops the guard" in (repo / "docs/backlog.md").read_text()
+
+
+def test_a_claim_about_something_ungoverned_or_absent_is_not_checked(repo, monkeypatch):
+    """Only a file this gate could have served is demanded.
+
+    Rows name another repository's `scripts/` by bare path, and name files deleted years
+    ago on purpose. Neither can be read here, so demanding it would make the register
+    unwritable rather than more honest.
+    """
+    key = _backlog(repo, monkeypatch)
+    gs.patch_file(
+        "docs/backlog.md",
+        "|---|---|\n",
+        "|---|---|\n| 1 | `README.md` and `scripts/gone.py` both say so |\n",
+        key,
+    )
+    assert "both say so" in (repo / "docs/backlog.md").read_text()
+
+
+def test_only_the_backlog_has_its_claims_checked(repo, monkeypatch):
+    """A script may name any path in a comment; it is the register that asserts."""
+    _backlog(repo, monkeypatch)
+    (repo / "scripts/other.py").write_text("x = 1\n")
+    gs.get_file("scripts/other.py", gs.current_receipt_key("scripts/"))
+    gs.patch_file(
+        "scripts/other.py",
+        "x = 1",
+        "x = 1  # see `scripts/t.py`",
+        gs.current_edit_key("scripts/other.py"),
+    )
+    assert "see `scripts/t.py`" in (repo / "scripts/other.py").read_text()
+
+
 def test_specific_tier_wins_over_general(monkeypatch, repo) -> None:
     """Ordering matters: a file with its own tier must not fall into the broader one."""
     monkeypatch.setattr(
