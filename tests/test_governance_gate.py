@@ -52,18 +52,41 @@ def test_governed_and_ungoverned_paths_resolve(repo) -> None:
     assert gs.resolve_tier("README.md") is None
 
 
-def test_the_root_and_the_tier_map_come_from_the_environment(monkeypatch) -> None:
+def test_the_root_and_the_tier_map_come_from_the_environment(
+    monkeypatch, tmp_path
+) -> None:
     """One gate serves any repository, so a CI repository gets one of its own.
 
     Every path this module touches hangs off `REPO`, which it took from its own location —
     so the gate could only ever guard the repository it was checked out into. The CI
     repositories hold the workflows and scripts every consumer runs and were guarded by
     nothing, and every edit made to them off a search rather than a read was made there.
+
+    Both variables are read at import, so this executes the module afresh rather than
+    asserting about the copy the rest of the suite holds. Asserting only that `profile()`
+    maps two names left the whole of that change unproven: put the hardcoded root and map
+    back and every other test still passed.
     """
     assert gs.profile("skill") is gs.SKILL_TIERS
     assert gs.profile("ci") is gs.CI_TIERS
     with pytest.raises(gs.GateError):
         gs.profile("nonesuch")
+    assert gs.TIERS == gs.SKILL_TIERS
+    assert pathlib.Path(__file__).resolve().parents[1] == gs.REPO
+
+    monkeypatch.setenv("GOVERNANCE_ROOT", str(tmp_path))
+    monkeypatch.setenv("GOVERNANCE_PROFILE", "ci")
+    elsewhere = importlib.util.module_from_spec(_SPEC)
+    _SPEC.loader.exec_module(elsewhere)
+    assert tmp_path.resolve() == elsewhere.REPO
+    assert elsewhere.TIERS == elsewhere.CI_TIERS
+
+    # A mistyped profile is a configuration error with no tool call to report it through,
+    # so it stops the server with the one line that says what to fix.
+    monkeypatch.setenv("GOVERNANCE_PROFILE", "nonesuch")
+    with pytest.raises(SystemExit) as exc:
+        _SPEC.loader.exec_module(importlib.util.module_from_spec(_SPEC))
+    assert "unknown profile" in str(exc.value)
 
     # A CI repository's README is the source for its workflows, so it governs them — and
     # itself, so that rewriting it kills every outstanding key the way a reference doc does.

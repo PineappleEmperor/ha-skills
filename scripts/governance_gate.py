@@ -133,7 +133,13 @@ def profile(name: str) -> dict[str, tuple[str, ...]]:
 REPO = pathlib.Path(
     os.environ.get("GOVERNANCE_ROOT") or pathlib.Path(__file__).resolve().parents[1]
 ).resolve()
-TIERS = profile(os.environ.get("GOVERNANCE_PROFILE", "skill"))
+try:
+    TIERS = profile(os.environ.get("GOVERNANCE_PROFILE", "skill"))
+except GateError as exc:
+    # A GateError is a tool error by contract, and there is no tool call yet: this runs at
+    # import. Left to propagate it kills the server with a traceback that says nothing to
+    # whoever mistyped the profile, so it is restated as the one line they need.
+    raise SystemExit(f"governance gate: {exc}") from exc
 
 
 def resolve_tier(rel: str) -> str | None:
@@ -275,7 +281,11 @@ def _record_served(rel: str, now: float | None = None) -> None:
 
 
 def unread_claims(text: str, now: float | None = None) -> list[str]:
-    """Governed files the text names that the gate has not served in the current window.
+    """Governed files the text names that the gate has not served recently enough.
+
+    Recently enough is the current rotation window or the one before it, so a read taken
+    minutes before the hour turns over is not silently dead while a read two windows old
+    is. Anything stricter would refuse a row written across a rollover and gain nothing.
 
     Row 89: an edit key proves the file being *written* was read; nothing proves the files
     it makes claims about were. A row once asserted that two reference docs contradicted
@@ -643,8 +653,8 @@ def patch_file(
             raise GateError(
                 f"{rel} is where this repository states what is true of itself, and this "
                 f"patch makes a claim about {', '.join(unread)} without the gate having "
-                f"served {'it' if len(unread) == 1 else 'them'} this hour. Read each with "
-                f"get_file, then write the row."
+                f"served {'it' if len(unread) == 1 else 'them'} in this rotation window or "
+                f"the one before. Read each with get_file, then write the row."
             )
 
     after = _apply(before, old_string, new_string, rel)
