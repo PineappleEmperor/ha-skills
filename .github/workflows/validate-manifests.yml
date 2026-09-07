@@ -17,7 +17,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # Every step that runs Python runs it on the floor the stack declares, never on the
-      # runner's own interpreter; skill_audit.py fails a job that does otherwise.
+      # runner's own interpreter. This repository is not an integration, so nothing audits
+      # it for that; the rule is the stack's, and ha-integration-ci's audit enforces it on
+      # the integrations that are.
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: '3.14'
