@@ -1,6 +1,7 @@
 name: HACS Validation
 
-# Documented in the ha-integration skill's reference/github-actions.md.
+# Documented in the ha-integration skill's reference/github-actions.md; why the action
+# below is on a mutable ref rather than a SHA is reference/freshness.md.
 on:
   push:
     branches: [main]
