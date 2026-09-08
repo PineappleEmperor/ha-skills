@@ -9,6 +9,9 @@ __pycache__/
 .venv/
 venv/
 
+# Repo-local scratch: clones, fixtures and throwaway copies
+.tmp/
+
 # Panel repos only, and harmless in the rest: the first install in frontend/ writes a
 # tree tens of megabytes wide, and a `git add -A` after it commits the lot.
 node_modules/
