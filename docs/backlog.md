@@ -1,42 +1,25 @@
 # Backlog
 
-Findings only. **Nothing here is edited during an audit** — an audit adds rows, a later
-fix pass clears them, one issue per commit. New findings discovered while fixing are added
-here rather than fixed inline.
+Problems, not tasks. A row records what is wrong. The decision recorded against it is the
+current best answer and may be replaced when new information arrives. A row closes when the
+problem is gone, not when the fix once planned for it is done, and being in this file is
+never a reason to finish work that has been overtaken.
 
-Status: `open` · `fixed` (with commit) · `wontfix` (with reason).
+Nothing here is edited during an audit: an audit adds rows, a later pass clears them, one
+issue per commit. A finding discovered while fixing is added here rather than fixed inline.
 
-## Open
+Status: `open` · `decided` · `fixed` (with commit) · `superseded by <row>` · `wontfix` (with reason)
 
-Sixteen rows are live. Each is a pointer, never a summary: the row is the statement, and
-where a line here disagrees with its row, the row is right. This table was prose twice and
-drifted out of step with the rows both times, so it now carries one column of state and
-nothing else.
+Live rows: 98, 143, 144, 149, 158, 159, 163, 164, 168, 170 and 171. Every other row has
+closed into a file under `docs/backlog/`, named for the phase it belongs to and linked from
+the section it left. Numbers are globally unique and never reused, because commit messages
+in five repositories address them.
 
-| Row | What it is | Where it stands |
-|---|---|---|
-| 158 | proving a CI repository's release on the testbed before it is tagged | fixed, release-flow PR #3 |
-| 159 | a consumer's fix travelling back to the template it came from | half fixed, half open |
-| 160 | three ways the coverage check could be defeated | fixed, release-flow PR #3 |
-| 161 | the coverage branch would have run no tests at all in CI | fixed, release-flow PR #3 |
-| 162 | what ha-panel-ci's README says about the branch that changes it | fixed, ha-panel-ci PR #2 |
-| 163 | a stray install and a masked path in this repository | half fixed, half open |
-| 164 | nothing in the stack requiring a pull request | open |
-| 166 | the gate's environment switch, and two messages stricter than the code | fixed here, unpushed |
-| 168 | this branch's callers against the contexts the ruleset requires | open, and it blocks the merge |
-| 169 | a prompt hook deleted inside a config change nobody read | fixed here, unpushed |
-| 170 | the testbed's panel against the template it exists to prove | part fixed, part open |
-| 171 | the register drifting again, and a remedy that was destructive | part fixed, part open |
-| 98 | the delivery rebuild | open |
-| 143, 144, 149 | three defects owned by `ha-lego` and `ha-pimoroni-unicorn` | open |
-
-Rows 119 and 124 are folded into 99. Every other row from 73 up
-is cleared below, with its commit or as `wontfix`; rows 1-72 are cleared under *Fixed*.
-Rows 100-102, 104-115, 120, 121, 129, 130 and 133 name the first commit of another
-repository where that is where the fix lives; rows from 134 name that repository's later
-commits by hash. The testbed cycle that proved rows 85, 92 and 95 ran end to end on
-2026-09-04: draft PR, eight required contexts, merge, rc publish, final publish, asset,
-notes and draft cleanup.
+A closed row is not rewritten. A claim in one that turns out to be false becomes a new row
+here, so the phase files stay a transcript that can be checked against git. Live rows take
+the problem, decision and evidence shape as they are next worked, rather than in one pass:
+rewriting a row nobody is touching is how this file drifted out of step with itself twice
+in a day.
 
 ### From the reviews of the three new repositories (2026-09-05)
 
@@ -132,10 +115,6 @@ Moved to `docs/backlog/2026-09-03-gate-rebuild.md`. Rows 79 to 81.
 ### From the CI audit pass (2026-08-31) — cleared 2026-09-03
 
 Moved to `docs/backlog/2026-08-31-ci-audit.md`. Rows 73 to 78.
-
-Rows 1-72 are cleared.
-
-Rows 1-17, 19-40, 42-43 are cleared — see *Fixed*.
 
 ### From the post-fix independent audit (2026-08-26) — all fixed
 
