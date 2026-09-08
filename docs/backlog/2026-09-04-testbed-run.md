@@ -4,6 +4,10 @@ Closed rows, moved here from the register when they cleared. Formatting may be r
 claim later found false gets a new row in the register rather than an edit here, so this
 stays a transcript that can be checked against git.
 
+The cycle that proved rows 85, 92 and 95 ran end to end on 2026-09-04: draft PR, eight
+required contexts, merge, rc publish, final publish, asset, notes and draft cleanup. Rows
+92 and 95 are in `docs/backlog/2026-09-04-review-84-90.md`.
+
 | # | Finding | Fix | Commit |
 |---|---|---|---|
 | 85 | **`panel_bundle.yml` fails on any repo without a panel the first time it lands.** Its path filter names its own file, so the scaffold commit or a template resync triggers it, and on `ha-ci-testing` (no `frontend/`) the job died at setup-node's cache step: `Some specified paths were not resolved, unable to cache dependencies`. The docs are consistent about the intent: `scaffold.md` says copy all twelve, `github-actions.md` says the check is path-filtered and reports only on panel repos. The workflow fails to deliver that on the one run its own file triggers, and no read could have seen it: it had never landed on a no-panel repo before. Dropped from the testbed PR to keep the cycle moving | Every step after checkout is gated on `hashFiles('frontend/package.json')`, with a notice step for the empty case; the workflow stays panel-only by row 87, so the guard is for a repo that gains a panel later or lands the file by mistake. Proven the way row 88 demands: the guarded file landed on the testbed branch, its own filter ran it on a repo with no panel, and the run was green with the notice fired and six steps skipped | `d56c8bb` |

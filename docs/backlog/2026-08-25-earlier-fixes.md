@@ -4,6 +4,11 @@ Closed rows, moved here from the register when they cleared. Formatting may be r
 claim later found false gets a new row in the register rather than an edit here, so this
 stays a transcript that can be checked against git.
 
+These are rows 1-17, 19-40 and 42-43. The table is two columns and the rows carry no
+numbers of their own, so this line is the only record of which numbers it accounts for.
+Rows 18 and 41 appear in no numbered table anywhere in the register or its phase files.
+Rows 44-72 are in `docs/backlog/2026-08-26-post-fix-audit.md`.
+
 | Finding | Commit |
 |---|---|
 | `discipline.md` gutted — 663 words to 212, index intact, four files pointing at it | `1c717c6` |
