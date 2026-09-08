@@ -71,7 +71,11 @@ SKILL_TIERS: dict[str, tuple[str, ...]] = {
     "plugins/ha/skills/ha-integration/reference/": (
         "plugins/ha/skills/ha-integration/reference/discipline.md",
     ),
+    # The register and the phase files it sheds. Both, because a cleared row moves out of
+    # the first into the second, and a tier naming only the register would drop the claim
+    # check on every row the moment it moved — a guard lost to a reorganisation.
     "docs/backlog.md": ("plugins/ha/skills/ha-integration/reference/discipline.md",),
+    "docs/backlog/": ("plugins/ha/skills/ha-integration/reference/discipline.md",),
     ".github/workflows/": (
         "plugins/ha/skills/ha-integration/reference/github-actions.md",
     ),
@@ -106,7 +110,7 @@ CI_TIERS: dict[str, tuple[str, ...]] = {
 # Files whose PATCHES are checked for claims about other governed files. The register is
 # the one place whose whole purpose is to assert things about the rest of the repository,
 # so it is the one place where naming a file is a claim rather than a mention.
-CLAIM_CHECKED = ("docs/backlog.md",)
+CLAIM_CHECKED = ("docs/backlog.md", "docs/backlog/")
 # Repo-relative path -> the rotation window in which the gate last served it whole.
 _SERVED: dict[str, int] = {}
 # A path inside a backtick, which is how every row names a file.
@@ -647,7 +651,7 @@ def patch_file(
             + _cause(edit_key)
         )
 
-    if rel in CLAIM_CHECKED:
+    if any(rel == p or rel.startswith(p) for p in CLAIM_CHECKED):
         unread = unread_claims(new_string)
         if unread:
             raise GateError(

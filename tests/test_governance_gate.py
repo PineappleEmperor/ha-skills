@@ -201,6 +201,49 @@ def test_only_the_backlog_has_its_claims_checked(repo, monkeypatch):
     assert "see `scripts/t.py`" in (repo / "scripts/other.py").read_text()
 
 
+def test_the_register_and_its_phase_files_are_both_governed() -> None:
+    """The register is splitting by phase, so both spellings must be in the real map.
+
+    No tool in the session can serve the register whole any more: the gate refused it
+    twice and the file reader caps below its size. A file nothing can read in full is a
+    file nothing can honestly claim about, which is how a receipt got harvested from a
+    refusal instead of earned.
+    """
+    assert gs.resolve_tier("docs/backlog.md") is not None
+    assert gs.resolve_tier("docs/backlog/2026-09-04-testbed-run.md") is not None
+
+
+def test_a_phase_file_is_claim_checked_like_the_register(repo, monkeypatch):
+    """A row that moves into a phase file keeps the check that row 89 put on it.
+
+    The claim check named one filename. Splitting the register would have taken every row
+    that moved out of its reach the moment the new file was created — a guard removed by a
+    reorganisation rather than by a decision, which is the worst way to lose one.
+    """
+    (repo / "docs/backlog").mkdir()
+    phase = "docs/backlog/2026-09-04-a-pass.md"
+    (repo / phase).write_text("# A pass\n\n| # | Finding |\n|---|---|\n")
+    monkeypatch.setattr(
+        gs,
+        "TIERS",
+        {
+            "scripts/": ("docs/rules.md",),
+            "docs/backlog.md": ("docs/rules.md",),
+            "docs/backlog/": ("docs/rules.md",),
+        },
+    )
+    monkeypatch.setattr(gs, "_SERVED", {})
+    gs.get_file(phase, gs.current_receipt_key("docs/backlog/"))
+    with pytest.raises(gs.GateError) as excinfo:
+        gs.patch_file(
+            phase,
+            "|---|---|\n",
+            "|---|---|\n| 1 | `scripts/t.py` drops the guard |\n",
+            gs.current_edit_key(phase),
+        )
+    assert "scripts/t.py" in str(excinfo.value)
+
+
 def test_specific_tier_wins_over_general(monkeypatch, repo) -> None:
     """Ordering matters: a file with its own tier must not fall into the broader one."""
     monkeypatch.setattr(
