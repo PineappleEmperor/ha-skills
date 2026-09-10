@@ -34,6 +34,19 @@ gh repo edit "$REPO" \
   --enable-issues
 echo "  topics and issues set"
 
+# dependency-review.yml FAILS rather than skipping when the graph is off, so a repo
+# that never enabled it carries a permanently red required check. Observed on a test
+# repo: every other workflow passed and Dependency review failed alone.
+if gh api "repos/$REPO/dependency-graph/sbom" >/dev/null 2>&1; then
+  echo "  dependency graph already enabled"
+elif gh api -X PATCH "repos/$REPO" -F security_and_analysis[dependency_graph][status]=enabled \
+     >/dev/null 2>&1; then
+  echo "  dependency graph enabled"
+else
+  echo "  COULD NOT enable the dependency graph — do it at Settings -> Advanced Security,"
+  echo "  or Dependency review stays red on every PR"
+fi
+
 if [ ! -f LICENSE ]; then
   echo "  no LICENSE — HACS fails with SPDX: NOASSERTION until one exists"
 fi
@@ -57,7 +70,7 @@ if gh secret list --json name --jq '.[].name' | grep -qx RELEASE_TOKEN; then
   echo "  RELEASE_TOKEN already set"
 else
   echo
-  echo "RELEASE_TOKEN is required by auto_draft_pr.yml. Create a fine-grained PAT with"
+  echo "RELEASE_TOKEN is required by auto-draft-pr.yml. Create a fine-grained PAT with"
   echo "Contents: Read and write, Pull requests: Read and write, scoped to this repo."
   read -rsp "Paste it (or press Enter to skip): " TOKEN
   echo

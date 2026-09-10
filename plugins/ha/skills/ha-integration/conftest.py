@@ -6,10 +6,9 @@ In *this* repo there is no such package, so letting pytest descend into
 templates/ loads that file as a real conftest and aborts collection with
 `ModuleNotFoundError: No module named 'custom_components'`.
 
-Ignoring the directory keeps `pytest` usable at the repo root. To actually run
-`templates/tests/test_manifest_gate.py`, build a fixture that has a
-custom_components package — `evals/make_fixture.sh 02` copies both the gate and
-its test into one.
+Ignoring the directory keeps `pytest` usable at the repo root. `templates/` ships
+no test of its own any more: the scripts a scaffold used to copy now live in the
+CI repositories, and their suites run there.
 """
 
 collect_ignore = ["templates"]

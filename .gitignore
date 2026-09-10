@@ -3,6 +3,7 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 .venv/
+node_modules/
 
 # Shell/editor dotfiles that land in the workspace root. The project's own dotted
 # paths are re-included, so a new one has to be named here to be tracked.
@@ -11,3 +12,9 @@ __pycache__/
 !/.githooks/
 !/.claude-plugin/
 !/.gitignore
+# The project hook layer describes conventions specific to this repo, so it travels
+# with it. Everything else under .claude/ is per-machine state, including the
+# settings.local.json personal layer.
+!/.claude/
+/.claude/*
+!/.claude/settings.json
