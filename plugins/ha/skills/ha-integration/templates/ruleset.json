@@ -24,13 +24,13 @@
         "do_not_enforce_on_create": false,
         "required_status_checks": [
           {
-            "context": "CC labelling"
+            "context": "pr / CC labelling"
           },
           {
-            "context": "CC label validation"
+            "context": "pr / CC label validation"
           },
           {
-            "context": "CC title validation"
+            "context": "lint / CC title validation"
           },
           {
             "context": "Hassfest manifest validation"
@@ -39,10 +39,10 @@
             "context": "HACS validation"
           },
           {
-            "context": "Ruff, Pyright and Pytest"
+            "context": "validate / Ruff, Pyright and Pytest"
           },
           {
-            "context": "ha-integration conformance check"
+            "context": "audit / ha-integration conformance check"
           },
           {
             "context": "Dependency review"
