@@ -85,7 +85,9 @@ carry nothing of ours to version:
   per `reference/github-setup.md`.
 - **`hacs-validate.yml`** runs HACS's nine checks with no `ignore:` input, since ignoring any
   check disqualifies the repo from the default store.
-- **`hassfest-validate.yml`** validates the manifest, services and quality scale.
+- **`hassfest-validate.yml`** runs core's hassfest plugins over the integration — manifest,
+  services, translations and the rest. What it does and does not do with the quality
+  scale for a custom integration is `reference/quality-scale.md`.
 - **`issue_stale.yml`** labels issues and PRs untouched for 60 days and never closes them.
 
 **A repo that needs a second PR opener declares it.** The audit fails any workflow containing
