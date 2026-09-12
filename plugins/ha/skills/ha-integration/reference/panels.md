@@ -17,9 +17,11 @@ Once per process — per-entry registration races when two entries set up in par
   from pathlib import Path
 
   from homeassistant.components.http import StaticPathConfig
+  from homeassistant.core import HomeAssistant
+  from homeassistant.helpers.typing import ConfigType
 
 
-  async def async_setup(hass, config):  # once per process — no entry parallelism
+  async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
       """Serve the panel bundle; registration itself is option-gated below."""
       await hass.http.async_register_static_paths(
           [
@@ -33,7 +35,7 @@ Once per process — per-entry registration races when two entries set up in par
       return True
 
 
-  async def _refresh_panel(hass):  # from async_setup_entry — option-gated, toggleable
+  async def _refresh_panel(hass: HomeAssistant) -> None:  # from async_setup_entry
       if _panel_wanted(hass) and not hass.data.get(f"{DOMAIN}_panel"):
           hass.data[f"{DOMAIN}_panel"] = True  # claim BEFORE the await: setups race
           await panel_custom.async_register_panel(

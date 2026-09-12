@@ -61,13 +61,18 @@ notifier is addressable; a one-shot "send this" with no addressable target is a 
 5. If the entity carries `_attr_translation_key`, add the matching block to `strings.json`
    and `translations/en.json` — `entity-translations` in `reference/quality-scale.md`.
 
-`scripts/skill_audit.py` fails a repo whose `PLATFORMS` names a module that does not exist,
-so the gate catches a half-wired platform without anyone having to remember this list.
+The audit — `skill_audit.py`, run from ha-integration-ci as `SKILL.md` says — fails a repo
+whose `PLATFORMS` names a module that does not exist, so the gate catches a half-wired
+platform without anyone having to remember this list.
 
 ### Notify platform (modern pattern — HA 2023.8+)
 ```python
 # notify.py
 from homeassistant.components.notify import NotifyEntity
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+
+from .models import MyConfigEntry  # the typed-entry alias, under Typing below
 
 
 class MyNotifyEntity(NotifyEntity):
@@ -76,7 +81,7 @@ class MyNotifyEntity(NotifyEntity):
     _attr_has_entity_name = True
     _attr_name = "Notify"
 
-    def __init__(self, hass, device_id: str) -> None:
+    def __init__(self, hass: HomeAssistant, device_id: str) -> None:
         """Bind the entity to its device."""
         self.hass = hass
         self._device_id = device_id
@@ -88,7 +93,9 @@ class MyNotifyEntity(NotifyEntity):
         """Send the message to the device."""
 
 
-async def async_setup_entry(hass, entry, async_add_entities):
+async def async_setup_entry(
+    hass: HomeAssistant, entry: MyConfigEntry, async_add_entities: AddEntitiesCallback
+) -> None:
     """Add one notify entity for the config entry."""
     opts = {**entry.data, **entry.options}
     async_add_entities([MyNotifyEntity(hass, opts[CONF_DEVICE_ID])])
@@ -97,12 +104,17 @@ async def async_setup_entry(hass, entry, async_add_entities):
 ⚠️ `NotifyEntity` only supports `message` and `title` — `data` is **not in its service schema**. If you need custom payload fields (animations, sounds, colours, etc.), register the service directly instead:
 ```python
 # notify.py
+from collections.abc import Awaitable, Callable
+
 from homeassistant.components.notify.const import (
     ATTR_DATA,
     ATTR_MESSAGE,
     ATTR_TITLE,
     DOMAIN as NOTIFY_DOMAIN,
 )
+from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.helpers import config_validation as cv
+import voluptuous as vol
 
 SERVICE_SCHEMA = vol.Schema(
     {
@@ -113,7 +125,9 @@ SERVICE_SCHEMA = vol.Schema(
 )
 
 
-def make_notify_handler(hass: HomeAssistant, device_id: str):
+def make_notify_handler(
+    hass: HomeAssistant, device_id: str
+) -> Callable[[ServiceCall], Awaitable[None]]:
     """Build the service handler bound to one device."""
 
     async def async_handle(call: ServiceCall) -> None:
@@ -198,7 +212,9 @@ SENSORS: tuple[MySensorDescription, ...] = (
 )
 
 
-async def async_setup_entry(hass, entry, async_add_entities):
+async def async_setup_entry(
+    hass: HomeAssistant, entry: MyConfigEntry, async_add_entities: AddEntitiesCallback
+) -> None:
     """Add one sensor per description."""
     coordinator = entry.runtime_data
     async_add_entities(MySensor(coordinator, desc) for desc in SENSORS)
@@ -207,7 +223,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
 ### `UpdateEntity` (firmware/OTA install)
 - `_attr_in_progress` only **greys out the dashboard install button** — it does **not** stop a programmatic re-entry. A service call, automation, or two near-simultaneous dashboard clicks can still re-enter `async_install` while an install is mid-flight, double-pushing the OTA. Add an **explicit re-entry guard** at the top of `async_install` (after any can't-install checks), windowed so a crashed/timed-out install can't wedge the entity forever:
   ```python
-  async def async_install(self, version, backup, **kwargs) -> None:
+  async def async_install(self, version: str | None, backup: bool, **kwargs: Any) -> None:
       """Push the OTA once, refusing a second entry while one is in flight."""
       if self._reflash:
           raise HomeAssistantError("Layout change — reflash via USB, not OTA.")
@@ -363,7 +379,7 @@ Alias the entry to its runtime type so `entry.runtime_data` is not untyped:
 # In coordinator.py or models.py:
 from homeassistant.config_entries import ConfigEntry
 
-type MyConfigEntry = ConfigEntry[MyCoordinator]  # Python 3.12+ / HA 2024.x
+type MyConfigEntry = ConfigEntry[MyCoordinator]
 
 
 # In platform files:
