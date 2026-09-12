@@ -5,13 +5,10 @@ run the moment a second identity exists, rather than left as an unresolved claim
 
 ## What is being tested
 
-`pr-checks.yml` uses `pull_request_target` specifically so fork PRs can be
-labelled, commented on, and have their body updated. Under plain `pull_request`,
-GitHub gives a fork PR's workflow a **read-only** `GITHUB_TOKEN`, so the
-autolabeler silently does nothing and the PR gets no release category — the same
-class of gap that made `create-dev-pr` unusable for outside contributors.
-
-That reasoning is documented in the skill and has **never been executed**.
+The `pr-checks.yml` caller triggers on `pull_request_target` so that fork PRs can
+be labelled and commented on; what plain `pull_request` would cost a fork PR is
+release-flow's README under `pr-checks.yml`. That reasoning has **never been
+executed** against a fork.
 
 ## Why it can't be run here
 
@@ -28,43 +25,46 @@ Covered:
   `main`, and a PR introducing a new `pull_request_target` workflow did not run it
   at all. That is the half of the mechanism this design depends on.
 - **The token is writable for same-repo PRs under `pull_request_target`** — every
-  PR in the repo has been labelled by the `label` job.
+  PR on the testbed has been labelled by `pr / CC labelling`, and
+  `pr / CC label validation` has posted its comment (ha-ci-testing PR #9).
 
 NOT covered:
 
 - That a fork PR's token under plain `pull_request` is read-only (documented
   GitHub behaviour, untested here).
-- That a fork PR's token under `pull_request_target` is writable **in this repo's
-  configuration**.
+- That a fork PR's token under `pull_request_target` is writable **through a
+  caller into release-flow's reusable workflow**.
 
 ## Procedure, once a second identity exists
 
-1. From account B, fork the repo.
+1. From account B, fork the testbed.
 2. On the fork, branch and push a change with a **labellable** title
    (e.g. `fix: trivial typo`).
 3. Open a PR from the fork into `main`.
 4. Check, in order:
-   - `PR Checks / Label from title` **ran** and applied a label.
-   - `title-check` ran after it (`needs: label` holds across the fork boundary).
-   - `commit-summary` updated the PR body — this proves write access, since a
-     read-only token cannot edit a PR body.
-   - `version-gate` read the fork's `manifest.json` **over the API** and did not
-     check out the fork's head. Confirm in the run log that the checkout step
-     resolved `base.sha`, not the fork's SHA.
-5. **Adversarial half.** On the fork, add a commit that writes a marker file in
-   `scripts/manifest_gate.py` (e.g. `print("PWNED")`). Re-push. The
-   `version-gate` job must run the BASE copy and never print the marker. If it
-   does print, `pull_request_target` is executing fork code with a writable
-   token — a critical finding, not a test failure.
+   - `pr / CC labelling` **ran** and applied a label.
+   - `pr / CC label validation` ran after it (`needs:` inside release-flow's
+     workflow holds across the fork boundary).
+   - Retitle the PR so the label is wrong: the validation job's comment naming
+     the right title proves write access, since a read-only token cannot comment.
+     Fix the title and confirm the comment is withdrawn.
+   - `lint / CC title validation` ran.
+5. **Adversarial half.** On the fork, replace `.github/workflows/pr-checks.yml`
+   with a body carrying a `run: echo PWNED` step, and re-push. The base branch's
+   caller must run instead — `pull_request_target` loads from the base — and the
+   run log must show **no checkout of the consumer** — the one `actions/checkout`
+   there fetches release-flow itself into `.release-flow`. If `PWNED` appears, or
+   any step checked out the fork's head, `pull_request_target` is executing fork
+   code with a writable token — a critical finding, not a test failure.
 
 ## Pass
 
-Steps 4 and 5 both hold: the fork PR is labelled and its body updated, and no
+Steps 4 and 5 both hold: the fork PR is labelled and commented on, and no
 fork-authored code executes.
 
 ## Fail
 
-Any of: the label job does not run; `commit-summary` cannot edit the body
+Any of: the labelling job does not run; the validation job cannot comment
 (read-only token — the design does not work); or the marker from step 5 appears
-in the log (the design is actively dangerous and must be reverted to
+in the log (the design is actively dangerous, and the caller must revert to
 `pull_request` with fork labelling accepted as unsupported).
