@@ -42,8 +42,8 @@ accent:  var(--primary-color);                     /* HA accent */
 border-radius: var(--ha-card-border-radius, 12px);
 ```
 
-Define a small `:host` token block mapping panel-local names (`--pu-primary`, `--pu-outline`)
-to HA vars once, then reference those — one place to retune.
+Define a small `:host` token block mapping panel-local names (`--<domain>-primary`,
+`--<domain>-outline`) to HA vars once, then reference those — one place to retune.
 
 ---
 
