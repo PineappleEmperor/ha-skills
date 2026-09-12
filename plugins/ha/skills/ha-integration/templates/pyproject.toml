@@ -6,13 +6,12 @@
 #     workflow's python-version and pyrightconfig.json
 #   - custom_components is the first-party package; homeassistant is third-party here
 #   - voluptuous is imported as vol, which core enforces by convention rather than by rule
-#   - core-only paths dropped from per-file-ignores; scripts/ and tests/ exempted from the
-#     rules a standalone CI tool and a test tree cannot meet
+#   - core-only paths dropped from per-file-ignores; a repo's own scripts/ and tests/ are
+#     exempted from the rules a standalone tool and a test tree cannot meet
 #   - core's ban on `from __future__ import annotations` kept: Python 3.14 defers annotation
 #     evaluation natively, so the import only switches that off
-# The shipped scripts/ and tests/ are clean under these tables as they stand. Do not relax
-# them in a copy; that is drift. A [project] table is not needed, and if one is added it
-# carries no version: the release tag is the version.
+# Do not relax these tables in a copy; that is drift. A [project] table is not needed,
+# and if one is added it carries no version: the release tag is the version.
 
 [tool.ruff]
 target-version = "py314"
