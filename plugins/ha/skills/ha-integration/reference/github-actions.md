@@ -35,6 +35,12 @@ Every caller block ends in `@{{sha}} # {{tag}}`. Resolve both with the two comma
 under the block before writing the file; a `{{` left in a workflow fails the audit. From then
 on Dependabot moves the pin, as the version model in ha-integration-ci's README says.
 
+A README block is to a caller what `templates/` is to a copy: the source. If it cannot be
+read — no network, no `gh` — stop and say so, as *Where `templates/` lives* says for the
+templates. The audit does not compare a caller with its README block — what it does
+check is *What the audit checks now* in ha-integration-ci's README — so a caller written
+from memory can pass it.
+
 Write each file as the README or template gives it, then apply only the adaptations below.
 Verify with `cmp` per file rather than `diff -r` per directory — a tree still being
 assembled reads as identical when individual files differ.
@@ -85,7 +91,9 @@ carry nothing of ours to version:
   per `reference/github-setup.md`.
 - **`hacs-validate.yml`** runs HACS's nine checks with no `ignore:` input, since ignoring any
   check disqualifies the repo from the default store.
-- **`hassfest-validate.yml`** validates the manifest, services and quality scale.
+- **`hassfest-validate.yml`** runs core's hassfest plugins over the integration — manifest,
+  services, translations and the rest. What it does and does not do with the quality
+  scale for a custom integration is `reference/quality-scale.md`.
 - **`issue_stale.yml`** labels issues and PRs untouched for 60 days and never closes them.
 
 **A repo that needs a second PR opener declares it.** The audit fails any workflow containing

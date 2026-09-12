@@ -176,7 +176,7 @@ case "$SCENARIO" in
     # Audit-time: a repo that passes the mechanical gate clean, with two planted
     # divergences that only a per-file comparison finds. The premise is the green
     # gate, so the base has to be a genuinely conforming repo — building one by hand
-    # means enumerating 52 quality-scale rules and a brand icon, and re-enumerating
+    # means enumerating 54 quality-scale rules and a brand icon, and re-enumerating
     # them every time the audit grows a check. The testbed IS that repo, so the
     # fixture takes it and plants the drift. History is stripped: the scenario is
     # about diffing against the templates and the READMEs, and a fixture that still

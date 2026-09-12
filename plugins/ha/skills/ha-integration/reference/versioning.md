@@ -35,7 +35,7 @@ A `pull_request_target` workflow loads from the base branch, so a PR that fixes 
 is still judged by the broken copy; that deadlock and its narrow exception are *Merge
 discipline* in `reference/discipline.md`.
 
-Dependabot's setup, grouping and floor management live in `reference/dependabot.md`.
+Dependabot's setup lives in `reference/dependabot.md`.
 
 ### Orphaned-branch trap
 

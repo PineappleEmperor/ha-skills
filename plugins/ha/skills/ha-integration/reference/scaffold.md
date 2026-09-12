@@ -55,15 +55,16 @@ What to ask, what to generate, and the conventions the generated code follows. R
 - `hacs.json` — `name` is the only strict requirement, but the canonical setup ships a **zip release**: `{"name": "My Integration", "content_in_root": false, "zip_release": true, "filename": "<domain>.zip"}` (add `"homeassistant": "<oldest HA you actually test>"`; `runtime_data` alone needs 2024.2+, so do not copy an older floor from an example). `zip_release` makes HACS download a release **asset** named `<filename>` instead of the tag source archive — so it **requires** ha-integration-ci's `release.yml`, through the scaffold's `release.yml` caller, to build and attach that asset on every published release. **Without that workflow, HACS install fails with `Could not download`** (the symptom of a `zip_release` repo whose release has no attached zip). Drop `zip_release`/`filename` only if you deliberately want HACS to pull the whole tagged repo archive instead.
 
   > **The tag is the version, not the committed manifest** — how that works, and why no PR
-  > carries a bump, is `reference/versioning.md`. What matters here: `skill_audit.py` fails a
-  > `zip_release` repo whose `release.yml` does not patch the manifest before zipping.
+  > carries a bump, is `reference/versioning.md`. What matters here: the `release.yml` caller must
+  > point at ha-integration-ci's workflow; why that is what patches the manifest is its
+  > README.
 - `pyproject.toml` — copy `templates/pyproject.toml` verbatim. Its `[tool.ruff]` tables are
   Home Assistant core's own rule set adapted for a custom integration (`google` docstrings,
   Python 3.14, no `from __future__ import annotations`), and its pytest table carries the
   `asyncio_mode = "auto"` without which the async tests never run and `skill_audit.py`
-  fails the repo once `tests/` exists. The shipped `scripts/` and `tests/` are lint- and
-  format-clean under those tables; a copy that relaxes them is drift.
-- `pyrightconfig.json`
+  fails the repo once `tests/` exists. A copy that relaxes those tables is drift.
+- `pyrightconfig.json` — the snippet under *MicroPython firmware files* in
+  `reference/patterns.md`, with or without the `exclude`.
 - `requirements.test.txt` — **required**; copy `templates/requirements.test.txt`. Why the pin matters, and what breaks without it: `reference/testing.md`.
 - `conftest.py` — **required, at the repo root, not in `tests/`**; copy `templates/conftest.py`. Why it must be at the root: `reference/testing.md`.
 - `tests/` — one file per module under test. Testing rules are `reference/testing.md`.
@@ -159,7 +160,7 @@ Typing, file structure and the code patterns themselves are `reference/patterns.
 scaffold must set up:
 
 - Module docstring on every file. **This one may be multi-line** — a file-level explanation of a load-bearing constraint belongs here, not demoted to a comment.
-- Short **single-line** docstrings on all public functions and classes. `skill_audit.py` fails a *multi-line* one **inside `custom_components/` only** — copied `scripts/` and `tests/` are not checked, and module docstrings are exempt. It does not check that a docstring is present at all; that part is on you.
+- Short **single-line** docstrings on all public functions and classes. `skill_audit.py` fails a *multi-line* one **inside `custom_components/` only** — a repo's own `scripts/` and `tests/` are not checked, and module docstrings are exempt. It does not check that a docstring is present at all; that part is on you.
 - No inline comments unless the WHY is genuinely non-obvious
 - `ruff check .` and `ruff format --check .` clean under the shipped `pyproject.toml`; pyright standard mode
 
