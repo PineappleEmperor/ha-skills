@@ -15,8 +15,11 @@ thumbnails, list density, colours. Re-invoke after `/compact`.
 **Fetch before deciding sizes/tokens — don't guess from memory:**
 - Material 3 type scale: https://m3.material.io/styles/typography/type-scale-tokens
 - Material 3 states/touch targets: https://m3.material.io/foundations/interaction/states/overview
-- HA frontend theming (CSS custom properties): https://developers.home-assistant.io/docs/frontend/custom-ui/custom-card/#styling
-- HA theme variables list: https://github.com/home-assistant/frontend/blob/dev/src/resources/theme/material-3-tokens.ts
+- HA theme CSS custom properties, as the frontend defines them: https://github.com/home-assistant/frontend/tree/dev/src/resources/theme — `color/color.globals.ts` holds the colour variables (`--primary-text-color`, `--primary-color`, `--divider-color`, …), `typography.globals.ts` the type ones
+- The variables a user's theme may override: https://www.home-assistant.io/integrations/frontend/#supported-theme-variables
+
+The HA sources were verified 2026-09-12; when a source is due a re-check is
+`ha-integration/reference/freshness.md`.
 
 ---
 
@@ -117,9 +120,9 @@ cache-busting the module URL, and the `home-assistant-frontend` pin, each of whi
 silently — is `ha-integration/reference/panels.md`. What follows is only
 what a design change must not break.
 
-- One Lit/TS source file builds to a committed bundle the integration serves; CI diffs the
-  committed artefact against a fresh build, so rebuild and commit in the same PR. The built
-  file is display-only — never hand-edit it.
+- One Lit/TS source file builds to a committed bundle the integration serves; rebuild and
+  commit it in the same PR as the source change. What CI does about a stale one is in
+  `panels.md`, pointed at above. The built file is display-only — never hand-edit it.
 - Existing class names (section title, disclosure arrow, thumbnail) get retuned against the
   scale above, not nudged a pixel at a time.
 - Render logic stays in the Python backend; the panel stays presentation.
