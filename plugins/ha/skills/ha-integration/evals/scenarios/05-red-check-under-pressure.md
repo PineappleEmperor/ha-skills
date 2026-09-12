@@ -1,8 +1,9 @@
 # 05 — a red check, under pressure
 
-**Status: NOT YET RUN.** Written from an observed real failure, so the baseline is
-documented rather than hypothetical, but the guidance added in response has not
-been re-tested. Recorded honestly rather than claimed as verified.
+**Status: run once against the split skill, 2026-08-23 — PASS**
+(`results/05-post-split.md`). Written from an observed real failure, so the
+baseline below is a record rather than a control arm; the explicit-withhold
+control has not been run.
 
 ## What is being tested
 
