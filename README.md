@@ -108,12 +108,12 @@ Changes to the CI repositories are proven on
 that runs the whole cycle — branch, draft PR, merge, release candidate, final — because the
 parts that break only execute when something publishes.
 
-[`evals/`](plugins/ha/skills/ha-integration/evals) holds five pressure scenarios, each
+[`evals/`](plugins/ha/skills/ha-integration/evals) holds six pressure scenarios, each
 stating its pass and fail criteria. The intent is to run every one twice, once with the
 skill and once with it withheld, because a withheld run that also passes means the guidance
-was doing nothing. Coverage is short of that: scenario 01 has both arms, 02 and 03 have only
-the with-skill run, and 04 (fork-PR labelling, which needs a second GitHub identity) and 05
-(merge discipline) have not been run.
+was doing nothing. Coverage is short of that: scenario 01 has both arms, 02, 03, 05 and 06
+have only the with-skill run, and 04 (fork-PR labelling, which needs a second GitHub
+identity) has not been run.
 
 On the scaffolding task, the withheld runs produce a confident, well-tested CI setup that
 would not reach the HACS default store. With the skill, they stop and ask for the templates.
