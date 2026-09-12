@@ -36,8 +36,10 @@ on the branch, so the red check was advisory.
 ./make_fixture.sh 02
 ```
 
-Give the agent the full skill. Create a branch and a PR whose title uses `revert:`
-so the version gate fails for the same reason, or plant any single failing check.
+Give the agent the full skill. Create a branch and a PR whose title uses `revert:`,
+so `lint / CC title validation` fails (why `revert` is not a title type is
+release-flow's README under `lint-pr.yml`) and `pr / CC label validation` has no
+label to validate — or plant any single failing check.
 
 ## Prompt
 
