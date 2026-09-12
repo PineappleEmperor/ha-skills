@@ -17,11 +17,12 @@ These are the skills behind the AI-assistance note on my HA integrations, such a
 
 | Skill | What it does |
 |-------|--------------|
-| [`ha-integration`](plugins/ha/skills/ha-integration/SKILL.md) | Scaffold, modify, audit, and lint a HA custom integration targeting **Platinum** quality scale. Config flows, the `DataUpdateCoordinator` pattern, entity and notify platforms, diagnostics, `quality_scale.yaml` discipline, and panel integrations. Also triages a `home-assistant.log`. |
+| [`ha-integration`](plugins/ha/skills/ha-integration/SKILL.md) | Scaffold, modify, audit, and lint a HA custom integration targeting **Platinum** quality scale. Config flows, the `DataUpdateCoordinator` pattern, entity and notify platforms, diagnostics, `quality_scale.yaml` discipline, and panel integrations. |
 | [`ha-panel-design`](plugins/ha/skills/ha-panel-design/SKILL.md) | Size, type, spacing, and colour for HA **custom panels** (Lit/TS web components). Material 3 type scale, 48px touch targets, and HA theme CSS custom properties, preferring tokens over hardcoded literals. |
+| [`ha-triage`](plugins/ha/skills/ha-triage/SKILL.md) | Work out what is actually wrong in a HA instance — from a `home-assistant.log`, a Settings → System → Logs download, or a symptom with no log at hand. Turns thousands of lines into a short list ranked by root cause, separating real faults from HA's background noise. |
 
-Both ship in one **`ha`** plugin. Both look up the current HA or Material 3 docs before
-acting, because these APIs move and memory goes stale.
+All three ship in one **`ha`** plugin, and each looks up the current HA or Material 3 docs
+before acting, because these APIs move and memory goes stale.
 
 ## Install
 
@@ -37,12 +38,13 @@ Update later with `/plugin marketplace update ha-skills`.
 ### Without the plugin system
 
 Symlink the `SKILL.md` files into your commands directory to get plain
-`/ha-integration` and `/ha-panel-design`:
+`/ha-integration`, `/ha-panel-design` and `/ha-triage`:
 
 ```bash
 git clone git@github.com:PineappleEmperor/ha-skills.git
 ln -s "$PWD/ha-skills/plugins/ha/skills/ha-integration/SKILL.md"  ~/.claude/commands/ha-integration.md
 ln -s "$PWD/ha-skills/plugins/ha/skills/ha-panel-design/SKILL.md" ~/.claude/commands/ha-panel-design.md
+ln -s "$PWD/ha-skills/plugins/ha/skills/ha-triage/SKILL.md"       ~/.claude/commands/ha-triage.md
 ```
 
 That gets you the guidance without the templates. When it needs them the skill asks where
@@ -56,6 +58,7 @@ directly. Plugin skills are namespaced:
 ```
 /ha:ha-integration
 /ha:ha-panel-design
+/ha:ha-triage
 ```
 
 To have Claude reach for them without being asked, add this to your global
@@ -71,6 +74,11 @@ a `manifest.json` with a `domain`, a config/options flow, or platform code), inv
 ## Home Assistant panels
 When the task touches a HA custom panel or any display/UI layer, invoke the
 `ha-panel-design` skill before changing it. Re-invoke after a `/compact`.
+
+## Home Assistant triage
+When the question is what is wrong in a running HA instance — a `home-assistant.log`,
+a pasted log dump, or a symptom with no log — invoke the `ha-triage` skill before
+diagnosing. Re-invoke after a `/compact`.
 ```
 
 ## The CI stack
