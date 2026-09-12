@@ -403,8 +403,8 @@ Only acceptable suppression: `# type: ignore[import-untyped]` on a third-party i
 ### MicroPython firmware files
 
 Exclude them from Pyright entirely in `pyrightconfig.json`. Keep the `pythonVersion` key:
-the audit's version comparison (ha-integration-ci's README) reads it, and skips a file
-without it:
+it is what the audit's version comparison (ha-integration-ci's README) reads from this
+file:
 ```json
 {
   "pythonVersion": "3.14",
