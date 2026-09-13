@@ -12,5 +12,5 @@ fi
 # commit/PR conventions that drift down-context mid-session. reference/commits.md owns
 # them; this repeats only the ones that get broken.
 if [ -f .github/workflows/pr-checks.yml ]; then
-  echo "[ci-conventions] commit & PR subject = ONE tight imperative (lowercase after the colon, no trailing period, no comma-joined dual subject). auto-draft-pr.yml opens the draft PR with a title built from the commits; no job writes the PR body. PR TITLE must use a type lint-pr accepts (the list is reference/commits.md); type! for breaking; revert: is not accepted. Branch off main; the release tag sets the version, so no PR carries a manifest bump."
+  echo "[ci-conventions] commit & PR subject = ONE tight imperative (lowercase after the colon, no trailing period, no comma-joined dual subject). auto-draft-pr.yml opens the draft PR with a title built from the commits; no job writes the PR body. PR TITLE must use a type release-flow's lint-pr.yml accepts (the list is in that workflow); type! for breaking; revert: is not accepted. Branch off main; the release tag sets the version, so no PR carries a manifest bump."
 fi
