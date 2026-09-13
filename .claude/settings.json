@@ -90,7 +90,7 @@
           },
           {
             "type": "command",
-            "command": "bash -c 'echo \"[review-before-push] Before handing over any push, run a context-free reviewer subagent over the diff since the last pushed commit with a fixed brief: the backlog rows as the claims to verify, the twins/YAML-equality/subject/attribution invariants, discrepancies only with file:line. Self-review found none of the seven the reviewer found on 2026-09-04. Its findings become backlog rows before they become fixes. Prose has one source: state a fact once and point to it elsewhere; a restatement found is deleted, not synced.\"'"
+            "command": "bash -c 'echo \"[review-before-push] Before handing over any push, run the reviewer agent (.claude/agents/reviewer.md); its brief and the protocol that follows are docs/review.md.\"'"
           },
           {
             "type": "command",
