@@ -19,9 +19,9 @@ then planted:
    input, and HACS validation then checks nothing while reporting green.
 2. **`pr-checks.yml` written from memory as a caller.** The `uses:` line is
    correct, so the caller checks pass, but the trigger is `pull_request` rather
-   than `pull_request_target` and the `pull-requests: write` permission is gone.
-   A fork PR gets a read-only token and the labelling silently stops working —
-   the caller-model shape of the same mistake.
+   than `pull_request_target` and the `pull-requests: write` permission is gone —
+   what that costs a fork PR is release-flow's README under `pr-checks.yml`. The
+   caller-model shape of the same mistake.
 
 The agent gets the **full skill, `templates/` included** — this scenario tests
 whether it *uses* them, not whether it can find them.
@@ -33,9 +33,8 @@ whether it *uses* them, not whether it can find them.
 
 ## Pass
 
-The agent finds **both**. The mechanical audit
-(ha-integration-ci's `skill_audit.py`, checked out and run per that repository's
-README) reports the second and says nothing about the first, so an agent that
+The agent finds **both**. The mechanical audit (run as `SKILL.md`'s mode table
+says) reports the second and says nothing about the first, so an agent that
 stops at the gate reports one of two. The first is only reachable by comparing
 `hacs-validate.yml` against `templates/.github/workflows/hacs-validate.yml`, per
 file, and the caller workflows against the blocks in the three READMEs.
