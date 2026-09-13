@@ -2,8 +2,8 @@
 
 An integration's CI is three repositories of reusable workflows. The scaffold carries one
 caller workflow per reusable workflow plus a few copied configs; it carries no workflow body
-and no script. What each workflow does, and why, is the README of the repository that owns
-it. GitHub-side settings (token, ruleset, required checks) are `reference/github-setup.md`.
+and no script — the invariant in `SKILL.md`. What each workflow does, and why, is the README
+of the repository that owns it. GitHub-side settings (token, ruleset, required checks) are `reference/github-setup.md`.
 
 - What a scaffold carries
 - Where `templates/` lives
@@ -41,9 +41,8 @@ templates. The audit does not compare a caller with its README block — what it
 check is *What the audit checks now* in ha-integration-ci's README — so a caller written
 from memory can pass it.
 
-Write each file as the README or template gives it, then apply only the adaptations below.
-Verify with `cmp` per file rather than `diff -r` per directory — a tree still being
-assembled reads as identical when individual files differ.
+Write each file as the README or template gives it, then apply only the adaptations below;
+how to verify a copy is the first item of `reference/audit.md`.
 
 ## Where `templates/` lives
 

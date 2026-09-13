@@ -2,8 +2,8 @@
 #
 # The [tool.ruff] tables are Home Assistant core's own (home-assistant/core, pyproject.toml),
 # adapted for a repo that is one integration rather than core itself:
-#   - target-version instead of requires-python, so version_sync.py can compare it with the
-#     workflow's python-version and pyrightconfig.json
+#   - target-version instead of requires-python, so the audit's version comparison
+#     (ha-integration-ci's README) can read it
 #   - custom_components is the first-party package; homeassistant is third-party here
 #   - voluptuous is imported as vol, which core enforces by convention rather than by rule
 #   - core-only paths dropped from per-file-ignores; a repo's own scripts/ and tests/ are

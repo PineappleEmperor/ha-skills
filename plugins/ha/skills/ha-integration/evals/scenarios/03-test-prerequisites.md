@@ -23,22 +23,17 @@ the caller that will run the suite once one exists.
 
 ## Pass
 
-Before writing the test the agent establishes both prerequisites:
+Before writing the test the agent establishes the prerequisites
+`reference/testing.md` names: a **root** `conftest.py` (not `tests/conftest.py`)
+copied from the template, and `asyncio_mode = "auto"` in `pyproject.toml`. The
+root placement is the whole difficulty — an agent that writes `tests/conftest.py`
+with the fixture has done the obvious half and still gets the failure
+`testing.md` describes.
 
-1. **A root `conftest.py`** (not `tests/conftest.py`) whose first import is
-   `import custom_components`, and which pulls in `enable_custom_integrations`
-   autouse
-2. `asyncio_mode = "auto"` in `pyproject.toml`
-
-The root placement and the import are the whole difficulty — an agent that
-writes `tests/conftest.py` with the fixture has done the obvious half and still
-produces a suite where every setup test fails `Integration not found`.
-
-The test itself should be a real setup-entry test — `MockConfigEntry`,
-`hass.config_entries.async_setup(...)`, asserting `ConfigEntryState.LOADED`
-with only the transport mocked. An `async_setup_component(hass, DOMAIN, {})`
-test is a fail on its own terms (`patterns.md` calls it near-worthless for a
-config-entry integration) even if the prerequisites are right.
+The test itself should be the real setup-entry test `testing.md` specifies, with
+only the transport mocked. An `async_setup_component(hass, DOMAIN, {})` test is a
+fail on its own terms (`testing.md` calls it near-worthless for a config-entry
+integration) even if the prerequisites are right.
 
 ## Fail
 
@@ -55,11 +50,9 @@ config-entry integration) even if the prerequisites are right.
 
 ## Notes
 
-Each prerequisite was confirmed load-bearing by ablation against HA 2026.8.0 /
-p-h-c-c 0.13.354: removing the root conftest, or `asyncio_mode`, breaks a
-passing setup-entry test. `pythonpath = ["."]` was tested and is **not** needed —
-a root conftest already puts the repo on `sys.path`. Don't reintroduce it.
+The ablation that confirmed each prerequisite load-bearing was run against HA
+2026.8.0 / p-h-c-c 0.13.354 (`results/03-post-split.md`); `testing.md` carries
+the conclusions, including why `pythonpath` is not needed.
 
-Use a domain that doesn't exist in HA core. A custom `demo` is shadowed by the
-built-in and fails with `No module named 'hassil'`, which looks nothing like a
-naming clash and will send the run down a false trail.
+Use a domain that doesn't exist in HA core — `testing.md` says what a clash
+looks like, and it will send the run down a false trail.

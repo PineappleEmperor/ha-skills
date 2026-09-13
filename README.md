@@ -87,16 +87,13 @@ An integration's CI lives in three repositories of reusable workflows, and a sca
 integration calls them rather than carrying their bodies, so a CI release reaches every
 integration as a Dependabot PR:
 
-| Repository | Owns |
-|---|---|
-| [release-flow](https://github.com/PineappleEmperor/release-flow) | PR labelling and the label gate, the title lint, the draft-PR opener, release drafting and notes; the commit hook and drafter config a consumer copies. Generic to any repository using Conventional Commits. |
-| [ha-integration-ci](https://github.com/PineappleEmperor/ha-integration-ci) | Python validation, the conformance audit, the release zip HACS installs from; the version model every consumer follows. |
-| [ha-panel-ci](https://github.com/PineappleEmperor/ha-panel-ci) | The panel type-check and tests, and the `frontend/` templates. |
-
-Each README says what its workflows do and why, and carries the caller blocks a consumer
-copies. What the scaffold carries beyond those, from
+[release-flow](https://github.com/PineappleEmperor/release-flow),
+[ha-integration-ci](https://github.com/PineappleEmperor/ha-integration-ci) and
+[ha-panel-ci](https://github.com/PineappleEmperor/ha-panel-ci). Each README says what its
+workflows do and why, and carries the caller blocks a consumer copies. Which repository
+owns what, and what the scaffold carries beyond the callers from
 [`templates/`](plugins/ha/skills/ha-integration/templates), is the skill's
-`reference/github-actions.md`.
+[`reference/github-actions.md`](plugins/ha/skills/ha-integration/reference/github-actions.md).
 
 ## Development
 
@@ -111,9 +108,8 @@ parts that break only execute when something publishes.
 [`evals/`](plugins/ha/skills/ha-integration/evals) holds six pressure scenarios, each
 stating its pass and fail criteria. The intent is to run every one twice, once with the
 skill and once with it withheld, because a withheld run that also passes means the guidance
-was doing nothing. Coverage is short of that: scenario 01 has both arms, 02, 03, 05 and 06
-have only the with-skill run, and 04 (fork-PR labelling, which needs a second GitHub
-identity) has not been run.
+was doing nothing. Which scenarios have run, and in which arms, is the table in
+[`evals/README.md`](plugins/ha/skills/ha-integration/evals/README.md).
 
 On the scaffolding task, the withheld runs produce a confident, well-tested CI setup that
 would not reach the HACS default store. With the skill, they stop and ask for the templates.

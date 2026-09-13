@@ -8,10 +8,12 @@ SKILL="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DEST="${2:-$(mktemp -d "${TMPDIR:-/tmp}/ha-eval-${SCENARIO}-XXXXXX")}"
 DOMAIN=acmedev   # NOT a core domain: a custom `demo` is shadowed by core's
 
-# The pins a fixture is built with. They are deliberately literal: a scenario tests
-# whether an agent compares what it wrote against the source, not whether the pin is
-# today's, and resolving them live would make the fixture need the network. Refresh
-# them from each README's two `gh api` commands whenever a scenario needs a current one.
+# The pins a fixture is built with, and the caller blocks below them, are deliberately
+# frozen copies: a scenario tests whether an agent compares what it wrote against the
+# source, not whether the copy is today's, and resolving them live would make the fixture
+# need the network. Refresh the pins from each README's two `gh api` commands and the
+# blocks from the READMEs' *Calling the workflows* sections whenever a scenario needs a
+# current one; the checkout pin planted for scenario 02 must match the template's.
 RF=8b41d48fc9bd3e7aea1d2ffdde98ca6205fdd16a   # release-flow v1.0.1
 RF_TAG=v1.0.1
 CI=c8b557e9f094cd855c5aecebf2edee8934d23fc4   # ha-integration-ci v1.0.0
@@ -104,7 +106,7 @@ jobs:
     uses: PineappleEmperor/ha-integration-ci/.github/workflows/python-validate.yml@$CI # $CI_TAG
 YML
   cat > .github/workflows/quality-audit.yml <<YML
-name: Quality Audit
+name: Skill Audit
 
 on:
   push:
@@ -119,7 +121,7 @@ jobs:
     uses: PineappleEmperor/ha-integration-ci/.github/workflows/quality-audit.yml@$CI # $CI_TAG
 YML
   cat > .github/workflows/release.yml <<YML
-name: Release
+name: Create Release ZIP
 
 on:
   release:
@@ -176,7 +178,7 @@ case "$SCENARIO" in
     # Audit-time: a repo that passes the mechanical gate clean, with two planted
     # divergences that only a per-file comparison finds. The premise is the green
     # gate, so the base has to be a genuinely conforming repo — building one by hand
-    # means enumerating 54 quality-scale rules and a brand icon, and re-enumerating
+    # means enumerating the whole quality-scale rule set and a brand icon, and re-enumerating
     # them every time the audit grows a check. The testbed IS that repo, so the
     # fixture takes it and plants the drift. History is stripped: the scenario is
     # about diffing against the templates and the READMEs, and a fixture that still

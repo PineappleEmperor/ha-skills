@@ -3,7 +3,7 @@
 One-time setup that lives in GitHub's settings, not in the repo: the release token, the
 required checks, the dependency graph and the supply-chain guards. Every item here is a
 setting no file in the repo can carry, and each one fails quietly until the first CI run.
-`scripts/bootstrap_repo.sh` does most of it in one command.
+`scripts/bootstrap_repo.sh` does the settings side in one run.
 
 What the scaffold carries, and what may be changed in a copy, is `reference/github-actions.md`.
 
@@ -21,8 +21,8 @@ What the scaffold carries, and what may be changed in a copy, is `reference/gith
 One secret, once per repo, passed by the `auto-draft-pr.yml` caller to release-flow's
 draft-PR opener. Why the opener needs a token of its own, and what happens without one, is
 *The one secret* in release-flow's README. The release path needs no token: publishing a
-draft is a human action, so its events fire normally. `skill_audit.py` fails a repo that
-carries the opener's caller with no `RELEASE_TOKEN` set.
+draft is a human action, so its events fire normally. The audit checks the secret is set
+(ha-integration-ci's README, *What the audit checks now*).
 
 A fine-grained PAT:
 
@@ -71,8 +71,8 @@ a token without `Administration: read`, that check and the `RELEASE_TOKEN` one d
 warning reading `NOT CHECKED, not passed`, and the audit still reports green overall. A clean
 run in a sandbox or a token-limited CI is not evidence the ruleset exists; read the warnings.
 
-**`scripts/bootstrap_repo.sh` does all of this once**, from the repo root after the first
-push: description, topics, issues, the dependency graph, `core.hooksPath`, the ruleset (only
+**`scripts/bootstrap_repo.sh` does the GitHub-side settings in one run**, from the repo root
+after the first push: description, topics, issues, the dependency graph, `core.hooksPath`, the ruleset (only
 if `ruleset.json` is at the repo root — it skips otherwise), and the `RELEASE_TOKEN` secret,
 prompted rather than passed as an argument.
 
@@ -90,15 +90,16 @@ eight in `ruleset.json`: `pr / CC labelling`, `pr / CC label validation`,
 by GitHub's rule for called workflows, *Check names* in release-flow's README, which also
 says why the three label checks are not redundant.
 
-Everything else — `draft / Auto draft PR`, `release / Auto release zip`,
-`release / Auto draft releases` — is process automation firing on pushes and releases. Not a
-weaker check: not a check at all, and requiring one blocks every PR on a context that never
-reports.
+Everything else the stack produces — the process-automation contexts listed under *Check
+names* in release-flow's README and *Calling the workflows* in ha-integration-ci's — fires
+on pushes and releases.
+Not a weaker check: not a check at all, and requiring one blocks every PR on a context that
+never reports.
 
 Two ways to get this wrong, both of which block every PR permanently:
 
 - **A context the repo does not produce.** Each of the eight comes from a canonical
-  workflow, and `skill_audit.py` fails a repo missing any of them — so in a conforming repo
+  workflow, and the audit fails a repo missing any of them — so in a conforming repo
   the honest fix is to add the missing workflow, not to drop the context. Dropping is for a
   repo that has deliberately left the canonical set (no `quality-audit.yml`, no
   `dependency-review.yml`); drop the matching context or PRs wait forever for a check that
@@ -141,5 +142,7 @@ limit.
 `dependency-review.yml` and `issue_stale.yml` are two of the four plain workflows described
 in `reference/github-actions.md`. Every `uses:` in the scaffold, callers included, is pinned by
 commit SHA with the version in a trailing comment, for the reason the version model in
-ha-integration-ci's README gives; `skill_audit.py` fails a bare tag or an uncommented SHA.
-How Dependabot maintains those pins is `reference/dependabot.md`.
+ha-integration-ci's README gives — except the two mutable refs `reference/freshness.md`
+exempts and says why. The audit fails a bare tag or an uncommented SHA (ha-integration-ci's
+README, *What the audit checks now*). How Dependabot maintains those pins is
+`reference/dependabot.md`.

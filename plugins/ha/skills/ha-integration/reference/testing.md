@@ -35,7 +35,7 @@ the file rather than the block.
 
 No `pythonpath` entry is needed: a root conftest already puts the repo root on `sys.path`, so `pytest` works from any directory (verified with `pytest`, `python -m pytest`, and from inside `tests/`).
 
-The pinned `pytest-homeassistant-custom-component` in `requirements.test.txt` hard-pins `homeassistant==<matching release>`, so **that pin decides which HA the suite runs against** — a mismatch fails at import, not at test time. Keep it in lockstep with the Python floor ha-integration-ci's workflows declare, which `version_sync.py` compares in the audit.
+The pinned `pytest-homeassistant-custom-component` in `requirements.test.txt` hard-pins `homeassistant==<matching release>`, so **that pin decides which HA the suite runs against** — a mismatch fails at import, not at test time. Keep it in lockstep with the Python floor the CI declares; the audit compares the two (ha-integration-ci's README, *What the audit checks now*).
 
 ### Don't reuse a domain that exists in HA core
 
@@ -71,14 +71,14 @@ Cover all of: config-flow (happy path + each error + reauth/reconfigure), a real
 
 ### Prefer future-dated fixtures over freezing the clock
 
-For an end-to-end test that feeds a real captured payload (e.g. an `.eml`) through the mocked transport and asserts a sensor populates: if the payload has dates that must be "upcoming" for the integration to surface them, **shift the fixture's dates forward at runtime** (parse + rewrite, or template) rather than `freeze_time(...)`. Freezing the clock breaks anything that depends on the loop's time — most painfully it stops the **debouncer** that an `update_before_add` refresh relies on, so the entity never populates (state stays `unknown`), *and* it leaves a timer scheduled at the frozen wall-clock time that fails teardown. A live clock with future-dated data sidesteps both and keeps the fixture's real bytes/encoding.
+For an end-to-end test that feeds a real captured payload (e.g. an `.eml`) through the mocked transport and asserts a sensor populates: if the payload has dates that must be "upcoming" for the integration to surface them, **shift the fixture's dates forward at runtime** (parse + rewrite, or template) rather than `freeze_time(...)`. Freezing the clock breaks anything that depends on the loop's time — most painfully it stops the debouncer `reference/patterns.md` describes under `update_before_add`, so the entity never populates (state stays `unknown`), *and* it leaves a timer scheduled at the frozen wall-clock time that fails teardown. A live clock with future-dated data sidesteps both and keeps the fixture's real bytes/encoding.
 
 ### Push coordinator data to entities without scheduling timers
 
-In a setup test, after `async_setup` + `async_block_till_done`, the entities may still read defaults (the on-add refresh is debounced and won't fire within `block_till_done`). Call `coordinator.async_update_listeners()` to notify entities from the **already-loaded** `coordinator.data` synchronously — unlike `async_refresh()` it schedules no new timer, so teardown stays clean. (The real fix for production is the `async_added_to_hass` initial-state population above; the test then needs no nudge at all.)
+In a setup test, after `async_setup` + `async_block_till_done`, the entities may still read defaults (the on-add refresh is debounced and won't fire within `block_till_done`). Call `coordinator.async_update_listeners()` to notify entities from the **already-loaded** `coordinator.data` synchronously — unlike `async_refresh()` it schedules no new timer, so teardown stays clean. (The real fix for production is the `async_added_to_hass` initial-state population `reference/patterns.md` gives under *Entity platform files*; the test then needs no nudge at all.)
 
 ### Standalone helper scripts
 
-The shipped `pyproject.toml` already exempts `scripts/*` from `T201` (print) and `INP001` (implicit namespace package), and `tests/**` from `INP001`, `PTH` and `SLF001` — tests legitimately reach into private members, and HA core ignores that rule under its own `tests/` too. And `result["type"]`/`["errors"]`/`["reason"]` on a flow `ConfigFlowResult` are `reportTypedDictNotRequiredAccess` under pyright — use `result.get("type")` etc. in tests.
+The shipped `pyproject.toml` already exempts `scripts/*` and `tests/**` from the rules its per-file-ignores table names — tests legitimately reach into private members, and HA core ignores that rule under its own `tests/` too. And `result["type"]`/`["errors"]`/`["reason"]` on a flow `ConfigFlowResult` are `reportTypedDictNotRequiredAccess` under pyright — use `result.get("type")` etc. in tests.
 
 ---

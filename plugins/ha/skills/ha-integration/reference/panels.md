@@ -11,14 +11,18 @@ Traps specific to shipping a Lit/TS panel from an integration. For how the panel
 Five things are non-obvious here, and each fails silently.
 
 ### Register the static path and the panel in `async_setup`
-Once per process — per-entry registration races when two entries set up in parallel, so claim the `hass.data` flag before the `await`.
+Once per process, for the reason `reference/patterns.md` gives under *Register integration-global resources in `async_setup`, not `async_setup_entry`*; the snippet carries both traps the section below names.
 
   ```python
   from pathlib import Path
 
+  from homeassistant.components import frontend, panel_custom
   from homeassistant.components.http import StaticPathConfig
   from homeassistant.core import HomeAssistant
   from homeassistant.helpers.typing import ConfigType
+  from homeassistant.loader import async_get_integration
+
+  from .const import DOMAIN
 
 
   async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
@@ -26,7 +30,7 @@ Once per process — per-entry registration races when two entries set up in par
       await hass.http.async_register_static_paths(
           [
               StaticPathConfig(
-                  "/{domain}_panel/editor.js",
+                  f"/{DOMAIN}_panel/editor.js",
                   str(Path(__file__).parent / "panel" / "editor.js"),
                   False,
               )
@@ -38,27 +42,26 @@ Once per process — per-entry registration races when two entries set up in par
   async def _refresh_panel(hass: HomeAssistant) -> None:  # from async_setup_entry
       if _panel_wanted(hass) and not hass.data.get(f"{DOMAIN}_panel"):
           hass.data[f"{DOMAIN}_panel"] = True  # claim BEFORE the await: setups race
+          integration = await async_get_integration(hass, DOMAIN)
           await panel_custom.async_register_panel(
               hass,
-              frontend_url_path="{domain}",
-              webcomponent_name="{domain}-panel",
-              module_url="/{domain}_panel/editor.js",
+              frontend_url_path=DOMAIN,
+              webcomponent_name=f"{DOMAIN}-panel",
+              module_url=f"/{DOMAIN}_panel/editor.js?v={integration.version}",  # else cached
               sidebar_title="...",
               sidebar_icon="mdi:view-grid",
               require_admin=True,
           )
 
 
-  # last unload: frontend.async_remove_panel(hass, "{domain}")
+  # last unload: frontend.async_remove_panel(hass, DOMAIN)
   ```
 
 ### The bundle must be committed
 
 HACS ships the repo as-is and runs no build step on the user's machine, so the esbuild output has to live inside `custom_components/<domain>/panel/` to reach the release zip. The `frontend/` templates and the `panel-bundle.yml` caller come from ha-panel-ci's README. **This differs from a Lovelace *card* repo**, which attaches the built `.js` as a release asset — an integration cannot, because the asset isn't in the zip HACS installs.
 
-**What users install is always a fresh build.** ha-integration-ci's `release.yml` rebuilds the bundle before packing the zip, and its README says why; a stale committed bundle cannot reach anyone and only draws a warning.
-
-A stale committed bundle is still worth avoiding — it makes the repo lie about what its source produces, and the symptom is "the fix I made isn't there" when someone reads the committed file. Run `npm run build` and commit the result.
+What users install is always a fresh build — ha-integration-ci's README says why under `release.yml` — and a stale committed bundle draws a warning from the panel check, which ha-panel-ci's README says why it warns rather than fails. It is still worth avoiding: it makes the repo lie about what its source produces, and the symptom is "the fix I made isn't there" when someone reads the committed file. Run `npm run build` and commit the result.
 
 ### `home-assistant-frontend` must be pinned in `requirements.test.txt`
 
@@ -69,18 +72,7 @@ curl -s https://raw.githubusercontent.com/home-assistant/core/<ha-version>/homea
 Gate-enforced: a manifest depending on `frontend`/`panel_custom` with no pin fails the audit.
 
 ### Registration has two traps
-Cache-bust the module URL or a browser serves the previous panel after an update, and claim the registered flag **before** the `await` or two entries setting up in parallel both register:
-```python
-async def _register_panel(hass: HomeAssistant) -> None:
-    if not hass.data.get(REGISTERED):
-        hass.data[REGISTERED] = True  # claim BEFORE the await
-        integration = await async_get_integration(hass, DOMAIN)
-        await panel_custom.async_register_panel(
-            hass,
-            frontend_url_path=DOMAIN,
-            module_url=f"{PANEL_MODULE_URL}?v={integration.version}",  # else cached
-        )
-```
+Both are in the snippet above, marked by their comments: claim the registered flag **before** the `await`, or two entries setting up in parallel both register; and cache-bust the module URL with the integration version, or a browser serves the previous panel after an update.
 
 ### Testability is a design property, not a tooling one
 

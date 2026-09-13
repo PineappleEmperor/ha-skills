@@ -18,13 +18,13 @@ notes are built from. Labels, gates and the release model are `reference/version
 <type>[(<scope>)][!]: <description>
 ```
 
-Ten types a PR title may carry: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`,
-`test`, `build`, `ci`, `chore`. A commit may also be `revert:`; the draft opener retypes
-that as `chore:` in the title it builds. A scope is tolerated and never generated. **`!`
-is the only breaking marker.**
-The labeler, the gate and the release notes read the subject and nothing else, so a
-`BREAKING CHANGE:` footer declares a break that nothing acts on and the change ships as
-non-breaking; the hook rejects the footer for that reason.
+A PR title carries one of the types release-flow's `lint-pr.yml` accepts — the list is in
+that workflow, and its README says why `revert:` is not among them. A commit may still be `revert:`; the draft
+opener retypes it in the title it builds. A scope is tolerated and never generated. **`!`
+is the only breaking marker**: the labeler, the gate and the release notes read the subject
+and nothing else, so a `BREAKING CHANGE:` footer declares a break that nothing acts on, and
+the commit hook rejects it for that reason (release-flow's README, *Called versus copied*,
+lists what else it rejects).
 
 ### Keep messages short
 Tight imperative subject; **subject-only by default**. Add a body ONLY when the *why* is non-obvious, or for migration notes — never to restate what the diff already shows. Long bodies that narrate the change are noise. Subject in imperative mood, lowercase after the colon, no trailing period.
@@ -38,7 +38,7 @@ Don't append `Co-Authored-By: Claude`, tool/session links, or any "generated wit
 
 ### Put the narrative in the release, not the commit
 
-The human-readable "what changed and why it matters" belongs in the **release notes**, which is where users actually read it. Keep commits terse; write the detail once, in the release description. (GitHub's own `generate_release_notes` is not the mechanism here — the stack has exactly one body writer, and `skill_audit.py` fails a repo that enables a second.)
+The human-readable "what changed and why it matters" belongs in the **release notes**, which is where users actually read it. Keep commits terse; write the detail once, in the release description. (GitHub's own `generate_release_notes` is not the mechanism here — the stack has exactly one body writer, and the audit fails a repo that enables a second; ha-integration-ci's README.)
 
 ## The PR body is for reviewers, and nothing users read
 

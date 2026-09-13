@@ -28,12 +28,11 @@ prerelease (`2.0.0rc1`), which AwesomeVersion, hassfest and HACS all order below
 
 Never add a second labeler or patch a label by hand: the autolabeler and the label gate in
 release-flow's `pr-checks.yml` own the label, and its README says how. If the gate says the
-label is wrong, fix the title or the commits. What the ten title types map to is
-`reference/commits.md`.
+label is wrong, fix the title or the commits. What each title type maps to is the drafter
+config, as release-flow's README says under *Called versus copied*.
 
-A `pull_request_target` workflow loads from the base branch, so a PR that fixes one of them
-is still judged by the broken copy; that deadlock and its narrow exception are *Merge
-discipline* in `reference/discipline.md`.
+The `pull_request_target` deadlock and its narrow exception are *Merge discipline — never
+merge a red check* in `reference/discipline.md`.
 
 Dependabot's setup lives in `reference/dependabot.md`.
 
