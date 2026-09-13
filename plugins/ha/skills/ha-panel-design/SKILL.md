@@ -121,8 +121,8 @@ silently — is `ha-integration/reference/panels.md`. What follows is only
 what a design change must not break.
 
 - One Lit/TS source file builds to a committed bundle the integration serves; rebuild and
-  commit it in the same PR as the source change. What CI does about a stale one is in
-  `panels.md`, pointed at above. The built file is display-only — never hand-edit it.
+  commit it in the same PR as the source change. What CI does about a stale one is
+  ha-panel-ci's README. The built file is display-only — never hand-edit it.
 - Existing class names (section title, disclosure arrow, thumbnail) get retuned against the
   scale above, not nudged a pixel at a time.
 - Render logic stays in the Python backend; the panel stays presentation.

@@ -17,7 +17,7 @@ Violating the letter of this rule is violating the spirit of it. The gate stack 
 
 ### One exception, and it is narrow
 
-A `pull_request_target` workflow loads its definition from the **base** branch, so a PR fixing that workflow is always checked by the broken copy and can never go green on its own. That is the only sanctioned case. It covers **one job, on one PR, whose own definition the PR changes**. To use it you must first prove it with a diff (`git show origin/main:.github/workflows/pr-checks.yml` against the branch's), say in the PR that the failure is the bug being fixed, and verify on the next PR.
+A `pull_request_target` workflow runs the **base** branch's copy of itself, so a PR fixing that workflow is always checked by the broken copy and can never go green on its own. That is the only sanctioned case. It covers **one job, on one PR, whose own definition the PR changes**. To use it you must first prove it with a diff (`git show origin/main:.github/workflows/pr-checks.yml` against the branch's), say in the PR that the failure is the bug being fixed, and verify on the next PR.
 
 | Excuse | Reality |
 |---|---|
@@ -31,7 +31,7 @@ A `pull_request_target` workflow loads its definition from the **base** branch, 
 
 ### The exception gets misapplied
 
-Applied once legitimately, it was reused hours later on a PR it did not cover: the version gate had failed correctly because the PR carried no label, and the merge went through with the failure undiagnosed. Re-derive the diff every time before claiming it.
+Applied once legitimately, it was reused hours later on a PR it did not cover, and the merge went through with the failure undiagnosed — the account is `evals/scenarios/05-red-check-under-pressure.md`. Re-derive the diff every time before claiming it.
 
 ## Red flags — stop
 

@@ -37,7 +37,7 @@ snippet. Panel code is `reference/panels.md`; tests are `reference/testing.md`.
 | `` `DataUpdateCoordinator` `` | polling, backoff, shutdown |
 | Entity push subscriptions | subscribe/unsubscribe lifecycle |
 | `` `ConfigEntry` `` mutation | options updates without a reload loop |
-| Logging | Silver `log-when-unavailable`, HA conventions |
+| Logging | `log-when-unavailable`, HA conventions |
 | Custom services | registration, schema, `services.yaml` + `strings.json` |
 | Typing | no `from __future__ import annotations`, `TYPE_CHECKING`, typed `ConfigEntry` |
 
@@ -61,8 +61,8 @@ notifier is addressable; a one-shot "send this" with no addressable target is a 
 5. If the entity carries `_attr_translation_key`, add the matching block to `strings.json`
    and `translations/en.json` — `entity-translations` in `reference/quality-scale.md`.
 
-The audit — `skill_audit.py`, run from ha-integration-ci as `SKILL.md` says — fails a repo
-whose `PLATFORMS` names a module that does not exist, so the gate catches a half-wired
+The audit fails a repo whose `PLATFORMS` names a module that does not exist
+(ha-integration-ci's README, *What the audit checks now*), so the gate catches a half-wired
 platform without anyone having to remember this list.
 
 ### Notify platform (modern pattern — HA 2023.8+)
@@ -155,8 +155,8 @@ This creates `notify.{device_id}` (e.g. `notify.living_room_display`) with full 
 ### `config_flow.py`
 - `class MyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):` — `domain=` is a keyword arg, not a class attribute
 - Include `OptionsFlow` (not `OptionsFlowHandler` — that name is deprecated) when the integration has configurable options
-- Implement `async_step_reauth` for expired/invalid auth (Silver requirement)
-- Implement `async_step_reconfigure` for changing connection settings (Gold requirement)
+- Implement `async_step_reauth` for expired/invalid auth — `reauthentication-flow` in `reference/quality-scale.md`
+- Implement `async_step_reconfigure` for changing connection settings — `reconfiguration-flow` in `reference/quality-scale.md`
 - `vol.Schema` — one entry per line, exactly as `ruff format` leaves it (the shipped format check rejects hand-aligned columns):
   ```python
   DATA_SCHEMA = vol.Schema(
@@ -253,10 +253,10 @@ async def async_setup_entry(
 
 ### Logging
 
-Covers the Silver rule `log-when-unavailable` and HA's logging conventions.
+Covers the rule `log-when-unavailable` (`reference/quality-scale.md`) and HA's logging conventions.
 
 - **The coordinator already gives you `log-when-unavailable` for free.** When `_async_update_data` raises `UpdateFailed`, `DataUpdateCoordinator` logs the *first* failure at **ERROR**, subsequent consecutive failures at **DEBUG** (no spam), and logs **recovery** automatically. So **do not** wrap the fetch in your own try/log — manual error logging there is double-logging and *fails* the rule. Same for `ConfigEntryNotReady`/`ConfigEntryAuthFailed`: HA logs the reason once; don't also `_LOGGER.exception(...)` in `async_setup_entry` (delete broad `try/except: log; raise` wrappers — they spam and add nothing).
-- **Don't log-and-raise.** Raise the right exception and let HA log it: transient → `UpdateFailed`/`ConfigEntryNotReady`; auth → `ConfigEntryAuthFailed`; service/action errors → `HomeAssistantError`/`ServiceValidationError` (Silver `action-exceptions`). Logging *and* raising the same condition is noise.
+- **Don't log-and-raise.** Raise the right exception and let HA log it: transient → `UpdateFailed`/`ConfigEntryNotReady`; auth → `ConfigEntryAuthFailed`; service/action errors → `HomeAssistantError`/`ServiceValidationError` (the `action-exceptions` rule). Logging *and* raising the same condition is noise.
 - **Level discipline:** `INFO` is shown by default → use it almost never. **Setup / unload / teardown lifecycle = `DEBUG`, not `INFO`.** `WARNING` = recoverable thing the user should know; `ERROR` = unexpected, actionable bug (never for expected transient failures — those are exceptions HA handles). `DEBUG` = per-poll / developer detail.
 - **Lazy `%` args, never f-strings:** `_LOGGER.debug("added %s", key)` not `f"added {key}"` — ruff `G004` / pylint `logging-fstring-interpolation` enforce. f-string args evaluate even when the level is disabled.
 - **Never log secrets** — credentials, API keys, tokens, raw auth responses.
@@ -264,7 +264,7 @@ Covers the Silver rule `log-when-unavailable` and HA's logging conventions.
 - Remove a module-level `_LOGGER` that ends up unused (e.g. after deleting lifecycle spam) — ruff won't flag an unused module global, so it lingers silently.
 
 ### Custom services
-- Register in `async_setup` (not `async_setup_entry`) to avoid duplicate registration across multiple config entries
+- Register in `async_setup`, not `async_setup_entry` — *Register integration-global resources in `async_setup`, not `async_setup_entry`* below says why
 - Use `async_register_platform_entity_service()` for entity-targeted actions
 - Document in `services.yaml`; add icons in `icons.json`
 - A `selector: config_entry` renders a field labelled "Integration" (hardcoded in the HA frontend). To present a device dropdown, use `selector: device` with `integration: {domain}`, then resolve the HA device → config entry in the handler via `device_registry.async_get(hass).async_get(id)`.
@@ -280,7 +280,7 @@ The registration happens once per process; doing it per entry races when two ent
 
 ### Diagnostics platform
 
-A Gold requirement. Add `diagnostics.py`:
+The `diagnostics` rule in `reference/quality-scale.md`. Add `diagnostics.py`:
 
 ```python
 from homeassistant.components.diagnostics import async_redact_data
@@ -351,12 +351,13 @@ Split files by responsibility. Rule of thumb: if `__init__.py` exceeds ~100 line
 
 ### Typing
 
-Complete, correct typing is a **Platinum requirement** — not cosmetic. It catches contract violations between platforms, coordinator data shapes, and config entry contents at development time rather than runtime. Every file must pass `python -m pyright custom_components/` with zero errors before a PR is ready. Suppressions are failures, not fixes.
+Complete, correct typing is the `strict-typing` rule in `reference/quality-scale.md` — not cosmetic. It catches contract violations between platforms, coordinator data shapes, and config entry contents at development time rather than runtime. Every file must pass the pyright run *Lint & quality check* in `SKILL.md` names, with zero errors, before a PR is ready. Suppressions are failures, not fixes.
 
 ### Do not add `from __future__ import annotations`
 
-Python 3.14, HA's floor, defers annotation evaluation natively (PEP 649), so forward
-references and `TYPE_CHECKING`-only imports work without it. The import only switches Python
+HA's Python floor (the row in `reference/freshness.md`) is past the release where PEP 649
+made annotation evaluation deferred natively, so forward references and
+`TYPE_CHECKING`-only imports work without it. The import only switches Python
 back to the older stringified behaviour, which some runtime tooling handles worse. Core bans
 it, and the shipped `pyproject.toml` enforces the ban through ruff (`TID251`).
 
@@ -393,7 +394,7 @@ async def async_setup_entry(
 
 ### Avoid `# type: ignore`
 
-At Platinum quality a type suppression is a violation, not a shortcut. The common HA patterns that tempt one all have proper solutions:
+Under `strict-typing` a type suppression is a violation, not a shortcut. The common HA patterns that tempt one all have proper solutions:
 - `hass.data[DOMAIN]` is untyped → don't use it; use `entry.runtime_data` with typed `ConfigEntry` instead
 - `entry.runtime_data` assignment errors → solved by the typed `ConfigEntry` alias above
 - Third-party library missing stubs → contribute stubs or use `cast()` with a comment explaining why
