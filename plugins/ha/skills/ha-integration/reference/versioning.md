@@ -31,8 +31,8 @@ release-flow's `pr-checks.yml` own the label, and its README says how. If the ga
 label is wrong, fix the title or the commits. What each title type maps to is the drafter
 config, as release-flow's README says under *Called versus copied*.
 
-The `pull_request_target` deadlock and its narrow exception are *Merge discipline* in
-`reference/discipline.md`.
+The `pull_request_target` deadlock and its narrow exception are *Merge discipline — never
+merge a red check* in `reference/discipline.md`.
 
 Dependabot's setup lives in `reference/dependabot.md`.
 
