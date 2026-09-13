@@ -39,7 +39,7 @@ What to ask, what to generate, and the conventions the generated code follows. R
 - `services.yaml` (only if custom services are genuinely needed; prefer standard services first)
 - `icons.json` (action/service icons for UI display — `{"services": {"my_action": {"service": "mdi:icon"}}}`)
 - `quality_scale.yaml`
-- `diagnostics.py` (Gold requirement — see `reference/patterns.md`)
+- `diagnostics.py` (the `diagnostics` rule — see `reference/patterns.md`)
 - One file per selected platform (e.g. `button.py`, `sensor.py`)
 - Additional files as needed: `api.py`, `coordinator.py`, `models.py`, `entity.py`, `helpers.py` (see `reference/patterns.md`)
 
@@ -52,7 +52,7 @@ What to ask, what to generate, and the conventions the generated code follows. R
   `/compact`, since compaction can drop the skill's guidance from context.
   ```
   (`templates/hooks/` holds optional per-turn reminders for a user's own `~/.claude`; the canonical, shareable enforcement is this `CLAUDE.md` rule, which ships with the repo.)
-- `hacs.json` — `name` is the only strict requirement, but the canonical setup ships a **zip release**: `{"name": "My Integration", "content_in_root": false, "zip_release": true, "filename": "<domain>.zip"}` (add `"homeassistant": "<oldest HA you actually test>"`; `runtime_data` alone needs 2024.2+, so do not copy an older floor from an example). `zip_release` makes HACS download a release **asset** named `<filename>` instead of the tag source archive — so it **requires** ha-integration-ci's `release.yml`, through the scaffold's `release.yml` caller, to build and attach that asset on every published release. **Without that workflow, HACS install fails with `Could not download`** (the symptom of a `zip_release` repo whose release has no attached zip). Drop `zip_release`/`filename` only if you deliberately want HACS to pull the whole tagged repo archive instead.
+- `hacs.json` — `name` is the only strict requirement, but the canonical setup ships a **zip release**: `{"name": "My Integration", "content_in_root": false, "zip_release": true, "filename": "<domain>.zip"}` (add `"homeassistant": "<oldest HA you actually test>"`, never a floor copied from an example). `zip_release` makes HACS download a release **asset** named `<filename>` instead of the tag source archive — so it **requires** ha-integration-ci's `release.yml`, through the scaffold's `release.yml` caller, to build and attach that asset on every published release. **Without that workflow, HACS install fails with `Could not download`** (the symptom of a `zip_release` repo whose release has no attached zip). Drop `zip_release`/`filename` only if you deliberately want HACS to pull the whole tagged repo archive instead.
 
   > **The tag is the version, not the committed manifest** — how that works, and why no PR
   > carries a bump, is `reference/versioning.md`. What matters here: the `release.yml` caller must
@@ -60,9 +60,10 @@ What to ask, what to generate, and the conventions the generated code follows. R
   > README.
 - `pyproject.toml` — copy `templates/pyproject.toml` verbatim. Its `[tool.ruff]` tables are
   Home Assistant core's own rule set adapted for a custom integration (`google` docstrings,
-  Python 3.14, no `from __future__ import annotations`), and its pytest table carries the
-  `asyncio_mode = "auto"` without which the async tests never run and `skill_audit.py`
-  fails the repo once `tests/` exists. A copy that relaxes those tables is drift.
+  HA's Python floor, no `from __future__ import annotations`), and its pytest table carries
+  the `asyncio_mode = "auto"` without which the async tests never run — and which the audit
+  requires (ha-integration-ci's README). A copy that relaxes those
+  tables is drift.
 - `pyrightconfig.json` — the snippet under *MicroPython firmware files* in
   `reference/patterns.md`, with or without the `exclude`.
 - `requirements.test.txt` — **required**; copy `templates/requirements.test.txt`. Why the pin matters, and what breaks without it: `reference/testing.md`.
@@ -74,9 +75,8 @@ What to ask, what to generate, and the conventions the generated code follows. R
   > [!NOTE]
   > **AI assistance:** I'm a programmer; this project is built with AI (Claude, via Claude Code) for implementation, code review, and QA — under human direction, guided by my [`ha-integration`](https://github.com/PineappleEmperor/ha-skills) skill. Architecture and final review are mine; every change is human-reviewed before it merges.
   ```
-- `LICENSE` — the full text of the chosen licence (MIT unless told otherwise), so GitHub
-  resolves an SPDX identifier and the HACS `license` check passes.
-- `.gitignore` — copy `templates/.gitignore`. Covers `__pycache__/`, caches, venvs, HA dev artefacts (`.storage/`, `home-assistant.log*`, the `_v2.db`), and `device_map.md` (the `ha-triage` device map holds a home's IP/device layout and must never be committed). **Not optional:** without it a local `pytest` run plus a `git add -A` commits `.pyc` files, and a `.pyc` under `templates/` is then copied verbatim into every repo scaffolded from the skill. `skill_audit.py` fails on any tracked compiled artefact.
+- `LICENSE` — the full text of the chosen licence, per requirement 9 above.
+- `.gitignore` — copy `templates/.gitignore`. Covers `__pycache__/`, caches, venvs, HA dev artefacts (`.storage/`, `home-assistant.log*`, the `_v2.db`), and `device_map.md` (the `ha-triage` skill's device map, which that skill says must never be committed). **Not optional:** without it a local `pytest` run plus a `git add -A` commits `.pyc` files, and a `.pyc` under `templates/` is then copied verbatim into every repo scaffolded from the skill. `skill_audit.py` fails on any tracked compiled artefact.
 - `ruleset.json` — copy `templates/ruleset.json` to the repo root; what it requires and why is `reference/github-setup.md`.
 - `.githooks/commit-msg` — release-flow's, per `reference/commits.md`; `chmod +x`. **Enable once per clone: `git config core.hooksPath .githooks`** — an unenabled hook is a file, not a guard. Document that line in `CLAUDE.md`.
 - `custom_components/{domain}/brand/icon.png` — **256×256**, required by HACS brands validation
@@ -84,8 +84,8 @@ What to ask, what to generate, and the conventions the generated code follows. R
 - `custom_components/{domain}/brand/logo.png` — landscape, shortest side **128–256**
 - `custom_components/{domain}/brand/logo@2x.png` — landscape, shortest side **256–512**
 
-**The CI stack — callers and copies, never authored.** Missing files here are separate
-audit failures on the first run, so this is not an optional last step. The table in
+**The CI stack** is copied, never authored — the invariant in `SKILL.md`. Missing files here
+are separate audit failures on the first run, so this is not an optional last step. The table in
 `reference/github-actions.md` says which files the scaffold carries and where each is
 copied from; the caller blocks come from the CI repositories' READMEs with their
 `{{sha}} # {{tag}}` tokens resolved, and `panel-bundle.yml` with `frontend/` belongs only
@@ -95,9 +95,9 @@ to an integration that serves a panel, per `reference/panels.md`.
 
 Via the Brands Proxy API, from the HA version recorded in `reference/freshness.md`. The `home-assistant/brands` CDN `custom_integrations/` folder is **legacy** — do not rely on it for new work. Files are PNG, lossless; transparent background for wordmark/logo art (an LED-screen/device screenshot keeps its black background — that's the device, not a missing alpha).
 
-> ⚠️ **The HACS store/search dashboard still reads the legacy `data-v2.hacs.xyz` (which mirrors the old brands CDN), NOT the inline `brand/` folder.** So an integration that ships *only* inline brand images — i.e. one that never got a `home-assistant/brands` entry, and now **can't** (brands auto-closes `custom_integrations/*` PRs) — renders **blank in the HACS dashboard** even though HA's own UI shows the icon correctly via the proxy. Integrations with a *legacy* brands entry (added before the Feb-2026 cutoff) keep showing in HACS. This is a HACS-side gap, not a repo defect — nothing to fix in the integration; it resolves when HACS points its dashboard at the proxy (tracked in hacs/integration #5171 and #5223). Don't try to "fix" it by PR-ing `home-assistant/brands` (auto-closed).
+> ⚠️ **The HACS store/search dashboard still reads the legacy `data-v2.hacs.xyz` (which mirrors the old brands CDN), NOT the inline `brand/` folder.** So an integration that ships *only* inline brand images — i.e. one that never got a `home-assistant/brands` entry, and now **can't** (brands auto-closes `custom_integrations/*` PRs) — renders **blank in the HACS dashboard** even though HA's own UI shows the icon correctly via the proxy. Integrations with a *legacy* brands entry (added before the Feb-2026 cutoff) keep showing in HACS. This is a HACS-side gap, not a repo defect — nothing to fix in the integration; it resolves when HACS points its dashboard at the proxy (tracked per its row in `reference/freshness.md`). Don't try to "fix" it by PR-ing `home-assistant/brands` (auto-closed).
 >
-> ⚠️ **Ship the `@2x` variants or the icon flickers/fails on HiDPI.** The most common "icon shows only sometimes" bug is a present `icon.png` with **no `icon@2x.png`**: a Retina/zoomed client requests `@2x`, 404s, and falls back inconsistently. `icon@2x.png` (512²) and `logo@2x.png` are not optional. Exact, square sizes matter — an off-spec `icon.png` (e.g. 384²) also misbehaves.
+> ⚠️ **Ship the `@2x` variants or the icon flickers/fails on HiDPI.** The most common "icon shows only sometimes" bug is a present `icon.png` with **no `icon@2x.png`**: a Retina/zoomed client requests `@2x`, 404s, and falls back inconsistently. The `@2x` files in the list above are not optional, and their sizes are exact — an off-spec `icon.png` also misbehaves.
 
 ### Sources
 
@@ -119,7 +119,7 @@ A placeholder may start as an SVG rasterised with `cairosvg` (ImageMagick's MSVG
 | `information` | README.md exists | File in repo |
 | `issues` | Issues tab enabled | GitHub repo settings → Features |
 | `topics` | Repo has at least one topic | GitHub repo settings → About |
-| `license` | An SPDX-identifiable `LICENSE` in the repo | File in repo |
+| `license` | A `LICENSE` per requirement 9 above | File in repo |
 
 The `description`, `issues`, `topics` and `license` checks fail silently until the first `hacs-validate` run — they're GitHub settings, not files.
 
@@ -162,7 +162,7 @@ scaffold must set up:
 - Module docstring on every file. **This one may be multi-line** — a file-level explanation of a load-bearing constraint belongs here, not demoted to a comment.
 - Short **single-line** docstrings on all public functions and classes. `skill_audit.py` fails a *multi-line* one **inside `custom_components/` only** — a repo's own `scripts/` and `tests/` are not checked, and module docstrings are exempt. It does not check that a docstring is present at all; that part is on you.
 - No inline comments unless the WHY is genuinely non-obvious
-- `ruff check .` and `ruff format --check .` clean under the shipped `pyproject.toml`; pyright standard mode
+- Clean under the *Lint & quality check* commands in `SKILL.md`; pyright standard mode
 
 ---
 

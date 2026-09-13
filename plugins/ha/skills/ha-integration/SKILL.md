@@ -20,8 +20,6 @@ Help create, modify, and lint Home Assistant custom integrations targeting **pla
 
 Use it when the task touches any of: a `custom_components/<domain>/` package, a `manifest.json` with a `domain`, a config/options/reauth/reconfigure flow, a `DataUpdateCoordinator` or entity platform (`sensor.py`, `notify.py`, …), `services.yaml`/`quality_scale.yaml`, the integration's GitHub CI (the `pr-checks`/release-drafter/hassfest/HACS stack). Symptoms that should pull you here: "add a sensor/platform", "config flow won't validate", "hassfest/HACS check failing", "what `state_class` for this `device_class`", "Dependabot keeps bumping actions", "this PR's release version looks wrong".
 
-**When NOT to use:** Home Assistant *panel / display UI* work (Lit/TS web component, CSS, layout) — that's the `ha-panel-design` skill. Generic Python/CI work in a repo that isn't an HA integration.
-
 ---
 
 ## Step 1 — Detect mode
@@ -33,12 +31,9 @@ Check the working directory, pick a mode, then **read that mode's reference file
 | **Scaffold** | no `custom_components/`, or the user wants a new integration | `reference/scaffold.md`, then `reference/patterns.md` |
 | **Modify** | `custom_components/` exists and something is being added or changed | `reference/patterns.md`. Adding a platform also touches `strings.json`/`translations/` and the tier claim — see `reference/quality-scale.md` |
 | **Test** | writing or fixing tests for an integration | `reference/testing.md` — the root `conftest.py` and `asyncio_mode` prerequisites decide whether the suite runs at all |
-| **Lint** | hygiene pass over existing code | this file, *Lint* below |
-| **Audit** | verify the skill was actually followed | `skill_audit.py --list` from a checkout of ha-integration-ci, then `reference/audit.md` |
+| **Lint** | hygiene pass over existing code | this file, *Lint & quality check* below |
+| **Audit** | verify the skill was actually followed | the audit — ha-integration-ci's `skill_audit.py`, run by the `quality-audit` caller on every PR, and by hand from a checkout of that repository with `--root <repo>`; `--list` prints every check — then `reference/audit.md` |
 | **Release / repo setup** | first release, tokens, required checks | `reference/github-setup.md` — token, ruleset, dependency graph, required contexts. Then `reference/versioning.md` for how the version is decided, `reference/commits.md` for commit subjects and titles, `reference/github-actions.md` for what the scaffold carries |
-
-The audit script lives in ha-integration-ci; a consumer runs it through the `quality-audit`
-caller, and by hand from a checkout of that repository with `--root <repo>`.
 
 Reading a Home Assistant log is a different skill — `ha-triage`. How a panel **looks**
 (type scale, colour, spacing, touch targets) is `ha-panel-design`. How a panel is **built and
@@ -109,7 +104,7 @@ Apply the same patterns and code style as a scaffold.
 1. Run `ruff check .` and `ruff format --check .` under the shipped `pyproject.toml` — fix all actionable issues; suppress intentional ones with `# noqa` and a reason
 2. Run `python -m pyright custom_components/` — fix all actionable issues
 3. Check `quality_scale.yaml` exists; if not, offer to create it
-4. Check `manifest.json` — correct `documentation` URL pointing to the repo, keys in order (`domain`, `name`, then alphabetical)
+4. Check `manifest.json` — correct `documentation` URL pointing to the repo, keys in the order `reference/scaffold.md` gives
 5. Report: files changed · issues fixed · issues intentionally suppressed (with rationale) · remaining manual work
 
 ---
@@ -122,11 +117,10 @@ workflows present and correct, documented patterns applied, antipatterns gone,
 
 Two layers:
 
-1. **Mechanical gate** — ha-integration-ci's `skill_audit.py`, run by the `quality-audit`
-   caller on every PR; `--list` prints every check.
+1. **Mechanical gate** — the audit, as the mode table above says.
 2. **Judgement checklist** — `reference/audit.md`. The items a grep can't decide.
 
-⚠️ **Green CI is not evidence the copied files match.** Why the gate cannot tell you that,
-and how to check it yourself, is the first item of the judgement checklist.
+⚠️ A green gate does not prove the copied files match; the first item of the judgement
+checklist says why, and what to do about it.
 
 ---
