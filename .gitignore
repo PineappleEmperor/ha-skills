@@ -18,3 +18,6 @@ node_modules/
 !/.claude/
 /.claude/*
 !/.claude/settings.json
+
+# Repo-local agent definitions are conventions of this repo, like the hook layer.
+!/.claude/agents/

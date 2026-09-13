@@ -82,7 +82,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'if [ -f .claude-plugin/marketplace.json ]; then echo \"[marketplace-repo] This is the skills marketplace, not an integration: no version is declared in plugin.json or marketplace.json (Claude Code resolves it from the commit SHA), so nothing is ever bumped. templates/ is what ships to scaffolded repos — skill_audit.py and its tests belong there; skill_meta_audit.py is repo-local and must not be shipped. Anything naming a workflow or file that only exists here stays out of plugins/.\"; fi'"
+            "command": "bash -c 'if [ -f .claude-plugin/marketplace.json ]; then echo \"[marketplace-repo] This is the skills marketplace, not an integration: no version is declared in plugin.json or marketplace.json (Claude Code resolves it from the commit SHA), so nothing is ever bumped. templates/ is what ships to scaffolded repos; skill_meta_audit.py is repo-local and must not be shipped. Anything naming a workflow or file that only exists here stays out of plugins/; the one exception is stated at invariant 7 of docs/review.md.\"; fi'"
           },
           {
             "type": "command",
@@ -90,7 +90,7 @@
           },
           {
             "type": "command",
-            "command": "bash -c 'echo \"[review-before-push] Before handing over any push, run a context-free reviewer subagent over the diff since the last pushed commit with a fixed brief: the backlog rows as the claims to verify, the twins/YAML-equality/subject/attribution invariants, discrepancies only with file:line. Self-review found none of the seven the reviewer found on 2026-09-04. Its findings become backlog rows before they become fixes. Prose has one source: state a fact once and point to it elsewhere; a restatement found is deleted, not synced.\"'"
+            "command": "bash -c 'echo \"[review-before-push] Before handing over any push, run the reviewer agent (.claude/agents/reviewer.md); its brief and the protocol that follows are docs/review.md.\"'"
           },
           {
             "type": "command",
