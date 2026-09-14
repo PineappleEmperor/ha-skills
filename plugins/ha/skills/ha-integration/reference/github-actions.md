@@ -32,8 +32,8 @@ of the repository that owns it. GitHub-side settings (token, ruleset, required c
 | `scripts/bootstrap_repo.sh` | this skill's `templates/scripts/`; when to run it is `reference/github-setup.md` |
 
 Every caller block ends in `@{{sha}} # {{tag}}`. Resolve both with the two commands printed
-under the block before writing the file; a `{{` left in a workflow fails the audit. From then
-on Dependabot moves the pin, as the version model in ha-integration-ci's README says.
+under the block before writing the file; from then on the pin moves as *The version model*
+in ha-integration-ci's README says.
 
 A README block is to a caller what `templates/` is to a copy: the source. If it cannot be
 read — no network, no `gh` — stop and say so, as *Where `templates/` lives* says for the
@@ -95,17 +95,16 @@ carry nothing of ours to version:
   scale for a custom integration is `reference/quality-scale.md`.
 - **`issue_stale.yml`** labels issues and PRs untouched for 60 days and never closes them.
 
-**A repo that needs a second PR opener declares it.** The audit fails any workflow containing
-`gh pr create` other than the release-flow opener; the one way through is a comment line
-`# skill-audit: sanctioned-opener` in that workflow, carrying the reason. A `scripts/*.py`
-or `.sh` that no workflow runs is a local tool and says so with `# skill-audit: local-tool`.
+**A repo that needs a second PR opener declares it**, with the marker line *What the audit
+checks now* in ha-integration-ci's README names.
 
 ## Superseded — do not reinstate
 
-`frontend_build.yml` is replaced by ha-panel-ci's `panel-bundle.yml` and `create-dev-pr.yml`
-by release-flow's `auto-draft-pr.yml`; the underscore-named copies of every reusable
-workflow (`python_validate.yml`, `release_drafter.yml` and the rest) are bodies a caller
-replaces. What the audit does with each is *What the audit checks now* in
-ha-integration-ci's README. `pr-labeler.yml`, `pr-title-check.yml`,
+`frontend_build.yml` is replaced by ha-panel-ci's `panel-bundle.yml`, `create-dev-pr.yml` by
+release-flow's `auto-draft-pr.yml`, and the underscore-named copies of every reusable
+workflow (`python_validate.yml`, `release_drafter.yml` and the rest) by the hyphenated
+caller. Leaving one in place leaves a body in a repository that should carry none, and the
+audit reads every file under `.github/workflows/`: what it does with a body is *What the
+audit checks now* in ha-integration-ci's README. `pr-labeler.yml`, `pr-title-check.yml`,
 `pr-commit-summary.yml` and `check-manifest-version.yml` are older still and have no
 successor of their own name.
