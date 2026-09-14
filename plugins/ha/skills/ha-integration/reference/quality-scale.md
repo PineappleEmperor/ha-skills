@@ -37,7 +37,7 @@ Write it before the code, including when you are modifying an existing integrati
 
 ### Gate-enforced, on the claim rather than on the tests
 
-The audit judges the claim, not the tests: it stays silent when nothing is marked `done` — a fresh scaffold claims nothing, so it has nothing to prove — and fails a `done` with nothing behind it, as that README says. One case it has that the README does not yet state: `test-coverage` marked `done` while a `frontend/` panel has no tests of its own. `exempt` with a comment is always the honest alternative; `todo` is fine indefinitely above any claimed tier.
+The audit judges the claim, not the tests — a fresh scaffold claims nothing, so it has nothing to prove; what a `done` must have behind it is *What the audit checks now* in ha-integration-ci's README. `exempt` with a comment is always the honest alternative; `todo` is fine indefinitely above any claimed tier.
 
 ### Prove the rule, don't just claim it — hassfest checks structure, not behaviour
 

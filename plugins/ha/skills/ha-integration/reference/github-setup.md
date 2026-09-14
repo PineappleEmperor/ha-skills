@@ -37,8 +37,7 @@ A fine-grained PAT:
 6. Repo → **Settings** → **Secrets and variables** → **Actions** → **Secrets** tab →
    **New repository secret** → Name `RELEASE_TOKEN`, paste into **Secret** → **Add secret**
 
-A GitHub App cannot stand in for it yet: a caller is one job that only forwards secrets, so
-the token would have to be minted inside release-flow's opener, which it does not do.
+A GitHub App cannot stand in for it; *The one secret* in release-flow's README says why.
 
 ### What the grant allows
 
@@ -65,11 +64,8 @@ gh api -X POST repos/<owner>/<repo>/rulesets --input ruleset.json
 ```
 
 It requires the eight contexts the scaffold's workflows produce, and keeps deletions and
-force-pushes blocked. `skill_audit.py` fails a repo whose default branch has no required
-checks — **but only where it can ask GitHub.** With `gh` missing, unauthenticated, or holding
-a token without `Administration: read`, that check and the `RELEASE_TOKEN` one downgrade to a
-warning reading `NOT CHECKED, not passed`, and the audit still reports green overall. A clean
-run in a sandbox or a token-limited CI is not evidence the ruleset exists; read the warnings.
+force-pushes blocked. Whether the audit sees the ruleset, and what it reports when it
+cannot ask GitHub, is *What the audit checks now* in ha-integration-ci's README.
 
 **`scripts/bootstrap_repo.sh` does the GitHub-side settings in one run**, from the repo root
 after the first push: description, topics, issues, the dependency graph, `core.hooksPath`, the ruleset (only
@@ -98,9 +94,9 @@ never reports.
 
 Two ways to get this wrong, both of which block every PR permanently:
 
-- **A context the repo does not produce.** Each of the eight comes from a canonical
-  workflow, and the audit fails a repo missing any of them — so in a conforming repo
-  the honest fix is to add the missing workflow, not to drop the context. Dropping is for a
+- **A context the repo does not produce.** Each of the eight comes from a workflow the
+  audit requires (*What the audit checks now* in ha-integration-ci's README) — so in a
+  conforming repo the honest fix is to add the missing workflow, not to drop the context. Dropping is for a
   repo that has deliberately left the canonical set (no `quality-audit.yml`, no
   `dependency-review.yml`); drop the matching context or PRs wait forever for a check that
   never runs.
@@ -140,9 +136,9 @@ limit.
 ## Supply chain
 
 `dependency-review.yml` and `issue_stale.yml` are two of the four plain workflows described
-in `reference/github-actions.md`. Every `uses:` in the scaffold, callers included, is pinned by
-commit SHA with the version in a trailing comment, for the reason the version model in
-ha-integration-ci's README gives — except the two mutable refs `reference/freshness.md`
-exempts and says why. The audit fails a bare tag or an uncommented SHA (ha-integration-ci's
-README, *What the audit checks now*). How Dependabot maintains those pins is
-`reference/dependabot.md`.
+in `reference/github-actions.md`. How a consumer pins a release of a CI repository, and why,
+is *The version model* in ha-integration-ci's README; what the audit requires of every
+`uses:` line in the scaffold, callers and steps alike, and the two refs it exempts, is
+*What the audit checks now* there; what that mutability costs, and how it is capped, is
+`reference/freshness.md`. How Dependabot maintains the pins
+is `reference/dependabot.md`.

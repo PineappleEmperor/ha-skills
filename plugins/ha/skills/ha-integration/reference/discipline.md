@@ -17,7 +17,7 @@ Violating the letter of this rule is violating the spirit of it. The gate stack 
 
 ### One exception, and it is narrow
 
-A `pull_request_target` workflow runs the **base** branch's copy of itself, so a PR fixing that workflow is always checked by the broken copy and can never go green on its own. That is the only sanctioned case. It covers **one job, on one PR, whose own definition the PR changes**. To use it you must first prove it with a diff (`git show origin/main:.github/workflows/pr-checks.yml` against the branch's), say in the PR that the failure is the bug being fixed, and verify on the next PR.
+A PR fixing a `pull_request_target` caller can never go green on its own; why is `pr-checks.yml` under *The five workflows* in release-flow's README. That is the only sanctioned case. It covers **one job, on one PR, whose own definition the PR changes**. To use it you must first prove it with a diff (`git show origin/main:.github/workflows/pr-checks.yml` against the branch's), say in the PR that the failure is the bug being fixed, and verify on the next PR.
 
 | Excuse | Reality |
 |---|---|
