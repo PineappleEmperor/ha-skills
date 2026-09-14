@@ -52,18 +52,17 @@ What to ask, what to generate, and the conventions the generated code follows. R
   `/compact`, since compaction can drop the skill's guidance from context.
   ```
   (`templates/hooks/` holds optional per-turn reminders for a user's own `~/.claude`; the canonical, shareable enforcement is this `CLAUDE.md` rule, which ships with the repo.)
-- `hacs.json` — `name` is the only strict requirement, but the canonical setup ships a **zip release**: `{"name": "My Integration", "content_in_root": false, "zip_release": true, "filename": "<domain>.zip"}` (add `"homeassistant": "<oldest HA you actually test>"`, never a floor copied from an example). `zip_release` makes HACS download a release **asset** named `<filename>` instead of the tag source archive — so it **requires** ha-integration-ci's `release.yml`, through the scaffold's `release.yml` caller, to build and attach that asset on every published release. **Without that workflow, HACS install fails with `Could not download`** (the symptom of a `zip_release` repo whose release has no attached zip). Drop `zip_release`/`filename` only if you deliberately want HACS to pull the whole tagged repo archive instead.
+- `hacs.json` — `name` is the only strict requirement, but the canonical setup ships a **zip release**: `{"name": "My Integration", "content_in_root": false, "zip_release": true, "filename": "<domain>.zip"}` (add `"homeassistant": "<oldest HA you actually test>"`, never a floor copied from an example). `zip_release` makes HACS download a release **asset** instead of the tag source archive — so it **requires** the scaffold's `release.yml` caller, and `filename` must be the name that workflow attaches, per *The three workflows* in ha-integration-ci's README. **Without that workflow, HACS install fails with `Could not download`** (the symptom of a `zip_release` repo whose release has no attached zip). Drop `zip_release`/`filename` only if you deliberately want HACS to pull the whole tagged repo archive instead.
 
   > **The tag is the version, not the committed manifest** — how that works, and why no PR
   > carries a bump, is `reference/versioning.md`. What matters here: the `release.yml` caller must
-  > point at ha-integration-ci's workflow; why that is what patches the manifest is its
-  > README.
+  > point at ha-integration-ci's workflow; why that is what patches the manifest is
+  > `release.yml` under *Implementation notes* in its README.
 - `pyproject.toml` — copy `templates/pyproject.toml` verbatim. Its `[tool.ruff]` tables are
   Home Assistant core's own rule set adapted for a custom integration (`google` docstrings,
   HA's Python floor, no `from __future__ import annotations`), and its pytest table carries
-  the `asyncio_mode = "auto"` without which the async tests never run — and which the audit
-  requires (ha-integration-ci's README). A copy that relaxes those
-  tables is drift.
+  the `asyncio_mode = "auto"` without which the async tests never run. A copy that relaxes
+  those tables is drift.
 - `pyrightconfig.json` — the snippet under *MicroPython firmware files* in
   `reference/patterns.md`, with or without the `exclude`.
 - `requirements.test.txt` — **required**; copy `templates/requirements.test.txt`. Why the pin matters, and what breaks without it: `reference/testing.md`.
@@ -76,7 +75,7 @@ What to ask, what to generate, and the conventions the generated code follows. R
   > **AI assistance:** I'm a programmer; this project is built with AI (Claude, via Claude Code) for implementation, code review, and QA — under human direction, guided by my [`ha-integration`](https://github.com/PineappleEmperor/ha-skills) skill. Architecture and final review are mine; every change is human-reviewed before it merges.
   ```
 - `LICENSE` — the full text of the chosen licence, per requirement 9 above.
-- `.gitignore` — copy `templates/.gitignore`. Covers `__pycache__/`, caches, venvs, HA dev artefacts (`.storage/`, `home-assistant.log*`, the `_v2.db`), and `device_map.md` (the `ha-triage` skill's device map, which that skill says must never be committed). **Not optional:** without it a local `pytest` run plus a `git add -A` commits `.pyc` files, and a `.pyc` under `templates/` is then copied verbatim into every repo scaffolded from the skill. `skill_audit.py` fails on any tracked compiled artefact.
+- `.gitignore` — copy `templates/.gitignore`. Covers `__pycache__/`, caches, venvs, HA dev artefacts (`.storage/`, `home-assistant.log*`, the `_v2.db`), and `device_map.md` (the `ha-triage` skill's device map, which that skill says must never be committed). **Not optional:** without it a local `pytest` run plus a `git add -A` tracks `.pyc` files; what that costs is *What the audit checks now* in ha-integration-ci's README.
 - `ruleset.json` — copy `templates/ruleset.json` to the repo root; what it requires and why is `reference/github-setup.md`.
 - `.githooks/commit-msg` — release-flow's, per `reference/commits.md`; `chmod +x`. **Enable once per clone: `git config core.hooksPath .githooks`** — an unenabled hook is a file, not a guard. Document that line in `CLAUDE.md`.
 - `custom_components/{domain}/brand/icon.png` — **256×256**, required by HACS brands validation
@@ -160,7 +159,7 @@ Typing, file structure and the code patterns themselves are `reference/patterns.
 scaffold must set up:
 
 - Module docstring on every file. **This one may be multi-line** — a file-level explanation of a load-bearing constraint belongs here, not demoted to a comment.
-- Short **single-line** docstrings on all public functions and classes. `skill_audit.py` fails a *multi-line* one **inside `custom_components/` only** — a repo's own `scripts/` and `tests/` are not checked, and module docstrings are exempt. It does not check that a docstring is present at all; that part is on you.
+- Short **single-line** docstrings on all public functions and classes. What the audit checks about docstrings, and what it leaves to you, is *What the audit checks now* in ha-integration-ci's README.
 - No inline comments unless the WHY is genuinely non-obvious
 - Clean under the *Lint & quality check* commands in `SKILL.md`; pyright standard mode
 
