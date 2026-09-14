@@ -100,10 +100,11 @@ owns what, and what the scaffold carries beyond the callers from
 The skills are treated as code: this repo is a consumer of release-flow like any
 integration, and its own tooling has unit tests that run on every PR.
 
-Changes to the CI repositories are proven on
-[ha-ci-testing](https://github.com/PineappleEmperor/ha-ci-testing), a throwaway integration
-that runs the whole cycle — branch, draft PR, merge, release candidate, final — because the
-parts that break only execute when something publishes.
+[ha-ci-testing](https://github.com/PineappleEmperor/ha-ci-testing) is a throwaway
+integration that runs the whole cycle — branch, draft PR, merge, release candidate, final —
+because the parts that break only execute when something publishes. What a CI repository
+must prove there before it tags, and the check that enforces it, are `testbed-coverage.yml`
+under *The five workflows* in release-flow's README.
 
 [`evals/`](plugins/ha/skills/ha-integration/evals) holds six pressure scenarios, each
 stating its pass and fail criteria. The intent is to run every one twice, once with the

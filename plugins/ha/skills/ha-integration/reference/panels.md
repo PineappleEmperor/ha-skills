@@ -61,7 +61,7 @@ Once per process, for the reason `reference/patterns.md` gives under *Register i
 
 HACS ships the repo as-is and runs no build step on the user's machine, so the esbuild output has to live inside `custom_components/<domain>/panel/` to reach the release zip. The `frontend/` templates and the `panel-bundle.yml` caller come from ha-panel-ci's README. **This differs from a Lovelace *card* repo**, which attaches the built `.js` as a release asset — an integration cannot, because the asset isn't in the zip HACS installs.
 
-What users install is always a fresh build — ha-integration-ci's README says why under `release.yml` — and a stale committed bundle draws a warning from the panel check, which ha-panel-ci's README says why it warns rather than fails. It is still worth avoiding: it makes the repo lie about what its source produces, and the symptom is "the fix I made isn't there" when someone reads the committed file. Run `npm run build` and commit the result.
+What users install is always a fresh build — `release.yml` under *Implementation notes* in ha-integration-ci's README says why — and a stale committed bundle draws a warning from the panel check, which ha-panel-ci's README says why it warns rather than fails. It is still worth avoiding: it makes the repo lie about what its source produces, and the symptom is "the fix I made isn't there" when someone reads the committed file. Run `npm run build` and commit the result.
 
 ### `home-assistant-frontend` must be pinned in `requirements.test.txt`
 
@@ -69,7 +69,7 @@ A panel declares `frontend` (usually `panel_custom` too) in manifest `dependenci
 ```bash
 curl -s https://raw.githubusercontent.com/home-assistant/core/<ha-version>/homeassistant/components/frontend/manifest.json
 ```
-Gate-enforced: a manifest depending on `frontend`/`panel_custom` with no pin fails the audit.
+Gate-enforced, per *What the audit checks now* in ha-integration-ci's README.
 
 ### Registration has two traps
 Both are in the snippet above, marked by their comments: claim the registered flag **before** the `await`, or two entries setting up in parallel both register; and cache-bust the module URL with the integration version, or a browser serves the previous panel after an update.
@@ -94,8 +94,9 @@ The cases worth testing are the ones where the vendor's data is not what you wou
 a placeholder standing in for an unannounced name, a missing price, a date that has already
 passed, a sort comparator, a unit formatter. ha-panel-ci's `frontend/package.json` ships
 `vitest` and a `test` script for this, and its README says where the tests go. The runner
-never reaches users: the release zip holds `custom_components/<domain>/` only, so
-`frontend/` is CI-time weight and nothing more.
+never reaches users: what the release zip holds is *The three workflows* in
+ha-integration-ci's README, and `frontend/` is not in it, so it is CI-time weight and
+nothing more.
 
 The same reasoning applies to anything the panel sends. A service call built in TypeScript
 against a schema declared in Python has no shared definition and no compiler to link them —
