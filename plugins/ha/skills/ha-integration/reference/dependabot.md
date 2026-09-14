@@ -9,7 +9,7 @@ Set up alongside `reference/github-setup.md`.
 
 ### Ecosystems worth enabling
 
-`.github/dependabot.yml` with `commit-message.prefix: "chore"` on each ecosystem, so titles read `chore: bump …` and the autolabeler files them (the mapping is release-flow's drafter config). Know what it actually buys you:
+`.github/dependabot.yml` with `commit-message.prefix: "chore"` on each ecosystem, so titles read `chore: bump …` and the autolabeler files them (the mapping is release-flow's drafter config), and `cooldown: {exclude: ["PineappleEmperor/*"]}` on the `github-actions` ecosystem alone; what that exempts, what keeps the hold, and why it is spelled that way, is the cooldown bullet of *The version model* in ha-integration-ci's README. Know what it actually buys you:
 
 - **`github-actions`** — the real value. Bumps every `uses:` pin under `.github/workflows/`: the action pins in the four plain workflows and, more importantly, the callers' pins, which is how a release of a CI repository reaches you (the version model in ha-integration-ci's README).
 - **`pip`** — points at `requirements.test.txt` / `pyproject`. Real value now that the template ships `requirements.test.txt` **pinned** (`pytest-homeassistant-custom-component==…`); it stays near-useless in a repo that leaves test deps unpinned, since no version specifier means nothing to bump. ⚠️ A bump here moves the **HA version the suite tests against** (`reference/testing.md` says why), so review these PRs rather than auto-merging: a bump can drag the Python floor with it, and your ruff `target-version` and `pyrightconfig.json` must then match the floor the CI declares — the audit compares them (ha-integration-ci's README) — and a floor move is a CI release first.
