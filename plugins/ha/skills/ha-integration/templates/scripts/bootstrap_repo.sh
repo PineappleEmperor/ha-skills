@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-# skill-audit: local-tool
-#
 # One-time repo setup for a scaffolded integration: the GitHub-side settings no file in
 # the repo can carry. What each one is for, and what fails without it, is the
 # ha-integration skill's reference/github-setup.md.
