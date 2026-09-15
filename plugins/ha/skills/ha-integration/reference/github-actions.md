@@ -86,8 +86,9 @@ The four workflows the scaffold copies whole are settings over a third-party act
 carry nothing of ours to version:
 
 - **`dependency-review.yml`** fails a PR that adds a dependency carrying a high-severity
-  advisory; lower severities are deliberately not gated. It needs the dependency graph on,
-  per `reference/github-setup.md`.
+  advisory; lower severities are deliberately not gated, since Dependabot raises those on
+  its own schedule and failing an unrelated PR for a pre-existing low advisory is noise, not
+  a gate. It needs the dependency graph on, per `reference/github-setup.md`.
 - **`hacs-validate.yml`** runs HACS's nine checks with no `ignore:` input, since ignoring any
   check disqualifies the repo from the default store.
 - **`hassfest-validate.yml`** runs core's hassfest plugins over the integration — manifest,
