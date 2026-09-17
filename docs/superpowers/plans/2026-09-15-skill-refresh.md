@@ -13,7 +13,11 @@ run by this repository's own `ci.yml`, that compares the captured release with P
 `patch_file`), Python 3.14, pytest, `urllib`, ha-skills `ci.yml`.
 
 **Spec:** `docs/superpowers/specs/2026-09-15-five-repo-sweep-design.md`, sections *Step 0*
-and *Monthly release mechanism*. Findings: `.tmp/plan/step0-findings.md`.
+and *Monthly release mechanism*. Findings: `.tmp/plan/step0-findings.md` for the 2026.6–2026.9
+changes, `.tmp/plan/decisions.md` for the maintainer's decisions (Tasks 7 and 8 below come from
+its items 22–30 and 33; item 32 was withdrawn on the evidence, and Task 7 records why; item 31, the brand-dimension check, is a `ha-integration-ci`
+change and belongs to the spec's *What must change in the CI repositories first*, not
+here).
 
 ## Global Constraints
 
@@ -119,7 +123,7 @@ it belongs; this table is the index and the deadline.
 | 2026.7 | unit enums | `CONCENTRATION_*` → `UnitOfDensity`, `UnitOfRatio`; `PERCENTAGE` deprecated as a unit of measurement | 2027.8, per `DeprecatedConstantEnum` in `homeassistant/const.py` (the post gives none) | 2026-06-30 |
 | 2026.7 | `async_initialize_triggers(home_assistant_start=)` | drop the argument; `hass.async_add_startup_job` for startup work | 2027.8 | 2026-06-30 |
 | 2026.8 | one config entry per device | see *Entity platform files* and *Custom services* above | 2027.8 / 2027.9 | 2026-07-21, 2026-08-24 |
-| 2026.8 | custom panels padded for the safe area | `handle_safe_area=True` to draw the edges yourself; see `reference/panels.md` | — | 2026-07-31 |
+| 2026.8 | custom panels padded for the safe area | `config={"handle_safe_area": True}` to draw the edges yourself; see `reference/panels.md` | — | 2026-07-31 |
 | 2026.8 | media sources can be searched | optional `async_search_media` | — | 2026-07-03 |
 | 2026.8 | button event entities | custom event strings → the `ButtonEventType` members; optional, nothing deprecated | — | 2026-07-22 |
 | 2026.8 / 2026.9 | device-registry WebSocket API: `config_entry_id` per device (2026.8), `remove` replaces `remove_config_entry` and child devices (2026.9) | see `reference/panels.md` | 2027.8 / 2027.9 | 2026-08-19 |
@@ -137,6 +141,23 @@ https://developers.home-assistant.io/blog/, or, where it says so, the release no
 source gives none.
 ```
 
+Every row's *Post* date must be opened and read before the row is written. The table was
+drafted offline from `.tmp/plan/step0-findings.md`, and four rows — `BrowseMediaSource.domain`,
+the conditions/scripts lifecycle, MQTT `publish` typed arguments, and button event
+entities — have no numbered finding behind them, so their API names and removal releases
+are the draft's and nothing else. A row whose source will not confirm it comes out of the
+table rather than shipping unverified; the same goes for `async_update_and_abort()`,
+`UnitOfRatio.PERCENTAGE` and the safe-area spelling wherever they appear in this plan.
+
+- [ ] **Step 5b: Reconcile the `vol.Schema` bullet with the fence rule Task 7 adds.**
+`patterns.md`'s `config_flow.py` section says a schema is written "exactly as `ruff
+format` leaves it (the shipped format check rejects hand-aligned columns)" — stated
+without qualification, which Task 7's fence rule contradicts. The parenthesis becomes
+"(the shipped format check collapses hand-aligned columns; `# fmt: off` is how a table
+worth aligning survives it — see *Code style* in `reference/scaffold.md`)". The advice
+itself stands: a config-flow schema is a list of entries, not a table, so it is left to
+the formatter. Say that rather than implying the formatter always wins.
+
 - [ ] **Step 6: Re-read the whole file** (`get_file` again) and check every pointer it
 carries still names a heading that exists. Commit:
 `docs: bring patterns up to 2026.9`.
@@ -152,18 +173,25 @@ carries still names a heading that exists. Commit:
 `require_admin=True,`:
 
 ```
-              handle_safe_area=False,  # 2026.8: HA pads the safe area; True means the panel draws to the edges itself
+              config={"handle_safe_area": True},  # 2026.8: True means the panel handles the safe area itself; omitted, HA pads it
 ```
 
 and change *Registration has two traps* to *Registration has three traps*, adding:
 
 ```
 Third: since HA 2026.8 the frontend pads a custom panel for the device's safe area
-unless `async_register_panel` is given `handle_safe_area=True`, in which case the panel
+unless the panel's `config` carries `"handle_safe_area": True`, in which case the panel
 is handed the full viewport and lays itself out (the `--safe-area-inset-*` variables the
 post mentions are forwarded to iframe panels only); say which in the registration, so
 the choice is visible rather than a default nobody chose.
 ```
+
+**Before writing either**, confirm the spelling against the frontend source rather than
+against this plan: `handle_safe_area` is read by the panel element, and whether it is a
+key inside `config` or a keyword of `async_register_panel` decides both edits.
+`.tmp/plan/step0-findings.md` records the `config` form and this step follows it; if the
+source says otherwise, both blocks change together and the disagreement is a friction
+line against the findings file.
 
 - [ ] **Step 2: Add, after *Testability is a design property, not a tooling one*, before the closing note:**
 
@@ -214,7 +242,10 @@ fails an index that disagrees with the headings, and `ci.yml` runs it), and add
 `developers.home-assistant.io/docs/core/integration-quality-scale/checklist (the index page lists tiers only) — or, as data,`.
 
 - [ ] **Step 3: Extend the harness row's consumer cell** with:
-`· a panel repo's home-assistant-frontend pin, per *`home-assistant-frontend` must be pinned in `requirements.test.txt`* in `reference/panels.md``.
+
+````
+ · a panel repo's home-assistant-frontend pin, per *`home-assistant-frontend` must be pinned in `requirements.test.txt`* in `reference/panels.md`
+````
 
 - [ ] **Step 4: Extend the panel-design row's re-derive cell** with:
 `· the developer blog's *Frontend component updates* post for each release, which names the components and tokens that moved`.
@@ -276,12 +307,17 @@ insert `"single_config_entry": true,` and after the code block add the sentence:
 **Files:**
 - Modify: `plugins/ha/skills/ha-integration/SKILL.md` — *Invariants — true in every mode*
 
-- [ ] **Step 1:** Leave *Always fetch before coding* as it is: the developer blog is
-read by the monthly procedure, not by every coding session, since the procedure's job
-is to have incorporated it already.
+- [ ] **Step 1:** Leave *Always fetch before coding* as it is. This overrides finding 18
+in `.tmp/plan/step0-findings.md`, which proposed adding the developer blog to that
+invariant: the blog is read by the monthly procedure, not by every coding session, since
+the procedure's job is to have incorporated it already. The override is deliberate and is
+recorded here so the findings file is not silently contradicted.
 
 - [ ] **Step 2:** Replace the *Cached facts go stale silently* invariant's text with:
-`**Cached facts go stale silently.** Anything captured more than ~3 months ago gets re-derived before it is trusted, and the skill is current for one HA release at a time — the table, its re-derivation commands and the monthly procedure are in `reference/freshness.md`.`
+
+````
+**Cached facts go stale silently.** Anything captured more than ~3 months ago gets re-derived before it is trusted, and the skill is current for one HA release at a time — the table, its re-derivation commands and the monthly procedure are in `reference/freshness.md`.
+````
 
 - [ ] **Step 3: Commit:** `docs: name the monthly procedure in the invariant`.
 
@@ -299,7 +335,7 @@ is to have incorporated it already.
 - Consumes: the `freshness.md` row from Task 3, first cell `HA release the skill is current for`.
 - Produces: `captured_minor(text: str) -> tuple[int, int]`, `latest_minor(fetch: Callable[[str], str]) -> tuple[int, int]`, `main(argv: list[str] | None = None, fetch: Callable[[str], str] = _fetch) -> int` returning 0 when captured ≥ latest, 1 when behind, 2 when the row or PyPI cannot be read; the tests pass a fake `fetch`.
 
-- [ ] **Step 1: Write the failing test** (`tests/test_check_ha_release.py`):
+- [ ] **Step 1: Write the failing test** (through the gate, `tests/` tier) (`tests/test_check_ha_release.py`):
 
 ```python
 """Unit tests for scripts/check_ha_release.py, the nudge that goes red on a new HA minor."""
@@ -501,13 +537,22 @@ Expected: `skill is current for HA 2026.9; PyPI has 2026.9`, `exit 0`.
 ```
 
 - [ ] **Step 7: README** — read `README.md` in full (not governed; edit directly). Under
-*Development*, the sentence `The skills are treated as code: this repo is a consumer of
-release-flow like any integration, and its own tooling has unit tests that run on every
-PR.` becomes `The skills are treated as code: this repo is a consumer of release-flow
-like any integration, its own tooling has unit tests that run on every PR, and that run
-fails once PyPI carries a newer Home Assistant minor than the release row in the skill's
-`reference/freshness.md` names, which is the nudge for the monthly procedure written
-under that table.`
+*Development*, replace this sentence:
+
+````
+The skills are treated as code: this repo is a consumer of release-flow like any
+integration, and its own tooling has unit tests that run on every PR.
+````
+
+with this one, keeping the file's ~80-column wrap:
+
+````
+The skills are treated as code: this repo is a consumer of release-flow like any
+integration, its own tooling has unit tests that run on every PR, and that run fails
+once PyPI carries a newer Home Assistant minor than the release row in the skill's
+`reference/freshness.md` names — the nudge for the monthly procedure written under
+that table.
+````
 
 - [ ] **Step 8: Commit, three:** `feat: fail ci when a newer ha minor is out`
 (script + test), `ci: run the release check` (workflow), `docs: name the release check in
@@ -515,23 +560,133 @@ the readme`.
 
 ---
 
-### Task 7: Register, review, hand over
+### Task 7: `scaffold.md` — deliberate alignment is fenced, not surrendered
 
 **Files:**
-- Modify: `docs/backlog.md` — one new section, rows for: (a) row 177's table gaining a mechanical nudge (closes the "table nothing runs" half of 177, with the script and CI step as evidence), (b) the 2026.6–2026.9 guidance gap as one row with the findings file's list as evidence; the header's live-rows line
+- Modify: `plugins/ha/skills/ha-integration/reference/scaffold.md` — *Code style*
+
+**Interfaces:**
+- Consumes: decisions 22–28 (Step 1, the fence rule) and 33 (Step 2, what an exclusion
+  hides), and the evidence from settleup-ha `95ed0db` and ha-pimoroni-unicorn `7e29ce6`.
+- Decision 32, which would have added a `[tool.ruff.format] exclude` for verbatim template
+  copies, is withdrawn: `templates/` ships one Python file, `conftest.py`, and it is
+  already format-clean, so the exclusion has nothing to cover once a migration deletes the
+  copied scripts. No adaptation-table row and no `ha-integration-ci` README change follow
+  from this task.
+
+- [ ] **Step 1: Add to *Code style*, after the inline-comments bullet** (the block below
+is delimited with four backticks because the text itself contains a three-backtick
+fence; paste its contents, not the delimiters):
+
+````
+- **Alignment a human chose is kept, not collapsed.** `ruff format` reduces every run of
+  spaces to one, which destroys a table someone aligned so that it could be read as a
+  table. Fence those with `# fmt: off` / `# fmt: on` rather than surrendering them or
+  turning the formatter off:
+
+  ```python
+  # fmt: off
+  CONF_EMAIL         = "email"
+  CONF_API_KEY       = "api_key"
+  CONF_REFRESH_TOKEN = "refresh_token"
+  # fmt: on
+  ```
+
+  **The fence is statement-level.** One inside a dict or call literal does nothing — ruff
+  ignores it and collapses the entries anyway; it must wrap the whole enclosing statement,
+  at that statement's indent. So an aligned keyword-argument call is fenced around the
+  whole call, and a `# fmt: on` may not sit at a different indent from its `# fmt: off`.
+
+  What earns a fence, from applying this to two repositories: padding before `=` or `:`;
+  padding after them, where the values form the column; padding after `,`; and **one row
+  or record per source line even where nothing is padded** — glyph rasters, icon bitmaps,
+  colour palettes, layout tables, field-descriptor lists. That last case is the one that
+  bites: `ruff format` turned a 13-line font bitmask table into 1,194 lines, one pixel per
+  line, and the digit shape a reader could see in the source was gone. A flat wrapped list
+  of strings is not a table and is left to the formatter.
+
+  **A generator that emits a fenced table emits the fence too**, or the next regeneration
+  drops it.
+````
+
+- [ ] **Step 2: Add to *Code style*, after the bullet Step 1 wrote** (decision 33):
+
+```
+- **An exclusion hides drift until the day it is removed.** The stack lints and formats the
+  whole tree — the `python-validate.yml` bullet under *Implementation notes* in
+  `ha-integration-ci`'s README says why —
+  and the template `pyproject.toml` excludes nothing, so whatever a repository has been
+  keeping out of ruff's sight becomes visible the moment it adopts that file. The three
+  repositories migrated in 2026-09 showed all three shapes of this. Two whose CI checked
+  `custom_components/` alone arrived with `ruff format --check` reporting 21 and 112 files.
+  One of those also kept three generated trees out of ruff entirely, so its formatting
+  commit touched 210 files where `--check` had reported 112. The third looked clean only
+  because eight files sat under `[tool.ruff.format] exclude`. Before a migration, drop the
+  exclusions and format what they were hiding, as its own commit: a migration diff is no
+  place to meet a hundred files for the first time.
+```
+
+- [ ] **Step 3: Re-read the file; commit:** `docs: say how deliberate alignment survives
+the formatter`. One commit for both steps: they are one topic, code style where the
+formatter is involved.
+
+---
+
+### Task 8: `testing.md` — the tests that deliberately do not mock
+
+**Files:**
+- Modify: `plugins/ha/skills/ha-integration/reference/testing.md` — a new section after *Unit-test the pure logic directly*, and its entry in the contents list
+
+**Interfaces:**
+- Consumes: decision 29 and ha-lego's `live_api_tests.yml`, which is the worked example.
+
+- [ ] **Step 1: Add the section:**
+
+```
+### Contract tests against the real API
+
+Everything above says mock the boundary. The exception is a test whose whole purpose is to
+check what the vendor actually returns, because a fixture only ever confirms what you
+already believed — it cannot catch a payload changing shape. Keep a handful, and make them
+safe:
+
+- **Manual only.** `workflow_dispatch`, never `pull_request`, and never
+  `pull_request_target`: a fork PR gets no secrets by design, and running PR-authored code
+  with a live key in reach is how the key leaves.
+- **Behind an environment with required reviewers**, so the run pauses for a human and the
+  key stays unreadable to every other workflow in the repository.
+- **Marked and excluded from the default run** — `pytest.mark.live` with
+  `addopts = "-m 'not live'"` in the pytest table, so a normal suite never spends a call.
+- **A dedicated account**, never a personal one, and nothing in the repository naming it.
+- **Say what a failure means.** The common one is a credential that expired rather than a
+  payload that moved; a job that prints which it is saves the next reader an hour.
+- **Count the calls.** A billed API makes the test's cost part of its design.
+```
+
+- [ ] **Step 2: Add `- Contract tests against the real API` to the contents list after
+`- Unit-test the pure logic directly`. Re-read the file; commit:**
+`docs: say how to test against a real api safely`.
+
+---
+
+### Task 9: Register, review, hand over
+
+**Files:**
+- Modify: `docs/backlog.md` — one new section, rows for: (a) the 2026.6–2026.9 guidance gap as one row with the findings file's list as evidence (row 215), (b) the alignment-fence standard and the live-contract-test gap, both found by using the skill on real repositories rather than reading it, with `.tmp/plan/decisions.md` items 22–30 and 33 as evidence, written by Tasks 7 and 8 (row 216), (c) row 177's table gaining a mechanical nudge, closing the "table nothing runs" half of 177, with the script and CI step as evidence (row 217); the header's live-rows line
 
 - [ ] **Step 1: Rows.** A new section `### From the 2026.9 refresh (<date>)` with an
 intro line `The first run of the monthly procedure, four releases at once; the findings
-file it worked from is not in the repository.` and two rows, hashes filled from the
+file it worked from is not in the repository.` and three rows, hashes filled from the
 commits above:
 
 ```
 | 215 | **The skill's guidance stopped at HA 2026.5 while 2026.6 to 2026.9 changed the device registry, the config-flow reload rules, the unit constants and a panel's default padding.** `patterns.md` still resolved a service's device with `device_registry.async_get(hass).async_get(id)` and showed no `via_device_id`; nothing named the 2026.6 listener-plus-reload deprecation (an error from 2026.12) or the 2026.7 `UnitOfDensity`/`UnitOfRatio` enums; `panels.md` did not know HA pads a custom panel since 2026.8. Found by reading every developer-blog post from 2026-05-01 against every reference file | Applied per section in `patterns.md` and `panels.md`, indexed by the new *What changed in recent releases* table with each change's removal release; `freshness.md` gains the row that says which release the skill is current for | `<patterns hash>`, `<panels hash>`, `<freshness hash>` |
-| 216 | **Row 177's table was a rule nothing ran: no check noticed when a Home Assistant release landed.** The freshness table said re-derive rows older than ~3 months, and nothing measured it | `scripts/check_ha_release.py`, run by `ci.yml`, fails once PyPI's `homeassistant` minor is ahead of the release row; the procedure that clears it is written under the table. Closes the enforcement half of row 177; the row's own text stands | `<script hash>`, `<ci hash>` |
+| 216 | **Two standards the skill needed were found by using it on real repositories, not by reading it.** `scaffold.md` said nothing about keeping deliberate alignment through `ruff format` — a formatter run turned a 13-line font bitmask table into 1,194 lines before anyone noticed — nor that ruff's `# fmt: off` is statement-level, so a fence inside a dict literal is silently ignored; `testing.md` said nothing about a test that deliberately does not mock its boundary, though ha-lego has carried a `workflow_dispatch` job against the real Brickset API, behind an environment with required reviewers, since its CI was written — and has never once run it, which is its own argument for writing the shape down | `scaffold.md` gains the fence rule with its four shapes and the statement-level trap, and the rule that an exclusion only hides drift until a migration adopts the template `pyproject.toml` and reveals it; `testing.md` gains *Contract tests against the real API* with the four conditions that make one safe (manual dispatch, an environment with required reviewers, a marker outside the default run, a dedicated account) | `<scaffold hash>`, `<testing hash>` |
+| 217 | **Row 177's table was a rule nothing ran: no check noticed when a Home Assistant release landed.** The freshness table said re-derive rows older than ~3 months, and nothing measured it | `scripts/check_ha_release.py`, run by `ci.yml`, fails once PyPI's `homeassistant` minor is ahead of the release row; the procedure that clears it is written under the table. Closes the enforcement half of row 177; the row's own text stands | `<script hash>`, `<ci hash>` |
 ```
 
-The header's live-rows line drops 177 and adds nothing (215 and 216 close in this
-PR). Commit: `docs: record the 2026.9 refresh`.
+The header's live-rows line drops 177 and adds nothing: 215, 216 and 217 all close in
+this PR. Commit: `docs: record the 2026.9 refresh`.
 
 - [ ] **Step 2: Reviewer** on the branch (`git diff origin/main..HEAD`), brief
 `docs/review.md`, kind diff review. Fix; repeat until a pass returns nothing.
