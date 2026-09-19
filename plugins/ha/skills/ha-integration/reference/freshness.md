@@ -29,10 +29,17 @@ first such pass covered 2026.6 to 2026.9 in one go, on 2026-09-19.
 **Pull the sources before reading them.** `python3 scripts/fetch_ha_sources.py --release
 <the new minor>` writes the window's developer-blog posts and its release notes into
 `docs/ha-release/<minor>/`, with an index beside them, and commits are made of what it
-wrote. `--since <older minor>` widens the window for a backfill, as the 2026.6–2026.9 pass
-needed. This is not a convenience: **the governance gate refuses a patch to any file in this
-directory that names that release, or a later one, until it has served every file the index
-lists.** The rule below used to be advice, and the pass that wrote it broke it.
+wrote. `--since <older minor>` widens the window for a backfill, which is how the first pass
+covered 2026.6 to 2026.9. This is not a convenience: **the governance gate refuses a patch to
+any file in *this* directory — the reference one — that names a release with a non-empty
+folder under `docs/ha-release/`, until it has served that release's own files.** Any release
+with no folder there is not demanded, because nothing fetched could settle it: one older than
+the oldest pulled, a gap inside the span, or a removal release a year out. The exception is
+the minor immediately after the newest pulled — the one a pass is about to write about — where
+an absent folder means the fetch was skipped, and the gate says so and names the command. What
+the check proves is therefore narrow, and worth knowing exactly: the sources that exist for
+the release you are writing about have been read. The rule below used to be advice, and the
+pass that wrote it broke it.
 
 **Both sources, because neither contains the other.** Verified on the 2026.9 pair:
 
