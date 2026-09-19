@@ -6,15 +6,10 @@ spelled — core at the release tag says that, and the paragraph beginning *A po
 not the source of record* under *When the release row goes red* in
 `plugins/ha/skills/ha-integration/reference/freshness.md` says why.
 
-The governance gate refuses a patch to a file under
-`plugins/ha/skills/ha-integration/reference/` that names one of the releases below
-until it has served that release's own files. Any release with no non-empty folder
-here is not demanded, because nothing here could settle it — one older than the
-oldest fetched, a gap inside the span, or a removal release a year out. The single
-exception is the minor immediately after the newest below: that is the one a pass is
-about to write about, so an absent folder there means the fetch was skipped, and the
-gate says so. This list is what "open every source" means in practice; re-run the
-script to add a release.
+The governance gate reads this directory and demands these files before it will let
+a reference file make a claim about one of the releases below. What exactly it
+demands, and what it does not, is `unread_sources` in `scripts/governance_gate.py`,
+which is the only place that rule is stated; re-run the script to add a release.
 
 **The window is a net, not a claim.** Posts are gathered by publication date, between
 one release and the next, and a post published in the days before a release usually
@@ -33,31 +28,30 @@ that says what it is.
 
 | Source | sha256 | What it is |
 |---|---|---|
-| `docs/ha-release/2026.6/release-notes.md` | `0f5687745bbf` | [2026.6: Pick a card, any card](https://www.home-assistant.io/blog/2026/06/03/release-20266/) |
-| `docs/ha-release/2026.6/blog-2026-05-07-config-entry-listener-together-with-reloading-methods.md` | `6cbbaa4a84b3` | [Deprecating config entry listener with reloading methods in config flow](https://developers.home-assistant.io/blog/2026/05/07/config-entry-listener-together-with-reloading-methods) |
-| `docs/ha-release/2026.6/blog-2026-05-11-format-entity-name-helper.md` | `b527aa563056` | [Format entity names in custom cards](https://developers.home-assistant.io/blog/2026/05/11/format-entity-name-helper) |
-| `docs/ha-release/2026.6/blog-2026-05-11-mqtt-publish-api-changes.md` | `f9b4a78988bd` | [MQTT publish API changes](https://developers.home-assistant.io/blog/2026/05/11/mqtt-publish-api-changes) |
-| `docs/ha-release/2026.6/blog-2026-05-11-mqtt-publish-api-message-expiry-interval.md` | `306fad8a0c13` | [MQTT publish API supports message expiry interval](https://developers.home-assistant.io/blog/2026/05/11/mqtt-publish-api-message-expiry-interval) |
-| `docs/ha-release/2026.6/blog-2026-05-13-condition-script-api-changes.md` | `efb022f7fa1c` | [Changes to the condition and script APIs](https://developers.home-assistant.io/blog/2026/05/13/condition-script-api-changes) |
-| `docs/ha-release/2026.6/blog-2026-05-20-browse-media-source-root-class.md` | `7cc95438736f` | [BrowseMediaSource: domain is now required](https://developers.home-assistant.io/blog/2026/05/20/browse-media-source-root-class) |
-| `docs/ha-release/2026.6/blog-2026-05-26-advanced-mode-config-flow-deprecation.md` | `b3795caee354` | [Deprecation of advanced mode in data entry flow](https://developers.home-assistant.io/blog/2026/05/26/advanced-mode-config-flow-deprecation) |
-| `docs/ha-release/2026.6/blog-2026-05-27-custom-card-suggestions.md` | `ffabb3e52e24` | [Custom card suggestions in the card picker](https://developers.home-assistant.io/blog/2026/05/27/custom-card-suggestions) |
-| `docs/ha-release/2026.6/blog-2026-05-27-frontend-component-updates-2026-6.md` | `ebc52da48128` | [Frontend component updates in 2026.6](https://developers.home-assistant.io/blog/2026/05/27/frontend-component-updates-2026.6) |
-| `docs/ha-release/2026.7/release-notes.md` | `9f63ca58eac4` | [2026.7: Automations that speak your language](https://www.home-assistant.io/blog/2026/07/01/release-20267/) |
-| `docs/ha-release/2026.7/blog-2026-06-15-device-tracker-changes.md` | `c7d0f895311a` | [Changes to device tracker entity models](https://developers.home-assistant.io/blog/2026/06/15/device-tracker-changes) |
-| `docs/ha-release/2026.7/blog-2026-06-23-frontend-component-updates-2026-7.md` | `8392e7354312` | [Frontend component updates in 2026.7](https://developers.home-assistant.io/blog/2026/06/23/frontend-component-updates-2026.7) |
-| `docs/ha-release/2026.7/blog-2026-06-30-async-initialize-triggers-home-assistant-start-deprecated.md` | `f4d774a799a6` | [Deprecation of the home_assistant_start flag of async_initialize_triggers](https://developers.home-assistant.io/blog/2026/06/30/async-initialize-triggers-home-assistant-start-deprecated) |
-| `docs/ha-release/2026.7/blog-2026-06-30-new-unit-enumerators.md` | `6c84f3b52c79` | [Introducing new unit enumerators](https://developers.home-assistant.io/blog/2026/06/30/new-unit-enumerators) |
-| `docs/ha-release/2026.8/release-notes.md` | `8a58e75ed8a5` | [2026.8: Approachable by design](https://www.home-assistant.io/blog/2026/08/05/release-20268/) |
-| `docs/ha-release/2026.8/blog-2026-07-03-media-source-search.md` | `54191366b9a7` | [Media sources can now be searched](https://developers.home-assistant.io/blog/2026/07/03/media-source-search) |
-| `docs/ha-release/2026.8/blog-2026-07-05-modernizing-modbus.md` | `27ca2f1ef523` | [Modernizing Modbus in Home Assistant](https://developers.home-assistant.io/blog/2026/07/05/modernizing-modbus) |
-| `docs/ha-release/2026.8/blog-2026-07-20-ai-policy.md` | `8c2127768e70` | [Introducing the Open Home Foundation AI Policy](https://developers.home-assistant.io/blog/2026/07/20/ai-policy) |
-| `docs/ha-release/2026.8/blog-2026-07-21-device-registry-single-config-entry.md` | `9fb264a82d29` | [Devices are restricted to a single config entry and at most one subentry](https://developers.home-assistant.io/blog/2026/07/21/device-registry-single-config-entry) |
-| `docs/ha-release/2026.8/blog-2026-07-22-button-standard-event-types.md` | `7859b17dfa0a` | [Standard event types for button event entities](https://developers.home-assistant.io/blog/2026/07/22/button-standard-event-types) |
-| `docs/ha-release/2026.8/blog-2026-07-31-frontend-component-updates-2026-8.md` | `fa2ccb3241ab` | [Frontend component updates in 2026.8](https://developers.home-assistant.io/blog/2026/07/31/frontend-component-updates-2026.8) |
-| `docs/ha-release/2026.9/release-notes.md` | `f1a3bdec0859` | [2026.9: There's room on this bus](https://www.home-assistant.io/blog/2026/09/02/release-20269/) |
-| `docs/ha-release/2026.9/blog-2026-07-05-modernizing-modbus.md` | `27ca2f1ef523` | [Modernizing Modbus in Home Assistant](https://developers.home-assistant.io/blog/2026/07/05/modernizing-modbus) |
-| `docs/ha-release/2026.9/blog-2026-08-19-device-registry-websocket-api-changes.md` | `dfa2c23ff672` | [Device registry WebSocket API changes](https://developers.home-assistant.io/blog/2026/08/19/device-registry-websocket-api-changes) |
-| `docs/ha-release/2026.9/blog-2026-08-24-device-registry-follow-up-changes.md` | `b7fc6788923d` | [More device registry deprecations, new helpers and validation](https://developers.home-assistant.io/blog/2026/08/24/device-registry-follow-up-changes) |
-| `docs/ha-release/2026.9/blog-2026-08-31-deprecate-configurator.md` | `c70333d9e9fb` | [Configurator integration is now deprecated](https://developers.home-assistant.io/blog/2026/08/31/deprecate-configurator) |
-| `docs/ha-release/2026.9/blog-2026-09-02-modbus-get-hub-deprecation.md` | `71846148a04c` | [Deprecating modbus.get_hub in favor of async_get_unit](https://developers.home-assistant.io/blog/2026/09/02/modbus-get-hub-deprecation) |
+| `docs/ha-release/2026.6/release-notes.md` | `7c5540fe39e4` | [2026.6: Pick a card, any card](https://www.home-assistant.io/blog/2026/06/03/release-20266/) |
+| `docs/ha-release/2026.6/blog-2026-05-07-config-entry-listener-together-with-reloading-methods.md` | `b422447bdded` | [Deprecating config entry listener with reloading methods in config flow](https://developers.home-assistant.io/blog/2026/05/07/config-entry-listener-together-with-reloading-methods) |
+| `docs/ha-release/2026.6/blog-2026-05-11-format-entity-name-helper.md` | `484d4f8a4221` | [Format entity names in custom cards](https://developers.home-assistant.io/blog/2026/05/11/format-entity-name-helper) |
+| `docs/ha-release/2026.6/blog-2026-05-11-mqtt-publish-api-changes.md` | `ae7360055256` | [MQTT publish API changes](https://developers.home-assistant.io/blog/2026/05/11/mqtt-publish-api-changes) |
+| `docs/ha-release/2026.6/blog-2026-05-11-mqtt-publish-api-message-expiry-interval.md` | `4eadb51419ff` | [MQTT publish API supports message expiry interval](https://developers.home-assistant.io/blog/2026/05/11/mqtt-publish-api-message-expiry-interval) |
+| `docs/ha-release/2026.6/blog-2026-05-13-condition-script-api-changes.md` | `c1135efcf5c7` | [Changes to the condition and script APIs](https://developers.home-assistant.io/blog/2026/05/13/condition-script-api-changes) |
+| `docs/ha-release/2026.6/blog-2026-05-20-browse-media-source-root-class.md` | `455200923fe2` | [BrowseMediaSource: domain is now required](https://developers.home-assistant.io/blog/2026/05/20/browse-media-source-root-class) |
+| `docs/ha-release/2026.6/blog-2026-05-26-advanced-mode-config-flow-deprecation.md` | `89130e039194` | [Deprecation of advanced mode in data entry flow](https://developers.home-assistant.io/blog/2026/05/26/advanced-mode-config-flow-deprecation) |
+| `docs/ha-release/2026.6/blog-2026-05-27-custom-card-suggestions.md` | `2620f29dab8a` | [Custom card suggestions in the card picker](https://developers.home-assistant.io/blog/2026/05/27/custom-card-suggestions) |
+| `docs/ha-release/2026.6/blog-2026-05-27-frontend-component-updates-2026-6.md` | `c282823c508f` | [Frontend component updates in 2026.6](https://developers.home-assistant.io/blog/2026/05/27/frontend-component-updates-2026.6) |
+| `docs/ha-release/2026.7/release-notes.md` | `1f42362b6cff` | [2026.7: Automations that speak your language](https://www.home-assistant.io/blog/2026/07/01/release-20267/) |
+| `docs/ha-release/2026.7/blog-2026-06-15-device-tracker-changes.md` | `804ac25a3863` | [Changes to device tracker entity models](https://developers.home-assistant.io/blog/2026/06/15/device-tracker-changes) |
+| `docs/ha-release/2026.7/blog-2026-06-23-frontend-component-updates-2026-7.md` | `097bf6d66e67` | [Frontend component updates in 2026.7](https://developers.home-assistant.io/blog/2026/06/23/frontend-component-updates-2026.7) |
+| `docs/ha-release/2026.7/blog-2026-06-30-async-initialize-triggers-home-assistant-start-deprecated.md` | `15cef753f560` | [Deprecation of the home_assistant_start flag of async_initialize_triggers](https://developers.home-assistant.io/blog/2026/06/30/async-initialize-triggers-home-assistant-start-deprecated) |
+| `docs/ha-release/2026.7/blog-2026-06-30-new-unit-enumerators.md` | `d242622cc332` | [Introducing new unit enumerators](https://developers.home-assistant.io/blog/2026/06/30/new-unit-enumerators) |
+| `docs/ha-release/2026.8/release-notes.md` | `555c8203b194` | [2026.8: Approachable by design](https://www.home-assistant.io/blog/2026/08/05/release-20268/) |
+| `docs/ha-release/2026.8/blog-2026-07-03-media-source-search.md` | `e077ca6ed91b` | [Media sources can now be searched](https://developers.home-assistant.io/blog/2026/07/03/media-source-search) |
+| `docs/ha-release/2026.8/blog-2026-07-05-modernizing-modbus.md` | `945642139859` | [Modernizing Modbus in Home Assistant](https://developers.home-assistant.io/blog/2026/07/05/modernizing-modbus) |
+| `docs/ha-release/2026.8/blog-2026-07-20-ai-policy.md` | `cf8ea73c8240` | [Introducing the Open Home Foundation AI Policy](https://developers.home-assistant.io/blog/2026/07/20/ai-policy) |
+| `docs/ha-release/2026.8/blog-2026-07-21-device-registry-single-config-entry.md` | `f878c0e21910` | [Devices are restricted to a single config entry and at most one subentry](https://developers.home-assistant.io/blog/2026/07/21/device-registry-single-config-entry) |
+| `docs/ha-release/2026.8/blog-2026-07-22-button-standard-event-types.md` | `9fb1ce05fd2e` | [Standard event types for button event entities](https://developers.home-assistant.io/blog/2026/07/22/button-standard-event-types) |
+| `docs/ha-release/2026.8/blog-2026-07-31-frontend-component-updates-2026-8.md` | `f1bcda264b21` | [Frontend component updates in 2026.8](https://developers.home-assistant.io/blog/2026/07/31/frontend-component-updates-2026.8) |
+| `docs/ha-release/2026.9/release-notes.md` | `b8dffd048201` | [2026.9: There's room on this bus](https://www.home-assistant.io/blog/2026/09/02/release-20269/) |
+| `docs/ha-release/2026.9/blog-2026-08-19-device-registry-websocket-api-changes.md` | `8eba6e1eac62` | [Device registry WebSocket API changes](https://developers.home-assistant.io/blog/2026/08/19/device-registry-websocket-api-changes) |
+| `docs/ha-release/2026.9/blog-2026-08-24-device-registry-follow-up-changes.md` | `e120b085e4d3` | [More device registry deprecations, new helpers and validation](https://developers.home-assistant.io/blog/2026/08/24/device-registry-follow-up-changes) |
+| `docs/ha-release/2026.9/blog-2026-08-31-deprecate-configurator.md` | `5fbf2c0963e6` | [Configurator integration is now deprecated](https://developers.home-assistant.io/blog/2026/08/31/deprecate-configurator) |
+| `docs/ha-release/2026.9/blog-2026-09-02-modbus-get-hub-deprecation.md` | `1b2a3ec7fb5c` | [Deprecating modbus.get_hub in favor of async_get_unit](https://developers.home-assistant.io/blog/2026/09/02/modbus-get-hub-deprecation) |
