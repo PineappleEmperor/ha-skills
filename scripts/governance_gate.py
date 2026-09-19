@@ -76,6 +76,9 @@ SKILL_TIERS: dict[str, tuple[str, ...]] = {
     # check on every row the moment it moved — a guard lost to a reorganisation.
     "docs/backlog.md": ("plugins/ha/skills/ha-integration/reference/discipline.md",),
     "docs/backlog/": ("plugins/ha/skills/ha-integration/reference/discipline.md",),
+    # The release window's fetched sources. Governed by the doc that says what a pass must
+    # read and what a post is worth, so reaching for one hands over that procedure first.
+    "docs/ha-release/": ("plugins/ha/skills/ha-integration/reference/freshness.md",),
     ".github/workflows/": (
         "plugins/ha/skills/ha-integration/reference/github-actions.md",
     ),
@@ -111,10 +114,17 @@ CI_TIERS: dict[str, tuple[str, ...]] = {
 # the one place whose whole purpose is to assert things about the rest of the repository,
 # so it is the one place where naming a file is a claim rather than a mention.
 CLAIM_CHECKED = ("docs/backlog.md", "docs/backlog/")
+# The release window's fetched sources, and the tier whose release claims must come out of
+# them. scripts/fetch_ha_sources.py writes both the index and the files it names.
+SOURCE_INDEX = "docs/ha-release/index.md"
+REFERENCE_TIER = "plugins/ha/skills/ha-integration/reference/"
 # Repo-relative path -> the rotation window in which the gate last served it whole.
 _SERVED: dict[str, int] = {}
 # A path inside a backtick, which is how every row names a file.
 _NAMED = re.compile(r"`([A-Za-z0-9_./-]+\.[A-Za-z0-9]+)`")
+# A Home Assistant release, as every claim about one names it: 2026.9, `2026.10.2`. Four
+# digits and a dot, so a dependency pin (0.13.365) and a Python floor (3.14) are not one.
+_RELEASE = re.compile(r"\b(\d{4})\.(\d{1,2})(?:\.\d+)?\b")
 
 
 class GateError(Exception):
@@ -309,6 +319,65 @@ def unread_claims(text: str, now: float | None = None) -> list[str]:
         and (REPO / rel).exists()
         and _SERVED.get(rel, -2) < bucket - 1
     ]
+
+
+def source_files() -> list[str]:
+    """Every fetched source the index names, in the order it names them.
+
+    Empty when no index has been fetched, which fails this check OPEN exactly as an
+    unreadable governing doc does: a clone that has never run `fetch_ha_sources.py` has to
+    stay editable. What stops that from being the way out is CI rather than the gate —
+    `tests/test_fetch_ha_sources.py` fails when the index is missing, or names a release
+    other than the one `freshness.md` does.
+    """
+    try:
+        text = (REPO / SOURCE_INDEX).read_text(encoding="utf-8")
+    except OSError:
+        return []
+    return [
+        rel
+        for rel in dict.fromkeys(_NAMED.findall(text))
+        if rel.startswith("docs/ha-release/")
+        and rel != SOURCE_INDEX
+        and (REPO / rel).exists()
+    ]
+
+
+def covered_releases() -> set[tuple[int, int]]:
+    """The releases the fetched sources cover, read off the folder each source sits in."""
+    found: set[tuple[int, int]] = set()
+    for rel in source_files():
+        parts = rel.split("/")
+        if len(parts) > 2:
+            year, _, minor = parts[2].partition(".")
+            if year.isdigit() and minor.isdigit():
+                found.add((int(year), int(minor)))
+    return found
+
+
+def unread_sources(rel: str, text: str, now: float | None = None) -> list[str]:
+    """Fetched sources the gate has not served, when a patch claims something about a release.
+
+    Row 220. *When the release row goes red* in `freshness.md` says to open every source
+    before writing a row from it, and nothing checked that anything was opened: the 2026.9
+    pass wrote rows from memory and got eight facts wrong, breaking its own rule. An edit key
+    proves the file being written was read. This proves the sources it is written FROM were.
+
+    Only a claim about a release the fetched window covers, or a later one, is gated. A
+    sentence recording that inline brand assets have been served since 2026.3 cannot be
+    checked against 2026.9's posts, and demanding them for it would teach the caller that the
+    refusal is noise — which is how a guard stops being read.
+    """
+    if not rel.startswith(REFERENCE_TIER):
+        return []
+    covered = covered_releases()
+    if not covered:
+        return []
+    named = {(int(year), int(minor)) for year, minor in _RELEASE.findall(text)}
+    if not any(release >= min(covered) for release in named):
+        return []
+    bucket = int((time.time() if now is None else now) // ROTATION_SECONDS)
+    return [src for src in source_files() if _SERVED.get(src, -2) < bucket - 1]
 
 
 def safe_relpath(path: str) -> str:
@@ -660,6 +729,16 @@ def patch_file(
                 f"served {'it' if len(unread) == 1 else 'them'} in this rotation window or "
                 f"the one before. Read each with get_file, then write the row."
             )
+
+    unread = unread_sources(rel, new_string)
+    if unread:
+        raise GateError(
+            f"this patch to {rel} states something about a Home Assistant release, and the "
+            f"window's own sources have not been read: {', '.join(unread)}. Read each with "
+            f"get_file, then write the row. Why a pass that skipped them got eight facts "
+            f"wrong, and why core at the tag settles what a post cannot, are in "
+            f"`{SOURCE_INDEX}` and the section it points at."
+        )
 
     after = _apply(before, old_string, new_string, rel)
     if scope is not None and not _inside(

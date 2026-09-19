@@ -255,6 +255,143 @@ def test_specific_tier_wins_over_general(monkeypatch, repo) -> None:
     assert gs.resolve_tier("scripts/other.py") == "scripts/"
 
 
+# ------------------------------------------------- the release window's sources
+
+
+def _sourced(repo, monkeypatch):
+    """A reference tier plus a fetched window, shaped as `fetch_ha_sources.py` leaves it."""
+    (repo / "reference").mkdir()
+    (repo / "reference/patterns.md").write_text("# Patterns\n\nold text\n")
+    (repo / "docs/ha-release/2026.9").mkdir(parents=True)
+    (repo / "docs/ha-release/2026.9/release-notes.md").write_text("the notes\n")
+    (repo / "docs/ha-release/2026.9/blog-a.md").write_text("the post\n")
+    (repo / "docs/ha-release/index.md").write_text(
+        "| Source | What it is |\n|---|---|\n"
+        "| `docs/ha-release/2026.9/release-notes.md` | [notes](u) |\n"
+        "| `docs/ha-release/2026.9/blog-a.md` | [post](u) |\n"
+    )
+    monkeypatch.setattr(gs, "REFERENCE_TIER", "reference/")
+    monkeypatch.setattr(
+        gs,
+        "TIERS",
+        {
+            "reference/": ("docs/rules.md",),
+            "docs/ha-release/": ("docs/rules.md",),
+            "scripts/": ("docs/rules.md",),
+        },
+    )
+    monkeypatch.setattr(gs, "_SERVED", {})
+    gs.get_file("reference/patterns.md", gs.current_receipt_key("reference/"))
+    return gs.current_edit_key("reference/patterns.md")
+
+
+def test_a_release_claim_is_refused_while_the_windows_sources_are_unread(
+    repo, monkeypatch
+):
+    """Row 220: the edit key proves the doc was read, never the sources it is written from.
+
+    The 2026.9 pass wrote rows off a memory of the posts and got eight facts wrong, under a
+    key that was valid the whole time. This is the check that makes *Open every source*
+    something other than advice.
+    """
+    key = _sourced(repo, monkeypatch)
+    with pytest.raises(gs.GateError) as excinfo:
+        gs.patch_file("reference/patterns.md", "old text", "2026.9 removed it", key)
+    assert "docs/ha-release/2026.9/release-notes.md" in str(excinfo.value)
+    assert "docs/ha-release/2026.9/blog-a.md" in str(excinfo.value)
+    assert (repo / "reference/patterns.md").read_text().endswith("old text\n")
+
+
+def test_reading_every_source_is_what_lifts_the_refusal(repo, monkeypatch):
+    """Every one of them: reading all but one leaves the last one demanded by name."""
+    key = _sourced(repo, monkeypatch)
+    docs_key = gs.current_receipt_key("docs/ha-release/")
+    gs.get_file("docs/ha-release/2026.9/release-notes.md", docs_key)
+    with pytest.raises(gs.GateError) as excinfo:
+        gs.patch_file("reference/patterns.md", "old text", "2026.9 removed it", key)
+    assert "blog-a.md" in str(excinfo.value)
+    assert "release-notes.md" not in str(excinfo.value)
+
+    gs.get_file("docs/ha-release/2026.9/blog-a.md", docs_key)
+    gs.patch_file("reference/patterns.md", "old text", "2026.9 removed it", key)
+    assert "2026.9 removed it" in (repo / "reference/patterns.md").read_text()
+
+
+def test_a_claim_about_a_release_older_than_the_window_is_not_gated(repo, monkeypatch):
+    """The fetched posts cannot settle it, so demanding them would be noise.
+
+    `freshness.md` records that inline brand assets have been served since 2026.3. Gating
+    that sentence on 2026.9's posts teaches the caller to read the refusal as an obstacle.
+    """
+    key = _sourced(repo, monkeypatch)
+    gs.patch_file("reference/patterns.md", "old text", "served since 2026.3", key)
+    assert "2026.3" in (repo / "reference/patterns.md").read_text()
+
+
+def test_a_patch_naming_no_release_at_all_is_not_gated(repo, monkeypatch):
+    """Most reference edits say nothing about a release and must stay cheap."""
+    key = _sourced(repo, monkeypatch)
+    gs.patch_file("reference/patterns.md", "old text", "a typo fixed", key)
+    assert "a typo fixed" in (repo / "reference/patterns.md").read_text()
+
+
+def test_a_version_that_is_not_a_release_is_not_read_as_one(repo, monkeypatch):
+    """A harness pin and a Python floor are versions; neither is a Home Assistant release."""
+    key = _sourced(repo, monkeypatch)
+    gs.patch_file(
+        "reference/patterns.md", "old text", "pinned at 0.13.365 on 3.14", key
+    )
+    assert "0.13.365" in (repo / "reference/patterns.md").read_text()
+
+
+def test_only_the_reference_tier_has_its_release_claims_checked(repo, monkeypatch):
+    """A script may name a release in a comment; it is the guidance that makes the claim."""
+    _sourced(repo, monkeypatch)
+    gs.get_file("scripts/t.py", gs.current_receipt_key("scripts/"))
+    gs.patch_file(
+        "scripts/t.py",
+        "a = 1",
+        "a = 1  # since 2026.9",
+        gs.current_edit_key("scripts/t.py"),
+    )
+    assert "since 2026.9" in (repo / "scripts/t.py").read_text()
+
+
+def test_without_a_fetched_index_the_source_check_is_open(repo, monkeypatch):
+    """Fail open, like an unreadable governing doc: a clone that never fetched still works.
+
+    That is also the way out of this check, which is why `tests/test_fetch_ha_sources.py`
+    fails when the committed index is missing — the gate cannot notice its own absence.
+    """
+    key = _sourced(repo, monkeypatch)
+    (repo / "docs/ha-release/index.md").unlink()
+    assert gs.source_files() == []
+    gs.patch_file("reference/patterns.md", "old text", "2026.9 removed it", key)
+    assert "2026.9 removed it" in (repo / "reference/patterns.md").read_text()
+
+
+def test_a_source_the_index_names_but_that_is_gone_is_not_demanded(repo, monkeypatch):
+    """Only a file this gate could serve is demanded, as with the register's claims."""
+    key = _sourced(repo, monkeypatch)
+    (repo / "docs/ha-release/2026.9/blog-a.md").unlink()
+    gs.get_file(
+        "docs/ha-release/2026.9/release-notes.md",
+        gs.current_receipt_key("docs/ha-release/"),
+    )
+    gs.patch_file("reference/patterns.md", "old text", "2026.9 removed it", key)
+    assert "2026.9 removed it" in (repo / "reference/patterns.md").read_text()
+
+
+def test_the_real_map_governs_the_fetched_sources_and_names_the_real_tier() -> None:
+    """Rebinding both in the fixture would hide a map that governs neither."""
+    assert gs.resolve_tier("docs/ha-release/index.md") == "docs/ha-release/"
+    assert gs.TIERS["docs/ha-release/"] == (
+        "plugins/ha/skills/ha-integration/reference/freshness.md",
+    )
+    assert gs.REFERENCE_TIER in gs.TIERS
+    assert gs.SOURCE_INDEX.startswith("docs/ha-release/")
+
+
 # ------------------------------------------------------------ key derivation
 
 
