@@ -37,11 +37,23 @@ first such pass covered 2026.6 to 2026.9 in one go, on 2026-09-19.
   changed in recent releases* in `reference/patterns.md` records, which a blog-only pass
   misses entirely.
 
+**A post is not the source of record; core at the tag is.** A developer-blog post is one
+author's description of a change, written before it shipped. It is the source for *what*
+changed and *why*. It is not the source for the API's spelling, the module it lives in, the
+release it landed in, or the release it is removed in — for those, read
+`raw.githubusercontent.com/home-assistant/core/<tag>/…` at the tag the release row names,
+and say in the row that you did. The 2026.9 pass got eight facts wrong by stopping at the
+post: a removal release the post omitted and `const.py` states, an enum member list copied
+from the *replaced* constants rather than the enum, a landing release inferred from a post's
+publication date, and a whole API — `async_retry_migration` — written up as usable when it
+does not exist in the release the skill claims to be current for. **If a claim can be
+checked against core, check it against core.**
+
 **Open every source before writing a row from it.** A change summarised from memory, or
 from a release note's one-line mention without the post behind it, is the failure this
 procedure exists to prevent — a draft of the 2026.9 table carried four rows with no source,
-and the API names in two of them were wrong. If a post states no version, the row says so
-rather than guessing one. **Do not filter by "platforms we happen to use"**: the skill
+and the API names in two of them were wrong. If neither the post nor core states a version,
+the row says so rather than guessing one. **Do not filter by "platforms we happen to use"**: the skill
 scaffolds any integration, so an OAuth2, event-entity, condition or media-source change is
 in scope even when no repository in front of you has one.
 
