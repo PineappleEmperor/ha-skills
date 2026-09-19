@@ -14,6 +14,7 @@ uniformly old.
 | `pytest-homeassistant-custom-component` → HA | `0.13.365` → HA `2026.9.2`, requires-python `>=3.14` | 2026-09-12 | pypi.org/project/pytest-homeassistant-custom-component | `templates/requirements.test.txt` pin · the HA-minimum-Python row above. The template carries no mapping beside the pin, and says why in its own comment |
 | Brand assets served from inline `brand/` | since HA `2026.3.0`; HACS dashboard still reads the legacy CDN | 2026-06 | hacs/integration #5171, #5223 | the brand-assets note in `reference/scaffold.md` |
 | Brand image specification | 8 filenames (`icon`/`logo`/`dark_icon`/`dark_logo`, each with an `@2x`); icons exactly 256/512 and 1:1; logo shortest side 128–256 and 256–512, band maximum preferred; trimmed of empty space; no HA-branded imagery in a custom integration | 2026-09-19 | `curl -s https://raw.githubusercontent.com/home-assistant/brands/master/README.md` — *Inner workings* for the eight filenames, *Missing image handling* for the fallback chain, and *Image specification* with its two subsections for the rules; the `custom_integrations/` folder is legacy but that README still owns the spec for inline assets | the *Brand assets* section of `reference/scaffold.md` · `check_brand_assets` in ha-integration-ci's `scripts/skill_audit.py`, which is what measures a consumer's files (a CI release) |
+| Terms the two source sites publish under | home-assistant.io content is CC BY-NC-SA 4.0; `developers.home-assistant.io` ships no licence file at all | 2026-09-19 | `curl -s https://raw.githubusercontent.com/home-assistant/home-assistant.io/master/LICENSE.md \| head -5`, and check `LICENSE`, `LICENSE.md` and `LICENSE.txt` on both branches of `home-assistant/developers.home-assistant.io` | `LICENCES` in `scripts/fetch_ha_sources.py`, which stamps the notice into every file the fetch writes, so a change here is re-derived by refetching · the carve-out in this repository's own `LICENSE` |
 | Panel design sources | the frontend's `src/resources/theme/` (`color/color.globals.ts`, `typography.globals.ts`) · the *Supported theme variables* section of the `frontend` integration page · the two m3.material.io pages | 2026-09-12 for the HA sources; the Material pages were not fetched | `gh api repos/home-assistant/frontend/contents/src/resources/theme --jq '.[].name'` · the headings of `source/_integrations/frontend.markdown` in `home-assistant/home-assistant.io` | the source list under **Fetch before deciding sizes/tokens — don't guess from memory** in `ha-panel-design/SKILL.md` |
 
 ## When the release row goes red
@@ -30,16 +31,14 @@ first such pass covered 2026.6 to 2026.9 in one go, on 2026-09-19.
 <the new minor>` writes the window's developer-blog posts and its release notes into
 `docs/ha-release/<minor>/`, with an index beside them, and commits are made of what it
 wrote. `--since <older minor>` widens the window for a backfill, which is how the first pass
-covered 2026.6 to 2026.9. This is not a convenience: **the governance gate refuses a patch to
-any file in *this* directory — the reference one — that names a release with a non-empty
-folder under `docs/ha-release/`, until it has served that release's own files.** Any release
-with no folder there is not demanded, because nothing fetched could settle it: one older than
-the oldest pulled, a gap inside the span, or a removal release a year out. The exception is
-the minor immediately after the newest pulled — the one a pass is about to write about — where
-an absent folder means the fetch was skipped, and the gate says so and names the command. What
-the check proves is therefore narrow, and worth knowing exactly: the sources that exist for
-the release you are writing about have been read. The rule below used to be advice, and the
-pass that wrote it broke it.
+covered 2026.6 to 2026.9. This is not a convenience: **the governance gate will not let a file
+in this directory make a claim about a release until it has served that release's fetched
+sources.** Exactly what it demands, and what it deliberately leaves alone, is `unread_sources`
+in `scripts/governance_gate.py`; that docstring is the one statement of the rule, and this
+sentence is a pointer at it rather than a second copy to keep in step. What the check proves
+is narrow either way — that the sources which exist for the release you are writing about have
+been read, not that what you wrote is true. The rule below used to be advice, and the pass
+that wrote it broke it.
 
 **Both sources, because neither contains the other.** Verified on the 2026.9 pair:
 
