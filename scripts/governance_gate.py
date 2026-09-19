@@ -116,15 +116,17 @@ CI_TIERS: dict[str, tuple[str, ...]] = {
 CLAIM_CHECKED = ("docs/backlog.md", "docs/backlog/")
 # The release window's fetched sources, and the tier whose release claims must come out of
 # them. scripts/fetch_ha_sources.py writes both the index and the files it names.
+SOURCE_DIR = "docs/ha-release/"
 SOURCE_INDEX = "docs/ha-release/index.md"
 REFERENCE_TIER = "plugins/ha/skills/ha-integration/reference/"
 # Repo-relative path -> the rotation window in which the gate last served it whole.
 _SERVED: dict[str, int] = {}
 # A path inside a backtick, which is how every row names a file.
 _NAMED = re.compile(r"`([A-Za-z0-9_./-]+\.[A-Za-z0-9]+)`")
-# A Home Assistant release, as every claim about one names it: 2026.9, `2026.10.2`. Four
-# digits and a dot, so a dependency pin (0.13.365) and a Python floor (3.14) are not one.
-_RELEASE = re.compile(r"\b(\d{4})\.(\d{1,2})(?:\.\d+)?\b")
+# A Home Assistant release, as every claim about one names it: 2026.9, `2026.10.2`, v2026.9.
+# Four digits and a dot, so a dependency pin (0.13.365) and a Python floor (3.14) are not
+# one; the optional `v` because a tag is written that way and a claim about a tag is a claim.
+_RELEASE = re.compile(r"\bv?(\d{4})\.(\d{1,2})(?:\.\d+)?\b")
 
 
 class GateError(Exception):
@@ -321,37 +323,34 @@ def unread_claims(text: str, now: float | None = None) -> list[str]:
     ]
 
 
-def source_files() -> list[str]:
-    """Every fetched source the index names, in the order it names them.
+def fetched_sources() -> dict[tuple[int, int], list[str]]:
+    """Every fetched source on disk, grouped by the release whose folder holds it.
 
-    Empty when no index has been fetched, which fails this check OPEN exactly as an
-    unreadable governing doc does: a clone that has never run `fetch_ha_sources.py` has to
-    stay editable. What stops that from being the way out is CI rather than the gate —
-    `tests/test_fetch_ha_sources.py` fails when the index is missing, or names a release
-    other than the one `freshness.md` does.
+    Read from the DIRECTORY, never from the index. The index is a governed file like any
+    other, so a demand list derived from it is disarmed by one patch that deletes rows —
+    demonstrated on review, with the whole suite still green. The directory is what the
+    fetch wrote, and removing a file from it removes it from the repository, where a diff
+    shows it. The index keeps its other job: saying where each file came from.
+
+    Empty when nothing has been fetched, which fails this check OPEN exactly as an
+    unreadable governing doc does — a clone that has never run `fetch_ha_sources.py` has to
+    stay editable. What notices that is CI rather than the gate:
+    `tests/test_fetch_ha_sources.py` fails unless the release `freshness.md` names has a
+    folder here, and unless the index and the folders describe the same set of files.
     """
-    try:
-        text = (REPO / SOURCE_INDEX).read_text(encoding="utf-8")
-    except OSError:
-        return []
-    return [
-        rel
-        for rel in dict.fromkeys(_NAMED.findall(text))
-        if rel.startswith("docs/ha-release/")
-        and rel != SOURCE_INDEX
-        and (REPO / rel).exists()
-    ]
-
-
-def covered_releases() -> set[tuple[int, int]]:
-    """The releases the fetched sources cover, read off the folder each source sits in."""
-    found: set[tuple[int, int]] = set()
-    for rel in source_files():
-        parts = rel.split("/")
-        if len(parts) > 2:
-            year, _, minor = parts[2].partition(".")
-            if year.isdigit() and minor.isdigit():
-                found.add((int(year), int(minor)))
+    found: dict[tuple[int, int], list[str]] = {}
+    root = REPO / SOURCE_DIR
+    if not root.is_dir():
+        return found
+    for folder in sorted(p for p in root.iterdir() if p.is_dir()):
+        year, _, minor = folder.name.partition(".")
+        if not (year.isdigit() and minor.isdigit()):
+            continue
+        files = sorted(
+            str(f.relative_to(REPO)) for f in folder.iterdir() if f.is_file()
+        )
+        if files:
+            found[(int(year), int(minor))] = files
     return found
 
 
@@ -363,21 +362,60 @@ def unread_sources(rel: str, text: str, now: float | None = None) -> list[str]:
     pass wrote rows from memory and got eight facts wrong, breaking its own rule. An edit key
     proves the file being written was read. This proves the sources it is written FROM were.
 
-    Only a claim about a release the fetched window covers, or a later one, is gated. A
-    sentence recording that inline brand assets have been served since 2026.3 cannot be
-    checked against 2026.9's posts, and demanding them for it would teach the caller that the
-    refusal is noise — which is how a guard stops being read.
+    The demand is PER RELEASE: naming 2026.7 demands 2026.7's sources and nothing else. A
+    demand for the whole directory grew with every monthly fetch and charged an edit about
+    one release for the reading of four, which is how a guard stops being read; and it made
+    a window that moved on un-gate every row written about the window before it.
+
+    A release with no folder here is not demanded — `2026.3`, which predates the fetch, and
+    `2027.8`, a removal release nobody can fetch for a year, both have to stay writable. The
+    one exception is the minor immediately after the newest fetched, which `pending_release`
+    handles: that is the release a pass is about to write about, and no folder for it means
+    the fetch was skipped rather than that nothing could be fetched.
+
+    What the check asserts is therefore narrow, and worth stating plainly: the sources that
+    exist for the release this text names have been read. It is not a proof that the text is
+    true, and a claim written beside a release number rather than with one carries no number
+    for it to match.
     """
     if not rel.startswith(REFERENCE_TIER):
         return []
-    covered = covered_releases()
-    if not covered:
-        return []
+    fetched = fetched_sources()
     named = {(int(year), int(minor)) for year, minor in _RELEASE.findall(text)}
-    if not any(release >= min(covered) for release in named):
-        return []
     bucket = int((time.time() if now is None else now) // ROTATION_SECONDS)
-    return [src for src in source_files() if _SERVED.get(src, -2) < bucket - 1]
+    unread: list[str] = []
+    for release in sorted(named & set(fetched)):
+        unread += [src for src in fetched[release] if _SERVED.get(src, -2) < bucket - 1]
+    return unread
+
+
+def _next_minor(release: tuple[int, int]) -> tuple[int, int]:
+    """The release after this one. Home Assistant numbers by calendar month, so 12 rolls."""
+    return (release[0] + 1, 1) if release[1] >= 12 else (release[0], release[1] + 1)
+
+
+def pending_release(rel: str, text: str) -> tuple[int, int] | None:
+    """The next minor, when a patch writes about it before its sources have been fetched.
+
+    Demanding only what is on disk left the ordinary case of the whole procedure open: the
+    pass writes prose about the new minor, and the release with no folder is exactly the one
+    whose fetch was skipped. Measured against both versions of the gate — a patch saying
+    "landing in 2026.10" was refused by the release >= oldest rule and allowed by the
+    per-release one.
+
+    Only the immediately following minor, because that is the one a pass is about to write
+    and the only unfetched release whose absence means "you skipped a step". Anything further
+    ahead — a removal release a year out — is a forward-looking reference that no fetch could
+    settle, and refusing it would make the row unwritable.
+    """
+    if not rel.startswith(REFERENCE_TIER):
+        return None
+    fetched = fetched_sources()
+    if not fetched:
+        return None
+    nxt = _next_minor(max(fetched))
+    named = {(int(year), int(minor)) for year, minor in _RELEASE.findall(text)}
+    return nxt if nxt in named else None
 
 
 def safe_relpath(path: str) -> str:
@@ -682,6 +720,16 @@ def patch_file(
         raise GateError(
             f"{rel} is not governed; edit it with the ordinary tools rather than through this gate"
         )
+    if rel.startswith(SOURCE_DIR):
+        # Read through the gate, written only by the fetch. The demand list survives a patch
+        # because it comes from the directory, but the SUBSTANCE did not: `old_string` set to
+        # a whole file and `new_string` empty left five sources present, listed, zero bytes
+        # and trivially "read", with the suite green. Nothing here is hand-authored, so the
+        # honest rule is that nothing here is hand-edited.
+        raise GateError(
+            f"{rel} is generated by scripts/fetch_ha_sources.py and is never patched; re-run "
+            f"the fetch to change it. Reading it through this gate is what the tier is for."
+        )
     try:
         before = (REPO / rel).read_text(encoding="utf-8")
     except OSError:
@@ -730,14 +778,27 @@ def patch_file(
                 f"the one before. Read each with get_file, then write the row."
             )
 
-    unread = unread_sources(rel, new_string)
+    # Both sides of the patch, so that editing a row which already names a release demands
+    # that release's sources. Checking only the new text let the row be rewritten around the
+    # number instead of with it, which is the same edit made from the same memory.
+    both = f"{old_string}\n{new_string}"
+    unread = unread_sources(rel, both)
     if unread:
         raise GateError(
-            f"this patch to {rel} states something about a Home Assistant release, and the "
-            f"window's own sources have not been read: {', '.join(unread)}. Read each with "
+            f"this patch to {rel} states something about a Home Assistant release, and that "
+            f"release's own sources have not been read: {', '.join(unread)}. Read each with "
             f"get_file, then write the row. Why a pass that skipped them got eight facts "
             f"wrong, and why core at the tag settles what a post cannot, are in "
             f"`{SOURCE_INDEX}` and the section it points at."
+        )
+    pending = pending_release(rel, both)
+    if pending:
+        raise GateError(
+            f"this patch to {rel} writes about {pending[0]}.{pending[1]}, the release after "
+            f"the newest one fetched, and nothing has been fetched for it. Run "
+            f"`python3 scripts/fetch_ha_sources.py --release {pending[0]}.{pending[1]}`, read "
+            f"what it writes, then write the row — that order is the procedure under *When "
+            f"the release row goes red*, and skipping it is what this gate exists to catch."
         )
 
     after = _apply(before, old_string, new_string, rel)

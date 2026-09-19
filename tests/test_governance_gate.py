@@ -259,16 +259,19 @@ def test_specific_tier_wins_over_general(monkeypatch, repo) -> None:
 
 
 def _sourced(repo, monkeypatch):
-    """A reference tier plus a fetched window, shaped as `fetch_ha_sources.py` leaves it."""
+    """A reference tier plus two fetched windows, shaped as `fetch_ha_sources.py` leaves it."""
     (repo / "reference").mkdir()
     (repo / "reference/patterns.md").write_text("# Patterns\n\nold text\n")
     (repo / "docs/ha-release/2026.9").mkdir(parents=True)
     (repo / "docs/ha-release/2026.9/release-notes.md").write_text("the notes\n")
     (repo / "docs/ha-release/2026.9/blog-a.md").write_text("the post\n")
+    (repo / "docs/ha-release/2026.8").mkdir(parents=True)
+    (repo / "docs/ha-release/2026.8/release-notes.md").write_text("older notes\n")
     (repo / "docs/ha-release/index.md").write_text(
         "| Source | What it is |\n|---|---|\n"
         "| `docs/ha-release/2026.9/release-notes.md` | [notes](u) |\n"
         "| `docs/ha-release/2026.9/blog-a.md` | [post](u) |\n"
+        "| `docs/ha-release/2026.8/release-notes.md` | [older](u) |\n"
     )
     monkeypatch.setattr(gs, "REFERENCE_TIER", "reference/")
     monkeypatch.setattr(
@@ -317,15 +320,40 @@ def test_reading_every_source_is_what_lifts_the_refusal(repo, monkeypatch):
     assert "2026.9 removed it" in (repo / "reference/patterns.md").read_text()
 
 
-def test_a_claim_about_a_release_older_than_the_window_is_not_gated(repo, monkeypatch):
-    """The fetched posts cannot settle it, so demanding them would be noise.
+def test_each_release_demands_its_own_sources_and_no_others(repo, monkeypatch):
+    """Per release, or an edit about one release pays for the reading of every window.
 
-    `freshness.md` records that inline brand assets have been served since 2026.3. Gating
-    that sentence on 2026.9's posts teaches the caller to read the refusal as an obstacle.
+    A demand for the whole directory also made a window that moved on un-gate every row
+    written about the window before it, which is the opposite of what this exists to do.
     """
     key = _sourced(repo, monkeypatch)
-    gs.patch_file("reference/patterns.md", "old text", "served since 2026.3", key)
-    assert "2026.3" in (repo / "reference/patterns.md").read_text()
+    with pytest.raises(gs.GateError) as excinfo:
+        gs.patch_file("reference/patterns.md", "old text", "2026.8 changed it", key)
+    assert "docs/ha-release/2026.8/release-notes.md" in str(excinfo.value)
+    assert "2026.9" not in str(excinfo.value)
+
+    gs.get_file(
+        "docs/ha-release/2026.8/release-notes.md",
+        gs.current_receipt_key("docs/ha-release/"),
+    )
+    gs.patch_file("reference/patterns.md", "old text", "2026.8 changed it", key)
+    assert "2026.8 changed it" in (repo / "reference/patterns.md").read_text()
+
+
+def test_a_claim_about_a_release_with_no_fetched_sources_is_not_gated(
+    repo, monkeypatch
+):
+    """Nothing here could settle it, and a refusal that cannot help gets read as noise.
+
+    `freshness.md` records that inline brand assets have been served since 2026.3, and
+    `patterns.md` names 2027.8 as a removal release — one predates the fetch and the other
+    cannot be fetched at all. Both must stay writable.
+    """
+    key = _sourced(repo, monkeypatch)
+    gs.patch_file(
+        "reference/patterns.md", "old text", "served since 2026.3, gone in 2027.8", key
+    )
+    assert "2027.8" in (repo / "reference/patterns.md").read_text()
 
 
 def test_a_patch_naming_no_release_at_all_is_not_gated(repo, monkeypatch):
@@ -336,12 +364,50 @@ def test_a_patch_naming_no_release_at_all_is_not_gated(repo, monkeypatch):
 
 
 def test_a_version_that_is_not_a_release_is_not_read_as_one(repo, monkeypatch):
-    """A harness pin and a Python floor are versions; neither is a Home Assistant release."""
+    """A harness pin and a Python floor are versions; neither is a Home Assistant release.
+
+    Asserted against the pattern itself, not only through the gate. Reached only through
+    `patch_file` this passed for the wrong reason — a two-digit year yields no folder to
+    demand either — and a pattern widened to two loose numbers left the whole suite green.
+    """
+    assert not gs._RELEASE.findall("pinned at 0.13.365 on 3.14")
+    assert gs._RELEASE.findall("2026.9 and v2026.10.2") == [
+        ("2026", "9"),
+        ("2026", "10"),
+    ]
     key = _sourced(repo, monkeypatch)
     gs.patch_file(
         "reference/patterns.md", "old text", "pinned at 0.13.365 on 3.14", key
     )
     assert "0.13.365" in (repo / "reference/patterns.md").read_text()
+
+
+def test_a_release_written_as_a_tag_is_still_a_release(repo, monkeypatch):
+    """`v2026.9` is how a claim about the tag is spelled, and a claim about a tag is a claim."""
+    key = _sourced(repo, monkeypatch)
+    with pytest.raises(gs.GateError):
+        gs.patch_file("reference/patterns.md", "old text", "read at v2026.9", key)
+
+
+def test_editing_a_row_that_already_names_a_release_demands_its_sources(
+    repo, monkeypatch
+):
+    """Both sides of the patch are checked, or the row is rewritten around the number.
+
+    Checking `new_string` alone left the commonest edit of all ungated: taking an existing
+    release row and restating it, from the same memory that got it wrong the first time.
+    """
+    _sourced(repo, monkeypatch)
+    (repo / "reference/patterns.md").write_text("# Patterns\n\n2026.9 removed it\n")
+    gs.get_file("reference/patterns.md", gs.current_receipt_key("reference/"))
+    with pytest.raises(gs.GateError) as excinfo:
+        gs.patch_file(
+            "reference/patterns.md",
+            "2026.9 removed it",
+            "it was removed",
+            gs.current_edit_key("reference/patterns.md"),
+        )
+    assert "docs/ha-release/2026.9/blog-a.md" in str(excinfo.value)
 
 
 def test_only_the_reference_tier_has_its_release_claims_checked(repo, monkeypatch):
@@ -357,29 +423,91 @@ def test_only_the_reference_tier_has_its_release_claims_checked(repo, monkeypatc
     assert "since 2026.9" in (repo / "scripts/t.py").read_text()
 
 
-def test_without_a_fetched_index_the_source_check_is_open(repo, monkeypatch):
+def test_emptying_the_index_does_not_disarm_the_check(repo, monkeypatch):
+    """The demand comes from the directory, because the index is patchable through the gate.
+
+    Derived from the index, the check was defeated by one `patch_file` that deleted rows
+    while every file stayed on disk and all 131 tests passed. Removing a source now means
+    removing a file, which a diff shows.
+    """
+    key = _sourced(repo, monkeypatch)
+    (repo / "docs/ha-release/index.md").write_text(
+        "| Source | What it is |\n|---|---|\n"
+    )
+    with pytest.raises(gs.GateError) as excinfo:
+        gs.patch_file("reference/patterns.md", "old text", "2026.9 removed it", key)
+    assert "docs/ha-release/2026.9/blog-a.md" in str(excinfo.value)
+
+    (repo / "docs/ha-release/index.md").unlink()
+    with pytest.raises(gs.GateError):
+        gs.patch_file("reference/patterns.md", "old text", "2026.9 removed it", key)
+
+
+def test_with_nothing_fetched_the_source_check_is_open(repo, monkeypatch):
     """Fail open, like an unreadable governing doc: a clone that never fetched still works.
 
     That is also the way out of this check, which is why `tests/test_fetch_ha_sources.py`
-    fails when the committed index is missing — the gate cannot notice its own absence.
+    fails when the release `freshness.md` names has no folder — the gate cannot notice its
+    own absence.
     """
     key = _sourced(repo, monkeypatch)
-    (repo / "docs/ha-release/index.md").unlink()
-    assert gs.source_files() == []
+    for folder in ("2026.8", "2026.9"):
+        for path in (repo / "docs/ha-release" / folder).iterdir():
+            path.unlink()
+        (repo / "docs/ha-release" / folder).rmdir()
+    assert gs.fetched_sources() == {}
     gs.patch_file("reference/patterns.md", "old text", "2026.9 removed it", key)
     assert "2026.9 removed it" in (repo / "reference/patterns.md").read_text()
 
 
-def test_a_source_the_index_names_but_that_is_gone_is_not_demanded(repo, monkeypatch):
-    """Only a file this gate could serve is demanded, as with the register's claims."""
+def test_writing_about_the_next_minor_before_fetching_it_is_refused(repo, monkeypatch):
+    """The ordinary case of the whole procedure, and per-release demand had opened it.
+
+    Measured against both versions of the gate: "landing in 2026.10" was refused by the
+    release >= oldest rule and allowed by the per-release one. A missing folder for the very
+    next minor means the fetch was skipped, which is the one absence that is not innocent.
+    """
     key = _sourced(repo, monkeypatch)
-    (repo / "docs/ha-release/2026.9/blog-a.md").unlink()
-    gs.get_file(
-        "docs/ha-release/2026.9/release-notes.md",
-        gs.current_receipt_key("docs/ha-release/"),
-    )
-    gs.patch_file("reference/patterns.md", "old text", "2026.9 removed it", key)
-    assert "2026.9 removed it" in (repo / "reference/patterns.md").read_text()
+    with pytest.raises(gs.GateError) as excinfo:
+        gs.patch_file("reference/patterns.md", "old text", "landing in 2026.10", key)
+    assert "fetch_ha_sources.py --release 2026.10" in str(excinfo.value)
+    assert "old text" in (repo / "reference/patterns.md").read_text()
+
+
+def test_a_release_further_ahead_than_the_next_minor_is_still_writable(
+    repo, monkeypatch
+):
+    """`2027.8` is a removal release a year out; no fetch could settle it, ever."""
+    key = _sourced(repo, monkeypatch)
+    gs.patch_file("reference/patterns.md", "old text", "removed in 2027.8", key)
+    assert "2027.8" in (repo / "reference/patterns.md").read_text()
+
+
+def test_december_rolls_over_when_the_next_minor_is_worked_out(repo, monkeypatch):
+    """Home Assistant numbers by calendar month, so the one after 2026.12 is 2027.1."""
+    assert gs._next_minor((2026, 12)) == (2027, 1)
+    assert gs._next_minor((2026, 9)) == (2026, 10)
+
+
+def test_a_fetched_source_is_read_through_the_gate_and_never_patched(repo, monkeypatch):
+    """The demand list survived a patch; the substance did not.
+
+    Through the live API, `old_string` set to a whole source and `new_string` empty left
+    every file present, listed, zero bytes and trivially served, with the suite green. These
+    files are generated, so the honest rule is that the gate never writes them.
+    """
+    _sourced(repo, monkeypatch)
+    docs_key = gs.current_receipt_key("docs/ha-release/")
+    gs.get_file("docs/ha-release/2026.9/blog-a.md", docs_key)
+    with pytest.raises(gs.GateError) as excinfo:
+        gs.patch_file(
+            "docs/ha-release/2026.9/blog-a.md",
+            "the post\n",
+            "",
+            gs.current_edit_key("docs/ha-release/2026.9/blog-a.md"),
+        )
+    assert "generated by scripts/fetch_ha_sources.py" in str(excinfo.value)
+    assert (repo / "docs/ha-release/2026.9/blog-a.md").read_text() == "the post\n"
 
 
 def test_the_real_map_governs_the_fetched_sources_and_names_the_real_tier() -> None:
@@ -389,7 +517,16 @@ def test_the_real_map_governs_the_fetched_sources_and_names_the_real_tier() -> N
         "plugins/ha/skills/ha-integration/reference/freshness.md",
     )
     assert gs.REFERENCE_TIER in gs.TIERS
-    assert gs.SOURCE_INDEX.startswith("docs/ha-release/")
+    assert gs.SOURCE_INDEX.startswith(gs.SOURCE_DIR)
+
+
+def test_the_real_repository_has_the_release_row_covered() -> None:
+    """The row the skill claims to be current for must be one the gate can demand for.
+
+    `tests/test_fetch_ha_sources.py` says the same thing from the index's side; this says it
+    from the gate's, since it is `fetched_sources()` that decides what is enforced.
+    """
+    assert (2026, 9) in gs.fetched_sources()
 
 
 # ------------------------------------------------------------ key derivation
