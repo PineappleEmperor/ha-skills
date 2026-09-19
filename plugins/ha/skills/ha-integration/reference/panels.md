@@ -6,9 +6,11 @@ Traps specific to shipping a Lit/TS panel from an integration. For how the panel
 - The bundle must be committed
 - `home-assistant-frontend` must be pinned in `requirements.test.txt`
 - Registration has two traps
+- Home Assistant pads the panel for the safe area
+- A panel that reads devices reads them by config entry
 - Testability is a design property, not a tooling one
 
-Five things are non-obvious here, and each fails silently.
+Seven things are non-obvious here, and each fails silently.
 
 ### Register the static path and the panel in `async_setup`
 Once per process, for the reason `reference/patterns.md` gives under *Register integration-global resources in `async_setup`, not `async_setup_entry`*; the snippet carries both traps the section below names.
@@ -73,6 +75,61 @@ Gate-enforced, per *What the audit checks now* in ha-integration-ci's README.
 
 ### Registration has two traps
 Both are in the snippet above, marked by their comments: claim the registered flag **before** the `await`, or two entries setting up in parallel both register; and cache-bust the module URL with the integration version, or a browser serves the previous panel after an update.
+
+### Home Assistant pads the panel for the safe area
+
+Since **2026.8** custom panels and add-on iframes get safe-area padding by default, so
+content stays clear of notches, status bars and home indicators.
+
+**The opt-out is a keyword argument, and it lands in 2026.9.** Read at the `2026.9.0` tag,
+`homeassistant/components/panel_custom/__init__.py`: `handle_safe_area: bool = False` is a
+parameter of `async_register_panel`, which writes it into `config["_panel_custom"]` itself.
+Passing it *inside* the `config` dict does nothing — the function overwrites that key — so a
+panel that opts out that way keeps the padding and nobody is told. The YAML spelling
+(`handle_safe_area: true` under a `panel_custom:` entry) is the same argument arriving
+through `async_setup`, and its per-panel schema is strict, so on 2026.8 that key fails
+config validation rather than being ignored.
+
+```python
+async def _register(hass: HomeAssistant, module_url: str) -> None:
+    """Register the panel, taking responsibility for the safe-area insets."""
+    await panel_custom.async_register_panel(
+        hass,
+        frontend_url_path=DOMAIN,
+        webcomponent_name=f"{DOMAIN}-panel",
+        module_url=module_url,
+        handle_safe_area=True,  # this panel insets itself; skip HA's padding
+    )
+```
+
+Say which you want explicitly rather than inheriting a default nobody chose: a panel drawn
+edge-to-edge on a phone looks broken without the padding, and one that already insets itself
+looks doubly inset with it.
+
+### A panel that reads devices reads them by config entry
+
+The device registry WebSocket API changed under the same rewrite `reference/patterns.md`
+describes in *Devices belong to one config entry*, and a panel is a client of it:
+
+- **2026.8** — every device in `config/device_registry/list` gains `config_entry_id` and
+  `config_subentry_id`. Read those. The plural `config_entries`,
+  `config_entries_subentries` and `primary_config_entry` are deprecated and removed in
+  **2027.8**.
+- **2026.9** — the list can contain **child devices**, which carry a `parent_device_id` and
+  omit *twelve* fields, not the four a panel is most likely to index: `connections`,
+  `manufacturer`, `model`, `model_id`, `sw_version`, `hw_version`, `serial_number`,
+  `via_device_id`, `configuration_url`, `entry_type`, and the deprecated `config_entries`
+  and `config_entries_subentries`. A client must not assume any of them is present.
+  Rendering a device table that indexes them blindly is how this breaks.
+- **2026.9** — `config/device_registry/remove` removes a device by `device_id` alone and
+  replaces `config/device_registry/remove_config_entry`, which needed both ids and is
+  removed in **2027.9**. Verified by reading `components/config/device_registry.py` at both
+  tags: `remove` is absent at `2026.8.0` and registered at `2026.9.0`.
+- **2026.8** — `config/device_registry/list_linked_devices` returns siblings sharing
+  connections or identifiers across config entries, and
+  `config/device_registry/list_composite_splits` maps a pre-migration composite device id to
+  the split devices that replaced it. Useful if a panel stored device ids of its own. The
+  post assigns these no release; both are registered at the `2026.8.0` tag.
 
 ### Testability is a design property, not a tooling one
 
