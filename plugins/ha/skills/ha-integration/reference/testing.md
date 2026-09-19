@@ -83,10 +83,10 @@ It never runs in the normal suite. Four conditions make one safe, and all four a
   unattended trigger is a secret a PR can exfiltrate.
 - **A marker excluded from the default run**, e.g. `@pytest.mark.live`, so a developer
   running `pytest` locally never spends the vendor's quota or trips a rate limit by
-  accident. Exclude it with `-m 'not live'` on the command line the workflow runs, not in
-  `addopts`: `pyproject.toml` is copied from `templates/` verbatim, and *Sanctioned
-  adaptations — the complete list* in `reference/github-actions.md` is what says which
-  changes to it are allowed.
+  accident. Either `addopts = "-m 'not live'"` in `pyproject.toml` or `-m 'not live'` on the
+  command line works; pytest options are a sanctioned adaptation of that file, per
+  *Sanctioned adaptations — the complete list* in `reference/github-actions.md`. Prefer
+  `addopts`, since it protects a developer typing a bare `pytest` as well as CI.
 - **A dedicated account, and no account identifier in the test.** The data the test reads
   should be a fixture account's, not a real user's, and the assertions name shapes and
   types rather than values that would leak whose account it is.
