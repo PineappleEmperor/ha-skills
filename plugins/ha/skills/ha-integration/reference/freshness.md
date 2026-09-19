@@ -16,7 +16,9 @@ uniformly old.
 | Brand image specification | 8 filenames (`icon`/`logo`/`dark_icon`/`dark_logo`, each with an `@2x`); icons exactly 256/512 and 1:1; logo shortest side 128–256 and 256–512, band maximum preferred; trimmed of empty space; no HA-branded imagery in a custom integration | 2026-09-19 | `curl -s https://raw.githubusercontent.com/home-assistant/brands/master/README.md` — *Inner workings* for the eight filenames, *Missing image handling* for the fallback chain, and *Image specification* with its two subsections for the rules; the `custom_integrations/` folder is legacy but that README still owns the spec for inline assets | the *Brand assets* section of `reference/scaffold.md` · `check_brand_assets` in ha-integration-ci's `scripts/skill_audit.py`, which is what measures a consumer's files (a CI release) |
 | Panel design sources | the frontend's `src/resources/theme/` (`color/color.globals.ts`, `typography.globals.ts`) · the *Supported theme variables* section of the `frontend` integration page · the two m3.material.io pages | 2026-09-12 for the HA sources; the Material pages were not fetched | `gh api repos/home-assistant/frontend/contents/src/resources/theme --jq '.[].name'` · the headings of `source/_integrations/frontend.markdown` in `home-assistant/home-assistant.io` | the source list under **Fetch before deciding sizes/tokens — don't guess from memory** in `ha-panel-design/SKILL.md` |
 
-**When the release row goes red.** The skill repository's own CI fails once PyPI's
+## When the release row goes red
+
+The skill repository's own CI fails once PyPI's
 `homeassistant` minor is ahead of the first row above — that check is maintenance of the
 skill and is not something a scaffolded integration carries. The pass that clears it: read the
 sources below; for each change a custom integration can meet, add a row to *What changed in
@@ -31,8 +33,9 @@ first such pass covered 2026.6 to 2026.9 in one go, on 2026-09-19.
   posts in that window; the rest are reachable only from the blog index.
 - **home-assistant.io's release-notes post for that version**, specifically its
   *Backward-incompatible changes* section. Nine entries there for 2026.9, and **none of them
-  had a developer-blog post** — including the removal of `VacuumEntity.battery_level`, which
-  a blog-only pass misses entirely.
+  had a developer-blog post** — including the vacuum `battery_level` removal that *What
+  changed in recent releases* in `reference/patterns.md` records, which a blog-only pass
+  misses entirely.
 
 **Open every source before writing a row from it.** A change summarised from memory, or
 from a release note's one-line mention without the post behind it, is the failure this

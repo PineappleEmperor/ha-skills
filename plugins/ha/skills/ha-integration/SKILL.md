@@ -53,9 +53,10 @@ served** — the committed bundle, its staleness check, registration and cache-b
   see `reference/audit.md`.
 - **Cached facts go stale silently.** Anything captured more than ~3 months ago gets re-derived
   before it is trusted, and the skill is current for one Home Assistant release at a time — the
-  table, its re-derivation commands and the monthly procedure that moves it are in
-  `reference/freshness.md`. What that release changed for an integration is *What changed in
-  recent releases* in `reference/patterns.md`.
+  table and its re-derivation commands are in `reference/freshness.md`, and what to do when
+  the release moves is *When the release row goes red* in that file. What that release
+  changed for an integration is *What changed in recent releases* in
+  `reference/patterns.md`.
 
 ## Reference map
 
