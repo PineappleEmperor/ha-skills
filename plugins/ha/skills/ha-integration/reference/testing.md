@@ -11,6 +11,7 @@ The code patterns being tested are `reference/patterns.md`.
 - `test-before-setup` means a real config-entry setup
 - If the integration allows multiple devices, test two entries set up in parallel
 - Unit-test the pure logic directly
+- Contract tests against the real API
 - Minimum coverage before claiming a tier
 - Prefer future-dated fixtures over freezing the clock
 - Push coordinator data to entities without scheduling timers
@@ -64,6 +65,35 @@ A single-entry `LOADED` test can't catch integration-global registration done pe
 ### Unit-test the pure logic directly
 
 Regex parsers, date/format extraction and data transforms (`order_parse`, `voucher_parse`, `sort_orders`, …) take a string or object and return a value, with no HA and no mocks. They carry the highest regression risk and are the cheapest to cover; a parser with zero tests is a standing liability.
+
+### Contract tests against the real API
+
+Everything above says mock the boundary. There is one case for deliberately not mocking it:
+a **contract test**, which calls the vendor's real API to answer a question a mock cannot —
+has the response shape changed, is the key still valid, does the rate limit behave as
+documented. A mocked test proves your parser handles the payload you recorded; it says
+nothing about whether that payload is still what the vendor sends.
+
+It never runs in the normal suite. Four conditions make one safe, and all four are needed:
+
+- **Manual dispatch only.** `on: workflow_dispatch` — never `pull_request`, and never
+  `pull_request_target`, which would hand a fork's code the credentials.
+- **Credentials behind an environment with required reviewers.** Repository secrets bound
+  to a GitHub environment, so a human approves each run. A secret reachable from an
+  unattended trigger is a secret a PR can exfiltrate.
+- **A marker excluded from the default run**, e.g. `@pytest.mark.live`, so a developer
+  running `pytest` locally never spends the vendor's quota or trips a rate limit by
+  accident. Exclude it with `-m 'not live'` on the command line the workflow runs, not in
+  `addopts`: `pyproject.toml` is copied from `templates/` verbatim, and *Sanctioned
+  adaptations — the complete list* in `reference/github-actions.md` is what says which
+  changes to it are allowed.
+- **A dedicated account, and no account identifier in the test.** The data the test reads
+  should be a fixture account's, not a real user's, and the assertions name shapes and
+  types rather than values that would leak whose account it is.
+
+Treat its result as information, not a gate: a contract test failing means the vendor
+changed something, which is worth a red run on a schedule but must never block a merge that
+did not cause it. Keep it out of the required contexts.
 
 ### Minimum coverage before claiming a tier
 
