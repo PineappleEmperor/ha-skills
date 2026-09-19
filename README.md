@@ -98,7 +98,10 @@ owns what, and what the scaffold carries beyond the callers from
 ## Development
 
 The skills are treated as code: this repo is a consumer of release-flow like any
-integration, and its own tooling has unit tests that run on every PR.
+integration, its own tooling has unit tests that run on every PR, and that run fails
+once PyPI carries a newer Home Assistant minor than the release row in the skill's
+`reference/freshness.md` names — the nudge for the monthly procedure written under
+that table.
 
 [ha-ci-testing](https://github.com/PineappleEmperor/ha-ci-testing) is a throwaway
 integration that runs the whole cycle — branch, draft PR, merge, release candidate, final —
