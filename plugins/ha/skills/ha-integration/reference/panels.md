@@ -112,14 +112,17 @@ The device registry WebSocket API changed under the same rewrite `reference/patt
 describes in *Devices belong to one config entry*, and a panel is a client of it:
 
 - **2026.8** — every device in `config/device_registry/list` gains `config_entry_id` and
-  `config_subentry_id`. Read those. The plural `config_entries`,
-  `config_entries_subentries` and `primary_config_entry` are deprecated and removed in
-  **2027.8**.
+  `config_subentry_id`. Read those. `config_entries` and `config_entries_subentries` are
+  deprecated and removed in **2027.8**; `primary_config_entry` runs to **2027.10**, per the
+  comments beside `DeviceEntry.dict_repr`.
 - **2026.9** — the list can contain **child devices**, which carry a `parent_device_id` and
-  omit *twelve* fields, not the four a panel is most likely to index: `connections`,
+  omit *thirteen* fields, not the four a panel is most likely to index: `connections`,
   `manufacturer`, `model`, `model_id`, `sw_version`, `hw_version`, `serial_number`,
-  `via_device_id`, `configuration_url`, `entry_type`, and the deprecated `config_entries`
-  and `config_entries_subentries`. A client must not assume any of them is present.
+  `via_device_id`, `configuration_url`, `entry_type`, and the three deprecated
+  `config_entries`, `config_entries_subentries` and `primary_config_entry`. Counted as the
+  difference between `DeviceEntry.dict_repr` (25 keys) and `ChildDeviceEntry.dict_repr` (12)
+  at the `2026.9.0` tag. A client must not assume any of them is present — including the
+  deprecated three, which the bullet above still allows you to read until their removal.
   Rendering a device table that indexes them blindly is how this breaks.
 - **2026.9** — `config/device_registry/remove` removes a device by `device_id` alone and
   replaces `config/device_registry/remove_config_entry`, which needed both ids and is

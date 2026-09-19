@@ -354,16 +354,19 @@ return `None` and are removed in 2027.8 — set `self.device_entry` instead.
 
 ### Units: prefer the enumerators
 
-Two enums arrived in **2026.7** and the loose constants they replace are deprecated, with no
-removal release announced:
+Two enums arrived in **2026.7**, and every loose constant they replace is deprecated and
+**removed in 2027.8** — the post names no removal release, `homeassistant/const.py` does, in
+the `DeprecatedConstantEnum` beside each one:
 
-- `UnitOfDensity` for mass-over-volume — `g/m³`, `mg/m³`, `µg/m³`, `µg/ft³`
-- `UnitOfRatio` for unitless ratios — `ppm`, `ppb`
+- `UnitOfDensity` for mass-over-volume — `GRAMS_PER_CUBIC_METER`,
+  `MILLIGRAMS_PER_CUBIC_METER`, `MICROGRAMS_PER_CUBIC_METER`, `MICROGRAMS_PER_CUBIC_FOOT`
+- `UnitOfRatio` for ratios — `PARTS_PER_MILLION`, `PARTS_PER_BILLION`, and **`PERCENTAGE`**
 
-The `CONCENTRATION_*` constants are deprecated (`CONCENTRATION_PARTS_PER_CUBIC_METER` with
-no replacement at all), and **`PERCENTAGE` is deprecated specifically as a unit of
-measurement** even though the constant itself stays. A humidity or battery sensor should
-take its unit from the enum rather than the bare string.
+Every `CONCENTRATION_*` constant is deprecated, `CONCENTRATION_PARTS_PER_CUBIC_METER` with
+no replacement at all. `PERCENTAGE` is the one to read carefully: the constant stays and is
+now defined *from* the enum (`PERCENTAGE: Final = UnitOfRatio.PERCENTAGE.value`), while
+using it as a unit of measurement is deprecated. So a humidity or battery sensor takes
+`UnitOfRatio.PERCENTAGE` — a real member, not the bare string and not the loose constant.
 
 ### Config entry migration
 
@@ -389,13 +392,18 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 ```
 Major version bump without `async_migrate_entry` = setup **fails** for existing users. Always implement the handler before shipping a major bump.
 
-**Raise, rather than returning `False`.** Returning `False` tells the user nothing. The
-handler may raise a config-entry exception instead, which is translatable and carries the
-reason: `ConfigEntryNotReady` for something that may resolve itself (a timeout, a service
-briefly down) leaves the entry to retry later; any other exception, `ConfigEntryError`
-included, stops migration and parks the entry in `migration_error`, which is not recoverable
-on its own. For that second case, raise a repair issue so the user knows what to fix, and
-call `hass.config_entries.async_retry_migration(entry_id)` once they have.
+**Raising instead of returning `False` is coming, but not yet.** Announced 2026-09-17: the
+handler may raise a config-entry exception, which is translatable and carries the reason —
+`ConfigEntryNotReady` for something that may resolve itself leaves the entry to retry, while
+any other exception parks it in `migration_error` for a repair issue and a later
+`hass.config_entries.async_retry_migration(entry_id)`.
+
+**None of that works on 2026.9.** Read at the `2026.9.0` tag: `ConfigEntry.async_migrate`
+wraps the call in `except Exception: self.logger.exception(...); return False`, so every
+exception is swallowed alike and `ConfigEntryNotReady` gets no special treatment, and
+`ConfigEntries` has no `async_retry_migration` at all. Both arrive in a later release. Until
+the release row in `reference/freshness.md` names one that has them, return `True`/`False`
+and log the reason yourself.
 
 ---
 
@@ -512,8 +520,8 @@ warning, not a claim that the skill has been checked against that release.
 | Release | Change | What to do | Gone in |
 |---|---|---|---|
 | 2026.6 | config-entry update listener together with a reloading method | drop one: `async_update_and_abort()` over `async_update_reload_and_abort()`, `reload_on_update=False` on `_abort_if_unique_id_configured()` | an **error from 2026.12** |
-| 2026.7 | `UnitOfDensity`, `UnitOfRatio` | replace the `CONCENTRATION_*` constants; stop using `PERCENTAGE` *as a unit of measurement* | no removal release announced |
-| 2026.8 | a device has one config entry and at most one subentry | see *Devices belong to one config entry* above | warnings until **2027.8**; helper methods removed then |
+| 2026.7 | `UnitOfDensity`, `UnitOfRatio` | replace the `CONCENTRATION_*` constants; take `UnitOfRatio.PERCENTAGE` rather than `PERCENTAGE` as a unit of measurement | **2027.8**, per `const.py` — the post names no release |
+| 2026.8 | a device has one config entry and at most one subentry | see *Devices belong to one config entry* above | **2027.8 or 2027.10 by row** — that table's last column, not one date |
 | 2026.8 | custom panels get safe-area padding by default | the opt-out lands a release later — `reference/panels.md` | — |
 | 2026.9 | `async_get_device_and_config_entry_for_domain()` in `helpers.device_registry` | use it in place of a loop over a device's entries; it handles composite device ids too | — |
 | 2026.9 | `panel_custom` gains the `handle_safe_area` opt-out | `handle_safe_area=True` to `async_register_panel`, or the key under a `panel_custom:` entry — `reference/panels.md` | — |
@@ -524,14 +532,14 @@ warning, not a claim that the skill has been checked against that release.
 | 2026.8 | `config/device_registry/list_linked_devices` and `list_composite_splits` | new WebSocket commands, read at the `2026.8.0` tag; the post assigns them no release | — |
 | 2026.9 | child devices in the device list; `config/device_registry/remove` | handle entries with a `parent_device_id` and missing hardware fields; call the new remove command | `remove_config_entry` removed **2027.9** |
 | — | `DeviceClassSelector` and `StateClassSelector` | migrate a flow that picks a device or state class off `SelectSelector`, and drop the stale translations for its values | no version or deprecation stated in the post |
-| — | `async_migrate_entry` may raise instead of returning `False` | `ConfigEntryNotReady` to retry later; anything else halts at `migration_error`, so pair it with a repair issue and `async_retry_migration()` | no version stated in the post |
+| after 2026.9 | `async_migrate_entry` may raise instead of returning `False` | **not yet usable** — neither the `ConfigEntryNotReady` path nor `async_retry_migration` exists at the `2026.9.0` tag; see *Config entry migration* above | the post names no release |
 | 2026.6 | conditions and scripts are objects with a lifecycle | `async_condition_from_config()`, then `async_check()`, then `async_unload()`; a script is `async_run()` then `await script.async_unload()`. A condition platform may add `_async_setup()` / `_async_unload()` | calling a condition object directly ends **2027.1** |
 | 2026.6 | `BrowseMediaSource(domain=…)` is required | pass your own domain; the all-sources root node is `RootBrowseMediaSource` | a hard change, not a deprecation |
 | 2026.7 | `device_tracker`: `battery_level` and `TrackerEntity.location_name` | a dedicated battery sensor; `in_zones` (zone entity ids, smallest first) for location. New: `BaseScannerEntity`, the `tracking_type` attribute | both stop working **2027.7** |
 | 2026.7 | `async_initialize_triggers(home_assistant_start=…)` | stop passing it — it already has no effect; `hass.async_add_startup_job` for startup work | removed **2027.8** |
 | 2026.8 | `MediaSource.async_search_media()` | optional; adds search to the media browser via `SearchMedia` / `SearchMediaQuery` | — |
 | 2026.8 | `ButtonEventType` for `EventDeviceClass.BUTTON` | optional and additive: use the standard members (`PRESS_START`, `LONG_PRESS_START`, `MULTI_PRESS_END`, …) in `event_types` rather than your own strings | custom strings still allowed |
-| 2026.9 | the `configurator` integration | a config flow and config entries | removed **2027.10** |
+| 2026.10 | the `configurator` integration | a config flow and config entries | removed **2027.10** — the post is dated in the 2026.9 window but `components/configurator/` carries no deprecation at the `2026.9.0` tag |
 | 2026.9 | `battery_level` on the base vacuum entity (`StateVacuumEntity`) | a dedicated battery sensor | **removed** — from the release notes' *Backward-incompatible changes*, which carry no blog post for it |
 | 2026.6 | MQTT publish supports `message_expiry_interval` | optional; a second post of the same date as the `qos`/`retain` change | — |
 | 2026.10 | the OAuth2 helper raises config-entry exceptions itself | delete the try/except around `ImplementationUnavailableError`, `UnknownImplementationError` and the token-request errors, the hand-rolled `ConfigEntryNotReady`/`ConfigEntryAuthFailed` conversion, and the `oauth2_implementation_unavailable` string | — |
