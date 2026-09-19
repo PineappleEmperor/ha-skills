@@ -367,11 +367,17 @@ def unread_sources(rel: str, text: str, now: float | None = None) -> list[str]:
     one release for the reading of four, which is how a guard stops being read; and it made
     a window that moved on un-gate every row written about the window before it.
 
-    A release with no folder here is not demanded — `2026.3`, which predates the fetch, and
-    `2027.8`, a removal release nobody can fetch for a year, both have to stay writable. The
-    one exception is the minor immediately after the newest fetched, which `pending_release`
-    handles: that is the release a pass is about to write about, and no folder for it means
-    the fetch was skipped rather than that nothing could be fetched.
+    A release with no folder here is not demanded, whether it predates the fetch (`2026.3`),
+    falls in a gap inside the span, or is still to ship (`2027.8`). An earlier version made
+    one exception — the minor immediately after the newest fetched, on the theory that a pass
+    writing about it had skipped its fetch — and that was wrong in a way worth recording:
+    `patterns.md` already names 2026.10 six times, because a deprecation post says when the
+    removal lands, and the refusal made the file unpatchable while naming a fetch command that
+    cannot succeed until the release ships. What CI catches instead is narrower and is worth
+    knowing exactly: `tests/test_fetch_ha_sources.py` reads the release row in `freshness.md`
+    and fails unless that minor has a folder here with release notes in it, so the row cannot
+    move to a release whose sources were never pulled. Prose about an unfetched release that
+    leaves the row alone — which `patterns.md` carries today — is caught by nothing.
 
     What the check asserts is therefore narrow, and worth stating plainly: the sources that
     exist for the release this text names have been read. It is not a proof that the text is
@@ -387,35 +393,6 @@ def unread_sources(rel: str, text: str, now: float | None = None) -> list[str]:
     for release in sorted(named & set(fetched)):
         unread += [src for src in fetched[release] if _SERVED.get(src, -2) < bucket - 1]
     return unread
-
-
-def _next_minor(release: tuple[int, int]) -> tuple[int, int]:
-    """The release after this one. Home Assistant numbers by calendar month, so 12 rolls."""
-    return (release[0] + 1, 1) if release[1] >= 12 else (release[0], release[1] + 1)
-
-
-def pending_release(rel: str, text: str) -> tuple[int, int] | None:
-    """The next minor, when a patch writes about it before its sources have been fetched.
-
-    Demanding only what is on disk left the ordinary case of the whole procedure open: the
-    pass writes prose about the new minor, and the release with no folder is exactly the one
-    whose fetch was skipped. Measured against both versions of the gate — a patch saying
-    "landing in 2026.10" was refused by the release >= oldest rule and allowed by the
-    per-release one.
-
-    Only the immediately following minor, because that is the one a pass is about to write
-    and the only unfetched release whose absence means "you skipped a step". Anything further
-    ahead — a removal release a year out — is a forward-looking reference that no fetch could
-    settle, and refusing it would make the row unwritable.
-    """
-    if not rel.startswith(REFERENCE_TIER):
-        return None
-    fetched = fetched_sources()
-    if not fetched:
-        return None
-    nxt = _next_minor(max(fetched))
-    named = {(int(year), int(minor)) for year, minor in _RELEASE.findall(text)}
-    return nxt if nxt in named else None
 
 
 def safe_relpath(path: str) -> str:
@@ -791,16 +768,6 @@ def patch_file(
             f"wrong, and why core at the tag settles what a post cannot, are in "
             f"`{SOURCE_INDEX}` and the section it points at."
         )
-    pending = pending_release(rel, both)
-    if pending:
-        raise GateError(
-            f"this patch to {rel} writes about {pending[0]}.{pending[1]}, the release after "
-            f"the newest one fetched, and nothing has been fetched for it. Run "
-            f"`python3 scripts/fetch_ha_sources.py --release {pending[0]}.{pending[1]}`, read "
-            f"what it writes, then write the row — that order is the procedure under *When "
-            f"the release row goes red*, and skipping it is what this gate exists to catch."
-        )
-
     after = _apply(before, old_string, new_string, rel)
     if scope is not None and not _inside(
         before, old_string, _closure(before, scope, rel)

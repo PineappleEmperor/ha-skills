@@ -460,33 +460,20 @@ def test_with_nothing_fetched_the_source_check_is_open(repo, monkeypatch):
     assert "2026.9 removed it" in (repo / "reference/patterns.md").read_text()
 
 
-def test_writing_about_the_next_minor_before_fetching_it_is_refused(repo, monkeypatch):
-    """The ordinary case of the whole procedure, and per-release demand had opened it.
+def test_a_release_still_to_ship_is_writable_however_close_it_is(repo, monkeypatch):
+    """Including the very next minor, which an earlier version refused and should not have.
 
-    Measured against both versions of the gate: "landing in 2026.10" was refused by the
-    release >= oldest rule and allowed by the per-release one. A missing folder for the very
-    next minor means the fetch was skipped, which is the one absence that is not innocent.
+    Refusing it made `patterns.md` unpatchable the day it was added: that file names 2026.10
+    six times, because a deprecation post says which release removes the thing, and the
+    refusal told the caller to run a fetch that cannot succeed until 2026.10 ships. What
+    catches a pass that skipped its fetch is CI, which will not let the release row move to a
+    minor with no folder beside it.
     """
     key = _sourced(repo, monkeypatch)
-    with pytest.raises(gs.GateError) as excinfo:
-        gs.patch_file("reference/patterns.md", "old text", "landing in 2026.10", key)
-    assert "fetch_ha_sources.py --release 2026.10" in str(excinfo.value)
-    assert "old text" in (repo / "reference/patterns.md").read_text()
-
-
-def test_a_release_further_ahead_than_the_next_minor_is_still_writable(
-    repo, monkeypatch
-):
-    """`2027.8` is a removal release a year out; no fetch could settle it, ever."""
-    key = _sourced(repo, monkeypatch)
-    gs.patch_file("reference/patterns.md", "old text", "removed in 2027.8", key)
-    assert "2027.8" in (repo / "reference/patterns.md").read_text()
-
-
-def test_december_rolls_over_when_the_next_minor_is_worked_out(repo, monkeypatch):
-    """Home Assistant numbers by calendar month, so the one after 2026.12 is 2027.1."""
-    assert gs._next_minor((2026, 12)) == (2027, 1)
-    assert gs._next_minor((2026, 9)) == (2026, 10)
+    gs.patch_file(
+        "reference/patterns.md", "old text", "landing in 2026.10, gone in 2027.8", key
+    )
+    assert "2026.10" in (repo / "reference/patterns.md").read_text()
 
 
 def test_a_fetched_source_is_read_through_the_gate_and_never_patched(repo, monkeypatch):
