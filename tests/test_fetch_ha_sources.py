@@ -1,12 +1,13 @@
 """Tests for the release-source fetch, and for the artefact the gate holds the repo to.
 
 Every fetch is injected, so none of these touch the network, and `main` is given a tmp root
-because the real one empties and rewrites `docs/ha-release/`.
+because the real one rewrites the committed `docs/ha-release/`.
 
-The last test is not a unit test at all: it reads the committed index and fails when it is
-missing or names a release other than the one `freshness.md` does. That is what stops the
-gate's source check being defeated by deleting the index — the gate fails open without one,
-by design, so CI has to be what notices.
+The last three tests are not unit tests at all. They read the committed `docs/ha-release/`
+and fail when the release `freshness.md` names has no folder, when the index and the folders
+disagree, or when a committed source no longer hashes to what the index records. The gate
+fails open with nothing fetched and cannot notice its own absence, and it can refuse to
+patch a source but not to have one emptied outside it — so CI is what notices both.
 """
 
 import datetime as dt
@@ -164,7 +165,7 @@ def test_the_slug_is_the_last_url_segment() -> None:
 
 
 def test_a_run_writes_every_source_and_an_index_that_names_them_all(tmp_path) -> None:
-    """The index is the gate's input, so every file written must appear in it."""
+    """The index says where each file came from, so every file written must appear in it."""
     assert fhs.main(["--release", "2026.9"], get=_get, root=tmp_path) == 0
     out = tmp_path / "docs/ha-release"
     written = sorted(p.name for p in (out / "2026.9").iterdir())
@@ -182,12 +183,32 @@ def test_a_run_writes_every_source_and_an_index_that_names_them_all(tmp_path) ->
     )
 
 
-def test_a_second_run_replaces_the_window_rather_than_accumulating(tmp_path) -> None:
-    """A stale release left behind would be demanded forever by the gate."""
+def test_a_later_run_adds_a_release_and_keeps_the_ones_beside_it(tmp_path) -> None:
+    """A window that moved on must not un-gate every row written about the one before it.
+
+    The first version emptied the whole directory on each run, so fetching 2026.9 removed
+    2026.8's sources and, with them, the gate's hold on every 2026.8 row.
+    """
     fhs.main(["--release", "2026.8"], get=_get, root=tmp_path)
     fhs.main(["--release", "2026.9"], get=_get, root=tmp_path)
     out = tmp_path / "docs/ha-release"
-    assert sorted(p.name for p in out.iterdir() if p.is_dir()) == ["2026.9"]
+    assert sorted(p.name for p in out.iterdir() if p.is_dir()) == ["2026.8", "2026.9"]
+    index = (out / "index.md").read_text(encoding="utf-8")
+    assert "`docs/ha-release/2026.8/release-notes.md`" in index
+    assert "`docs/ha-release/2026.9/release-notes.md`" in index
+
+
+def test_the_index_and_the_directory_describe_the_same_files(tmp_path) -> None:
+    """Both are read — the gate reads the directory, a person reads the index."""
+    fhs.main(["--since", "2026.8", "--release", "2026.9"], get=_get, root=tmp_path)
+    out = tmp_path / "docs/ha-release"
+    on_disk = {row[0] for row in fhs.sources_on_disk(out)}
+    named = {
+        line.split("`")[1]
+        for line in (out / "index.md").read_text(encoding="utf-8").splitlines()
+        if line.startswith("| `docs/ha-release/")
+    }
+    assert named == on_disk
 
 
 def test_since_widens_the_window_to_several_releases(tmp_path) -> None:
@@ -197,27 +218,188 @@ def test_since_widens_the_window_to_several_releases(tmp_path) -> None:
     assert sorted(p.name for p in out.iterdir() if p.is_dir()) == ["2026.8", "2026.9"]
 
 
+def test_an_end_release_the_feed_does_not_carry_stops_the_run(tmp_path) -> None:
+    """Filtering the span by the feed made a window it never fetched exit 0.
+
+    `--release 2026.10` against a feed that stops at 2026.9 wrote 2026.8 and 2026.9, exited
+    0, and titled the index for the releases it did fetch — which reads as a window nobody
+    needs to fetch.
+    """
+    with pytest.raises(SystemExit):
+        fhs.main(["--since", "2026.8", "--release", "2026.10"], get=_get, root=tmp_path)
+
+
+def test_a_failed_post_fetch_leaves_the_previous_folder_intact(tmp_path) -> None:
+    """Fetch every page before writing any, or a 403 halfway leaves a half-filled folder.
+
+    A half-filled folder is what the gate would then certify as every source read. The fix
+    had no test behind it and a reversion to the interleaved shape left the suite green,
+    which is the finding this exists to answer.
+    """
+    fhs.main(["--release", "2026.9"], get=_get, root=tmp_path)
+    folder = tmp_path / "docs/ha-release/2026.9"
+    before = sorted(p.name for p in folder.iterdir())
+
+    def failing(url: str) -> str:
+        # A post PAGE, not the feed: failing on the feed kills the run before it reaches
+        # the folder at all, which is how the first version of this test passed against the
+        # very shape it was written to forbid.
+        if url.startswith("https://developers.home-assistant.io/blog/2"):
+            raise OSError("403")
+        return _get(url)
+
+    with pytest.raises(OSError, match="403"):
+        fhs.main(["--release", "2026.9"], get=failing, root=tmp_path)
+    assert sorted(p.name for p in folder.iterdir()) == before
+    assert (folder / "release-notes.md").read_text(encoding="utf-8")
+
+
+def test_an_empty_window_says_so_on_stderr(tmp_path, capsys) -> None:
+    """The one case the run cannot quietly pass over, and it had no test either."""
+    feed = DEV_FEED.replace("2026", "2020")
+    notes = RELEASE_FEED.replace(
+        '<content type="html">&lt;p&gt;Notes body&lt;/p&gt;</content>',
+        '<content type="html">&lt;p&gt;No links here&lt;/p&gt;</content>',
+    )
+
+    def get(url: str) -> str:
+        if url == fhs.DEV_FEED:
+            return feed
+        if url == fhs.RELEASE_FEED:
+            return notes
+        return PAGE
+
+    fhs.main(["--release", "2026.9"], get=get, root=tmp_path)
+    assert "no developer-blog post is dated" in capsys.readouterr().err
+
+
+def test_a_post_the_feed_has_aged_out_is_recovered_from_the_notes(tmp_path) -> None:
+    """The feed is half the net; the release notes link the posts it has dropped.
+
+    Measured on the first real run: 2026.6's notes name nine posts for that window and the
+    feed still carried one, and the run said nothing, because it only warns at zero.
+    """
+    notes = RELEASE_FEED.replace(
+        "&lt;p&gt;Notes body&lt;/p&gt;",
+        "&lt;p&gt;Notes body &lt;a "
+        'href="https://developers.home-assistant.io/blog/2026/08/07/aged-out"&gt;'
+        "Aged out of the feed&lt;/a&gt;&lt;/p&gt;",
+    )
+
+    def get(url: str) -> str:
+        return notes if url == fhs.RELEASE_FEED else _get(url)
+
+    fhs.main(["--release", "2026.9"], get=get, root=tmp_path)
+    recovered = tmp_path / "docs/ha-release/2026.9/blog-2026-08-07-aged-out.md"
+    assert recovered.is_file()
+    assert "Aged out of the feed" in recovered.read_text(encoding="utf-8")
+
+
+def test_every_file_carries_its_source_and_the_terms_it_came_under(tmp_path) -> None:
+    """CC BY-NC-SA 4.0 section 3(a) asks for the notice, the link and the modification.
+
+    Section 2(a)(4) is why a format change leaves these verbatim copies rather than
+    adaptations, so ShareAlike never bites and this repository's own licence is unaffected.
+    """
+    fhs.main(["--release", "2026.9"], get=_get, root=tmp_path)
+    notes = (tmp_path / "docs/ha-release/2026.9/release-notes.md").read_text(
+        encoding="utf-8"
+    )
+    assert "creativecommons.org/licenses/by-nc-sa/4.0/" in notes
+    assert "converted from HTML to plain text" in notes
+    post = (tmp_path / "docs/ha-release/2026.9/blog-2026-09-02-modbus.md").read_text(
+        encoding="utf-8"
+    )
+    assert "publishes no licence" in post
+    assert "Fetched from https://developers.home-assistant.io/" in post
+
+
+def test_the_index_records_a_hash_that_moves_with_the_file(tmp_path) -> None:
+    """A source emptied outside the gate keeps its name and its row; the hash does not."""
+    fhs.main(["--release", "2026.9"], get=_get, root=tmp_path)
+    out = tmp_path / "docs/ha-release"
+    notes = out / "2026.9/release-notes.md"
+    recorded = {row[0]: row[3] for row in fhs.sources_on_disk(out)}
+    here = recorded["docs/ha-release/2026.9/release-notes.md"]
+    assert f"`{here}`" in (out / "index.md").read_text(encoding="utf-8")
+    # It has to be this file's hash, not merely a stable string: a constant in that column
+    # is recorded, written to the index, and compared against itself for ever.
+    assert here == fhs.digest(notes)
+    assert len(set(recorded.values())) == len(recorded)
+    notes.write_text("", encoding="utf-8")
+    assert fhs.digest(notes) != here
+
+
+def test_nothing_is_written_when_a_release_entry_is_unusable(tmp_path) -> None:
+    """The refusal comes before any folder is emptied, not after."""
+    broken = RELEASE_FEED.replace(
+        '<link href="https://www.home-assistant.io/blog/2026/09/02/release-20269/"/>',
+        "",
+    )
+
+    def get(url: str) -> str:
+        return broken if url == fhs.RELEASE_FEED else _get(url)
+
+    with pytest.raises(SystemExit):
+        fhs.main(["--release", "2026.9"], get=get, root=tmp_path)
+    assert not (tmp_path / "docs/ha-release").exists()
+
+
 # ------------------------------------------------------- the committed artefact
 
 
-def test_the_committed_index_covers_the_release_the_skill_claims() -> None:
-    """The gate fails open without an index, so this is what makes deleting it visible.
+def test_the_committed_sources_cover_the_release_the_skill_claims() -> None:
+    """The gate fails open with nothing fetched, so this is what makes an absence visible.
 
-    It is also the check that keeps a pass honest: fetching moves the index, writing the
+    It is also the check that keeps a pass honest: fetching writes the folder, writing the
     rows moves the release row, and only when both have happened is the suite green.
     """
-    index = REPO / "docs/ha-release/index.md"
-    assert index.exists(), "run scripts/fetch_ha_sources.py"
-    text = index.read_text(encoding="utf-8")
+    out = REPO / "docs/ha-release"
     year, minor = chr_.captured_minor(
         (REPO / chr_.DEFAULT_FILE).read_text(encoding="utf-8")
     )
-    assert f"docs/ha-release/{year}.{minor}/release-notes.md" in text
-    named = [
+    folder = out / f"{year}.{minor}"
+    assert folder.is_dir(), f"run scripts/fetch_ha_sources.py --release {year}.{minor}"
+    assert (folder / "release-notes.md").is_file()
+
+
+def test_every_committed_source_still_hashes_to_what_the_index_records() -> None:
+    """The gate refuses to patch a source; nothing stops one being emptied outside it.
+
+    Proved on review: `old_string` the whole body and `new_string` empty left five sources
+    present, listed and zero bytes, with the suite green. The gate now refuses that patch,
+    and this is what catches the same thing done by any other means.
+    """
+    out = REPO / "docs/ha-release"
+    recorded = {}
+    for line in (out / "index.md").read_text(encoding="utf-8").splitlines():
+        if line.startswith("| `docs/ha-release/"):
+            cells = [cell.strip(" `") for cell in line.strip("|").split("|")]
+            recorded[cells[0]] = cells[1]
+    assert recorded, "the index records no hashes"
+    for rel, sha in recorded.items():
+        assert fhs.digest(REPO / rel) == sha, f"{rel} no longer matches the index"
+
+
+def test_the_committed_index_and_the_committed_folders_agree() -> None:
+    """The gate reads the folders and a person reads the index; a drift misleads the person.
+
+    Deriving the demand from the index let one patch to it disarm the gate. The demand now
+    comes from the directory, which leaves the index able to drift instead — so the drift
+    is what this checks, in both directions.
+    """
+    out = REPO / "docs/ha-release"
+    text = (out / "index.md").read_text(encoding="utf-8")
+    named = {
         line.split("`")[1]
         for line in text.splitlines()
         if line.startswith("| `docs/ha-release/")
-    ]
-    assert named, "the index names no sources"
-    for rel in named:
-        assert (REPO / rel).exists(), f"{rel} is named by the index but absent"
+    }
+    on_disk = {
+        f"docs/ha-release/{folder.name}/{path.name}"
+        for folder in out.iterdir()
+        if folder.is_dir()
+        for path in folder.iterdir()
+        if path.is_file()
+    }
+    assert named == on_disk
