@@ -78,10 +78,9 @@ What to ask, what to generate, and the conventions the generated code follows. R
 - `.gitignore` — copy `templates/.gitignore`. Covers `__pycache__/`, caches, venvs, HA dev artefacts (`.storage/`, `home-assistant.log*`, the `_v2.db`), and `device_map.md` (the `ha-triage` skill's device map, which that skill says must never be committed). **Not optional:** without it a local `pytest` run plus a `git add -A` tracks `.pyc` files; what that costs is *What the audit checks now* in ha-integration-ci's README.
 - `ruleset.json` — copy `templates/ruleset.json` to the repo root; what it requires and why is `reference/github-setup.md`.
 - `.githooks/commit-msg` — release-flow's, per `reference/commits.md`; `chmod +x`. **Enable once per clone: `git config core.hooksPath .githooks`** — an unenabled hook is a file, not a guard. Document that line in `CLAUDE.md`.
-- `custom_components/{domain}/brand/icon.png` — **256×256**, required by HACS brands validation
-- `custom_components/{domain}/brand/icon@2x.png` — **512×512** (see HiDPI note below)
-- `custom_components/{domain}/brand/logo.png` — landscape, shortest side **128–256**
-- `custom_components/{domain}/brand/logo@2x.png` — landscape, shortest side **256–512**
+- `custom_components/{domain}/brand/` — the brand assets. **Eight filenames are valid, not
+  four**; which of them you actually ship, and the rules every one of them must meet, are
+  *Brand assets* below. `icon.png` is the only one HACS hard-requires.
 
 **The CI stack** is copied, never authored — the invariant in `SKILL.md`. Missing files here
 are separate audit failures on the first run, so this is not an optional last step. The table in
@@ -92,15 +91,97 @@ to an integration that serves a panel, per `reference/panels.md`.
 
 ### Brand assets are served from the integration's own `brand/` folder
 
-Via the Brands Proxy API, from the HA version recorded in `reference/freshness.md`. The `home-assistant/brands` CDN `custom_integrations/` folder is **legacy** — do not rely on it for new work. Files are PNG, lossless; transparent background for wordmark/logo art (an LED-screen/device screenshot keeps its black background — that's the device, not a missing alpha).
+Via the Brands Proxy API, from the HA version recorded in `reference/freshness.md`. The `home-assistant/brands` CDN `custom_integrations/` folder is **legacy** — do not rely on it for new work. The spec the files must meet is still that repository's README, which is the owner of everything in this section; re-derive against it rather than against this summary when the two disagree.
+
+**The eight filenames, and which to ship**
+
+| File | Size | Ship it when |
+|---|---|---|
+| `icon.png` | exactly 256×256 | always — the only file HACS hard-requires |
+| `icon@2x.png` | exactly 512×512 | always — see the HiDPI note below |
+| `logo.png` | shortest side 128–256 | always, today — see the gate note below |
+| `logo@2x.png` | shortest side 256–512 | as `logo.png` |
+| `dark_icon.png` / `dark_icon@2x.png` | as the icons | the icon is unreadable on a dark ground |
+| `dark_logo.png` / `dark_logo@2x.png` | as the logos | the logo is unreadable on a dark ground |
+
+> ⚠️ **The audit currently requires all four unprefixed files, whatever the spec allows.**
+> `check_brand_assets` in ha-integration-ci's `skill_audit.py` reports `missing …/logo.png`
+> and `missing …/logo@2x.png` as failures for any repository without them. So the
+> "ship only the icons" case below is correct about the serving behaviour and **would fail
+> your own `quality-audit` run**. Until that check learns the fallback, ship all four; the
+> gap is a ha-integration-ci change, tracked in this repository's register.
+
+**Serving falls back, so an absent file is not a broken one.** A missing `logo.png` is
+served as `icon.png`; a missing `@2x` is served as its 1×; a missing `dark_` file is served
+as its non-prefixed match. Two consequences worth knowing, subject to the gate note above:
+
+- **If the logo would be the *same image* as the icon, ship only the icons.** The spec's
+  wording is "if the brand uses the same image for the logo and icon"; the icon already
+  fills that slot, so a duplicate at `logo.png` is waste. This is about the image, not the
+  shape — a *different* square image is still a legitimate logo, since landscape is
+  "preferred" and the only hard rule is the shortest-side band. A device whose display is
+  square has a square logo, and that is correct. What is never right is padding a mark into
+  a landscape canvas to hit an aspect ratio nobody requires.
+- **Dark variants are optional and additive.** Ship them only when the light asset genuinely
+  fails on a dark ground — a black wordmark does, a two-colour mark usually does not.
+
+**Rules every file must meet**
+
+- PNG, properly compressed and optimised; **lossless** preferred, **interlaced/progressive**
+  preferred, **transparency** preferred.
+- Where more than one version exists, the one optimised for a **white** background is the
+  unprefixed file; the dark-optimised one takes the `dark_` prefix.
+- **Trimmed to the subject.** "The image should be trimmed, so it contains the minimum
+  amount of empty space on the edges" — borders and transparent padding included. A brand's
+  own guidelines often demand clear space around their logo; that rule governs *placement in
+  a UI*, not the asset file, and padding it into the PNG breaks this one. Trim, and let
+  Home Assistant do the spacing.
+- Icons are **1:1** and exactly 256/512 — not a range.
+- Logos: landscape preferred, and "aspect ratio should respect the logo of the brand", so
+  never stretch to hit a number. The shortest side has a band, and **the maximum of the band
+  is preferred** — 256 and 512, not 128 and 256.
+- **Home Assistant branding: the spec says no, practice says otherwise — judge it.** The
+  brands README says "custom integrations must not use Home Assistant branded images, as
+  this might confuse the end-user into thinking that the integration is an internal/official
+  integration". That was written as a review rule for PRs into the central repository, and
+  **nothing enforces it on an inline `brand/` folder**, which no one reviews. Sampling
+  fifteen widely installed custom integrations in 2026-09 found the house-and-node mark in
+  use — `localtuya`'s icon is that mark recoloured orange, and it is one of the most
+  installed custom integrations there is. So the real line is the stated rationale, not the
+  letter: do not dress an integration up as an official one. Using Home Assistant's visual
+  language — its blue, a device drawn in it, the node motif as a small element of a mark
+  that is plainly your own — is common and uncontroversial. Passing your integration off as
+  shipped-with-core is not.
+- The marks are their owners'. They are used for identification only and imply no
+  endorsement — so reproduce a brand's own artwork rather than deriving a new mark from it,
+  and where the brand publishes usage terms, meet them.
 
 > ⚠️ **The HACS store/search dashboard still reads the legacy `data-v2.hacs.xyz` (which mirrors the old brands CDN), NOT the inline `brand/` folder.** So an integration that ships *only* inline brand images — i.e. one that never got a `home-assistant/brands` entry, and now **can't** (brands auto-closes `custom_integrations/*` PRs) — renders **blank in the HACS dashboard** even though HA's own UI shows the icon correctly via the proxy. Integrations with a *legacy* brands entry (added before the Feb-2026 cutoff) keep showing in HACS. This is a HACS-side gap, not a repo defect — nothing to fix in the integration; it resolves when HACS points its dashboard at the proxy (tracked per its row in `reference/freshness.md`). Don't try to "fix" it by PR-ing `home-assistant/brands` (auto-closed).
 >
-> ⚠️ **Ship the `@2x` variants or the icon flickers/fails on HiDPI.** The most common "icon shows only sometimes" bug is a present `icon.png` with **no `icon@2x.png`**: a Retina/zoomed client requests `@2x`, 404s, and falls back inconsistently. The `@2x` files in the list above are not optional, and their sizes are exact — an off-spec `icon.png` also misbehaves.
+> ⚠️ **Ship the `@2x` variants anyway.** The proxy serves `icon.png` when `icon@2x.png` is
+> absent, so this is not the 404 it once was — the 404 case is a plain
+> `brands.home-assistant.io/<domain>/icon.png` URL with no `icon.png` at all. What you get
+> instead is a HiDPI client rendering a 256px image where it asked for 512, which reads as a
+> soft or blurry icon rather than a missing one. Their sizes are exact when present, and an
+> off-spec `icon.png` misbehaves on every client.
 
 ### Sources
 
-A placeholder may start as an SVG rasterised with `cairosvg` (ImageMagick's MSVG renderer botches text) or `convert -background none -density 144 in.svg out.png`. But the asset can equally be a **crisp nearest-neighbour upscale of a real device render** — for a pixel display this is the strongest branding. Pick by where HA shows it: the **logo** renders large (integration page / HACS) so a busy/detailed screen reads well; the **icon** renders small (~48px in the integrations list) so use a **simple, low-detail** screen (fewer, fatter pixels survive the shrink) — a full text-heavy screen turns to mush. Generate the PNG straight from the byte-faithful preview (`render_layout_png(..., scale=N)`), not a photo.
+**Prefer a source that scales over a source that is already the right size.** In order: the
+brand's own vector (a press kit's EPS/PDF/SVG — render it with ghostscript or `cairosvg` and
+scale *down* to every size), then their largest raster, then something generated. Every
+target then comes from one master, so the whole set is consistent and nothing is upscaled.
+Where only a small raster exists, compose from the crispest part you have — an existing
+256×256 icon scaled down beats the same mark cropped out of a 512×157 lockup.
+
+Anything generated is **drawn from named constants in a committed script**, not hand-edited,
+with a short `docs/brand.md` recording what the constants mean. That way the set can be
+regenerated at a new size or a new colour without redrawing, and a reviewer can see why the
+proportions are what they are. A brand with no usable artwork at all still gets this: a
+simple mark in the brand's sampled colours, generated, and replaced later if the vendor
+supplies one.
+
+A placeholder may start as an SVG rasterised with `cairosvg` (ImageMagick's MSVG renderer botches text) or `convert -background none -density 144 in.svg out.png`. But the asset can equally be a **crisp nearest-neighbour upscale of a real device render** — for a pixel display this is the strongest branding. A device screenshot keeps its black background: that is the device, not a missing alpha channel, and it is not the untrimmed padding the spec forbids. Pick by where HA shows it: the **logo** renders large (integration page / HACS) so a busy/detailed screen reads well; the **icon** renders small (~48px in the integrations list) so use a **simple, low-detail** screen (fewer, fatter pixels survive the shrink) — a full text-heavy screen turns to mush. Generate the PNG straight from the byte-faithful preview (`render_layout_png(..., scale=N)`), not a photo.
 
 > HACS `check-brands` fails if `custom_components/{domain}/brand/icon.png` is absent and the integration is not listed in the HA brands repo.
 
@@ -162,6 +243,48 @@ scaffold must set up:
 - Short **single-line** docstrings on all public functions and classes. What the audit checks about docstrings, and what it leaves to you, is *What the audit checks now* in ha-integration-ci's README.
 - No inline comments unless the WHY is genuinely non-obvious
 - Clean under the *Lint & quality check* commands in `SKILL.md`; pyright standard mode
+
+**Alignment a human chose is kept, not collapsed.** `ruff format` reduces every run of
+spaces to one, which destroys a table someone aligned so it could be read as a table. Fence
+those rather than surrendering them or turning the formatter off:
+
+```python
+# fmt: off
+CONF_EMAIL         = "email"
+CONF_API_KEY       = "api_key"
+CONF_REFRESH_TOKEN = "refresh_token"
+# fmt: on
+```
+
+The fence stops the **formatter only** — `ruff check` still runs inside it, so line length,
+import order and unused names are all still caught. What you give up is whitespace
+normalisation, which is exactly what you are overriding.
+
+**The fence is statement-level.** One inside a dict or call literal does nothing: ruff
+ignores it and collapses the entries anyway. It must wrap the whole enclosing statement, at
+that statement's indent, so an aligned keyword-argument call is fenced around the entire
+call and a `# fmt: on` never sits at a different indent from its `# fmt: off`.
+
+What earns a fence: padding before `=` or `:`; padding after them, where the values form the
+column; padding after `,`; and **one row or record per source line even where nothing is
+padded** — glyph rasters, icon bitmaps, colour palettes, layout tables, field-descriptor
+lists. That last case is the one that bites: a formatter run turned a 13-line font bitmask
+table into 1,194 lines, one pixel per line, and the digit shapes a reader could see in the
+source were gone. A flat wrapped list of strings is not a table; leave it to the formatter.
+
+Inside a fence, the house rules are: fence the **smallest statement** that contains the
+table, never a class body or a file; one alignment column per block, set one space past the
+longest key, spaces only and never tabs; a new block restarts the column; and an entry too
+long for the column re-pads the whole block in the same commit. A generator that emits a
+fenced table **emits the fence too**, or the next regeneration drops it.
+
+**An exclusion hides drift until the day it is removed.** The stack lints and formats the
+whole tree — the `python-validate.yml` bullet under *Implementation notes* in
+ha-integration-ci's README says why — and `templates/pyproject.toml` excludes nothing, so
+anything a repository has been keeping out of ruff's sight becomes visible the moment it
+adopts that file. Before a migration, drop the exclusions and format what they were hiding,
+as its own `style:` commit. A migration diff is no place to meet a hundred files for the
+first time.
 
 ---
 
