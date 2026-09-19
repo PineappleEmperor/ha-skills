@@ -7,7 +7,7 @@ uniformly old.
 
 | Cached fact | Value | Captured | Re-derive with | Consumers to update together |
 |---|---|---|---|---|
-| HA release the skill is current for | `2026.9` | 2026-09-19 | `curl -s https://pypi.org/pypi/homeassistant/json \| jq -r .info.version`; then that release's developer-blog posts and the developer section of its release notes | *What changed in recent releases* in `reference/patterns.md` · *Home Assistant pads the panel for the safe area* and *A panel that reads devices reads them by config entry* in `reference/panels.md` · the skill repository's own CI, which reads this cell and fails once PyPI's minor is ahead of it |
+| HA release the skill is current for | `2026.9` | 2026-09-19 | `curl -s https://pypi.org/pypi/homeassistant/json \| jq -r .info.version`; then that release's developer-blog posts and the developer section of its release notes, pulled into `docs/ha-release/` by `scripts/fetch_ha_sources.py` | the fetched sources in `docs/ha-release/`, which the gate demands before a release claim can be written · *What changed in recent releases* in `reference/patterns.md` · *Home Assistant pads the panel for the safe area* and *A panel that reads devices reads them by config entry* in `reference/panels.md` · the skill repository's own CI, which reads this cell and fails once PyPI's minor is ahead of it |
 | HA minimum Python | `3.14` (HA dev needs 3.14.2+) | 2026-09-12, unchanged since 2026-06 | developers.home-assistant.io/docs/development_environment | the `python-version` in ha-integration-ci's three reusable workflows (a CI release) · a consumer's `pyproject.toml` ruff `target-version` · `pyrightconfig.json` — those three are what the audit compares (*What the audit checks now* in ha-integration-ci's README); pylint's `py-version`, if the repo uses pylint, is **not** checked and must be updated by hand · the value in `templates/pyproject.toml`, its header comments and its banned-api message, and the pyright snippet in `reference/patterns.md` · the `target-version` line `evals/make_fixture.sh` writes |
 | Quality-scale canonical rule set | 54 rules, see `reference/quality-scale.md` | 2026-09-12 | developers.home-assistant.io/docs/core/integration-quality-scale/ — or, as data, the `rules:` keys of any Platinum core integration's `quality_scale.yaml` (`airgradient`, `husqvarna_automower`), which is how the 2026-09 re-derivation found two rules the 2026-06 capture lacked | the rule lists in `reference/quality-scale.md` · `TIER_RULES` in ha-integration-ci's `scripts/skill_audit.py`, which is what actually fails a consumer's file (a CI release) · every `quality_scale.yaml` |
 | GitHub action versions | checkout `v7.0.1` · dependency-review `v5.0.0` · stale `v11.0.0` | 2026-08-22 | `gh api repos/<owner>/<repo>/releases/latest --jq .tag_name`, then `gh api repos/<owner>/<repo>/git/ref/tags/<tag>` for the SHA | the SHA pins in the four plain workflows in `templates/.github/workflows/`, each with its version in the trailing comment · the checkout line `evals/make_fixture.sh` plants for scenario 02, which must match the template's; the CI repositories' own pins move by their own Dependabot |
@@ -25,6 +25,14 @@ sources below; for each change a custom integration can meet, add a row to *What
 recent releases* in `reference/patterns.md` and apply it in the section that owns the topic;
 re-derive every other row here; move the release cell and its captured date; one PR. The
 first such pass covered 2026.6 to 2026.9 in one go, on 2026-09-19.
+
+**Pull the sources before reading them.** `python3 scripts/fetch_ha_sources.py --release
+<the new minor>` writes the window's developer-blog posts and its release notes into
+`docs/ha-release/<minor>/`, with an index beside them, and commits are made of what it
+wrote. `--since <older minor>` widens the window for a backfill, as the 2026.6–2026.9 pass
+needed. This is not a convenience: **the governance gate refuses a patch to any file in this
+directory that names that release, or a later one, until it has served every file the index
+lists.** The rule below used to be advice, and the pass that wrote it broke it.
 
 **Both sources, because neither contains the other.** Verified on the 2026.9 pair:
 
