@@ -1,6 +1,8 @@
 # More device registry deprecations, new helpers and validation
 
 Fetched from https://developers.home-assistant.io/blog/2026/08/24/device-registry-follow-up-changes
+Copyright (c) Home Assistant contributors. The developer documentation repository publishes no licence; this copy is kept for reference and attribution only.
+Modified only in format: converted from HTML to plain text by `scripts/fetch_ha_sources.py`. The wording is the author's, unaltered.
 
 More device registry deprecations, new helpers and validation
 

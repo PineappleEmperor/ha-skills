@@ -1,6 +1,8 @@
 # Deprecating modbus.get_hub in favor of async_get_unit
 
 Fetched from https://developers.home-assistant.io/blog/2026/09/02/modbus-get-hub-deprecation
+Copyright (c) Home Assistant contributors. The developer documentation repository publishes no licence; this copy is kept for reference and attribution only.
+Modified only in format: converted from HTML to plain text by `scripts/fetch_ha_sources.py`. The wording is the author's, unaltered.
 
 Deprecating modbus.get_hub in favor of async_get_unit
 

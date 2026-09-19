@@ -1,6 +1,8 @@
 # 2026.9: There's room on this bus
 
 Fetched from https://www.home-assistant.io/blog/2026/09/02/release-20269/
+Copyright (c) Home Assistant contributors. Licensed CC BY-NC-SA 4.0 (https://creativecommons.org/licenses/by-nc-sa/4.0/), per LICENSE.md of home-assistant/home-assistant.io.
+Modified only in format: converted from HTML to plain text by `scripts/fetch_ha_sources.py`. The wording is the author's, unaltered.
 
 Home Assistant 2026.9! 🎉
 
