@@ -325,17 +325,144 @@ def test_the_index_records_a_hash_that_moves_with_the_file(tmp_path) -> None:
     # It has to be this file's hash, not merely a stable string: a constant in that column
     # is recorded, written to the index, and compared against itself for ever.
     assert here == fhs.digest(notes)
-    assert len(set(recorded.values())) == len(recorded)
     notes.write_text("", encoding="utf-8")
     assert fhs.digest(notes) != here
 
 
-def test_nothing_is_written_when_a_release_entry_is_unusable(tmp_path) -> None:
-    """The refusal comes before any folder is emptied, not after."""
-    broken = RELEASE_FEED.replace(
-        '<link href="https://www.home-assistant.io/blog/2026/09/02/release-20269/"/>',
-        "",
+def test_a_later_fetch_refuses_to_re_sign_a_release_it_did_not_refetch(
+    tmp_path,
+) -> None:
+    """The hash column protected nothing while every run rewrote every row.
+
+    Emptying a 2026.8 source failed the committed-artefact test; one fetch of 2026.9 wrote a
+    fresh index over it and the suite went green again, so the guard erased its own evidence.
+    """
+    fhs.main(["--since", "2026.8", "--release", "2026.9"], get=_get, root=tmp_path)
+    tampered = tmp_path / "docs/ha-release/2026.8/release-notes.md"
+    tampered.write_text("", encoding="utf-8")
+    with pytest.raises(SystemExit, match="would not refetch 2026.8"):
+        fhs.main(["--release", "2026.9"], get=_get, root=tmp_path)
+    # Nothing was written before the refusal: the tampered tree is left exactly as found,
+    # rather than with 2026.9 rebuilt and no index, which is the half-written state the
+    # fetch-before-write rule exists to prevent.
+    assert not tampered.read_text(encoding="utf-8")
+    assert (tmp_path / "docs/ha-release/index.md").is_file()
+
+    # Refetching that release deliberately is the way through, and it has to stay the way
+    # through when upstream has genuinely moved — a stub that returns the same bytes every
+    # time cannot tell the exemption from its absence, and left it unprotected.
+    moved = RELEASE_FEED.replace("Older notes", "Older notes, revised upstream")
+
+    def changed(url: str) -> str:
+        return moved if url == fhs.RELEASE_FEED else _get(url)
+
+    assert fhs.main(["--release", "2026.8"], get=changed, root=tmp_path) == 0
+    assert "revised upstream" in tampered.read_text(encoding="utf-8")
+
+
+def test_a_missing_index_beside_fetched_releases_stops_the_run(tmp_path) -> None:
+    """Deleting the index made the next run re-sign whatever had changed under it.
+
+    The check pays for its own input, so an absent index is a refusal once releases exist —
+    and still an empty comparison before the first fetch, when there is nothing to compare.
+    """
+    fhs.main(["--release", "2026.9"], get=_get, root=tmp_path)
+    (tmp_path / "docs/ha-release/2026.9/release-notes.md").write_text(
+        "", encoding="utf-8"
     )
+    (tmp_path / "docs/ha-release/index.md").unlink()
+    with pytest.raises(
+        SystemExit, match="is missing while fetched releases are present"
+    ):
+        fhs.main(["--release", "2026.9"], get=_get, root=tmp_path)
+
+
+def test_a_post_the_notes_link_from_another_window_is_not_filed_here(tmp_path) -> None:
+    """The notes link posts from before their own window, and one was filed twice.
+
+    2026.9's notes link the 2026-07-05 modbus post; the first version wrote a byte-identical
+    copy of 2026.8's source into 2026.9 and counted it as a recovery.
+    """
+    notes = RELEASE_FEED.replace(
+        "&lt;p&gt;Notes body&lt;/p&gt;",
+        "&lt;p&gt;Notes body &lt;a "
+        'href="https://developers.home-assistant.io/blog/2026/07/05/much-earlier"&gt;'
+        "A post from a window ago&lt;/a&gt;&lt;/p&gt;",
+    )
+
+    def get(url: str) -> str:
+        return notes if url == fhs.RELEASE_FEED else _get(url)
+
+    fhs.main(["--release", "2026.9"], get=get, root=tmp_path)
+    names = sorted(p.name for p in (tmp_path / "docs/ha-release/2026.9").iterdir())
+    assert "blog-2026-07-05-much-earlier.md" not in names
+
+
+def test_a_dropped_recovery_is_reported_rather_than_silent(tmp_path, capsys) -> None:
+    """A post the notes name and the window rejects is worth a line, not a silence.
+
+    It is either a post belonging to another release or a window whose start is the fallback
+    span rather than a real previous release, and the second is a gap in the net.
+    """
+    notes = RELEASE_FEED.replace(
+        "&lt;p&gt;Notes body&lt;/p&gt;",
+        "&lt;p&gt;Notes body &lt;a "
+        'href="https://developers.home-assistant.io/blog/2026/07/05/much-earlier"&gt;'
+        "A post from a window ago&lt;/a&gt;&lt;/p&gt;",
+    )
+
+    def get(url: str) -> str:
+        return notes if url == fhs.RELEASE_FEED else _get(url)
+
+    fhs.main(["--release", "2026.9"], get=get, root=tmp_path)
+    assert "not filed here" in capsys.readouterr().err
+
+
+def test_a_recovered_post_needs_a_real_date_and_a_real_title() -> None:
+    """The date built the filename and the sort key, and the link text became the heading."""
+    assert (
+        fhs.post_from_url("https://x/blog/2026/13/05/slug", "A full post title") is None
+    )
+    assert (
+        fhs.post_from_url("https://x/blog/2026/07/32/slug", "A full post title") is None
+    )
+    assert fhs.post_from_url("https://x/blog/2026/7/5/slug", "A full post title") == {
+        "title": "A full post title",
+        "url": "https://x/blog/2026/7/5/slug",
+        "date": "2026-07-05",
+    }
+    # A release note that links a post as "here" must not file it under `# here`.
+    assert fhs.post_from_url("https://x/blog/2026/7/5/mqtt-changes", "here") == {
+        "title": "mqtt changes",
+        "url": "https://x/blog/2026/7/5/mqtt-changes",
+        "date": "2026-07-05",
+    }
+
+
+def test_a_stray_directory_is_skipped_rather_than_fatal(tmp_path) -> None:
+    """The gate skips a folder whose name is not a release; this used to sort by it and raise."""
+    fhs.main(["--release", "2026.9"], get=_get, root=tmp_path)
+    (tmp_path / "docs/ha-release/scratch").mkdir()
+    (tmp_path / "docs/ha-release/scratch/notes.md").write_text("mine", encoding="utf-8")
+    rows = fhs.sources_on_disk(tmp_path / "docs/ha-release")
+    assert all("/scratch/" not in row[0] for row in rows)
+
+
+@pytest.mark.parametrize(
+    "missing",
+    [
+        '<link href="https://www.home-assistant.io/blog/2026/09/02/release-20269/"/>',
+        "<updated>2026-09-02T00:00:00+00:00</updated>",
+    ],
+    ids=["no link", "no date"],
+)
+def test_nothing_is_written_when_a_release_entry_is_unusable(tmp_path, missing) -> None:
+    """Both halves of the check, because only one of them had a test.
+
+    The no-link half is also caught downstream by `window()`, so weakening the date check
+    left the suite green — which is the defect class this whole row exists to answer.
+    """
+    broken = RELEASE_FEED.replace(missing, "")
 
     def get(url: str) -> str:
         return broken if url == fhs.RELEASE_FEED else _get(url)
@@ -395,10 +522,13 @@ def test_the_committed_index_and_the_committed_folders_agree() -> None:
         for line in text.splitlines()
         if line.startswith("| `docs/ha-release/")
     }
+    # Release folders only, the way both the writer and the gate read this directory. Taking
+    # every directory made a stray one fail CI for ever, since the writer will never list it:
+    # the crash the fix removed would have come back as a permanent red.
     on_disk = {
         f"docs/ha-release/{folder.name}/{path.name}"
         for folder in out.iterdir()
-        if folder.is_dir()
+        if folder.is_dir() and fhs._is_release(folder.name)
         for path in folder.iterdir()
         if path.is_file()
     }

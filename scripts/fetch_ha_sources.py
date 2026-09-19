@@ -80,12 +80,17 @@ _BLOCK = {
 }
 _SKIP = {"script", "style", "nav", "footer", "svg", "button", "form"}
 
-# What each host says about reuse, carried into every file taken from it. This is the
-# licence's own condition rather than politeness: CC BY-NC-SA 4.0 section 3(a) asks that a
-# copy retain the copyright notice, a notice referring to the licence, a link to the
-# material, and an indication that it was modified. Section 2(a)(4) settles the other half —
-# a format change "never produces Adapted Material", so converting HTML to text leaves these
-# verbatim copies rather than adaptations, and ShareAlike is not triggered.
+# What each host says about reuse, carried into every file taken from it. CC BY-NC-SA 4.0
+# section 3(a) asks a copy to retain the creator credit, the copyright notice, a notice
+# referring to the licence and its disclaimer, a link to the material, and an indication of
+# modification. The credit and the link are the "Copyright (c)" and "Fetched from" lines
+# below; the licence notice and its disclaimer are what the licence URI carries, which is
+# what section 3(a)(2) allows.
+# ShareAlike, section 3(b), binds only an Adapter's Licence over Adapted Material, so it
+# would attach to these files and never to the repository around them either way. Whether
+# stripping navigation, scripts and link targets is a "technical modification necessary"
+# under section 2(a)(4), and so leaves these verbatim copies, is a reading rather than a
+# certainty — which is why the note below says what was dropped instead of asserting it.
 LICENCES = {
     "www.home-assistant.io": (
         "Copyright (c) Home Assistant contributors. Licensed CC BY-NC-SA 4.0 "
@@ -98,8 +103,10 @@ LICENCES = {
     ),
 }
 _MODIFIED = (
-    "Modified only in format: converted from HTML to plain text by "
-    "`scripts/fetch_ha_sources.py`. The wording is the author's, unaltered."
+    "Modified: converted from HTML to plain text by `scripts/fetch_ha_sources.py`. It keeps "
+    "the article body and loses everything the markup carried — navigation and chrome, link "
+    "targets, image alt text, table and list structure, and code formatting. No wording has "
+    "been changed, added or reordered."
 )
 
 
@@ -168,8 +175,13 @@ def dev_links(html: str) -> list[tuple[str, str]]:
     The feed window is a net with a hole: the developer feed holds a fixed number of entries,
     so a backfill reaching past it collects what is left. Measured on the first run — 2026.6's
     notes name nine posts for that window and the feed still carried one, and nothing said so,
-    because the run only warns at zero. The notes are the other half of the net: they link the
-    posts that mattered enough to announce, whatever the feed has dropped.
+    because the run only warns at zero. The notes are the other half of the net.
+
+    They are not a free pass: a release's notes also link posts from earlier windows, and
+    filing those here produced a byte-identical copy of 2026.8's modbus post under 2026.9. So
+    the caller holds a recovered post to the same dates as the feed half, and says on stderr
+    when it drops one, because a post the notes name and the window rejects is either a post
+    for another release or a window whose start is the fallback span rather than a real one.
     """
     parser = _Links()
     parser.feed(html)
@@ -182,17 +194,25 @@ def dev_links(html: str) -> list[tuple[str, str]]:
 
 
 def post_from_url(url: str, title: str) -> dict[str, str] | None:
-    """A post entry built from its own URL, for one the feed no longer carries."""
+    """A post entry built from its own URL, for one the feed no longer carries.
+
+    The date is built through `datetime.date`, not by joining three path segments: that
+    accepted `/blog/2026/7/5/x` and produced `2026-7-5`, which becomes the filename and the
+    sort key. And the link text is only a title when it reads like one — a release note that
+    links a post as "here" would otherwise file it under `# here`, so anything shorter than a
+    phrase falls back to the slug.
+    """
     parts = urllib.parse.urlsplit(url).path.strip("/").split("/")
     if len(parts) < 5 or parts[0] != "blog":
         return None
-    year, month, day = parts[1:4]
-    if not (year.isdigit() and month.isdigit() and day.isdigit()):
+    try:
+        when = dt.date(int(parts[1]), int(parts[2]), int(parts[3]))
+    except ValueError:
         return None
     return {
-        "title": title or parts[4].replace("-", " "),
+        "title": title if len(title) >= 15 else parts[4].replace("-", " "),
         "url": url,
-        "date": f"{year}-{month}-{day}",
+        "date": when.isoformat(),
     }
 
 
@@ -379,9 +399,11 @@ def sources_on_disk(out: Path) -> list[tuple[str, str, str, str]]:
     which is what keeps the two from disagreeing.
     """
     rows: list[tuple[str, str, str, str]] = []
-    for folder in sorted(
-        (p for p in out.iterdir() if p.is_dir()), key=lambda p: _minor(p.name)
-    ):
+    # Only folders named for a release, and named the way the gate reads them. The gate skips
+    # a folder whose name does not parse; this used to sort by it and raise, so a stray
+    # directory was invisible to one reader and fatal to the other.
+    releases = [p for p in out.iterdir() if p.is_dir() and _is_release(p.name)]
+    for folder in sorted(releases, key=lambda p: _minor(p.name)):
         for path in sorted(
             (f for f in folder.iterdir() if f.is_file()),
             key=lambda f: (f.name != "release-notes.md", f.name),
@@ -391,6 +413,56 @@ def sources_on_disk(out: Path) -> list[tuple[str, str, str, str]]:
                 (f"{OUT_DIR}/{folder.name}/{path.name}", title, url, digest(path))
             )
     return rows
+
+
+def recorded_digests(out: Path) -> dict[str, str]:
+    """What the index on disk says each source hashes to.
+
+    Empty only before the first fetch. Once releases exist, a missing index is refused rather
+    than treated as nothing to compare against: emptying a source and deleting the index made
+    the next run re-sign it, which is the check paying for its own input. A row deleted from
+    an otherwise-present index does the same thing one file at a time, and is caught in the
+    diff and by `test_the_committed_index_and_the_committed_folders_agree` rather than here.
+    """
+    try:
+        text = (out / INDEX).read_text(encoding="utf-8")
+    except OSError:
+        if any(p.is_dir() and _is_release(p.name) for p in out.iterdir()):
+            raise SystemExit(
+                f"{OUT_DIR}/{INDEX} is missing while fetched releases are present; restore it "
+                f"before fetching, or the run would re-sign whatever has changed under it"
+            ) from None
+        return {}
+    found: dict[str, str] = {}
+    for line in text.splitlines():
+        if line.startswith(f"| `{OUT_DIR}/"):
+            cells = [cell.strip(" `") for cell in line.strip("|").split("|")]
+            if len(cells) >= 2:
+                found[cells[0]] = cells[1]
+    return found
+
+
+def verify_untouched(out: Path, refetching: set[str]) -> None:
+    """Refuse to proceed when a release this run will not refetch has changed under us.
+
+    A source emptied or edited in place is caught by comparing the hashes the index records —
+    and the index is rewritten, for every release, on every run. So a fetch for one release
+    re-signed whatever had been tampered with in the others and the suite went green again:
+    the guard erased its own evidence. Checked BEFORE the first folder is replaced, because a
+    refusal raised afterwards leaves exactly the half-written tree `write_release` goes out of
+    its way to avoid.
+    """
+    if not out.is_dir():
+        return
+    known = recorded_digests(out)
+    for path, _, _, sha in sources_on_disk(out):
+        release = path.split("/")[2]
+        if release not in refetching and path in known and known[path] != sha:
+            raise SystemExit(
+                f"{path} no longer matches the hash the index records, and this run would "
+                f"not refetch {release}. Restore it, or refetch that release deliberately; "
+                f"re-signing it here would hide whatever changed it."
+            )
 
 
 def write_index(out: Path, today: str) -> str:
@@ -408,15 +480,10 @@ def write_index(out: Path, today: str) -> str:
         "not the source of record* under *When the release row goes red* in",
         "`plugins/ha/skills/ha-integration/reference/freshness.md` says why.",
         "",
-        "The governance gate refuses a patch to a file under",
-        "`plugins/ha/skills/ha-integration/reference/` that names one of the releases below",
-        "until it has served that release's own files. Any release with no non-empty folder",
-        "here is not demanded, because nothing here could settle it — one older than the",
-        "oldest fetched, a gap inside the span, or a removal release a year out. The single",
-        "exception is the minor immediately after the newest below: that is the one a pass is",
-        "about to write about, so an absent folder there means the fetch was skipped, and the",
-        'gate says so. This list is what "open every source" means in practice; re-run the',
-        "script to add a release.",
+        "The governance gate reads this directory and demands these files before it will let",
+        "a reference file make a claim about one of the releases below. What exactly it",
+        "demands, and what it does not, is `unread_sources` in `scripts/governance_gate.py`,",
+        "which is the only place that rule is stated; re-run the script to add a release.",
         "",
         "**The window is a net, not a claim.** Posts are gathered by publication date, between",
         "one release and the next, and a post published in the days before a release usually",
@@ -474,6 +541,7 @@ def main(
 
     dev = get(DEV_FEED)
     out = root / OUT_DIR
+    verify_untouched(out, {f"{year}.{minor}" for year, minor in wanted})
     out.mkdir(parents=True, exist_ok=True)
     for release in wanted:
         after, until = window(release, releases)
@@ -488,9 +556,20 @@ def main(
             if url in known:
                 continue
             recovered = post_from_url(url, text)
-            if recovered:
+            if not recovered:
+                continue
+            # Same window as the feed half, or the notes drag in whatever they happen to
+            # link: 2026.9's notes link the 2026-07-05 modbus post, and the first version
+            # filed a byte-identical copy of 2026.8's source under 2026.9.
+            if after < dt.date.fromisoformat(recovered["date"]) <= until:
                 posts.append(recovered)
                 linked += 1
+            else:
+                print(
+                    f"  {url} is linked by {release[0]}.{release[1]}'s notes but dated "
+                    f"{recovered['date']}, outside ({after}, {until}]; not filed here",
+                    file=sys.stderr,
+                )
         count = write_release(out, release, notes, posts, get)
         found = f"{count} post(s)" + (
             f", {linked} of them from the notes" if linked else ""
@@ -509,6 +588,12 @@ def main(
 def _minor(value: str) -> tuple[int, int]:
     year, _, minor = value.strip().partition(".")
     return int(year), int(minor)
+
+
+def _is_release(name: str) -> bool:
+    """Whether a folder name is one the gate will read as a release. Same rule, one place."""
+    year, _, minor = name.partition(".")
+    return year.isdigit() and minor.isdigit()
 
 
 if __name__ == "__main__":
