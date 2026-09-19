@@ -218,9 +218,12 @@ Always `domain` first, `name` second, then remaining keys alphabetically:
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/username/repo/issues",
   "requirements": [],
+  "single_config_entry": true,
   "version": "0.1.0"
 }
 ```
+
+`single_config_entry` is right for a cloud account or a single hub; omit it when a user may add several devices, and then implement the `unique-config-entry` rule with a unique id instead.
 
 `integration_type` is **required** — choose: `device` / `hub` / `service` / `entity` / `hardware` / `helper` / `system` / `virtual`.
 
