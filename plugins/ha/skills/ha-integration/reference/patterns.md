@@ -1,57 +1,53 @@
 # Implementation patterns, file structure and typing
 
-The canonical lookup for code inside `custom_components/`: pattern, rule, copyable
-snippet. Panel code is `reference/panels.md`; tests are `reference/testing.md`.
+Read this when writing or changing Python under `custom_components/`. Panel code is
+`reference/panels.md`; tests are `reference/testing.md`.
 
-- `__init__.py`
-- Notify platform (modern pattern — HA 2023.8+)
-- `config_flow.py`
-- Entity platform files
-- `EntityDescription` pattern
-- `UpdateEntity` (firmware/OTA install)
-- `DataUpdateCoordinator` (polling)
-- Entity push subscriptions
-- `ConfigEntry` mutation
-- Logging
-- Custom services
-- `services.yaml` + `strings.json` (hassfest rules)
-- Register integration-global resources in `async_setup`, not `async_setup_entry`
-- Diagnostics platform
-- Devices belong to one config entry
-- Units: prefer the enumerators
-- Config entry migration
-- File structure conventions
-- Typing
-- Do not add `from __future__ import annotations`
-- `TYPE_CHECKING` for expensive or circular imports
-- Typed `ConfigEntry`
-- Avoid `# type: ignore`
-- MicroPython firmware files
-- HA itself is fully typed
-- What changed in recent releases
+**Pick the shape Home Assistant already models, then write that shape the way core writes
+it.**
 
-| Pattern | For |
-|---|---|
-| `` `__init__.py` `` | entry setup/unload, `runtime_data`, platform forward |
-| Notify platform | the modern `NotifyEntity` path, not `BaseNotificationService` |
-| `` `config_flow.py` `` | user/reauth/reconfigure steps, unique-id aborts |
-| Entity platform files | `CoordinatorEntity`, `DeviceInfo`, naming, availability |
-| `` `UpdateEntity` `` | firmware/OTA install |
-| `` `DataUpdateCoordinator` `` | polling, backoff, shutdown |
-| Entity push subscriptions | subscribe/unsubscribe lifecycle |
-| `` `ConfigEntry` `` mutation | options updates without a reload loop |
-| Logging | `log-when-unavailable`, HA conventions |
-| Custom services | registration, schema, `services.yaml` + `strings.json` |
-| Typing | no `from __future__ import annotations`, `TYPE_CHECKING`, typed `ConfigEntry` |
+## Contents
 
-### `__init__.py`
+1. Writing code in `custom_components/`
+2. Step 1: Pick the shape HA models
+3. Step 2: Wire the entry setup and unload
+4. Step 3: Split the files by responsibility
+5. Step 4: Type it, and suppress nothing
+6. Cases
+7. `config_flow.py` — Step 1
+8. Notify platform (modern pattern — HA 2023.8+) — Step 1
+9. Entity platform files — Step 1
+10. `EntityDescription` pattern — Step 1
+11. `UpdateEntity` (firmware/OTA install) — Step 1
+12. `DataUpdateCoordinator` (polling) — Step 1
+13. Entity push subscriptions — Step 1
+14. `ConfigEntry` mutation — Step 2
+15. Logging — Step 1
+16. Custom services — Step 1
+17. `services.yaml` + `strings.json` (hassfest rules) — Step 1
+18. Register integration-global resources in `async_setup`, not `async_setup_entry` — Step 2
+19. Diagnostics platform — Step 1
+20. Devices belong to one config entry — Step 2
+21. Units: prefer the enumerators — Step 1
+22. Config entry migration — Step 2
+23. Deprecated platform APIs — Step 1
+24. Announced for a release after 2026.9 — Step 1
+25. `TYPE_CHECKING` for expensive or circular imports — Step 4
+26. Typed `ConfigEntry` — Step 4
+27. MicroPython firmware files — Step 4
 
-**Pick the shape HA models.** An entity platform when the thing has state a user would see
-in history or on a dashboard. A registered service when it is an action with no state. An
-option on the config entry when it is configuration. Notify is an entity platform because a
-notifier is addressable; a one-shot "send this" with no addressable target is a service.
+## Writing code in `custom_components/`
 
-**Wire it in one change:**
+### Step 1: Pick the shape HA models
+
+- An entity platform when the thing has state a user would see in history or on a dashboard.
+- A registered service when it is an action with no state.
+- An option on the config entry when it is configuration.
+
+> **Note:** notify is an entity platform because a notifier is addressable; a one-shot "send
+> this" with no addressable target is a service.
+
+### Step 2: Wire the entry setup and unload
 
 1. `PLATFORMS` lists the platforms this integration provides, and each name has a module
    beside it — `async_forward_entry_setups` imports `<domain>/<platform>.py` per name.
@@ -64,18 +60,89 @@ notifier is addressable; a one-shot "send this" with no addressable target is a 
 5. If the entity carries `_attr_translation_key`, add the matching block to `strings.json`
    and `translations/en.json` — `entity-translations` in `reference/quality-scale.md`.
 
-The audit fails a repo whose `PLATFORMS` names a module that does not exist
-(ha-integration-ci's README, *What the audit checks now*), so the gate catches a half-wired
-platform without anyone having to remember this list.
+**Timing:** the audit fails a repo whose `PLATFORMS` names a module that does not exist
+(*What the audit checks now* in ha-integration-ci's README), so a half-wired platform is
+caught at PR time rather than by a reader remembering this list.
 
-### Notify platform (modern pattern — HA 2023.8+)
+### Step 3: Split the files by responsibility
+
+If `__init__.py` exceeds ~100 lines of logic, extract. `api.py` is the split that matters
+most: it decouples device logic from the HA lifecycle, so it is unit-testable without a
+running HA instance.
+
+| File | Purpose |
+|---|---|
+| `__init__.py` | `async_setup_entry`, `async_unload_entry`, `async_migrate_entry` only — no business logic |
+| `coordinator.py` | `DataUpdateCoordinator` subclass |
+| `api.py` | all I/O to the device or service — no HA imports |
+| `models.py` | dataclasses and type aliases for device data |
+| `entity.py` | shared base entity class when several platforms extend the same base |
+| `const.py` | constants only — no imports from other local modules |
+| `config_flow.py` | config and options flows |
+| `diagnostics.py` | `async_get_config_entry_diagnostics` |
+| `services.py` | `async_setup_services(hass)` called from `async_setup` |
+| `migration.py` | `async_migrate_entry` logic when it is complex; import into `__init__.py` |
+| `helpers.py` / `util.py` | pure functions shared across platforms |
+| `<platform>.py` | one per HA platform (`sensor.py`, `button.py`, …) |
+
+### Step 4: Type it, and suppress nothing
+
+The `strict-typing` rule in `reference/quality-scale.md`. Every file passes the pyright run
+*Lint & quality check* in `SKILL.md` names, with zero errors, before a PR is ready.
+
+- **Never add `from __future__ import annotations`** — HA's Python floor (the row in
+  `reference/freshness.md`) is past the release where PEP 649 made annotation evaluation
+  deferred natively, core bans it, and the shipped `pyproject.toml` enforces the ban through
+  ruff (`TID251`).
+- **Import HA's own types rather than re-typing them** — `DeviceInfo` from
+  `homeassistant.helpers.device_registry`, `AddEntitiesCallback` from
+  `homeassistant.helpers.entity_platform`, `ConfigType`, `DiscoveryInfoType` and `StateType`
+  from `homeassistant.helpers.typing`.
+
+| anti-pattern | use instead | why (one clause) | reference |
+|---|---|---|---|
+| `# type: ignore` to silence a typing error | fix the type | under `strict-typing` a suppression is a violation, not a shortcut | Step 4 |
+| `hass.data[DOMAIN][entry.entry_id]`, which is untyped | `entry.runtime_data` on a typed `ConfigEntry` | the alias carries the runtime type, so no cast is needed | *Typed `ConfigEntry` — Step 4* |
+| a bare `cast()` on a stubless third-party import | `# type: ignore[import-untyped]`, or contribute stubs | it is the one accepted suppression, and only with the reason beside it | Step 4 |
+
+## Cases
+
+### `config_flow.py` — Step 1
+
+- `class MyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):` — `domain=` is a keyword
+  argument, not a class attribute
+- Include `OptionsFlow` when the integration has configurable options
+- Implement `async_step_reauth` for expired or invalid auth — `reauthentication-flow` in
+  `reference/quality-scale.md`
+- Implement `async_step_reconfigure` for changing connection settings —
+  `reconfiguration-flow` in `reference/quality-scale.md`
+- `vol.Schema` takes one entry per line and is left to `ruff format` — a flow schema is a
+  list of entries, not a table, so it does not earn the `# fmt: off` fence under *Code
+  style* in `reference/scaffold.md`:
+  ```python
+  DATA_SCHEMA = vol.Schema(
+      {
+          vol.Required(CONF_HOST, default="192.168.1.1"): str,
+          vol.Required(CONF_PORT, default=8080): int,
+      }
+  )
+  ```
+
+| anti-pattern | use instead | why (one clause) | reference |
+|---|---|---|---|
+| `OptionsFlowHandler` | `OptionsFlow` | the old name is deprecated | Step 1 |
+| a config-entry update listener alongside a reloading method | drop the listener, or call `async_update_and_abort()` in place of `async_update_reload_and_abort()` and pass `reload_on_update=False` to `_abort_if_unique_id_configured()` | the integration reloads twice or races; an error from **2026.12** | Step 1 |
+| `FlowHandler.show_advanced_options`, or the `show_advanced_options` key in `FlowHandler.context` | group the extra fields in a schema `section` | the property returns `True` unconditionally and the context key is already gone; removed **2027.6** | Step 1 |
+| a hand-written `SelectSelector` of device-class values | `DeviceClassSelector` | it carries HA's own values, so the hand-written translations for them go too | Step 1 |
+
+### Notify platform (modern pattern — HA 2023.8+) — Step 1
 ```python
 # notify.py
 from homeassistant.components.notify import NotifyEntity
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .models import MyConfigEntry  # the typed-entry alias, under Typing below
+from .models import MyConfigEntry  # the typed-entry alias, under Step 4 above
 
 
 class MyNotifyEntity(NotifyEntity):
@@ -155,30 +222,7 @@ if hass.services.has_service(NOTIFY_DOMAIN, device_id):
 ```
 This creates `notify.{device_id}` (e.g. `notify.living_room_display`) with full data support.
 
-### `config_flow.py`
-- `class MyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):` — `domain=` is a keyword arg, not a class attribute
-- Include `OptionsFlow` (not `OptionsFlowHandler` — that name is deprecated) when the integration has configurable options
-- Implement `async_step_reauth` for expired/invalid auth — `reauthentication-flow` in `reference/quality-scale.md`
-- Implement `async_step_reconfigure` for changing connection settings — `reconfiguration-flow` in `reference/quality-scale.md`
-- **Deprecated since 2026.6, an error from 2026.12: a config-entry update listener together
-  with a reloading method.** Having both makes the integration reload twice, or race. Pick
-  one: drop the listener and rely on the flow's reloading methods, use
-  `async_update_and_abort()` in place of `async_update_reload_and_abort()`, and pass
-  `reload_on_update=False` to `_abort_if_unique_id_configured()`.
-- `vol.Schema` — one entry per line, left to `ruff format` (the format check collapses
-  hand-aligned columns; `# fmt: off` is how a table worth aligning survives it, under *Code
-  style* in `reference/scaffold.md` — but a flow schema is a list of entries, not a table,
-  so let the formatter have it):
-  ```python
-  DATA_SCHEMA = vol.Schema(
-      {
-          vol.Required(CONF_HOST, default="192.168.1.1"): str,
-          vol.Required(CONF_PORT, default=8080): int,
-      }
-  )
-  ```
-
-### Entity platform files
+### Entity platform files — Step 1
 - Extend `CoordinatorEntity` (polling) or `Entity` (push)
 - Access runtime state via `entry.runtime_data` not `hass.data[DOMAIN][entry.entry_id]`
 - Use `DeviceInfo` TypedDict (from `homeassistant.helpers.device_registry`) — not a plain dict:
@@ -202,7 +246,7 @@ This creates `notify.{device_id}` (e.g. `notify.living_room_display`) with full 
 - **A list/collection sensor's state should be the `len()` count, with the items in an attribute** — not a timestamp or the raw list. (`last_updated`/`last_changed` are already built-in state attributes; don't re-add them.) Add `_attr_state_class = MEASUREMENT` so the count graphs.
 - **A `device_class` constrains which `state_class` is legal — verify the pair against the authoritative source, never guess.** HA hard-codes the allowed combinations in `DEVICE_CLASS_STATE_CLASSES` (`homeassistant/components/sensor/const.py`); a disallowed pair logs *"is using state class X which is impossible considering device class Y"* and silently drops long-term statistics. The constraint: `SensorDeviceClass.MONETARY` permits **only `{SensorStateClass.TOTAL}`** — `MEASUREMENT` is invalid for monetary. Don't "fix" an invalid combo by **deleting** `state_class` (that kills LTS entirely, a worse regression than the warning) — switch to a *valid* one. So a fluctuating money **balance** (settle-up debt, account balance) is `device_class=MONETARY` + `state_class=TOTAL`, not `MEASUREMENT`. Before setting any `device_class`/`state_class` pair, check the current mapping at https://raw.githubusercontent.com/home-assistant/core/dev/homeassistant/components/sensor/const.py (or the device-class table at developers.home-assistant.io/docs/core/entity/sensor) — the mapping changes between HA versions. Lock the chosen pair with an attribute test so a future rewrite can't silently drop it.
 
-### `EntityDescription` pattern
+### `EntityDescription` pattern — Step 1
 
 Preferred when an integration exposes many similar entities:
 ```python
@@ -231,7 +275,7 @@ async def async_setup_entry(
     async_add_entities(MySensor(coordinator, desc) for desc in SENSORS)
 ```
 
-### `UpdateEntity` (firmware/OTA install)
+### `UpdateEntity` (firmware/OTA install) — Step 1
 - `_attr_in_progress` only **greys out the dashboard install button** — it does **not** stop a programmatic re-entry. A service call, automation, or two near-simultaneous dashboard clicks can still re-enter `async_install` while an install is mid-flight, double-pushing the OTA. Add an **explicit re-entry guard** at the top of `async_install` (after any can't-install checks), windowed so a crashed/timed-out install can't wedge the entity forever:
   ```python
   async def async_install(self, version: str | None, backup: bool, **kwargs: Any) -> None:
@@ -248,21 +292,21 @@ async def async_setup_entry(
   ```
   Clear `_installing` when the new version lands (or the same window elapses) in whatever resyncs state from the device manifest. The `in_progress` flag is for the UI; the boolean+timestamp is the actual lock.
 
-### `DataUpdateCoordinator` (polling)
+### `DataUpdateCoordinator` (polling) — Step 1
 - `update_interval` minimum 5 s
 - Set `always_update=False` when API responses support `__eq__` — avoids unnecessary state machine writes
 - Raise `ConfigEntryAuthFailed` on auth errors inside `_async_update_data`
 - Raise `UpdateFailed` on other errors; use `UpdateFailed(retry_after=60)` for rate-limited APIs
 - For push APIs: use `coordinator.async_set_updated_data(data)` instead of adapting to polling
 
-### Entity push subscriptions
+### Entity push subscriptions — Step 1
 - Subscribe in `async_added_to_hass`, unsubscribe in `async_will_remove_from_hass` — prevents resource leaks
 - Never subscribe in `__init__`
 
-### `ConfigEntry` mutation
+### `ConfigEntry` mutation — Step 2
 - Never mutate `ConfigEntry` directly — always use `hass.config_entries.async_update_entry(entry, data=..., options=...)`
 
-### Logging
+### Logging — Step 1
 
 Covers the rule `log-when-unavailable` (`reference/quality-scale.md`) and HA's logging conventions.
 
@@ -274,8 +318,8 @@ Covers the rule `log-when-unavailable` (`reference/quality-scale.md`) and HA's l
 - Logger name (`logging.getLogger(__name__)`) already carries the module path — don't prefix messages with the integration name or "Home Assistant".
 - Remove a module-level `_LOGGER` that ends up unused (e.g. after deleting lifecycle spam) — ruff won't flag an unused module global, so it lingers silently.
 
-### Custom services
-- Register in `async_setup`, not `async_setup_entry` — *Register integration-global resources in `async_setup`, not `async_setup_entry`* below says why
+### Custom services — Step 1
+- Register in `async_setup`, not `async_setup_entry` — *Register integration-global resources in `async_setup`, not `async_setup_entry` — Step 2* below says why
 - Use `async_register_platform_entity_service()` for entity-targeted actions
 - Document in `services.yaml`; add icons in `icons.json`
 - A `selector: config_entry` renders a field labelled "Integration" (hardcoded in the HA frontend). To present a device dropdown, use `selector: device` with `integration: {domain}`, then resolve the HA device → config entry in the handler with the helper HA added for exactly this in 2026.9 (read at the `2026.9.0` tag, `homeassistant/helpers/device_registry.py`):
@@ -294,18 +338,18 @@ Covers the rule `log-when-unavailable` (`reference/quality-scale.md`) and HA's l
   looking for your own — that property is deprecated, and the loop is what the helper
   replaces. It also resolves a pre-migration composite device id to your domain's split
   device, which is the case a hand-written loop gets wrong. See *Devices belong to one
-  config entry* below.
+  config entry — Step 2* below.
 - **Target the entry, or the call fans out.** `hass.services.async_call(DOMAIN, svc, …)` with no target reaches **every** config entry. An entity action that should touch only its own device passes its own `entry_id`/`device_id` and the handler filters on it; leave it untargeted only for a deliberate bulk call.
 
-### `services.yaml` + `strings.json` (hassfest rules)
+### `services.yaml` + `strings.json` (hassfest rules) — Step 1
 - The modern convention: `services.yaml` carries only field **structure** (selectors, `required`, `default`, collapsible `sections`); names/descriptions live in `strings.json` under a top-level `services` key (`services.{svc}.name/description`, `.fields.{key}.name/description`, `.sections.{key}.name`). Field keys are flat in `strings.json` even when nested in a `sections` block in `services.yaml`. Keep `translations/en.json` a copy of `strings.json`.
 - **hassfest forbids literal URLs in `strings.json` descriptions** — `the string should not contain URLs`. Use plain text, or a `{placeholder}` filled via `description_placeholders` in the flow step. A markdown image `![x]({url})` with a placeholder is fine (no literal `http`).
 - Collapsible service form: `fields: { appearance: { collapsed: true, fields: {...} } }` — sections are UI-only; the call data stays flat, so the voluptuous schema is unaffected.
 
-### Register integration-global resources in `async_setup`, not `async_setup_entry`
+### Register integration-global resources in `async_setup`, not `async_setup_entry` — Step 2
 The registration happens once per process; doing it per entry races when two entries set up in parallel. Claim the `hass.data` flag **before** the `await`, or both entries pass the check. The panel case, with the code, is `reference/panels.md`.
 
-### Diagnostics platform
+### Diagnostics platform — Step 1
 
 The `diagnostics` rule in `reference/quality-scale.md`. Add `diagnostics.py`:
 
@@ -327,48 +371,65 @@ async def async_get_config_entry_diagnostics(
 ```
 No registration needed — HA discovers it automatically from the file name.
 
-### Devices belong to one config entry
+### Devices belong to one config entry — Step 2
 
-Rewritten in 2026.8: a device has exactly one config entry and at most one subentry.
-**The deadlines differ by row, so read the last column rather than the section.**
+A device has exactly one config entry and at most one subentry: read `config_entry_id` and
+`config_subentry_id`. Every release below is quoted from the `breaks_in_ha_version` of the
+call site that reports that usage, read at the `2026.9.0` tag in
+`homeassistant/helpers/device_registry.py` and `homeassistant/helpers/device.py`; a row that
+names none is one core attaches none to. The WebSocket keys of the same names are
+`reference/panels.md`.
 
-| Deprecated | Use instead | Stops working |
-|---|---|---|
-| `DeviceEntry.config_entries` | `config_entry_id` | **2027.10** for a custom integration |
-| `DeviceEntry.config_entries_subentries` | `config_entry_id` and `config_subentry_id` | **2027.10** for a custom integration |
-| `DeviceEntry.primary_config_entry` | `config_entry_id` | **2027.10** for a custom integration |
-| `DeviceInfo["via_device"]`, `async_get_or_create(via_device=…)` | `via_device_id` | **2027.8** |
-| `DeviceRegistry.async_get_device()` | `async_get_device_by_identifier()` / `async_get_device_by_connection()`, with the config entry id | **2027.8** |
-| `async_update_device(add_config_entry_id=…, remove_config_entry_id=…)` and the subentry pair | `new_config_entry_id`, `new_config_subentry_id` | **2027.8** |
+**A core caller hits these sooner than a custom integration does.** Where a call site sets
+`core_behavior=ReportBehavior.ERROR`, core and core integrations raise `RuntimeError` today
+while a custom integration gets a logged warning until the release in the row.
 
-The three plural properties are the ones with the longer runway, and only for a custom
-integration: from **2026.10** a core caller reading one gets a `RuntimeError` immediately,
-while a custom integration keeps working with a logged warning until 2027.10. Everything
-else in the table warns until 2027.8. A deadline is not a reprieve either way.
+| anti-pattern | use instead | why (one clause) | reference |
+|---|---|---|---|
+| `DeviceEntry.config_entries` | `config_entry_id` | a compatibility property returning `{config_entry_id}`, carrying no `report_usage` and **no removal release stated by core** | Step 2 |
+| `DeviceEntry.config_entries_subentries` | `config_entry_id` and `config_subentry_id` | a compatibility property returning `{config_entry_id: {config_subentry_id}}`, with **no removal release stated by core** | Step 2 |
+| `DeviceEntry.primary_config_entry` | `config_entry_id` | a compatibility property returning `config_entry_id` itself, with **no removal release stated by core** | Step 2 |
+| a loop over a device's config entries to find your own | `async_get_device_and_config_entry_for_domain(hass, device_id, domain=DOMAIN)` | the loop gets a pre-migration composite device id wrong, which the helper resolves | *Custom services — Step 1* |
+| `DeviceInfo["via_device"]`, `async_get_or_create(via_device=…)` | `via_device_id`, looked up with `async_get_device_id_by_identifier(hass, identifier, config_entry_id=…)` | an identifier is unique only within a config entry; stops working in **2027.8.0** | Step 2 |
+| a `via_device` or `via_device_id` naming the device itself | drop the self-reference | ignored and logged now; raises from **2027.8.0** | Step 2 |
+| a composite device id passed as `via_device_id` | the id of one real device | resolved and logged now; stops working in **2027.8** | Step 2 |
+| `DeviceRegistry.async_get_device()` | `async_get_device_by_identifier()`, `async_get_device_by_connection()` or `async_get_devices()`, each with the config entry id | the lookup is ambiguous once identifiers repeat across entries; stops working in **2027.8.0** | Step 2 |
+| `async_update_device(add_config_entry_id=…, add_config_subentry_id=…, remove_config_entry_id=…, remove_config_subentry_id=…)` | `new_config_entry_id`, `new_config_subentry_id`, or `async_remove_device` | a move is no longer an add plus a remove; stops working in **2027.8.0** | Step 2 |
+| `async_get_or_create` re-registering an existing device under a different subentry | `async_update_device(new_config_subentry_id=…)` | it silently moves the device; raises from **2027.8.0** | Step 2 |
+| a `disabled_by` that contradicts the owning config entry or the parent device | leave it `UNDEFINED` and let the registry derive it | the value is dropped and logged now; raises from **2027.8** | Step 2 |
+| `async_update_device(merge_connections=…, merge_identifiers=…)` | `new_connections`, `new_identifiers`, with the full set computed yourself | merging only ever adds; stops working in **2027.9.0** | Step 2 |
+| `async_get_or_create(default_manufacturer=…, default_model=…, default_name=…)` | `manufacturer`, `model`, `name` | there is no primary integration left to defer to; stops working in **2027.9.0** | Step 2 |
+| `async_get_or_create(created_at=…, modified_at=…)` | drop the arguments | the registry owns both and always ignored them; stops working in **2027.9.0** | Step 2 |
+| `suggested_area` on `DeviceEntry`, `async_get_or_create` or `async_update_device` | drop it | it is ignored; **2026.9** on the property and **2026.9.0** on the `async_update_device` call site | Step 2 |
+| a non-`str` value in a device-registry string field (`model`, `sw_version`, …) | pass a `str` | coerced with a warning now; stops working in **2026.12.0** | Step 2 |
+| `DeviceRegistry.devices` as a mapping — `.get()`, `.values()`, `.keys()`, `registry.devices[id]`, `device_id in registry.devices` | iterate it for the entries, `async_get(device_id)` for a lookup | it is a read-only collection now; the mapping shim stops working in **2027.9.0** | Step 2 |
+| `DeviceRegistry.child_devices` as a mapping | iterate it | there is no compatibility shim at all: no `.get()`, no `.values()`, no lookup by id | Step 2 |
+| `DeviceRegistry.deleted_devices` | nothing — it is an internal detail of the registry | stops working in **2027.9.0** | Step 2 |
+| `DeviceRegistry.async_is_composite_device_id()` | `async_get(device_id, include_composite_devices=False)` returning `None` | the parameter makes the same test; stops working in **2027.9.0** | Step 2 |
+| a `DeviceEntry`-only attribute read off a child device — `connections`, `manufacturer`, `model`, `model_id`, `hw_version`, `sw_version`, `serial_number`, `configuration_url`, `entry_type`, `via_device_id` | branch on `parent_device_id`, then read the parent device | the shim hands back the `DeviceEntry` default, not the parent's value; stops working in **2027.9.0** | Step 2 |
+| `async_device_info_to_link_from_entity()`, `async_device_info_to_link_from_device_id()` | `entity.device_entry = async_entity_id_to_device(hass, source_entity_id)` | both already return `None`; removed in **2027.8.0** | Step 2 |
+| `async_remove_stale_devices_links_keep_entity_device()`, `async_remove_stale_devices_links_keep_current_device()` | `helper_integration.async_remove_helper_devices(…, remove_all_devices=True)` | both already do nothing; removed in **2027.8.0** | Step 2 |
 
-Looping over a device's entries to find your own is the pattern this replaces: call
-`async_get_device_and_config_entry_for_domain(hass, device_id, domain=DOMAIN)` instead, as
-*Custom services* above shows. Helper-integration methods
-(`async_device_info_to_link_from_entity`, `async_device_info_to_link_from_device_id`) now
-return `None` and are removed in 2027.8 — set `self.device_entry` instead.
+> **Note:** the three compatibility properties are the supported way to read a *synthesized
+> composite* device — the read-only entry `async_get()` returns for a pre-migration composite
+> device id — because it spans several entries that `config_entry_id` cannot express.
 
-### Units: prefer the enumerators
+### Units: prefer the enumerators — Step 1
 
-Two enums arrived in **2026.7**, and every loose constant they replace is deprecated and
-**removed in 2027.8** — the post names no removal release, `homeassistant/const.py` does, in
-the `DeprecatedConstantEnum` beside each one:
+`UnitOfDensity` carries mass over volume — `GRAMS_PER_CUBIC_METER`,
+`MILLIGRAMS_PER_CUBIC_METER`, `MICROGRAMS_PER_CUBIC_METER`, `MICROGRAMS_PER_CUBIC_FOOT`.
+`UnitOfRatio` carries ratios — `PARTS_PER_MILLION`, `PARTS_PER_BILLION`, `PERCENTAGE`. Each
+release below is the version argument of the `DeprecatedConstantEnum` beside the constant in
+`homeassistant/const.py`, read at the `2026.9.0` tag.
 
-- `UnitOfDensity` for mass-over-volume — `GRAMS_PER_CUBIC_METER`,
-  `MILLIGRAMS_PER_CUBIC_METER`, `MICROGRAMS_PER_CUBIC_METER`, `MICROGRAMS_PER_CUBIC_FOOT`
-- `UnitOfRatio` for ratios — `PARTS_PER_MILLION`, `PARTS_PER_BILLION`, and **`PERCENTAGE`**
+| anti-pattern | use instead | why (one clause) | reference |
+|---|---|---|---|
+| `CONCENTRATION_GRAMS_PER_CUBIC_METER`, `CONCENTRATION_MILLIGRAMS_PER_CUBIC_METER`, `CONCENTRATION_MICROGRAMS_PER_CUBIC_METER`, `CONCENTRATION_MICROGRAMS_PER_CUBIC_FOOT` | the matching `UnitOfDensity` member | removed in **2027.8** | Step 1 |
+| `CONCENTRATION_PARTS_PER_MILLION`, `CONCENTRATION_PARTS_PER_BILLION` | the matching `UnitOfRatio` member | removed in **2027.8** | Step 1 |
+| `CONCENTRATION_PARTS_PER_CUBIC_METER` | nothing — core names no replacement unit | removed in **2027.8** | Step 1 |
+| `PERCENTAGE` as a unit of measurement, on a humidity or battery sensor | `UnitOfRatio.PERCENTAGE` | the constant itself is not deprecated and is now defined from the enum (`PERCENTAGE: Final = UnitOfRatio.PERCENTAGE.value`), but using it as a unit is | Step 1 |
 
-Every `CONCENTRATION_*` constant is deprecated, `CONCENTRATION_PARTS_PER_CUBIC_METER` with
-no replacement at all. `PERCENTAGE` is the one to read carefully: the constant stays and is
-now defined *from* the enum (`PERCENTAGE: Final = UnitOfRatio.PERCENTAGE.value`), while
-using it as a unit of measurement is deprecated. So a humidity or battery sensor takes
-`UnitOfRatio.PERCENTAGE` — a real member, not the bare string and not the loose constant.
-
-### Config entry migration
+### Config entry migration — Step 2
 
 Implement `async_migrate_entry` in `__init__.py` whenever the stored `entry.data` schema changes:
 ```python
@@ -390,59 +451,41 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
     return True
 ```
-Major version bump without `async_migrate_entry` = setup **fails** for existing users. Always implement the handler before shipping a major bump.
+**Return `True` or `False`, and log the reason yourself.** A major version bump with no
+`async_migrate_entry` fails setup for every existing user, so ship the handler in the same
+change. Read at the `2026.9.0` tag, `ConfigEntry.async_migrate` wraps the call in
+`except Exception: self.logger.exception(...); return False`, so every exception is
+swallowed alike; what replaces that is *Announced for a release after 2026.9 — Step 1* below.
 
-**Raising instead of returning `False` is coming, but not yet.** Announced 2026-09-17: the
-handler may raise a config-entry exception, which is translatable and carries the reason —
-`ConfigEntryNotReady` for something that may resolve itself leaves the entry to retry, while
-any other exception parks it in `migration_error` for a repair issue and a later
-`hass.config_entries.async_retry_migration(entry_id)`.
+### Deprecated platform APIs — Step 1
 
-**None of that works on 2026.9.** Read at the `2026.9.0` tag: `ConfigEntry.async_migrate`
-wraps the call in `except Exception: self.logger.exception(...); return False`, so every
-exception is swallowed alike and `ConfigEntryNotReady` gets no special treatment, and
-`ConfigEntries` has no `async_retry_migration` at all. Both arrive in a later release. Until
-the release row in `reference/freshness.md` names one that has them, return `True`/`False`
-and log the reason yourself.
+The deprecations a custom integration can meet that have no section of their own above.
 
----
+| anti-pattern | use instead | why (one clause) | reference |
+|---|---|---|---|
+| `mqtt.publish()` or `async_publish()` with `qos=None` or `retain=None` | the defaults, or typed values — the parameters are `qos: int = 0` and `retain: bool = False` | the `None` fallbacks stop working in **2027.6** | Step 1 |
+| using a condition object as a callable | `async_condition_from_config()`, then `async_check()`, then `async_unload()`; a script is `async_run()` then `await script.async_unload()` | the callable form ends in **2027.1** | Step 1 |
+| `BrowseMediaSource(domain=None)` | your own domain; the node listing every media source is `RootBrowseMediaSource` | `domain` is a required `str` now — a hard change with no deprecation period | Step 1 |
+| `battery_level` on a `device_tracker` entity | a dedicated `SensorDeviceClass.BATTERY` sensor | stops working in **2027.7** | Step 1 |
+| `TrackerEntity.location_name` | `in_zones` — zone entity ids, smallest zone first | stops working in **2027.7** | Step 1 |
+| `battery_level` on `StateVacuumEntity` | a dedicated battery sensor | already removed, in 2026.9 | Step 1 |
+| `async_initialize_triggers(home_assistant_start=…)` | stop passing it; `hass.async_add_startup_job` for work at startup | it already has no effect; removed in **2027.8** | Step 1 |
+| a `TrackerEntity` for a device tracked by connection rather than position | `BaseScannerEntity` | it derives the state from the associated zone and sets the `tracking_type` capability attribute | Step 1 |
 
-### File structure conventions
+> **Note:** a condition platform may implement `_async_setup()` and `_async_unload()` when it
+> needs async initialisation or teardown; it is optional and nothing else changes for it.
 
-Split files by responsibility. Rule of thumb: if `__init__.py` exceeds ~100 lines of logic, extract.
+### Announced for a release after 2026.9 — Step 1
 
-| File | Purpose |
-|------|---------|
-| `__init__.py` | `async_setup_entry`, `async_unload_entry`, `async_migrate_entry` only — no business logic |
-| `coordinator.py` | `DataUpdateCoordinator` subclass |
-| `api.py` | All I/O to the device/service — no HA imports; makes it independently testable |
-| `models.py` | Dataclasses and type aliases for device data |
-| `entity.py` | Shared base entity class when multiple platforms extend the same base |
-| `const.py` | Constants only — no imports from other local modules |
-| `config_flow.py` | Config + options flows |
-| `diagnostics.py` | `async_get_config_entry_diagnostics` |
-| `services.py` | `async_setup_services(hass)` called from `async_setup`; keeps `__init__.py` clean |
-| `migration.py` | `async_migrate_entry` logic if complex; import into `__init__.py` |
-| `helpers.py` / `util.py` | Pure functions shared across platforms |
-| `<platform>.py` | One per HA platform (`sensor.py`, `button.py`, etc.) |
+Cleared when the release row in `reference/freshness.md` moves past the landing release.
 
-`api.py` is the most important split — it decouples device logic from HA lifecycle and makes unit testing possible without a running HA instance.
+| what | lands in | do now | do then |
+|---|---|---|---|
+| `modbus.get_hub` is deprecated | 2026.10 | collect the connection details in your own config flow rather than a YAML hub | call `async_get_unit(hass, entry, connection_params, unit_id)`; `get_hub` is removed in 2027.10 |
+| the `configurator` integration is deprecated | not stated — `components/configurator/` carries no deprecation at the `2026.9.0` tag | use a config flow and config entries | nothing; it is removed in 2027.10 |
+| `async_migrate_entry` may raise a config-entry exception instead of returning `False` | not stated — neither the `ConfigEntryNotReady` path nor `ConfigEntries.async_retry_migration` exists at the `2026.9.0` tag | return `True`/`False` and log the reason yourself | raise `ConfigEntryNotReady` for something that may resolve itself; any other exception parks the entry in `migration_error` for a repair issue and a later `hass.config_entries.async_retry_migration(entry_id)` |
 
----
-
-### Typing
-
-Complete, correct typing is the `strict-typing` rule in `reference/quality-scale.md` — not cosmetic. It catches contract violations between platforms, coordinator data shapes, and config entry contents at development time rather than runtime. Every file must pass the pyright run *Lint & quality check* in `SKILL.md` names, with zero errors, before a PR is ready. Suppressions are failures, not fixes.
-
-### Do not add `from __future__ import annotations`
-
-HA's Python floor (the row in `reference/freshness.md`) is past the release where PEP 649
-made annotation evaluation deferred natively, so forward references and
-`TYPE_CHECKING`-only imports work without it. The import only switches Python
-back to the older stringified behaviour, which some runtime tooling handles worse. Core bans
-it, and the shipped `pyproject.toml` enforces the ban through ruff (`TID251`).
-
-### `TYPE_CHECKING` for expensive or circular imports
+### `TYPE_CHECKING` for expensive or circular imports — Step 4
 ```python
 from typing import TYPE_CHECKING
 
@@ -454,7 +497,7 @@ def uses_hass_in_annotations_only(hass: HomeAssistant) -> None:
     """The import never runs; deferred annotations resolve the name when asked."""
 ```
 
-### Typed `ConfigEntry`
+### Typed `ConfigEntry` — Step 4
 
 Alias the entry to its runtime type so `entry.runtime_data` is not untyped:
 ```python
@@ -473,16 +516,7 @@ async def async_setup_entry(
     async_add_entities(MySensor(coordinator, desc) for desc in SENSORS)
 ```
 
-### Avoid `# type: ignore`
-
-Under `strict-typing` a type suppression is a violation, not a shortcut. The common HA patterns that tempt one all have proper solutions:
-- `hass.data[DOMAIN]` is untyped → don't use it; use `entry.runtime_data` with typed `ConfigEntry` instead
-- `entry.runtime_data` assignment errors → solved by the typed `ConfigEntry` alias above
-- Third-party library missing stubs → contribute stubs or use `cast()` with a comment explaining why
-
-Only acceptable suppression: `# type: ignore[import-untyped]` on a third-party import with no available stubs, where contributing stubs is out of scope.
-
-### MicroPython firmware files
+### MicroPython firmware files — Step 4
 
 Exclude them from Pyright entirely in `pyrightconfig.json`. Keep the `pythonVersion` key:
 it is what the audit's version comparison (ha-integration-ci's README) reads from this
@@ -495,62 +529,3 @@ file:
 }
 ```
 
-### HA itself is fully typed
-
-Import its types directly rather than re-typing them:
-```python
-from homeassistant.helpers.device_registry import DeviceInfo
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType, StateType
-```
-
----
-
-### What changed in recent releases
-
-The window this skill is current for is the release row in `reference/freshness.md`, and the
-procedure beside it is what extends this table. **Every row below was written from a source
-opened and read** — the change and its removal release from the developer-blog post, and,
-where the post names no landing release, from the release notes that link it, which is why
-some rows carry a release the post itself does not state. A row whose release neither
-source gives says so in the last column rather than guessing. Rows beyond the captured
-release are here because the post announcing them landed inside the window; they are a
-warning, not a claim that the skill has been checked against that release.
-
-| Release | Change | What to do | Gone in |
-|---|---|---|---|
-| 2026.6 | config-entry update listener together with a reloading method | drop one: `async_update_and_abort()` over `async_update_reload_and_abort()`, `reload_on_update=False` on `_abort_if_unique_id_configured()` | an **error from 2026.12** |
-| 2026.7 | `UnitOfDensity`, `UnitOfRatio` | replace the `CONCENTRATION_*` constants; take `UnitOfRatio.PERCENTAGE` rather than `PERCENTAGE` as a unit of measurement | **2027.8**, per `const.py` — the post names no release |
-| 2026.8 | a device has one config entry and at most one subentry | see *Devices belong to one config entry* above | **2027.8 or 2027.10 by row** — that table's last column, not one date |
-| 2026.8 | custom panels get safe-area padding by default | the opt-out lands a release later — `reference/panels.md` | — |
-| 2026.9 | `async_get_device_and_config_entry_for_domain()` in `helpers.device_registry` | use it in place of a loop over a device's entries; it handles composite device ids too | — |
-| 2026.9 | `panel_custom` gains the `handle_safe_area` opt-out | `handle_safe_area=True` to `async_register_panel`, or the key under a `panel_custom:` entry — `reference/panels.md` | — |
-| 2026.10 | the plural device accessors are enforced | `config_entry_id` — and see the per-row deadlines in *Devices belong to one config entry* above, which are not all the same | core raises now; a **custom integration warns until 2027.10** |
-| 2026.6 | `FlowHandler.show_advanced_options`, and the `show_advanced_options` key in `FlowHandler.context` | group the extra fields in a schema `section` instead; the property returns `True` unconditionally meanwhile and the context key is already gone | removed **2027.6** |
-| 2026.6 | MQTT `publish()` / `async_publish()` take `qos: int = 0` and `retain: bool = False` | stop passing `None`; take the defaults or pass typed values | `None` stops working **2027.6** |
-| 2026.8 | device registry WebSocket gains `config_entry_id` and `config_subentry_id` | a panel reads those, not the plural fields — `reference/panels.md` | plural fields removed **2027.8** |
-| 2026.8 | `config/device_registry/list_linked_devices` and `list_composite_splits` | new WebSocket commands, read at the `2026.8.0` tag; the post assigns them no release | — |
-| 2026.9 | child devices in the device list; `config/device_registry/remove` | handle entries with a `parent_device_id` and missing hardware fields; call the new remove command | `remove_config_entry` removed **2027.9** |
-| — | `DeviceClassSelector` and `StateClassSelector` | migrate a flow that picks a device or state class off `SelectSelector`, and drop the stale translations for its values | no version or deprecation stated in the post |
-| after 2026.9 | `async_migrate_entry` may raise instead of returning `False` | **not yet usable** — neither the `ConfigEntryNotReady` path nor `async_retry_migration` exists at the `2026.9.0` tag; see *Config entry migration* above | the post names no release |
-| 2026.6 | conditions and scripts are objects with a lifecycle | `async_condition_from_config()`, then `async_check()`, then `async_unload()`; a script is `async_run()` then `await script.async_unload()`. A condition platform may add `_async_setup()` / `_async_unload()` | calling a condition object directly ends **2027.1** |
-| 2026.6 | `BrowseMediaSource(domain=…)` is required | pass your own domain; the all-sources root node is `RootBrowseMediaSource` | a hard change, not a deprecation |
-| 2026.7 | `device_tracker`: `battery_level` and `TrackerEntity.location_name` | a dedicated battery sensor; `in_zones` (zone entity ids, smallest first) for location. New: `BaseScannerEntity`, the `tracking_type` attribute | both stop working **2027.7** |
-| 2026.7 | `async_initialize_triggers(home_assistant_start=…)` | stop passing it — it already has no effect; `hass.async_add_startup_job` for startup work | removed **2027.8** |
-| 2026.8 | `MediaSource.async_search_media()` | optional; adds search to the media browser via `SearchMedia` / `SearchMediaQuery` | — |
-| 2026.8 | `ButtonEventType` for `EventDeviceClass.BUTTON` | optional and additive: use the standard members (`PRESS_START`, `LONG_PRESS_START`, `MULTI_PRESS_END`, …) in `event_types` rather than your own strings | custom strings still allowed |
-| 2026.10 | the `configurator` integration | a config flow and config entries | removed **2027.10** — the post is dated in the 2026.9 window but `components/configurator/` carries no deprecation at the `2026.9.0` tag |
-| 2026.9 | `battery_level` on the base vacuum entity (`StateVacuumEntity`) | a dedicated battery sensor | **removed** — from the release notes' *Backward-incompatible changes*, which carry no blog post for it |
-| 2026.6 | MQTT publish supports `message_expiry_interval` | optional; a second post of the same date as the `qos`/`retain` change | — |
-| 2026.10 | the OAuth2 helper raises config-entry exceptions itself | delete the try/except around `ImplementationUnavailableError`, `UnknownImplementationError` and the token-request errors, the hand-rolled `ConfigEntryNotReady`/`ConfigEntryAuthFailed` conversion, and the `oauth2_implementation_unavailable` string | — |
-| 2026.10 | `modbus.get_hub` | `async_get_unit(hass, entry, connection_params, unit_id)`, with the connection collected in your own config flow | removed **2027.10** |
-| 2026.10 | `lawn_mower`: `LawnMowerEntityFeature.STOP`, `LawnMowerActivity.IDLE` | implement `async_stop`; a mower stopped but neither docked nor paused is `IDLE`, not `PAUSED` or `ERROR` | — |
-
-**`battery_level` is going away platform by platform.** `device_tracker`'s deprecates in
-2026.7 and stops working in 2027.7; `vacuum`'s is already removed. If a platform you
-implement exposes a battery as an entity property, assume it is on the same path and expose
-a `SensorDeviceClass.BATTERY` sensor instead.
-
----
-
-Testing — the harness prerequisites and what to mock — is `reference/testing.md`.
