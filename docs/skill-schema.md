@@ -83,6 +83,7 @@ Fixed column sets. A table that invents its own shape cannot be diffed across a 
 | scheduled change | `what \| lands in \| do now \| do then` |
 | reference | `file \| when to read` |
 | source | `artefact \| taken from` — what a scaffold carries and where each piece comes from |
+| layout | `file \| holds` — one row per module, saying what belongs in it |
 | tier | `tier \| adds` — a level and what it requires beyond the one below |
 | cached fact | `fact \| value \| captured \| re-derive with \| consumers \| gate` |
 | decision | `scenario \| choice` |
