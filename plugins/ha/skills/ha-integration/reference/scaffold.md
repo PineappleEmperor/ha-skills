@@ -1,101 +1,160 @@
 # Scaffolding an integration
 
-What to ask, what to generate, and the conventions the generated code follows. Read with `reference/patterns.md` open — the code patterns live there.
+Scope: starting a new integration repository — what to ask, and what to write. The code that
+goes inside the generated files is `reference/patterns.md`.
 
-- Gather requirements (ask all at once)
-- Files to generate
-- Brand assets
-- Brand asset sources
-- manifest.json key order
-- Implementation patterns, file structure, typing & testing
-- Code style
-- Commit conventions, versioning & CI gating
+**Core rule:** every file is generated from the Step 1 answers or copied from `templates/`.
+Nothing here is authored from memory.
 
-## Gather requirements (ask all at once)
+## Contents
 
-1. **Domain** — snake_case, e.g. `my_device`. Must be stable; can't change later.
-2. **Friendly name** — e.g. "My Device"
-3. **Description** — one sentence
-4. **IoT class** — `local_polling` / `local_push` / `cloud_polling` / `cloud_push` / `calculated`
-5. **Data model** — polling (use `DataUpdateCoordinator`) or push (subscription)
-6. **Auth model** — none / API key / OAuth / username+password
-7. **Platforms** — button, sensor, binary_sensor, switch, light, number, select, text, notify, cover, climate, fan, lock, media_player, vacuum (pick any)
-8. **MicroPython firmware?** (yes/no) — adds `firmware/` exclusion to pyrightconfig.json
-9. **Licence** — default **MIT**. HACS validates that the repo has one GitHub can identify
-   by SPDX, so a missing or bespoke licence fails `HACS validation` on the first PR with
-   `The repository license could not be identified (SPDX: NOASSERTION)`. Write the real
-   text of the chosen licence to `LICENSE`; a paraphrase does not resolve.
-10. **Version** — default `0.1.0`
+1. Step 1: Gather the requirements
+2. Step 2: Generate the integration package
+3. Step 3: Generate the repo root
+4. Step 4: Copy the CI stack
+5. Step 5: Ship the brand assets
+6. Step 6: Order `manifest.json`
+7. Step 7: Pass HACS validation
+8. Cases
+9. Alignment a human chose meets `ruff format` — Step 2
+10. A repository adopting the stack carries ruff exclusions — Step 3
+11. Reference
 
-## Files to generate
+## The scaffold
 
-**Integration package** (`custom_components/{domain}/`):
-- `__init__.py`
-- `config_flow.py`
-- `const.py`
-- `manifest.json`
-- `strings.json`
-- `translations/en.json`
-- `services.yaml` (only if custom services are genuinely needed; prefer standard services first)
-- `icons.json` (action/service icons for UI display — `{"services": {"my_action": {"service": "mdi:icon"}}}`)
-- `quality_scale.yaml`
-- `diagnostics.py` (the `diagnostics` rule — see `reference/patterns.md`)
-- One file per selected platform (e.g. `button.py`, `sensor.py`)
-- Additional files as needed: `api.py`, `coordinator.py`, `models.py`, `entity.py`, `helpers.py` (see `reference/patterns.md`)
+### Step 1: Gather the requirements
 
-**Repo root:**
-- `CLAUDE.md` — project instructions. **Always include a rule telling future AI sessions to invoke this `ha-integration` skill before writing/modifying integration code, and to re-invoke after `/compact`** (compaction drops the skill's guidance). Keep this enforcement **per-repo, not global** — a project file is the right scope; do not push a user's global config on others. Suggested snippet:
-  ```markdown
-  ## AI sessions
-  Before writing or modifying integration code (config flow, platforms, manifest,
-  websocket, services…), invoke the `ha-integration` skill. Re-invoke it after any
-  `/compact`, since compaction can drop the skill's guidance from context.
-  ```
-  (`templates/hooks/` holds optional per-turn reminders for a user's own `~/.claude`; the canonical, shareable enforcement is this `CLAUDE.md` rule, which ships with the repo.)
-- `hacs.json` — `name` is the only strict requirement, but the canonical setup ships a **zip release**: `{"name": "My Integration", "content_in_root": false, "zip_release": true, "filename": "<domain>.zip"}` (add `"homeassistant": "<oldest HA you actually test>"`, never a floor copied from an example). `zip_release` makes HACS download a release **asset** instead of the tag source archive — so it **requires** the scaffold's `release.yml` caller, and `filename` must be the name that workflow attaches, per *The three workflows* in ha-integration-ci's README. **Without that workflow, HACS install fails with `Could not download`** (the symptom of a `zip_release` repo whose release has no attached zip). Drop `zip_release`/`filename` only if you deliberately want HACS to pull the whole tagged repo archive instead.
+Ask all ten at once.
 
-  > **The tag is the version, not the committed manifest** — how that works, and why no PR
-  > carries a bump, is `reference/versioning.md`. What matters here: the `release.yml` caller must
-  > point at ha-integration-ci's workflow; why that is what patches the manifest is
-  > `release.yml` under *Implementation notes* in its README.
-- `pyproject.toml` — copy `templates/pyproject.toml` verbatim. Its `[tool.ruff]` tables are
-  Home Assistant core's own rule set adapted for a custom integration (`google` docstrings,
-  HA's Python floor, no `from __future__ import annotations`), and its pytest table carries
-  the `asyncio_mode = "auto"` without which the async tests never run. A copy that relaxes
-  those tables is drift.
-- `pyrightconfig.json` — the snippet under *MicroPython firmware files* in
-  `reference/patterns.md`, with or without the `exclude`.
-- `requirements.test.txt` — **required**; copy `templates/requirements.test.txt`. Why the pin matters, and what breaks without it: `reference/testing.md`.
-- `conftest.py` — **required, at the repo root, not in `tests/`**; copy `templates/conftest.py`. Why it must be at the root: `reference/testing.md`.
-- `tests/` — one file per module under test. Testing rules are `reference/testing.md`.
+| # | Requirement | Answer | Default |
+|---|---|---|---|
+| 1 | domain | snake_case, e.g. `my_device` | — |
+| 2 | friendly name | e.g. `My Device` | — |
+| 3 | description | one sentence | — |
+| 4 | IoT class | `local_polling` · `local_push` · `cloud_polling` · `cloud_push` · `calculated` | — |
+| 5 | data model | polling, via `DataUpdateCoordinator` · push, via a subscription | — |
+| 6 | auth model | none · API key · OAuth · username and password | — |
+| 7 | platforms | any of button, sensor, binary_sensor, switch, light, number, select, text, notify, cover, climate, fan, lock, media_player, vacuum | — |
+| 8 | MicroPython firmware | yes adds the `firmware/` exclude to `pyrightconfig.json` | no |
+| 9 | licence | the full text goes in `LICENSE` | MIT |
+| 10 | version | — | `0.1.0` |
 
-- `README.md` — **include the AI-assistance disclaimer** as a GitHub `> [!NOTE]` admonition box. Link the skill name to its public repo. Template:
-  ```markdown
-  > [!NOTE]
-  > **AI assistance:** I'm a programmer; this project is built with AI (Claude, via Claude Code) for implementation, code review, and QA — under human direction, guided by my [`ha-integration`](https://github.com/PineappleEmperor/ha-skills) skill. Architecture and final review are mine; every change is human-reviewed before it merges.
-  ```
-- `LICENSE` — the full text of the chosen licence, per requirement 9 above.
-- `.gitignore` — copy `templates/.gitignore`. Covers `__pycache__/`, caches, venvs, HA dev artefacts (`.storage/`, `home-assistant.log*`, the `_v2.db`), and `device_map.md` (the `ha-triage` skill's device map, which that skill says must never be committed). **Not optional:** without it a local `pytest` run plus a `git add -A` tracks `.pyc` files; what that costs is *What the audit checks now* in ha-integration-ci's README.
-- `ruleset.json` — copy `templates/ruleset.json` to the repo root; what it requires and why is `reference/github-setup.md`.
-- `.githooks/commit-msg` — release-flow's, per `reference/commits.md`; `chmod +x`. **Enable once per clone: `git config core.hooksPath .githooks`** — an unenabled hook is a file, not a guard. Document that line in `CLAUDE.md`.
-- `custom_components/{domain}/brand/` — which files to ship and the rules each must meet are
-  *Brand assets* below.
+**Timing:** the domain is fixed once the repository exists — it is the folder name, the
+manifest key, the brand folder and every entity id. Settle it before Step 2.
 
-**The CI stack** is copied, never authored — the invariant in `SKILL.md`. Missing files here
-are separate audit failures on the first run, so this is not an optional last step. The table in
-`reference/github-actions.md` says which files the scaffold carries and where each is
-copied from; the caller blocks come from the CI repositories' READMEs with their
-`{{sha}} # {{tag}}` tokens resolved, and `panel-bundle.yml` with `frontend/` belongs only
-to an integration that serves a panel, per `reference/panels.md`.
+**Symptom:** a missing or paraphrased licence fails HACS validation with `The repository
+license could not be identified (SPDX: NOASSERTION)`; HACS asks for one GitHub can identify
+by SPDX, so only the licence's real text resolves it.
 
-### Brand assets
+### Step 2: Generate the integration package
 
-Scope: the images a scaffold ships in `custom_components/<domain>/brand/`, and the rules
-each must meet. Which revision of the spec these rules were read from is the brand row of
-`reference/freshness.md`.
+Under `custom_components/<domain>/`. What goes inside each file is `reference/patterns.md`.
 
-**Core rule:** ship `icon.png`. It is the only file anything gates on; the rest is quality,
-and the serving layer falls back.
+| File | Holds | Generate |
+|---|---|---|
+| `__init__.py` | entry setup and unload | always |
+| `config_flow.py` | the config flow | always |
+| `const.py` | the domain and the constants | always |
+| `manifest.json` | the manifest — key order is Step 6 | always |
+| `strings.json` | the flow and entity strings | always |
+| `translations/en.json` | the English translation | always |
+| `quality_scale.yaml` | the tier ledger — `reference/quality-scale.md` | always |
+| `diagnostics.py` | the `diagnostics` rule | always |
+| `<platform>.py` | one per platform chosen in Step 1 | always |
+| `brand/` | the brand images — Step 5 | always |
+| `icons.json` | action icons, `{"services": {"my_action": {"service": "mdi:icon"}}}` | the integration registers an action |
+| `services.yaml` | the action descriptions | a custom action is genuinely needed — prefer a standard one |
+| `api.py`, `coordinator.py`, `models.py`, `entity.py`, `helpers.py` | as `reference/patterns.md` splits them | the module earns its own file |
+
+**Docstrings and comments in every generated module**
+
+| Rule | Value |
+|---|---|
+| module docstring | on every file, and this one may be multi-line — a file-level explanation of a load-bearing constraint belongs here, not demoted to a comment |
+| public function and class docstrings | short, single-line; what the audit checks and what it leaves to you is *What the audit checks now* in ha-integration-ci's README |
+| inline comments | only where the WHY is genuinely non-obvious |
+| the bar | clean under the *Lint & quality check* commands in `SKILL.md`, pyright standard mode |
+
+### Step 3: Generate the repo root
+
+| File | Holds | Taken from |
+|---|---|---|
+| `CLAUDE.md` | the per-repo rule that a session invokes this skill before touching integration code | the snippet below |
+| `hacs.json` | the HACS manifest | the shape below |
+| `pyproject.toml` | HA core's ruff rule set adapted for a custom integration — `google` docstrings, HA's Python floor, no `from __future__ import annotations` — and the `asyncio_mode = "auto"` without which no async test runs | `templates/pyproject.toml`, verbatim |
+| `pyrightconfig.json` | the pyright config, with or without the `exclude` | the snippet under *MicroPython firmware files* in `reference/patterns.md` |
+| `requirements.test.txt` | the pinned test harness — why the pin matters is `reference/testing.md` | `templates/requirements.test.txt` |
+| `conftest.py` | the root conftest, at the repo root and never in `tests/` — why is `reference/testing.md` | `templates/conftest.py` |
+| `tests/` | one file per module under test | `reference/testing.md` |
+| `README.md` | the project readme, carrying the AI-assistance note below | — |
+| `LICENSE` | the full text of the Step 1 licence | the licence's own text |
+| `.gitignore` | `__pycache__/`, caches, venvs, HA dev artefacts (`.storage/`, `home-assistant.log*`, the `_v2.db`) and `device_map.md`, which the `ha-triage` skill says is never committed | `templates/.gitignore` |
+| `ruleset.json` | the branch ruleset — what it requires is `reference/github-setup.md` | `templates/ruleset.json` |
+| `.githooks/commit-msg` | the Conventional Commit check — `reference/commits.md` | release-flow's copy, `chmod +x` |
+
+| Rule | Value |
+|---|---|
+| a copy that relaxes `pyproject.toml`'s ruff or pytest tables | drift |
+| enabling the commit hook | `git config core.hooksPath .githooks`, once per clone, documented in `CLAUDE.md` — an unenabled hook is a file, not a guard |
+| omitting `.gitignore` | a local `pytest` plus a `git add -A` tracks `.pyc` files; the cost is *What the audit checks now* in ha-integration-ci's README |
+| where the skill-invocation rule lives | the repository's own `CLAUDE.md`, never a user's global config |
+| `templates/hooks/` | optional per-turn reminders for a user's own `~/.claude`; the shareable enforcement is the `CLAUDE.md` rule, which ships with the repo |
+
+**`CLAUDE.md` — the AI-session rule**
+
+```markdown
+## AI sessions
+Before writing or modifying integration code (config flow, platforms, manifest,
+websocket, services…), invoke the `ha-integration` skill. Re-invoke it after any
+`/compact`, since compaction can drop the skill's guidance from context.
+```
+
+**`README.md` — the AI-assistance note**, as a GitHub `> [!NOTE]` admonition, the skill name
+linked to its public repository:
+
+```markdown
+> [!NOTE]
+> **AI assistance:** I'm a programmer; this project is built with AI (Claude, via Claude Code) for implementation, code review, and QA — under human direction, guided by my [`ha-integration`](https://github.com/PineappleEmperor/ha-skills) skill. Architecture and final review are mine; every change is human-reviewed before it merges.
+```
+
+**`hacs.json`**
+
+```json
+{"name": "My Integration", "content_in_root": false, "zip_release": true, "filename": "<domain>.zip"}
+```
+
+| Key | Value |
+|---|---|
+| `name` | the only key HACS strictly requires |
+| `homeassistant` | the oldest HA you actually test, never a floor copied from an example |
+| `zip_release` | makes HACS download a release **asset** rather than the tag's source archive, so it requires the `release.yml` caller |
+| `filename` | the name `release.yml` attaches — *The three workflows* in ha-integration-ci's README |
+| dropping `zip_release` and `filename` | only to have HACS pull the whole tagged repository archive instead |
+
+**Symptom:** a `zip_release` repository whose release carries no attached zip fails HACS
+install with `Could not download`.
+
+> **Note:** the tag is the version, not the committed manifest — `reference/versioning.md`.
+> What patches the manifest is `release.yml` under *Implementation notes* in
+> ha-integration-ci's README.
+
+### Step 4: Copy the CI stack
+
+| Rule | Value |
+|---|---|
+| authored or copied | copied, never authored — the invariant in `SKILL.md` |
+| which files, and where each comes from | the table in `reference/github-actions.md` |
+| a caller block | the CI repository's README block with its `{{sha}} # {{tag}}` tokens resolved |
+| `panel-bundle.yml` and `frontend/` | only an integration that serves a panel — `reference/panels.md` |
+| leaving it to last | not optional: every missing file is its own audit failure on the first run |
+
+### Step 5: Ship the brand assets
+
+Into `custom_components/<domain>/brand/`. Which revision of the spec these rules were read
+from is the brand row of `reference/freshness.md`.
+
+**Ship `icon.png`.** It is the only file anything gates on; the rest is quality, and the
+serving layer falls back.
 
 | Rule | Value |
 |---|---|
@@ -148,10 +207,8 @@ and the serving layer falls back.
 > an integration with no legacy brands entry renders blank there while Home Assistant's own UI
 > shows the icon. Nothing to fix in the repository.
 
-### Brand asset sources
-
-Scope: where the images come from. **Core rule:** every size is scaled *down* from one
-master, so the set is consistent and nothing is upscaled.
+**Where the images come from.** Every size is scaled *down* from one master, so the set is
+consistent and nothing is upscaled.
 
 | Preference | Source |
 |---|---|
@@ -172,30 +229,10 @@ master, so the set is consistent and nothing is upscaled.
 | `logo` | large — integration page, HACS | a busy or detailed screen, which reads well |
 | `icon` | small — ~48px in the integrations list | a simple, low-detail screen; fine detail turns to mush |
 
-**HACS validation**
+### Step 6: Order `manifest.json`
 
-The `hacs/action` checks below are each ignorable via its `ignore:` input; the scaffold never
-uses it, and `reference/github-actions.md` has the workflow contract. Listing in `hacs/default`
-requires the action to pass with no errors **and no ignores**, so treat every row as required.
-Fix them at scaffold time, since each maps to a file or a GitHub setting:
+`domain` first, `name` second, then every remaining key alphabetically.
 
-| Check | What's needed | Where to fix |
-|-------|--------------|--------------|
-| `archived` | Repo not archived | GitHub repo settings |
-| `brands` | `brand/icon.png` present, else the domain listed in `home-assistant/brands` | File in repo |
-| `description` | Repo has a description | GitHub repo settings → About |
-| `hacsjson` | `hacs.json` exists | File in repo |
-| `images` | README contains at least one image | Add screenshot to README |
-| `information` | README.md exists | File in repo |
-| `issues` | Issues tab enabled | GitHub repo settings → Features |
-| `topics` | Repo has at least one topic | GitHub repo settings → About |
-| `license` | A `LICENSE` per requirement 9 above | File in repo |
-
-The `description`, `issues`, `topics` and `license` checks fail silently until the first `hacs-validate` run — they're GitHub settings, not files.
-
-## manifest.json key order
-
-Always `domain` first, `name` second, then remaining keys alphabetically:
 ```json
 {
   "domain": "my_device",
@@ -213,33 +250,41 @@ Always `domain` first, `name` second, then remaining keys alphabetically:
 }
 ```
 
-`single_config_entry` is right for a cloud account or a single hub; omit it when a user may add several devices, and then implement the `unique-config-entry` rule with a unique id instead.
+| Key | Value |
+|---|---|
+| `integration_type` | required — `device` · `hub` · `service` · `entity` · `hardware` · `helper` · `system` · `virtual` |
+| `issue_tracker` | required by HACS validation; omitting it fails the `integration_manifest` check |
+| `single_config_entry` | right for a cloud account or a single hub; omit it where a user may add several devices, and implement the `unique-config-entry` rule with a unique id instead |
 
-`integration_type` is **required** — choose: `device` / `hub` / `service` / `entity` / `hardware` / `helper` / `system` / `virtual`.
+### Step 7: Pass HACS validation
 
-`issue_tracker` is **required by HACS validation** — omitting it fails the `integration_manifest` check.
+Each `hacs/action` check below is ignorable via its `ignore:` input; the scaffold never uses
+it, and `reference/github-actions.md` has the workflow contract. Listing in `hacs/default`
+requires the action to pass with no errors **and no ignores**, so every row is required.
 
----
+| Check | What's needed | Where to fix |
+|---|---|---|
+| `archived` | the repository is not archived | GitHub repo settings |
+| `brands` | `brand/icon.png` present, else the domain listed in `home-assistant/brands` | a file in the repo |
+| `description` | the repository has a description | GitHub repo settings → About |
+| `hacsjson` | `hacs.json` exists | a file in the repo |
+| `images` | the README carries at least one image | add a screenshot to the README |
+| `information` | `README.md` exists | a file in the repo |
+| `issues` | the Issues tab is enabled | GitHub repo settings → Features |
+| `topics` | the repository has at least one topic | GitHub repo settings → About |
+| `license` | a `LICENSE`, per Step 1 | a file in the repo |
 
-## Implementation patterns, file structure, typing & testing
+**Timing:** fix every row at scaffold time. `description`, `issues`, `topics` and `license`
+are GitHub settings rather than files, so they fail silently until the first
+`hacs-validate` run.
 
-See **`reference/patterns.md`** — `__init__`/coordinator/entity/notify patterns, `entry.runtime_data`, `DeviceInfo`, the modern `NotifyEntity` path, the typing rules (no `from __future__ import annotations`, typed `ConfigEntry`), the file-split conventions, with the **mock-the-boundary** testing rules in `reference/testing.md`.
+## Cases
 
----
+### Alignment a human chose meets `ruff format` — Step 2
 
-## Code style
-
-Typing, file structure and the code patterns themselves are `reference/patterns.md`. What a
-scaffold must set up:
-
-- Module docstring on every file. **This one may be multi-line** — a file-level explanation of a load-bearing constraint belongs here, not demoted to a comment.
-- Short **single-line** docstrings on all public functions and classes. What the audit checks about docstrings, and what it leaves to you, is *What the audit checks now* in ha-integration-ci's README.
-- No inline comments unless the WHY is genuinely non-obvious
-- Clean under the *Lint & quality check* commands in `SKILL.md`; pyright standard mode
-
-**Alignment a human chose is kept, not collapsed.** `ruff format` reduces every run of
-spaces to one, which destroys a table someone aligned so it could be read as a table. Fence
-those rather than surrendering them or turning the formatter off:
+`ruff format` reduces every run of spaces to one, which destroys a table someone aligned so
+it could be read as a table. Fence it rather than surrendering it or turning the formatter
+off:
 
 ```python
 # fmt: off
@@ -249,40 +294,50 @@ CONF_REFRESH_TOKEN = "refresh_token"
 # fmt: on
 ```
 
-The fence stops the **formatter only** — `ruff check` still runs inside it, so line length,
-import order and unused names are all still caught. What you give up is whitespace
-normalisation, which is exactly what you are overriding.
+| Rule | Value |
+|---|---|
+| what the fence stops | the formatter only — `ruff check` still runs inside it, so line length, import order and unused names are all still caught |
+| what you give up | whitespace normalisation, which is what you are overriding |
+| scope | statement-level: one inside a dict or call literal does nothing, so it wraps the whole enclosing statement at that statement's indent |
+| `# fmt: on` | never at a different indent from its `# fmt: off` |
+| which statement | the smallest one containing the table, never a class body and never a file |
+| the column | one per block, set one space past the longest key, spaces only and never tabs; a new block restarts it |
+| an entry too long for the column | re-pad the whole block, in the same commit |
+| a generator that emits a fenced table | emits the fence too, or the next regeneration drops it |
 
-**The fence is statement-level.** One inside a dict or call literal does nothing: ruff
-ignores it and collapses the entries anyway. It must wrap the whole enclosing statement, at
-that statement's indent, so an aligned keyword-argument call is fenced around the entire
-call and a `# fmt: on` never sits at a different indent from its `# fmt: off`.
+**What earns a fence**
 
-What earns a fence: padding before `=` or `:`; padding after them, where the values form the
-column; padding after `,`; and **one row or record per source line even where nothing is
-padded** — glyph rasters, icon bitmaps, colour palettes, layout tables, field-descriptor
-lists. That last case is the one that bites: a formatter run turned a 13-line font bitmask
-table into 1,194 lines, one pixel per line, and the digit shapes a reader could see in the
-source were gone. A flat wrapped list of strings is not a table; leave it to the formatter.
+- Padding before `=` or `:`.
+- Padding after them, where the values form the column.
+- Padding after `,`.
+- One row or record per source line, even where nothing is padded — glyph rasters, icon bitmaps, colour palettes, layout tables, field-descriptor lists.
+- Not a flat wrapped list of strings, which is not a table; leave that to the formatter.
 
-Inside a fence, the house rules are: fence the **smallest statement** that contains the
-table, never a class body or a file; one alignment column per block, set one space past the
-longest key, spaces only and never tabs; a new block restarts the column; and an entry too
-long for the column re-pads the whole block in the same commit. A generator that emits a
-fenced table **emits the fence too**, or the next regeneration drops it.
+**Symptom:** the last case is the one that bites — a formatter run turned a 13-line font
+bitmask table into 1,194 lines, one pixel per line, and the digit shapes a reader could see
+in the source were gone.
 
-**An exclusion hides drift until the day it is removed.** The stack lints and formats the
-whole tree — the `python-validate.yml` bullet under *Implementation notes* in
-ha-integration-ci's README says why — and `templates/pyproject.toml` excludes nothing, so
-anything a repository has been keeping out of ruff's sight becomes visible the moment it
-adopts that file. Before a migration, drop the exclusions and format what they were hiding,
-as its own `style:` commit. A migration diff is no place to meet a hundred files for the
+### A repository adopting the stack carries ruff exclusions — Step 3
+
+The stack lints and formats the whole tree — why is the `python-validate.yml` bullet under
+*Implementation notes* in ha-integration-ci's README — and `templates/pyproject.toml`
+excludes nothing, so anything kept out of ruff's sight becomes visible the moment the
+repository adopts that file.
+
+**Fix:** drop the exclusions and format what they were hiding as its own `style:` commit,
+before the migration.
+
+**Timing:** before, not during. A migration diff is no place to meet a hundred files for the
 first time.
 
----
+## Reference
 
-## Commit conventions, versioning & CI gating
-
-See **`reference/commits.md`** for commit subjects and titles, **`reference/versioning.md`** for where the version comes from and how an rc and a final are published, and **`reference/github-actions.md`** for what the scaffold carries.
-
----
+| file | when to read |
+|---|---|
+| `reference/patterns.md` | writing the code inside any generated file — setup and unload, coordinator, entity, notify, `entry.runtime_data`, `DeviceInfo`, typing, the file splits |
+| `reference/testing.md` | writing the tests, and the harness prerequisites behind `conftest.py` and `requirements.test.txt` |
+| `reference/quality-scale.md` | filling in `quality_scale.yaml` |
+| `reference/commits.md` | writing the first commit |
+| `reference/versioning.md` | where the version comes from, and how an rc and a final are published |
+| `reference/github-actions.md` | what the CI stack carries, and each workflow's contract |
+| `reference/github-setup.md` | the GitHub side — token, required checks, ruleset |

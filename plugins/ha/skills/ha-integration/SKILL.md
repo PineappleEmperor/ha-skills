@@ -62,7 +62,7 @@ served** — the committed bundle, its staleness check, registration and cache-b
 
 | File | Holds |
 |---|---|
-| `reference/scaffold.md` | what to ask, what to generate, manifest key order, code style |
+| `reference/scaffold.md` | what to ask, what to generate, the brand assets, manifest key order, HACS validation |
 | `reference/patterns.md` | the code patterns every mode applies, plus file structure and typing |
 | `reference/testing.md` | harness prerequisites, and mocking the boundary rather than your own code |
 | `reference/commits.md` | commit subjects and titles, why the PR body stays empty |
