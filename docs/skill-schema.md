@@ -136,11 +136,17 @@ changed; the release is a clause in the row — "removed in 2026.3, use `color_t
 
 ## What never appears in a skill file
 
-| Not this | Where it goes |
+| Not this | What happens to it |
 |---|---|
-| why a rule was chosen over an alternative | `docs/ha-integration-change-rationale.md` |
-| what a past pass got wrong | `docs/backlog.md`, then its phase file |
-| evidence for a fact | `reference/freshness.md`, as a re-derivation command |
-| the reasoning that produced a design | the register row, not the file it designed |
+| why a rule was chosen over an alternative | deleted — the commit that introduced the rule is the record |
+| what a past pass got wrong | deleted — git holds it |
+| rhetoric, exhortation, framing | deleted |
+| evidence for a fact | becomes a re-derivation command in `reference/freshness.md`, or is deleted |
+| a problem that is still open | one row in `docs/backlog.md` |
 
 **The test:** if knowing it does not change an action, it is not in a skill file.
+
+Nothing on that list is relocated except an open problem. A destination for rationale is a
+filing system for text nobody reads, and it grows at the rate the skill is edited —
+`docs/ha-integration-change-rationale.md` reached 1,340 lines that way, organised by the
+pass that wrote them rather than by the rule they explain.
