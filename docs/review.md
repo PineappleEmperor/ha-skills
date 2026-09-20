@@ -37,6 +37,11 @@ their own README and are not reviews.
 7. **The `[marketplace-repo]` hook's rule holds under `plugins/`**; the hook, in
    `.claude/settings.json`, states it. The one exception is the evals directory, which its
    README says is maintenance of the skill and not copied into a scaffold (row 203).
+8. **Every Home Assistant release number stated in a skill file is read back from core**, at
+   the tag the release row of `plugins/ha/skills/ha-integration/reference/freshness.md`
+   names — `raw.githubusercontent.com/home-assistant/core/<tag>/…`. A deprecation deadline
+   is quoted from the `breaks_in_ha_version` of the call site it describes, one per API, not
+   summarised across a group of them.
 
 ## Protocol
 
@@ -70,3 +75,8 @@ their own README and are not reviews.
 - The first review under this file found eight things, five of them in this file: four
   claims a named source does not make and one restatement (row 202); the standard is
   reviewed like anything else.
+- Four review rounds over the 2026.9 refresh passed a deadline of `2027.10` that appears
+  nowhere in `homeassistant/helpers/device_registry.py` at `2026.9.0`, while a second file
+  gave `2027.8` for the same APIs. Core carries five distinct values there. No invariant
+  asked for a release number to be read back, so none of the four rounds looked — hence
+  invariant 8.
