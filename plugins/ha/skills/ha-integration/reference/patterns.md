@@ -70,7 +70,7 @@ If `__init__.py` exceeds ~100 lines of logic, extract. `api.py` is the split tha
 most: it decouples device logic from the HA lifecycle, so it is unit-testable without a
 running HA instance.
 
-| File | Purpose |
+| File | Holds |
 |---|---|
 | `__init__.py` | `async_setup_entry`, `async_unload_entry`, `async_migrate_entry` only — no business logic |
 | `coordinator.py` | `DataUpdateCoordinator` subclass |
@@ -332,13 +332,18 @@ Covers the rule `log-when-unavailable` (`reference/quality-scale.md`) and HA's l
       hass, call.data[ATTR_DEVICE_ID], domain=DOMAIN
   )
   ```
-  It returns a pair, either half of which may be `None`: `(None, None)` for an unknown id or
-  a child device, `(device, None)` when no entry of your domain owns it. Handle both before
-  using either. Do **not** fetch the device and then loop over `device.config_entries`
-  looking for your own — that property is deprecated, and the loop is what the helper
-  replaces. It also resolves a pre-migration composite device id to your domain's split
-  device, which is the case a hand-written loop gets wrong. See *Devices belong to one
-  config entry — Step 2* below.
+  It returns a pair, either half of which may be `None`. Handle both before using either:
+
+  | Scenario | Choice |
+  |---|---|
+  | an unknown device id, or a child device | `(None, None)` |
+  | a main device no config entry of your domain owns | `(device, None)` |
+  | a pre-migration composite device id | a matching split device and its config entry, which is the case a hand-written loop gets wrong |
+  | whether that config entry is loaded | not checked — keep your own `ConfigEntryState.LOADED` test |
+
+  Do **not** fetch the device and then loop over `device.config_entries` for your own: that
+  property is deprecated, and the loop is what this helper replaces. See *Devices belong to
+  one config entry — Step 2* below.
 - **Target the entry, or the call fans out.** `hass.services.async_call(DOMAIN, svc, …)` with no target reaches **every** config entry. An entity action that should touch only its own device passes its own `entry_id`/`device_id` and the handler filters on it; leave it untargeted only for a deliberate bulk call.
 
 ### `services.yaml` + `strings.json` (hassfest rules) — Step 1
@@ -374,11 +379,13 @@ No registration needed — HA discovers it automatically from the file name.
 ### Devices belong to one config entry — Step 2
 
 A device has exactly one config entry and at most one subentry: read `config_entry_id` and
-`config_subentry_id`. Every release below is quoted from the `breaks_in_ha_version` of the
-call site that reports that usage, read at the `2026.9.0` tag in
-`homeassistant/helpers/device_registry.py` and `homeassistant/helpers/device.py`; a row that
-names none is one core attaches none to. The WebSocket keys of the same names are
-`reference/panels.md`.
+`config_subentry_id`.
+
+| Rule | Value |
+|---|---|
+| where each release below comes from | the `breaks_in_ha_version` of the call site that reports that usage, read at the `2026.9.0` tag in `homeassistant/helpers/device_registry.py` and `homeassistant/helpers/device.py` |
+| a row naming no release | one core attaches none to |
+| the WebSocket keys of the same names | `reference/panels.md` |
 
 **A core caller hits these sooner than a custom integration does.** Where a call site sets
 `core_behavior=ReportBehavior.ERROR`, core and core integrations raise `RuntimeError` today
@@ -416,11 +423,11 @@ while a custom integration gets a logged warning until the release in the row.
 
 ### Units: prefer the enumerators — Step 1
 
-`UnitOfDensity` carries mass over volume — `GRAMS_PER_CUBIC_METER`,
-`MILLIGRAMS_PER_CUBIC_METER`, `MICROGRAMS_PER_CUBIC_METER`, `MICROGRAMS_PER_CUBIC_FOOT`.
-`UnitOfRatio` carries ratios — `PARTS_PER_MILLION`, `PARTS_PER_BILLION`, `PERCENTAGE`. Each
-release below is the version argument of the `DeprecatedConstantEnum` beside the constant in
-`homeassistant/const.py`, read at the `2026.9.0` tag.
+| Rule | Value |
+|---|---|
+| `UnitOfDensity` | mass over volume — `GRAMS_PER_CUBIC_METER`, `MILLIGRAMS_PER_CUBIC_METER`, `MICROGRAMS_PER_CUBIC_METER`, `MICROGRAMS_PER_CUBIC_FOOT` |
+| `UnitOfRatio` | ratios — `PARTS_PER_MILLION`, `PARTS_PER_BILLION`, `PERCENTAGE` |
+| where each release below comes from | the version argument of the `DeprecatedConstantEnum` beside the constant in `homeassistant/const.py`, read at the `2026.9.0` tag |
 
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|

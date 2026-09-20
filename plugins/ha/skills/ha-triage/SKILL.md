@@ -73,8 +73,8 @@ Collapse each logger cluster to one row. Then read **one representative line** p
 
 **Known noise — acknowledge once, do not chase:**
 
-| Pattern | Why it's noise |
-|---------|----------------|
+| Scenario | Choice |
+|---|---|
 | `[homeassistant.loader] We found a custom integration X which has not been tested` | Boot banner, **one per directory under `custom_components/`** — not per HACS install, so a hand-copied or installed-but-unconfigured integration warns too. Once per restart. Benign. |
 | `[websocket_api.http.connection] … Reached 4096 pending messages` | A client that cannot keep up. **One line per connection** — the socket is then closed (`_cancel()`), and the code explicitly suppresses further logging, so a high count means many reconnect cycles, not one noisy client. Also grep the earlier warning: `Stayed over 1024 for 10 seconds`, which fires before the kill. Resolve the connection's IP via the map before concluding. |
 | cloud-relay and transient network errors (`ClientConnectionResetError`, `Task exception was never retrieved`) | Remote-access and network transients. Ignore unless frequent **and** correlated with an outage. |

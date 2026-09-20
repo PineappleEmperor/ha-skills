@@ -8,17 +8,18 @@ Nothing here is authored from memory.
 
 ## Contents
 
-1. Step 1: Gather the requirements
-2. Step 2: Generate the integration package
-3. Step 3: Generate the repo root
-4. Step 4: Copy the CI stack
-5. Step 5: Ship the brand assets
-6. Step 6: Order `manifest.json`
-7. Step 7: Pass HACS validation
-8. Cases
-9. Alignment a human chose meets `ruff format` — Step 2
-10. A repository adopting the stack carries ruff exclusions — Step 3
-11. Reference
+1. The scaffold
+2. Step 1: Gather the requirements
+3. Step 2: Generate the integration package
+4. Step 3: Generate the repo root
+5. Step 4: Copy the CI stack
+6. Step 5: Ship the brand assets
+7. Step 6: Order `manifest.json`
+8. Step 7: Pass HACS validation
+9. Cases
+10. Alignment a human chose meets `ruff format` — Step 2
+11. A repository adopting the stack carries ruff exclusions — Step 3
+12. Reference
 
 ## The scaffold
 
@@ -50,7 +51,7 @@ by SPDX, so only the licence's real text resolves it.
 
 Under `custom_components/<domain>/`. What goes inside each file is `reference/patterns.md`.
 
-| File | Holds | Generate |
+| File | Holds | When |
 |---|---|---|
 | `__init__.py` | entry setup and unload | always |
 | `config_flow.py` | the config flow | always |
@@ -123,7 +124,7 @@ linked to its public repository:
 {"name": "My Integration", "content_in_root": false, "zip_release": true, "filename": "<domain>.zip"}
 ```
 
-| Key | Value |
+| Rule | Value |
 |---|---|
 | `name` | the only key HACS strictly requires |
 | `homeassistant` | the oldest HA you actually test, never a floor copied from an example |
@@ -165,7 +166,7 @@ serving layer falls back.
 
 **Which files to ship**
 
-| File | Size | Ship it when |
+| File | Holds | When |
 |---|---|---|
 | `icon.png` | exactly 256×256 | always |
 | `icon@2x.png` | exactly 512×512 | always |
@@ -176,13 +177,11 @@ serving layer falls back.
 
 **What an absent file serves instead**
 
-| Absent | Served |
-|---|---|
-| `logo.png` | `icon.png` |
-| any `@2x` | its 1× |
-| any `dark_` file | its unprefixed match |
-| `icon.png`, with `?placeholder=no` | 404 |
-| `icon.png`, without it | a generic placeholder |
+- absent `logo.png` → `icon.png`
+- absent `@2x` → its 1×
+- absent `dark_` file → its unprefixed match
+- absent `icon.png`, requested with `?placeholder=no` → 404
+- absent `icon.png`, requested without it → a generic placeholder
 
 **Rules every file must meet**
 
@@ -210,11 +209,9 @@ serving layer falls back.
 **Where the images come from.** Every size is scaled *down* from one master, so the set is
 consistent and nothing is upscaled.
 
-| Preference | Source |
-|---|---|
-| 1 | the brand's own vector — a press kit's EPS/PDF/SVG |
-| 2 | their largest raster; compose from the crispest part, so a 256×256 icon scaled down beats the same mark cropped out of a 512×157 lockup |
-| 3 | generated |
+1. The brand's own vector — a press kit's EPS/PDF/SVG.
+2. Their largest raster, composed from the crispest part: a 256×256 icon scaled down beats the same mark cropped out of a 512×157 lockup.
+3. Generated.
 
 | Rule | Value |
 |---|---|
@@ -224,10 +221,10 @@ consistent and nothing is upscaled.
 | a pixel-display device render | a nearest-neighbour upscale of the byte-faithful preview (`render_layout_png(..., scale=N)`), never a photo |
 | a device screenshot's black ground | the device, not a missing alpha channel — and not the padding the trim rule forbids |
 
-| Target | Renders at | So pick |
-|---|---|---|
-| `logo` | large — integration page, HACS | a busy or detailed screen, which reads well |
-| `icon` | small — ~48px in the integrations list | a simple, low-detail screen; fine detail turns to mush |
+| Scenario | Choice |
+|---|---|
+| the `logo`, which renders large — the integration page, HACS | a busy or detailed screen, which reads well at that size |
+| the `icon`, which renders small — ~48px in the integrations list | a simple, low-detail screen; fine detail turns to mush |
 
 ### Step 6: Order `manifest.json`
 
@@ -250,7 +247,7 @@ consistent and nothing is upscaled.
 }
 ```
 
-| Key | Value |
+| Rule | Value |
 |---|---|
 | `integration_type` | required — `device` · `hub` · `service` · `entity` · `hardware` · `helper` · `system` · `virtual` |
 | `issue_tracker` | required by HACS validation; omitting it fails the `integration_manifest` check |

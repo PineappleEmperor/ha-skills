@@ -49,7 +49,7 @@ Define a small `:host` token block mapping panel-local names (`--<domain>-primar
 
 ## Material 3 type scale (use these, pick by role)
 
-| Role | size / line / weight | Panel use |
+| Token | Value | Use |
 |---|---|---|
 | Headline small | 24 / 32 / 400 | Page/screen title |
 | **Title large** | **22 / 28 / 400** | **Section headers** (the big collapsible groups) |
