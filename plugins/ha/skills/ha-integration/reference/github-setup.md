@@ -114,9 +114,10 @@ release-flow's README, which also says why the three label checks are not redund
 - **A context the repo does not produce blocks every PR permanently.** Each of the eight
   comes from a workflow the audit requires (*What the audit checks now* in
   ha-integration-ci's README), so in a conforming repo the fix is to add the missing
-  workflow, not to drop the context. Dropping is for a repo that has deliberately left the
-  canonical set (no `quality-audit.yml`, no `dependency-review.yml`); drop the matching
-  context or PRs wait forever for a check that never runs.
+  workflow, never to drop the context.
+- **Dropping a context is only for a repo that has deliberately left the canonical set** —
+  no `quality-audit.yml`, no `dependency-review.yml`. Drop the matching context, or PRs wait
+  forever for a check that never runs.
 - **A path-filtered workflow blocks every PR permanently.** `panel / Panel type-check and
   tests` is absent from the shipped ruleset for the reason ha-panel-ci's README gives: it
   never reports on a Python-only PR. Do not require it.

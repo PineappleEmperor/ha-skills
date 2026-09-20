@@ -51,12 +51,11 @@ served** — the committed bundle, its staleness check, registration and cache-b
 - **Callers, not bodies; copies, not paraphrases.** The scaffold calls the CI repositories'
   reusable workflows and copies a few configs; every deviation must be a listed adaptation —
   see `reference/audit.md`.
-- **Cached facts go stale silently.** Anything captured more than ~3 months ago gets re-derived
-  before it is trusted, and the skill is current for one Home Assistant release at a time — the
-  table and its re-derivation commands are in `reference/freshness.md`, and what to do when
-  the release moves is *When the release row goes red* in that file. What that release
-  changed for an integration is *What changed in recent releases* in
-  `reference/patterns.md`.
+- **Cached facts go stale silently.** Anything captured more than ~3 months ago is re-derived
+  before it is trusted; the table and its commands are `reference/freshness.md`.
+- **The skill is current for one Home Assistant release at a time.** What to do when that
+  release moves is *When the release row goes red* in `reference/freshness.md`; what a
+  release changed lands in the section of `reference/patterns.md` that owns the topic.
 
 ## Reference map
 

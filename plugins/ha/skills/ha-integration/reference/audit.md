@@ -22,17 +22,19 @@ its source, and never runs the repo's tests.**
 
 ### Step 1: Callers, not bodies; copies, not paraphrases
 
-The invariant in `SKILL.md`, checked per file. Each workflow the scaffold carries is either
-a caller matching its README block with the tokens resolved, or a copy matching this skill's
-`templates/` (located per *Where `templates/` lives* in `reference/github-actions.md`), and
-every difference is in that file's sanctioned-adaptations table. What the mechanical audit
-does check is *What the audit checks now* in ha-integration-ci's README; it compares neither
-a caller nor a copy against its source. Scan `.github/` and `scripts/` for extras the
-template does not have.
+The invariant in `SKILL.md`, checked per file.
+
+| Rule | Value |
+|---|---|
+| a workflow the scaffold carries | either a caller matching its README block with the tokens resolved, or a copy matching this skill's `templates/` |
+| where `templates/` is | *Step 1: Locate `templates/`* in `reference/github-actions.md` |
+| every difference from the source | in that file's sanctioned-adaptations table, or it is a finding |
+| what the mechanical audit checks | *What the audit checks now* in ha-integration-ci's README — it compares neither a caller nor a copy against its source, so this item is yours |
+| `.github/` and `scripts/` | scan for extras the template does not have |
 
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
-| `cmp` a template directory against the repo's | `cmp` file against file | a tree still being assembled reads as identical when individual files differ | *Where `templates/` lives* in `reference/github-actions.md` |
+| `cmp` a template directory against the repo's | `cmp` file against file | a tree still being assembled reads as identical when individual files differ | *Step 1: Locate `templates/`* in `reference/github-actions.md` |
 
 > **Note:** if `templates/` cannot be located, report this item as **not checked**; do not
 > mark it passed.

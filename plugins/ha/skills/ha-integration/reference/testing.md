@@ -134,9 +134,10 @@ which looks nothing like a naming clash.
 
 Add a test that `add_to_hass`es two `MockConfigEntry`s and
 `await asyncio.gather(hass.config_entries.async_setup(e1.entry_id), …(e2.entry_id))`, then
-asserts **both** `state is ConfigEntryState.LOADED`. A single-entry `LOADED` test can't
-catch integration-global registration done per-entry (static paths, websocket commands, the
-panel).
+asserts **both** `state is ConfigEntryState.LOADED`.
+
+**Timing:** a single-entry `LOADED` test cannot catch integration-global registration done
+per-entry — static paths, websocket commands, the panel.
 
 **Symptom:** on the buggy per-entry code the second entry goes `SETUP_ERROR` with aiohttp
 `RuntimeError: Added route ... already registered`; it passes once the registration moves to

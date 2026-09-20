@@ -20,11 +20,11 @@ Dependabot's setup is `reference/dependabot.md`.
 
 ### Step 1: Let the merged PRs' labels decide the version
 
-What `release.yml` writes at publish, and why no PR ever carries a bump, is
-ha-integration-ci's README (its table and version model). Which version the next release
-gets is decided by the merged PRs' labels, as release-flow's README says under
-`release-drafter.yml`, and `CC label validation`'s step summary reports what the labels so
-far imply.
+| Rule | Value |
+|---|---|
+| what `release.yml` writes at publish, and why no PR carries a bump | ha-integration-ci's README — its table and version model |
+| what decides the next version | the merged PRs' labels, as release-flow's README says under `release-drafter.yml` |
+| where to read what those labels so far imply | `CC label validation`'s step summary |
 
 ### Step 2: Leave the label to the stack
 

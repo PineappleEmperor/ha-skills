@@ -22,11 +22,10 @@ HA integration is in its reach.**
 
 ### Step 1: Write `.github/dependabot.yml`
 
-`commit-message.prefix: "chore"` on each ecosystem, so titles read `chore: bump …` and the
-autolabeler files them (the mapping is release-flow's drafter config). `cooldown: {exclude:
-["PineappleEmperor/*"]}` on the `github-actions` ecosystem alone; what that exempts, what
-keeps the hold, and why it is spelled that way, is the cooldown bullet of *The version
-model* in ha-integration-ci's README.
+| Rule | Value |
+|---|---|
+| `commit-message.prefix: "chore"` | on each ecosystem, so titles read `chore: bump …` and the autolabeler files them; the mapping is release-flow's drafter config |
+| `cooldown: {exclude: ["PineappleEmperor/*"]}` | on the `github-actions` ecosystem alone — what it exempts, what keeps the hold, and why it is spelled that way, is the cooldown bullet of *The version model* in ha-integration-ci's README |
 
 ### Step 2: Enable `github-actions`
 
@@ -42,12 +41,11 @@ test dependencies are pinned, as the template ships them
 
 ### Step 4: Leave `manifest.json` `requirements` to a deliberate PR
 
-`manifest.json` `requirements` are invisible to Dependabot: it cannot parse the manifest,
-and the entries are open `>=` ranges — HA installs the latest matching anyway — so there is
-nothing to *routinely* bump. Raising a `>=` floor is a deliberate safety or feature act,
-done by hand in a PR of its own; nothing in the stack automates it, and anything that ever
-does is a reusable workflow in ha-integration-ci, never a script and a PR opener written
-into one repo.
+| Rule | Value |
+|---|---|
+| why Dependabot never touches them | it cannot parse the manifest, and the entries are open `>=` ranges that HA resolves to the latest matching anyway |
+| raising a `>=` floor | a deliberate safety or feature act, by hand, in a PR of its own |
+| automating it | nothing in the stack does; anything that ever does is a reusable workflow in ha-integration-ci, never a script and a PR opener written into one repo |
 
 ### Step 5: Merge the PRs as they arrive
 

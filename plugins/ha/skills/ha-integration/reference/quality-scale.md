@@ -51,13 +51,14 @@ Each rule takes `todo`, `done` or `exempt` as appropriate, and all of them must 
 > **Note:** `PlatformNotReady` is for legacy `async_setup_platform` only — config-entry
 > integrations use `ConfigEntryNotReady` instead.
 
-**Canonical rule set — a snapshot; rules change. Re-verify per its row in
-`reference/freshness.md`.** Tier membership is defined by `ALL_RULES` in core's
-`script/hassfest/quality_scale.py`, and that is the source for which tier a rule sits in —
-not its name. Each rule is documented at
-`developers.home-assistant.io/docs/core/integration-quality-scale/rules/<rule-name>/`, under
-the index at `developers.home-assistant.io/docs/core/integration-quality-scale/`, which is
-the page the freshness row re-derives from.
+**Canonical rule set — a snapshot; rules change.** Re-verify per its row in
+`reference/freshness.md`.
+
+| Rule | Value |
+|---|---|
+| which tier a rule sits in | `ALL_RULES` in core's `script/hassfest/quality_scale.py`, never the rule's name |
+| where one rule is documented | `developers.home-assistant.io/docs/core/integration-quality-scale/rules/<rule-name>/` |
+| the index the freshness row re-derives from | `developers.home-assistant.io/docs/core/integration-quality-scale/` |
 
 - **Bronze:** `action-setup`, `appropriate-polling`, `brands`, `common-modules`, `config-flow-test-coverage`, `config-flow`, `dependency-transparency`, `docs-actions`, `docs-high-level-description`, `docs-installation-instructions`, `docs-removal-instructions`, `docs-triggers`, `docs-conditions`, `entity-event-setup`, `entity-unique-id`, `has-entity-name`, `runtime-data`, `test-before-configure`, `test-before-setup`, `unique-config-entry`
 - **Silver:** `config-entry-unloading`, `log-when-unavailable`, `entity-unavailable`, `action-exceptions`, `reauthentication-flow`, `parallel-updates`, `test-coverage`, `integration-owner`, `docs-installation-parameters`, `docs-configuration-parameters`

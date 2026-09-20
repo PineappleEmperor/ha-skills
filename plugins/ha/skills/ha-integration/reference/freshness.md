@@ -20,7 +20,7 @@ the same pass. A value fixed in one place and not the others is worse than one u
 
 | Fact | Value | Captured | Re-derive with | Consumers | Gate |
 |---|---|---|---|---|---|
-| HA release the skill is current for | `2026.9` | 2026-09-19 | `curl -s https://pypi.org/pypi/homeassistant/json \| jq -r .info.version`, then *When the release row goes red* below | the fetched sources in `docs/ha-release/` · *What changed in recent releases* in `reference/patterns.md` · *Home Assistant pads the panel for the safe area* and *A panel that reads devices reads them by config entry* in `reference/panels.md` | `scripts/check_ha_release.py`, which fails once PyPI's minor is ahead of this cell |
+| HA release the skill is current for | `2026.9` | 2026-09-19 | `curl -s https://pypi.org/pypi/homeassistant/json \| jq -r .info.version`, then *When the release row goes red* below | the fetched sources in `docs/ha-release/` · every section of `reference/patterns.md` that names a release, and *Announced for a release after 2026.9 — Step 1* · *Step 4: Say whether the panel handles the safe area* and *A panel that reads devices reads them by config entry — Step 3* in `reference/panels.md` | `scripts/check_ha_release.py`, which fails once PyPI's minor is ahead of this cell |
 | HA minimum Python | `3.14` (HA dev needs 3.14.2+) | 2026-09-12, unchanged since 2026-06 | developers.home-assistant.io/docs/development_environment | the `python-version` in ha-integration-ci's three reusable workflows (a CI release) · a consumer's `pyproject.toml` ruff `target-version` · `pyrightconfig.json` · `templates/pyproject.toml`, its header comments and its banned-api message · the pyright snippet in `reference/patterns.md` · the `target-version` line `evals/make_fixture.sh` writes | `version_sync.py` compares the first three; pylint's `py-version` is **not** compared and moves by hand |
 | Quality-scale canonical rule set | 54 rules, see `reference/quality-scale.md` | 2026-09-12 | developers.home-assistant.io/docs/core/integration-quality-scale/ — or, as data, the `rules:` keys of any Platinum core integration's `quality_scale.yaml` (`airgradient`, `husqvarna_automower`), which is how the 2026-09 re-derivation found two rules the 2026-06 capture lacked | the rule lists in `reference/quality-scale.md` · `TIER_RULES` in ha-integration-ci's `scripts/skill_audit.py` (a CI release) · every `quality_scale.yaml` | none — the two lists match today with nothing asserting they still will |
 | GitHub action versions | checkout `v7.0.1` · dependency-review `v5.0.0` · stale `v11.0.0` | 2026-08-22 | `gh api repos/<owner>/<repo>/releases/latest --jq .tag_name`, then `gh api repos/<owner>/<repo>/git/ref/tags/<tag>` for the SHA | the SHA pins in the four plain workflows in `templates/.github/workflows/`, each with its version in the trailing comment · the checkout line `evals/make_fixture.sh` plants for scenario 02 | `check_action_pins` holds the *shape* — a 40-hex SHA with a version comment — and never the version; the CI repositories' own pins move by their own Dependabot |
@@ -56,10 +56,10 @@ python3 scripts/fetch_ha_sources.py --release <the new minor>
 
 Neither contains the other.
 
-| Source | Holds |
+| Rule | Value |
 |---|---|
 | developers.home-assistant.io/blog, paged back to the last captured release | the only place most API changes are explained; a release's notes link a few of its window's posts and the rest are reachable only from the blog index |
-| the release-notes post's *Backward-incompatible changes* section | user-facing removals, most of which never get a developer-blog post — the vacuum `battery_level` removal that *What changed in recent releases* in `reference/patterns.md` records came from here |
+| the release-notes post's *Backward-incompatible changes* section | user-facing removals, most of which never get a developer-blog post — the vacuum `battery_level` row in *Deprecated platform APIs — Step 1* of `reference/patterns.md` came from here |
 
 **Timing:** open every source before writing a row from it.
 
@@ -91,7 +91,8 @@ usable that the release does not carry.
 
 | Rule | Value |
 |---|---|
-| a change a custom integration can meet | a row in *What changed in recent releases* in `reference/patterns.md`, applied in the section that owns the topic |
+| a change a custom integration can meet | a row in the `reference/patterns.md` section that owns the topic |
+| a change announced for a release that has not landed | a row in *Announced for a release after 2026.9 — Step 1* of `reference/patterns.md`, cleared when it lands |
 | every other row in the table above | re-derived with its own *Re-derive with* command |
 | the release cell and its captured date | moved, last |
 | the whole pass | one PR |

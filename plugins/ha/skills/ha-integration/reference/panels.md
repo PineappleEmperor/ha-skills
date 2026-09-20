@@ -54,10 +54,14 @@ dependency.
 ### Step 3: Register the static path and the panel in `async_setup`
 
 Once per process, for the reason `reference/patterns.md` gives under *Register
-integration-global resources in `async_setup`, not `async_setup_entry` — Step 2*. Two traps
-are marked by their comments in the snippet: claim the registered flag **before** the
-`await`, or two entries setting up in parallel both register; and cache-bust the module URL
-with the integration version, or a browser serves the previous panel after an update.
+integration-global resources in `async_setup`, not `async_setup_entry` — Step 2*.
+
+| Rule | Value |
+|---|---|
+| claim the registered flag **before** the `await` | otherwise two entries setting up in parallel both register |
+| cache-bust the module URL with the integration version | otherwise a browser serves the previous panel after an update |
+
+Both traps are marked by their comments in the snippet:
 
   ```python
   from pathlib import Path
@@ -110,12 +114,12 @@ notches, status bars and home indicators. Say which you want explicitly rather t
 inheriting a default nobody chose: a panel drawn edge-to-edge on a phone looks broken
 without the padding, and one that already insets itself looks doubly inset with it.
 
-`handle_safe_area: bool = False` is a parameter of `panel_custom.async_register_panel`,
-which writes it into `config["_panel_custom"]` itself. The YAML spelling is
-`handle_safe_area: true` under a `panel_custom:` entry — the same argument arriving through
-`async_setup`. It was added in **2026.8.2**: absent from
-`homeassistant/components/panel_custom/__init__.py` at the `2026.8.0` and `2026.8.1` tags,
-present at `2026.8.2`, and read at `2026.9.0` for the behaviour described here.
+| Rule | Value |
+|---|---|
+| what it is | `handle_safe_area: bool = False`, a parameter of `panel_custom.async_register_panel`, which writes it into `config["_panel_custom"]` itself |
+| the YAML spelling | `handle_safe_area: true` under a `panel_custom:` entry — the same argument arriving through `async_setup` |
+| the compatibility floor | **2026.8.2** — absent from `homeassistant/components/panel_custom/__init__.py` at the `2026.8.0` and `2026.8.1` tags, present at `2026.8.2`, and read at `2026.9.0` for the behaviour described here |
+| an iframe-based panel | gets the resolved insets forwarded in as the `--safe-area-inset-top`/`-right`/`-bottom`/`-left` CSS variables instead |
 
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
@@ -136,13 +140,14 @@ async def _register(hass: HomeAssistant, module_url: str) -> None:
 
 ### Step 5: Export the presentation helpers so a test can reach them
 
-A panel transforms vendor data
-before drawing it, and that logic is reachable from nothing else in the stack: `tsc --noEmit`
-proves a helper returns a string, not that it returns the right one; the Python suite cannot
-see it; and the bundle-staleness check proves the JS matches its source, not that the source
-is correct. So **export the pure presentation helpers** rather than inlining them in
-`render()` — a panel that inlines everything has nothing to import, and no test runner fixes
-that.
+**Export the pure presentation helpers** rather than inlining them in `render()`. A panel
+that inlines everything has nothing to import, and no test runner fixes that.
+
+| Rule | Value |
+|---|---|
+| `tsc --noEmit` | proves a helper returns a string, never that it returns the right one |
+| the Python suite | cannot see the panel's logic at all |
+| the bundle-staleness check | proves the JS matches its source, never that the source is correct |
 
 ```ts
 // panel.ts — exported, so a test can reach them
@@ -150,19 +155,21 @@ export function isNamed(item: Pick<Set, "name">): boolean { ... }
 export function displayName(item: Pick<Set, "name">): string { ... }   // "{?}" -> "Name tbd"
 ```
 
-The cases worth testing are the ones where the vendor's data is not what you would draw:
-a placeholder standing in for an unannounced name, a missing price, a date that has already
-passed, a sort comparator, a unit formatter. ha-panel-ci's `frontend/package.json` ships
-`vitest` and a `test` script for this, and its README says where the tests go. The runner
-never reaches users: what the release zip holds is *The three workflows* in
-ha-integration-ci's README, and `frontend/` is not in it, so it is CI-time weight and
-nothing more.
+**What is worth testing** — the cases where the vendor's data is not what you would draw:
 
-The same reasoning applies to anything the panel sends. A service call built in TypeScript
-against a schema declared in Python has no shared definition and no compiler to link them —
-`callService` takes `Record<string, unknown>`, so omitting a `vol.Required` field type-checks
-cleanly and fails only at runtime, in the browser, where nobody is watching. A test that
-captures the outgoing call and asserts its shape is the only thing that catches it.
+- A placeholder standing in for an unannounced name.
+- A missing price.
+- A date that has already passed.
+- A sort comparator.
+- A unit formatter.
+- The outgoing service call, captured and asserted on its shape.
+
+| Rule | Value |
+|---|---|
+| the runner | ha-panel-ci's `frontend/package.json` ships `vitest` and a `test` script; its README says where the tests go |
+| what it costs users | nothing — `frontend/` is not in the release zip (*The three workflows* in ha-integration-ci's README), so it is CI-time weight only |
+| a service call built in TypeScript against a schema declared in Python | has no shared definition and no compiler to link them |
+| `callService` | takes `Record<string, unknown>`, so omitting a `vol.Required` field type-checks cleanly and fails only at runtime, in the browser, where nobody is watching |
 
 ## Cases
 

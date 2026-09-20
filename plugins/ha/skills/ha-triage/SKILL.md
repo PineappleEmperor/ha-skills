@@ -94,12 +94,14 @@ Ranked table: **severity · cluster · root cause · fix · evidence (`timestamp
 
 ## Companion-app notification images (off-network delivery)
 
-⚠️ **This section is verified against the companion-app docs, not against a live instance,
-and a user reports images failing in practice.** Treat the fixes below as candidates, not
-settled answers, until reproduced. In particular: fetching an image at notification time
-adds a round trip that can time out on a slow link, so *storing* the image and serving it
-may be the more reliable shape — which then makes authenticated file access the thing to
-get right, rather than URL form. Re-derive before advising.
+> ⚠️ **Note:** this section is verified against the companion-app docs and not against a
+> live instance, and images are reported failing in practice. Treat every fix below as a
+> candidate until reproduced, and re-derive before advising.
+
+| Rule | Value |
+|---|---|
+| fetching the image at notification time | adds a round trip that can time out on a slow link |
+| storing the image and serving it | may be the more reliable shape, which makes authenticated file access the thing to get right rather than URL form |
 
 Recurring config-side fix: a `notify.mobile_app_*` image "works on Wi-Fi, fails on cellular". Root cause is always that the **phone** downloads the attachment over the internet through Nabu Casa — so anything only reachable on the LAN, or served stale, breaks off-network. Two causes:
 
