@@ -76,22 +76,37 @@ line opening its section.
 
 Fixed column sets. A table that invents its own shape cannot be diffed across a refresh.
 
+`scripts/skill_schema_audit.py` reads this table and holds every shipped file to it, so the
+rule and its enforcement cannot drift. A row's column set is the backticked, `\|`-separated
+tuple in its Columns cell; a row may carry more than one where a shape takes an optional
+column. Matching ignores case and backticks.
+
 | Table | Columns |
 |---|---|
 | anti-pattern | `anti-pattern \| use instead \| why (one clause) \| reference` |
-| rebuttal | the anti-pattern table — an excuse *is* an anti-pattern, its rebuttal splits into *use instead* and *why* |
+| rebuttal | `anti-pattern \| use instead \| why (one clause) \| reference` — an excuse *is* an anti-pattern, its rebuttal splits into *use instead* and *why* |
 | scheduled change | `what \| lands in \| do now \| do then` |
 | reference | `file \| when to read` |
 | source | `artefact \| taken from` — what a scaffold carries and where each piece comes from |
-| layout | `file \| holds` — one row per module, saying what belongs in it |
+| layout | `file \| holds`, or `file \| holds \| when` and `file \| holds \| taken from` where the step also says which files to write, or on what condition, or where each is copied from |
 | tier | `tier \| adds` — a level and what it requires beyond the one below |
 | cached fact | `fact \| value \| captured \| re-derive with \| consumers \| gate` |
 | decision | `scenario \| choice` |
+| rule | `rule \| value` — a named constraint and what it is; the default where no narrower shape fits |
+| requirement | `# \| requirement \| answer \| default` — what is asked before anything is written |
+| check | `check \| what's needed \| where to fix` — an external validator's checks, one row each |
+| mode | `mode \| when \| read first` — `SKILL.md`'s router, and nowhere else |
 
 A table whose columns fit none of these is a finding, not a licence to invent one — but a
 table degraded into a bullet list is a loss, so report it and the set gains a row. The
 `source` and `tier` shapes were added exactly that way, after three tables in
-`github-actions.md` and `quality-scale.md` were flattened for want of them.
+`github-actions.md` and `quality-scale.md` were flattened for want of them; `rule`,
+`requirement`, `check`, `mode` and the two `layout` variants were added after the
+`scaffold.md` conversion invented nine shapes in one file and the audit named every one.
+
+**Two columns whose second is a value are the `rule` shape, whatever the first is called.**
+A `Key | Value` and a `Rule | Value` differ in nothing a reader can use, so the set has one
+of them rather than a pair that drift apart.
 
 **A single-column enumeration is a bullet list, not a table.** The eight required contexts
 are eight names; a second column exists only if this file knows what goes in it, and
