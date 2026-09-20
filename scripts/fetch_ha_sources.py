@@ -16,8 +16,13 @@ and carried nine backward-incompatible changes that had no post at all.
     post's own page fetched because the feed carries only an excerpt. The feed holds a fixed
     number of entries, so a backfill reaching further back than it does collects what is
     left rather than what was published, and the run says so when a window comes up empty;
-  * the release-notes post for each release in the window, whole, from home-assistant.io's
-    Atom feed, which unlike the developer feed carries the entire body.
+  * the *Backward-incompatible changes* section of the release-notes post for each release
+    in the window, taken from the post's own markdown in `home-assistant/home-assistant.io`
+    rather than from the rendered page. Nine tenths of such a post is feature prose and
+    patch-release dependency bumps; the section that is kept is the part that can break a
+    custom integration, and the part the developer blog does not carry. The Atom feed is
+    still read, for each release's title, date and link, and for the post body `dev_links`
+    recovers aged-out posts from.
 
 WHAT IT IS NOT. A fetched post is a secondary source, and saving one here does not make it
 primary: the same section of `freshness.md` says core at the tag is the source of record. This
@@ -91,22 +96,33 @@ _SKIP = {"script", "style", "nav", "footer", "svg", "button", "form"}
 # stripping navigation, scripts and link targets is a "technical modification necessary"
 # under section 2(a)(4), and so leaves these verbatim copies, is a reading rather than a
 # certainty — which is why the note below says what was dropped instead of asserting it.
+# Keyed by URL PREFIX, longest match first, because one host is not one set of terms:
+# raw.githubusercontent.com serves home-assistant.io under CC BY-NC-SA and core under
+# Apache-2.0, and a host key would have stamped the first onto the second.
+_HA_IO = (
+    "Copyright (c) Home Assistant contributors. Licensed CC BY-NC-SA 4.0 "
+    "(https://creativecommons.org/licenses/by-nc-sa/4.0/), per LICENSE.md of "
+    "home-assistant/home-assistant.io."
+)
 LICENCES = {
-    "www.home-assistant.io": (
-        "Copyright (c) Home Assistant contributors. Licensed CC BY-NC-SA 4.0 "
-        "(https://creativecommons.org/licenses/by-nc-sa/4.0/), per LICENSE.md of "
-        "home-assistant/home-assistant.io."
-    ),
-    "developers.home-assistant.io": (
+    "https://www.home-assistant.io/": _HA_IO,
+    "https://raw.githubusercontent.com/home-assistant/home-assistant.io/": _HA_IO,
+    "https://developers.home-assistant.io/": (
         "Copyright (c) Home Assistant contributors. The developer documentation repository "
         "publishes no licence; this copy is kept for reference and attribution only."
     ),
 }
-_MODIFIED = (
+_MODIFIED_HTML = (
     "Modified: converted from HTML to plain text by `scripts/fetch_ha_sources.py`. It keeps "
     "the article body and loses everything the markup carried — navigation and chrome, link "
     "targets, image alt text, table and list structure, and code formatting. No wording has "
     "been changed, added or reordered."
+)
+_MODIFIED_SLICE = (
+    "Modified: this is the *Backward-incompatible changes* section of the post's own source "
+    "markdown, cut at the surrounding `##` headings by `scripts/fetch_ha_sources.py`. "
+    "Nothing inside it has been changed, added or reordered; the rest of the post — the "
+    "feature write-ups and the patch-release changelogs — is not kept."
 )
 
 
@@ -216,11 +232,54 @@ def post_from_url(url: str, title: str) -> dict[str, str] | None:
     }
 
 
-def provenance(url: str) -> str:
-    """The attribution block every fetched file carries, per its host's terms."""
-    host = urllib.parse.urlsplit(url).netloc
-    licence = LICENCES.get(host, "Copyright (c) its authors; no licence is stated.")
-    return f"Fetched from {url}\n{licence}\n{_MODIFIED}"
+def provenance(url: str, modification: str = _MODIFIED_HTML) -> str:
+    """The attribution block every fetched file carries, per that URL's terms."""
+    match = max((p for p in LICENCES if url.startswith(p)), key=len, default="")
+    licence = LICENCES.get(match, "Copyright (c) its authors; no licence is stated.")
+    return f"Fetched from {url}\n{licence}\n{modification}"
+
+
+def notes_markdown_url(post_url: str) -> str:
+    """The release-notes post's source markdown in `home-assistant/home-assistant.io`.
+
+    The rendered page has to be flattened to text, and that drops exactly what this section
+    is read for: the backticks around an API name and the PR link behind each entry — the
+    two things *A post is not the source of record* sends a reader to core with. The
+    repository's own markdown keeps both, and its `##` headings make the cut below exact
+    rather than a match on a phrase that also appears in the page's table of contents.
+    """
+    parts = urllib.parse.urlsplit(post_url).path.strip("/").split("/")
+    if len(parts) != 5 or parts[0] != "blog":
+        raise SystemExit(f"{post_url} is not a post URL this can find the markdown for")
+    year, month, day, slug = parts[1:]
+    return (
+        "https://raw.githubusercontent.com/home-assistant/home-assistant.io/master/"
+        f"source/_posts/{year}-{month}-{day}-{slug}.markdown"
+    )
+
+
+def breaking_changes(markdown: str, release: str) -> str:
+    """The *Backward-incompatible changes* section of a release-notes post, and only it.
+
+    Measured over 2026.6-2026.9: the four posts run to 215 KB and this section to 25 KB of
+    it, the remainder being feature write-ups and three patch-release changelogs of
+    dependency bumps, none of which a custom integration can act on. The section ends with
+    the post's own list of the release's notable developer-blog posts, which is the one
+    place the two sources cross-reference each other.
+
+    An absent heading stops the run rather than falling back to the whole post or to
+    nothing: a silently empty source is what the gate would then certify as read.
+    """
+    heading = "## Backward-incompatible changes"
+    start = markdown.find(f"\n{heading}\n")
+    if start == -1:
+        raise SystemExit(
+            f"{release}'s release-notes markdown carries no {heading!r} heading; the post's "
+            "shape has changed, and slicing it here would write an empty source"
+        )
+    body = markdown[start + 1 :]
+    end = body.find("\n## ", len(heading))
+    return (body if end == -1 else body[:end]).strip() + "\n"
 
 
 def to_text(html: str) -> str:
@@ -343,8 +402,12 @@ def write_release(
     Every page is fetched before anything is written. A fetch that fails halfway — one 403,
     one timeout, and there is no retry — would otherwise leave the folder emptied and
     half-filled, and a half-filled folder is what the gate would then certify as every
-    source read.
+    source read. The notes are sliced here too, before the first write, so a post whose
+    shape has changed stops the run instead of replacing a folder with an empty source.
     """
+    name = f"{release[0]}.{release[1]}"
+    notes_url = notes_markdown_url(notes["url"])
+    notes_body = breaking_changes(get(notes_url), name)
     fetched = [
         (
             f"blog-{post['date']}-{slug_of(post['url'])}.md",
@@ -353,15 +416,16 @@ def write_release(
         )
         for post in sorted(posts, key=lambda p: p["date"])
     ]
-    folder = out / f"{release[0]}.{release[1]}"
+    folder = out / name
     shutil.rmtree(folder, ignore_errors=True)
     folder.mkdir(parents=True)
     (folder / "release-notes.md").write_text(
-        f"# {notes['title']}\n\n{provenance(notes['url'])}\n\n{to_text(notes['html'])}",
+        f"# {notes['title']} — backward-incompatible changes\n\n"
+        f"{provenance(notes_url, _MODIFIED_SLICE)}\n\n{notes_body}",
         encoding="utf-8",
     )
-    for name, body in fetched:
-        (folder / name).write_text(body, encoding="utf-8")
+    for filename, body in fetched:
+        (folder / filename).write_text(body, encoding="utf-8")
     return len(fetched)
 
 

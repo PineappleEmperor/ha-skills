@@ -86,12 +86,40 @@ PAGE = (
 )
 
 
+NOTES_MARKDOWN = """---
+title: "2026.9: There's room on this bus"
+---
+
+Feature prose nobody can act on.
+
+## Patch releases
+
+Bump something to 1.2.3 (#1)
+
+## Need help? Join the community
+
+Join us.
+
+## Backward-incompatible changes
+
+### Vacuum
+
+The deprecated `battery_level` property has been removed.
+
+## All changes
+
+The full changelog.
+"""
+
+
 def _get(url: str) -> str:
-    """Stand in for the network: the two feeds, and any post page."""
+    """Stand in for the network: the two feeds, a post page, and the notes markdown."""
     if url == fhs.RELEASE_FEED:
         return RELEASE_FEED
     if url == fhs.DEV_FEED:
         return DEV_FEED
+    if url.startswith("https://raw.githubusercontent.com/"):
+        return NOTES_MARKDOWN
     return PAGE
 
 
@@ -177,10 +205,36 @@ def test_a_run_writes_every_source_and_an_index_that_names_them_all(tmp_path) ->
     index = (out / "index.md").read_text(encoding="utf-8")
     for name in written:
         assert f"`docs/ha-release/2026.9/{name}`" in index
-    assert "Notes body" in (out / "2026.9/release-notes.md").read_text(encoding="utf-8")
+    notes = (out / "2026.9/release-notes.md").read_text(encoding="utf-8")
+    assert "`battery_level` property has been removed" in notes
     assert "First para." in (out / "2026.9/blog-2026-09-02-modbus.md").read_text(
         encoding="utf-8"
     )
+
+
+def test_the_notes_markdown_url_is_derived_from_the_post_url() -> None:
+    """The rendered page loses the backticks and the PR links; the repo's markdown keeps them."""
+    assert fhs.notes_markdown_url(
+        "https://www.home-assistant.io/blog/2026/09/02/release-20269/"
+    ) == (
+        "https://raw.githubusercontent.com/home-assistant/home-assistant.io/master/"
+        "source/_posts/2026-09-02-release-20269.markdown"
+    )
+
+
+def test_only_the_backward_incompatible_section_is_kept() -> None:
+    """Nine tenths of a release-notes post is prose and dependency bumps."""
+    kept = fhs.breaking_changes(NOTES_MARKDOWN, "2026.9")
+    assert kept.startswith("## Backward-incompatible changes")
+    assert "`battery_level` property has been removed" in kept
+    for dropped in ("Feature prose", "Bump something", "Join us", "full changelog"):
+        assert dropped not in kept
+
+
+def test_notes_without_the_section_stop_the_run() -> None:
+    """A silent empty slice is the failure the whole fetch exists to prevent."""
+    with pytest.raises(SystemExit):
+        fhs.breaking_changes("## All changes\n\nnothing else\n", "2026.9")
 
 
 def test_a_later_run_adds_a_release_and_keeps_the_ones_beside_it(tmp_path) -> None:
@@ -267,6 +321,8 @@ def test_an_empty_window_says_so_on_stderr(tmp_path, capsys) -> None:
             return feed
         if url == fhs.RELEASE_FEED:
             return notes
+        if url.startswith("https://raw.githubusercontent.com/"):
+            return NOTES_MARKDOWN
         return PAGE
 
     fhs.main(["--release", "2026.9"], get=get, root=tmp_path)
@@ -306,11 +362,15 @@ def test_every_file_carries_its_source_and_the_terms_it_came_under(tmp_path) -> 
         encoding="utf-8"
     )
     assert "creativecommons.org/licenses/by-nc-sa/4.0/" in notes
-    assert "converted from HTML to plain text" in notes
+    # The notes now come from the site's own repository, which the licence must follow:
+    # keyed by host alone, raw.githubusercontent.com would have carried core's terms too.
+    assert "Fetched from https://raw.githubusercontent.com/home-assistant/" in notes
+    assert "cut at the surrounding" in notes
     post = (tmp_path / "docs/ha-release/2026.9/blog-2026-09-02-modbus.md").read_text(
         encoding="utf-8"
     )
     assert "publishes no licence" in post
+    assert "converted from HTML to plain text" in post
     assert "Fetched from https://developers.home-assistant.io/" in post
 
 
@@ -351,10 +411,14 @@ def test_a_later_fetch_refuses_to_re_sign_a_release_it_did_not_refetch(
     # Refetching that release deliberately is the way through, and it has to stay the way
     # through when upstream has genuinely moved — a stub that returns the same bytes every
     # time cannot tell the exemption from its absence, and left it unprotected.
-    moved = RELEASE_FEED.replace("Older notes", "Older notes, revised upstream")
+    moved = NOTES_MARKDOWN.replace(
+        "has been removed.", "has been removed, revised upstream."
+    )
 
     def changed(url: str) -> str:
-        return moved if url == fhs.RELEASE_FEED else _get(url)
+        if url.startswith("https://raw.githubusercontent.com/"):
+            return moved
+        return _get(url)
 
     assert fhs.main(["--release", "2026.8"], get=changed, root=tmp_path) == 0
     assert "revised upstream" in tampered.read_text(encoding="utf-8")
