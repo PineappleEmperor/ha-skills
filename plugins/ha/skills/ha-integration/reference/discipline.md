@@ -1,53 +1,79 @@
 # Commit, PR and merge discipline
 
-What to do when a check is red, and what to do before naming a root cause. Neither has an
-artefact that can enforce it. Commit and PR-body format is `reference/commits.md`.
-
-- Merge discipline — never merge a red check
-- One exception, and it is narrow
-- The exception gets misapplied
-- Red flags — stop
-- Debugging discipline
-
-## Merge discipline — never merge a red check
+Read this when a check is red, or before naming a root cause. Commit and PR-body format is
+`reference/commits.md`.
 
 **A failing check is the gate working. Merging past it is not a judgement call.**
 
-Violating the letter of this rule is violating the spirit of it. The gate stack in this skill exists to stop bad merges; an agent that reasons its way past a red check has removed the only thing standing between a mistake and `main`.
+## Contents
 
-### One exception, and it is narrow
+1. Merge discipline — never merge a red check
+2. Step 1: Stop and read the log
+3. Step 2: Fix it, or say in writing why the gate is wrong
+4. Red flags — stop
+5. Debugging discipline
+6. Step 1: Trace the path
+7. Step 2: Name the cause
+8. Cases
+9. One exception, and it is narrow — merge Step 2
+10. An action hits more devices than it should — debugging Step 2
 
-A PR fixing a `pull_request_target` caller can never go green on its own; why is `pr-checks.yml` under *The five workflows* in release-flow's README. That is the only sanctioned case. It covers **one job, on one PR, whose own definition the PR changes**. To use it you must first prove it with a diff (`git show origin/main:.github/workflows/pr-checks.yml` against the branch's), say in the PR that the failure is the bug being fixed, and verify on the next PR.
+## Merge discipline — never merge a red check
 
-| Excuse | Reality |
+### Step 1: Stop and read the log
+
+Before anything else, and before the merge — not after it.
+
+### Step 2: Fix it, or say in writing why the gate is wrong
+
+Fix the failure, or write down why the gate is wrong about what it can see; either way,
+before merging.
+
+| anti-pattern | use instead | why (one clause) | reference |
+|---|---|---|---|
+| merging on "I understand why it's red" | fix it | understanding a failure is a reason to fix it, not to merge it | Step 2 |
+| merging on "the content is correct, only the check is wrong" | fix the check | a wrong check is a defect, not an exemption | Step 2 |
+| merging on "it's the `pull_request_target` self-validation case" | prove it with the diff, on that job, on that PR | if you did not check, it is not that case | *One exception, and it is narrow — merge Step 2* |
+| merging on "I merged past a red check earlier for a good reason" | carry this merge's own proof | precedent is not evidence | *One exception, and it is narrow — merge Step 2* |
+| merging on "the version/label/content is right anyway" | say in writing why the gate is wrong, before merging | the gate is reporting what it can see | Step 2 |
+| merging on "it's only advisory, GitHub let me" | read the log | advisory means GitHub will not stop you, not that the check is wrong | `reference/github-setup.md` |
+| merging on "re-running it would waste minutes" | re-run it | minutes against a bad merge on `main` | Step 1 |
+
+### Red flags — stop
+
+| scenario | choice |
 |---|---|
-| "I understand why it's red" | Understanding a failure is a reason to fix it, not to merge it. |
-| "The content is correct, only the check is wrong" | Then fix the check. A wrong check is a defect, not an exemption. |
-| "It's the `pull_request_target` self-validation case" | Prove it with the diff, on that job, on that PR. If you did not check, it is not that case. |
-| "I merged past a red check earlier for a good reason" | That merge carried its own proof. This one needs its own. Precedent is not evidence. |
-| "The version/label/content is right anyway" | The gate said otherwise. It is reporting what it can see; if it is wrong about that, say why in writing before merging. |
-| "It's only advisory, GitHub let me" | Advisory means GitHub will not stop you, not that the check is wrong — a red check that is merely not required *yet* is still reporting a real failure. Read the log. Which checks are required, and why, is `reference/github-setup.md`. |
-| "Re-running it would waste minutes" | Minutes against a bad merge on `main`. |
-
-### The exception gets misapplied
-
-Applied once legitimately, it was reused hours later on a PR it did not cover, and the merge went through with the failure undiagnosed — the account is `evals/scenarios/05-red-check-under-pressure.md`. Re-derive the diff every time before claiming it.
-
-## Red flags — stop
-
-- About to run `gh pr merge` while any check is red
-- Diagnosing a failure **after** merging rather than before
-- Reusing a previous exception without re-deriving why it applies
-- Reaching for `--admin`, `--force`, or a `bypass_actors` entry to get a merge through
-- Telling yourself the failure is "unrelated" without having read the log
-
-**All of these mean the same thing: stop, read the log, then fix it or explain in writing.**
-
----
+| about to run `gh pr merge` while any check is red | stop, and read the log |
+| diagnosing a failure **after** merging rather than before | diagnose first, merge after |
+| reusing a previous exception without re-deriving why it applies | re-derive the diff before claiming it |
+| reaching for `--admin`, `--force`, or a `bypass_actors` entry to get a merge through | fix the check |
+| telling yourself the failure is "unrelated" without having read the log | read the log |
 
 ## Debugging discipline
 
-- **Trace before naming a cause** — grep the path (publish → subscribe → handler), confirm in code; a pre-trace hunch is a guess, not the diagnosis.
-- **Suspect the fan-out first** when an action hits more devices than it should — the service-call shape that causes it is in `reference/patterns.md`.
+### Step 1: Trace the path
 
----
+Grep the path — publish → subscribe → handler — then confirm it in code.
+
+### Step 2: Name the cause
+
+Only after the trace: a pre-trace hunch is a guess, not the diagnosis.
+
+## Cases
+
+### One exception, and it is narrow — merge Step 2
+
+A PR fixing a `pull_request_target` caller can never go green on its own; why is
+`pr-checks.yml` under *The five workflows* in release-flow's README. That is the only
+sanctioned case, and it covers **one job, on one PR, whose own definition the PR changes**.
+
+**Fix:** prove it with a diff (`git show origin/main:.github/workflows/pr-checks.yml`
+against the branch's), say in the PR that the failure is the bug being fixed, and verify on
+the next PR.
+
+**Timing:** re-derive the diff every time, before claiming the exception.
+
+### An action hits more devices than it should — debugging Step 2
+
+**Fix:** suspect the fan-out first — the service-call shape that causes it is in
+`reference/patterns.md`.

@@ -1,33 +1,75 @@
 # Dependabot for a HA custom integration
 
-What Dependabot can bump, what it cannot reach, and why its PRs need no special handling.
-Set up alongside `reference/github-setup.md`.
+Read this when configuring or debugging Dependabot on an integration repo. Set up alongside
+`reference/github-setup.md`.
 
-- Ecosystems worth enabling
-- Dependabot needs no exemption
-- Pins in your repo versus pins in the templates
+**Dependabot maintains the `uses:` pins and the pinned test dependencies; nothing else in a
+HA integration is in its reach.**
 
-### Ecosystems worth enabling
+## Contents
 
-`.github/dependabot.yml` with `commit-message.prefix: "chore"` on each ecosystem, so titles read `chore: bump …` and the autolabeler files them (the mapping is release-flow's drafter config), and `cooldown: {exclude: ["PineappleEmperor/*"]}` on the `github-actions` ecosystem alone; what that exempts, what keeps the hold, and why it is spelled that way, is the cooldown bullet of *The version model* in ha-integration-ci's README. Know what it actually buys you:
+1. Setting Dependabot up
+2. Step 1: Write `.github/dependabot.yml`
+3. Step 2: Enable `github-actions`
+4. Step 3: Enable `pip`
+5. Step 4: Leave `manifest.json` `requirements` to a deliberate PR
+6. Step 5: Merge the PRs as they arrive
+7. Cases
+8. A `pip` bump — Step 5
+9. Re-copying a plain workflow — Step 2
 
-- **`github-actions`** — the real value. Bumps every `uses:` pin under `.github/workflows/`: the action pins in the four plain workflows and, more importantly, the callers' pins, which is how a release of a CI repository reaches you (the version model in ha-integration-ci's README).
-- **`pip`** — points at `requirements.test.txt` / `pyproject`. Real value now that the template ships `requirements.test.txt` **pinned** (`pytest-homeassistant-custom-component==…`); it stays near-useless in a repo that leaves test deps unpinned, since no version specifier means nothing to bump. ⚠️ A bump here moves the **HA version the suite tests against** (`reference/testing.md` says why), so review these PRs rather than auto-merging: a bump can drag the Python floor with it, and your ruff `target-version` and `pyrightconfig.json` must then match the floor the CI declares — the audit compares them (ha-integration-ci's README) — and a floor move is a CI release first.
-- **`manifest.json` `requirements` are invisible to Dependabot** — it can't parse the manifest, and the entries are open `>=` ranges (HA installs the latest matching anyway), so there's nothing to *routinely* bump. Raising a `>=` floor is a deliberate safety/feature act, done by hand in a PR of its own. Nothing in the stack automates it, and if something ever does it is a reusable workflow in ha-integration-ci — never a script and a PR opener written into one repo, which is the copied-body model the CI repositories replaced.
+## Setting Dependabot up
 
----
+### Step 1: Write `.github/dependabot.yml`
 
-### Dependabot needs no exemption
+`commit-message.prefix: "chore"` on each ecosystem, so titles read `chore: bump …` and the
+autolabeler files them (the mapping is release-flow's drafter config). `cooldown: {exclude:
+["PineappleEmperor/*"]}` on the `github-actions` ecosystem alone; what that exempts, what
+keeps the hold, and why it is spelled that way, is the cooldown bullet of *The version
+model* in ha-integration-ci's README.
 
-Nothing compares a committed version, and the label gate skips bot-authored PRs. Dependabot
-PRs carry a `chore` label from their `chore:` title, fold into the next release, and need no
-special case anywhere.
+### Step 2: Enable `github-actions`
 
----
+Bumps every `uses:` pin under `.github/workflows/`: the action pins in the four plain
+workflows, and the callers' pins, which is how a release of a CI repository reaches you (the
+version model in ha-integration-ci's README).
 
-### Pins in your repo versus pins in the templates
+### Step 3: Enable `pip`
+
+Points at `requirements.test.txt` / `pyproject`. It has something to bump only where the
+test dependencies are pinned, as the template ships them
+(`pytest-homeassistant-custom-component==…`); no version specifier means nothing to bump.
+
+### Step 4: Leave `manifest.json` `requirements` to a deliberate PR
+
+`manifest.json` `requirements` are invisible to Dependabot: it cannot parse the manifest,
+and the entries are open `>=` ranges — HA installs the latest matching anyway — so there is
+nothing to *routinely* bump. Raising a `>=` floor is a deliberate safety or feature act,
+done by hand in a PR of its own; nothing in the stack automates it, and anything that ever
+does is a reusable workflow in ha-integration-ci, never a script and a PR opener written
+into one repo.
+
+### Step 5: Merge the PRs as they arrive
+
+Dependabot needs no exemption: nothing compares a committed version, and the label gate
+skips bot-authored PRs. Its PRs carry a `chore` label from their `chore:` title, fold into
+the next release, and need no special case anywhere.
+
+## Cases
+
+### A `pip` bump — Step 5
+
+A bump here moves the **HA version the suite tests against** (`reference/testing.md` says
+why), and can drag the Python floor with it.
+
+**Fix:** review these PRs rather than auto-merging. Your ruff `target-version` and
+`pyrightconfig.json` must then match the floor the CI declares — the audit compares them
+(ha-integration-ci's README) — and a floor move is a CI release first.
+
+### Re-copying a plain workflow — Step 2
 
 The callers carry no stored pin anywhere but your repo, so there is nothing to regress. The
-four plain workflows have a template, so re-copying one can move its pin *backwards*; diff
-before overwriting and keep the newer pin, the listed adaptation in
+four plain workflows have a template, so re-copying one can move its pin *backwards*.
+
+**Fix:** diff before overwriting and keep the newer pin, the listed adaptation in
 `reference/github-actions.md`.
