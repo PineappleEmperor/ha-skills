@@ -420,7 +420,13 @@ def check_document_integrity(repo: Repo) -> Result:
                 # a heading whose section has no body
                 if re.match(r"^#{2,3} ", line):
                     nxt = next((rest for rest in lines[i + 1 :] if rest.strip()), "")
-                    if nxt.startswith("#") or not nxt:
+                    # A `##` that introduces its own `###` subsections carries no body
+                    # of its own, and `docs/skill-schema.md` requires exactly that of
+                    # `## Cases` and of a procedure heading over its `### Step N:`. Any
+                    # other heading running straight into another, or ending the file,
+                    # is the debris this looks for.
+                    introduces = line.startswith("## ") and nxt.startswith("### ")
+                    if not nxt or (nxt.startswith("#") and not introduces):
                         fails.append(
                             f"{rel}:{i + 1} heading {line.strip('# ')!r} has no body"
                         )
@@ -436,11 +442,15 @@ def check_document_integrity(repo: Repo) -> Result:
                             f"{rel}:{i + 1} heading {line.strip('# ')!r} runs on "
                             f"into its body: …{nxt.lstrip()[:40]!r}"
                         )
-                # prose cut mid-sentence before a list or heading
+                # Prose cut mid-sentence before a list or heading. A numbered contents
+                # entry is a list item, not prose, and a wrapped bold line ends on its
+                # own `**` — both read as an unterminated sentence otherwise, and the
+                # schema's contents list made every converted file fail on one.
                 if (
                     line.strip()
                     and not line.startswith(("#", "-", "*", ">", "|", " "))
-                    and line.rstrip()[-1:] not in '.:;)`"'
+                    and not re.match(r"^\d+[.)] ", line)
+                    and line.rstrip()[-1:] not in '.:;)`"*'
                 ):
                     nxt = next((rest for rest in lines[i + 1 :] if rest.strip()), "")
                     if nxt.startswith(("- ", "#")):
