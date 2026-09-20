@@ -47,7 +47,7 @@ reading every pattern.
 |---|---|---|
 | 1 | scope | one line: when the reader opens this file |
 | 2 | core rule | one bold line |
-| 3 | contents | numbered anchor links, when the file has more than three sections |
+| 3 | contents | numbered, one line per `##`/`###`, when the file has more than three sections; the anchors are added in the pointer pass, not at conversion |
 | 4 | the procedure | `### Step N:` — the generic path, once |
 | 5 | cases | `## Cases`, then `### <case> — Step N` per case |
 
@@ -78,8 +78,18 @@ Fixed column sets. A table that invents its own shape cannot be diffed across a 
 | rebuttal | the anti-pattern table — an excuse *is* an anti-pattern, its rebuttal splits into *use instead* and *why* |
 | scheduled change | `what \| lands in \| do now \| do then` |
 | reference | `file \| when to read` |
+| source | `artefact \| taken from` — what a scaffold carries and where each piece comes from |
+| tier | `tier \| adds` — a level and what it requires beyond the one below |
 | cached fact | `fact \| value \| captured \| re-derive with \| consumers \| gate` |
 | decision | `scenario \| choice` |
+
+A table whose columns fit none of these is a finding, not a licence to invent one — but a
+table degraded into a bullet list is a loss, so report it and the set gains a row. The
+`source` and `tier` shapes were added exactly that way, after three tables in
+`github-actions.md` and `quality-scale.md` were flattened for want of them.
+
+In a file with two procedures, the anti-pattern table's `reference` column names the topic
+as well as the step — `commit Step 2`, `PR body Step 3` — matching the case-heading form.
 
 ## Block types, and the only cases that earn one
 
@@ -88,6 +98,7 @@ Fixed column sets. A table that invents its own shape cannot be diffed across a 
 | row | a table line | always the default |
 | substitution | `X` → `Y` on one line | a swap with no conditions |
 | bullet list | `- ` per line | every bullet is one fact or one substitution; a bullet that runs to a paragraph is prose wearing a dash |
+| ordered list | `1.` per line | a sequence inside a single step, where the order is load-bearing but each item is too small to be a step of its own |
 | numbered steps | `### Step N:` | order is load-bearing — doing 3 before 2 breaks it |
 | code block | fenced | the reader copies it |
 | mermaid | fenced ```mermaid | a branch a reader must navigate, not a sequence they follow |
