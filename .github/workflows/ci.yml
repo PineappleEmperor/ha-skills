@@ -41,5 +41,8 @@ jobs:
       - name: Skill authoring audit
         run: python3 scripts/skill_meta_audit.py
 
+      - name: Skill schema audit
+        run: python3 scripts/skill_schema_audit.py
+
       - name: Home Assistant release freshness
         run: python3 scripts/check_ha_release.py
