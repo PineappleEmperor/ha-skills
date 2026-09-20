@@ -103,6 +103,18 @@ carries a check that fails once PyPI serves a newer Home Assistant minor than th
 row in the skill's `reference/freshness.md` names — the nudge for the pass written under
 *When the release row goes red* in that file.
 
+Two repo-local documents decide what a skill file may say, and neither ships:
+
+| Document | Decides |
+|---|---|
+| [`docs/skill-file-hierarchy.md`](docs/skill-file-hierarchy.md) | which file owns which topic, so a fact has one home and every other file points at it |
+| [`docs/skill-schema.md`](docs/skill-schema.md) | the shape that fact takes — the fixed section order, the canonical table column sets, and the rule that every block is a labelled field or a table row |
+
+`scripts/skill_schema_audit.py` reads the canonical column sets **out of** the schema
+document and holds every shipped file to them, so the rule and its enforcement cannot drift.
+`scripts/skill_meta_audit.py` is the separate authoring audit — frontmatter, resolving links,
+docs that match the templates that ship.
+
 [ha-ci-testing](https://github.com/PineappleEmperor/ha-ci-testing) is a throwaway
 integration that runs the whole cycle — branch, draft PR, merge, release candidate, final —
 because the parts that break only execute when something publishes. What a CI repository
