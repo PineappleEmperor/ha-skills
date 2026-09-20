@@ -127,7 +127,15 @@ wrong file (`docs/skill-file-hierarchy.md`) or it is rationale.
 |---|---|
 | when a row exists | only where the duplication is unavoidable — a different tool's config schema, or a different repository |
 | anywhere else | the duplicate is deleted, not tracked |
+| what the value cell holds | a value that rots — a version, a SHA, a pin, a count, a list of sources. Never a rule |
+| a rule read from somewhere else | stays in the file that owns it; the row holds only the revision it was read at |
 | the `gate` column | names the check that keeps the copies in step, or says `none` |
+
+**A value, not a rule** is the test, and the brand row is why it is written down. Its value
+cell held the whole brand-image specification — eight filenames, the icon sizes, the logo
+band — so the rules were stated three times over: there, in `reference/scaffold.md`, and
+again in `check_brand_assets`. None of that rots. What rots is *which revision of the
+`home-assistant/brands` README those rules were read from*, which is one SHA.
 
 A row with no gate is where drift happens, and it already has: the harness pin reads
 `0.13.365` in the template and `0.13.364` in the only repository that runs it, and the 54
@@ -154,7 +162,19 @@ or they are rediscovered every month.
 | announced for a future release | a row in the scheduled-change table, cleared when it lands |
 
 There is no release-history table. A reader acts on the current rule, never on when it
-changed; the release is a clause in the row — "removed in 2026.3, use `color_temp_kelvin`".
+changed; the release is a clause in the row.
+
+A release number earns a place in a row for one of two reasons, and no others:
+
+| Reason | Shape |
+|---|---|
+| the rule stops applying at it | "removed in 2026.3, use `color_temp_kelvin`" |
+| the rule does not apply below it | "from HA 2026.3.0", "HA 2023.8+" |
+
+The second is a **compatibility floor**, not history: a custom integration has to run on the
+oldest release its `hacs.json` claims, so a reader below the floor cannot use the row at all.
+That changes an action, which is what earns it a place. When *we* wrote the row down is
+neither, and git already holds it.
 
 ## What never appears in a skill file
 
