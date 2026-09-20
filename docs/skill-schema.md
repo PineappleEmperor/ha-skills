@@ -51,6 +51,10 @@ reading every pattern.
 | 4 | the procedure | `### Step N:` — the generic path, once |
 | 5 | cases | `## Cases`, then `### <case> — Step N` per case |
 
+**A section that is only pointers is a reference table**, not a procedure and not a case —
+`github-setup.md`'s *Supply chain* is five pointers and one fact, and `file | when to read`
+is what that shape is for.
+
 **A case is a heading, not a bold label.** The reference implementation labels its deltas in
 bold (`**Device-sibling discovery (Step 1):**`), and that is the one place we deliberately
 diverge: a pointer must name a heading that exists verbatim, and nothing can anchor to a
@@ -88,6 +92,11 @@ table degraded into a bullet list is a loss, so report it and the set gains a ro
 `source` and `tier` shapes were added exactly that way, after three tables in
 `github-actions.md` and `quality-scale.md` were flattened for want of them.
 
+**A single-column enumeration is a bullet list, not a table.** The eight required contexts
+are eight names; a second column exists only if this file knows what goes in it, and
+`github-setup.md` knows the producing workflow for two of the eight. A column padded with
+what another file owns is a restatement waiting to drift.
+
 In a file with two procedures, the anti-pattern table's `reference` column names the topic
 as well as the step — `commit Step 2`, `PR body Step 3` — matching the case-heading form.
 
@@ -99,6 +108,7 @@ as well as the step — `commit Step 2`, `PR body Step 3` — matching the case-
 | substitution | `X` → `Y` on one line | a swap with no conditions |
 | bullet list | `- ` per line | every bullet is one fact or one substitution; a bullet that runs to a paragraph is prose wearing a dash |
 | ordered list | `1.` per line | a sequence inside a single step, where the order is load-bearing but each item is too small to be a step of its own |
+| lead-in label | `**<label>:**` on the line above a list | the list needs a name to be read — the reference implementation labels every delta this way |
 | numbered steps | `### Step N:` | order is load-bearing — doing 3 before 2 breaks it |
 | code block | fenced | the reader copies it |
 | mermaid | fenced ```mermaid | a branch a reader must navigate, not a sequence they follow |
