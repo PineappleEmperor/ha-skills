@@ -51,6 +51,9 @@ before merging.
 
 ## Debugging discipline
 
+**Name the cause only from a trace you have followed. A hunch that arrives first is a guess
+wearing the diagnosis's clothes.**
+
 ### Step 1: Trace the path
 
 Grep the path — publish → subscribe → handler — then confirm it in code.
