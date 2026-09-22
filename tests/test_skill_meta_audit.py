@@ -383,6 +383,26 @@ def test_a_pointer_wrapped_across_two_lines_is_still_read(tmp_path) -> None:
     assert audit.check_named_sections(audit.Repo(tmp_path)) == ([], [])
 
 
+def test_a_pointer_wrapped_inside_a_note_block_is_still_read(tmp_path) -> None:
+    """A `> **Note:**` wraps with a `> ` on the second line, which is not part of the name."""
+    _skill(
+        tmp_path,
+        "ha-thing",
+        "name: ha-thing\ndescription: Use when doing a thing",
+        body="> **Note:** see *Sanctioned adaptations — the\n> complete list* in `reference/discipline.md`.\n",
+    )
+    ref = tmp_path / "plugins/ha/skills/ha-thing/reference"
+    ref.mkdir(exist_ok=True)
+    (ref / "discipline.md").write_text("# D\n\n## Something else\n\ntext\n")
+    fails, _ = audit.check_named_sections(audit.Repo(tmp_path))
+    assert any("no such heading" in f for f in fails)
+
+    (ref / "discipline.md").write_text(
+        "# D\n\n## Sanctioned adaptations — the complete list\n\ntext\n"
+    )
+    assert audit.check_named_sections(audit.Repo(tmp_path)) == ([], [])
+
+
 def test_a_required_context_documented_nowhere_fails(tmp_path) -> None:
     """`Dependency review` was required by the ruleset and named in no reference file."""
     _skill(tmp_path, "ha-thing", "name: ha-thing\ndescription: Use when doing a thing")

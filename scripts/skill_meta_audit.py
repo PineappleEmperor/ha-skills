@@ -300,7 +300,10 @@ def check_named_sections(repo: Repo) -> Result:
                     for line in path.read_text().splitlines()
                     if line.startswith("#")
                 }
-                wanted = re.sub(r"\s+", " ", section).strip().lower()
+                # A name that wraps inside a `> **Note:**` carries the blockquote marker
+                # of its second line, which belongs to the block and not to the heading.
+                unwrapped = re.sub(r"\n\s*>\s*", "\n", section)
+                wanted = re.sub(r"\s+", " ", unwrapped).strip().lower()
                 if wanted not in headings:
                     fails.append(
                         f"{doc.name} points at '{wanted}' in {target}, "
