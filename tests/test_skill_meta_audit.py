@@ -345,9 +345,8 @@ def test_a_pointer_to_a_moved_section_fails(tmp_path) -> None:
 def test_a_heading_that_only_starts_with_the_cited_name_fails(tmp_path) -> None:
     """`docs/skill-schema.md` asks for the heading verbatim, and a substring is not that.
 
-    The check tested `name in heading`, so every `— Step N` suffix the schema conversion
-    added kept its old pointers passing while none of them could anchor any more. Ten
-    dangling pointers survived a green run that way.
+    A citation naming only the head of a heading stops resolving the moment that heading
+    gains a `— Step N` suffix, so a substring test would pass a pointer that cannot anchor.
     """
     _skill(
         tmp_path,

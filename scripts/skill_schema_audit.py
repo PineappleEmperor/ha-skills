@@ -12,16 +12,15 @@ It does NOT yet check either `SKILL.md` section order or a task file's, so a rou
 TRIGGER/SYMPTOMS frontmatter, no signpost and no anti-pattern table passes it — the three
 routers are in exactly that state, and only a reading catches them.
 
-THE CANONICAL COLUMN SETS ARE READ OUT OF THE SCHEMA, not copied here. A checker carrying
-its own copy of a rule is the drift the schema exists to stop, and the brand row is what
-that looks like when it happens. Adding a shape means adding a row to *Canonical tables*,
-which is where a reader looks for it anyway.
+THE CANONICAL COLUMN SETS ARE READ OUT OF THE SCHEMA, not copied here, so a shape is added
+by adding a row to *Canonical tables* and nowhere else. A checker carrying its own copy of a
+rule is the drift the schema exists to stop.
 
 What it deliberately does not check: whether a fact is in the file that owns it.
-`docs/skill-file-hierarchy.md` records that a keyword checker for ownership was tried and
-reverted, because a phrase deny-list is unbounded and cannot tell a restatement from a
-pointer without reading. Structure is different in kind — a column set either matches or it
-does not — which is why this one is mechanical and that one stays a review.
+`docs/skill-file-hierarchy.md` gives the reason — a phrase deny-list is unbounded and cannot
+tell a restatement from a pointer without reading. Structure is different in kind: a column
+set either matches or it does not, which is why this one is mechanical and that one is a
+review.
 
 Exit 1 on any FAIL. Runs locally and in this repository's `ci.yml`.
 """
@@ -34,9 +33,8 @@ import sys
 Result = tuple[list[str], list[str]]  # (failures, warnings)
 
 SCHEMA = "docs/skill-schema.md"
-# The longest run of consecutive unlabelled prose lines a shipped file may carry. Not a
-# taste: it is what the converted files already achieve, measured rather than chosen, so it
-# admits a step's one- or two-line lead-in and refuses a paragraph.
+# The longest run of consecutive unlabelled prose lines a shipped file may carry: enough for
+# a step's lead-in, not enough for a paragraph.
 MAX_PROSE_RUN = 4
 # The one heading a contents list never names: the list itself.
 _CONTENTS = "contents"

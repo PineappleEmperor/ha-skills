@@ -266,16 +266,18 @@ def check_reference_links(repo: Repo) -> Result:
 def check_named_sections(repo: Repo) -> Result:
     """A pointer to a *section* by name is invisible to a link check.
 
-    Three of this skill's worst defects were cross-references of the form
-    "*Merge discipline* in `SKILL.md`" pointing at a heading that had moved. The link
-    check passed throughout, because the file existed — only the section did not.
+    A cross-reference of the form "*Merge discipline* in `SKILL.md`" passes a link check
+    whenever the file exists, however far the heading has moved.
 
-    The match is VERBATIM, which is what `docs/skill-schema.md` asks of a pointer under
-    *Pointers*, and what an anchor needs. Testing `name in heading` instead let every
-    `— Step N` suffix the schema conversion added keep its old pointers passing while
-    none of them could anchor any more; ten survived a green run that way. The name may
-    also wrap, since these files are wrapped at 100 columns — a pattern that stopped at
-    the newline never saw those at all.
+    The match is VERBATIM, which is what `docs/skill-schema.md` asks under *Pointers* and
+    what an anchor needs: a substring test passes a citation naming only the head of a
+    heading, which stops resolving the moment that heading gains a suffix. The name may
+    also wrap, since these files are wrapped at 100 columns, so the pattern has to cross a
+    newline to see one.
+
+    It reads only the `*Name* in `file.md`` form. A citation that names its file first is
+    not mechanically separable from ordinary emphasis following a file mention, so that
+    shape is a reading rather than a check.
     """
     fails = []
     ref = re.compile(
