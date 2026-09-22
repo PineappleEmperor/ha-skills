@@ -200,12 +200,12 @@ rest.
 
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
-| duplicating the icon at `logo.png` | ship only the icons | `icon.png` already serves that slot | *What an absent file serves instead* |
-| padding a mark into a landscape canvas | trim, and ship it square | no rule requires a logo aspect ratio | *Rules every file must meet* |
-| honouring a brand's clear-space guideline inside the PNG | trim, and let Home Assistant space it | that guideline governs placement in a UI, not the asset | *Rules every file must meet* |
-| omitting `icon@2x.png` because the 1× is served | ship it | a HiDPI client renders 256px where it asked for 512 | *Which files to ship* |
-| dressing an integration up as an official one | your own mark | it is what the no-HA-branding rule protects against | *Rules every file must meet* |
-| deriving a new mark from a brand's artwork | reproduce theirs, and meet any published usage terms | identification is the only permitted use | *Rules every file must meet* |
+| duplicating the icon at `logo.png` | ship only the icons | `icon.png` already serves that slot | Step 5 |
+| padding a mark into a landscape canvas | trim, and ship it square | no rule requires a logo aspect ratio | Step 5 |
+| honouring a brand's clear-space guideline inside the PNG | trim, and let Home Assistant space it | that guideline governs placement in a UI, not the asset | Step 5 |
+| omitting `icon@2x.png` because the 1× is served | ship it | a HiDPI client renders 256px where it asked for 512 | Step 5 |
+| dressing an integration up as an official one | your own mark | it is what the no-HA-branding rule protects against | Step 5 |
+| deriving a new mark from a brand's artwork | reproduce theirs, and meet any published usage terms | identification is the only permitted use | Step 5 |
 | PR-ing `home-assistant/brands` to fix a blank HACS tile | nothing — it is a HACS-side gap | `custom_integrations/*` PRs are auto-closed | the HACS dashboard row of `reference/freshness.md` |
 
 > **Note:** the HACS store dashboard reads the legacy CDN, not the inline `brand/` folder, so

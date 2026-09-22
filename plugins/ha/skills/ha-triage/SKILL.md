@@ -94,7 +94,7 @@ Ranked table: **severity · cluster · root cause · fix · evidence (`timestamp
 
 ## Companion-app notification images (off-network delivery)
 
-> ⚠️ **Note:** this section is verified against the companion-app docs and not against a
+> **Note:** this section is verified against the companion-app docs and not against a
 > live instance, and images are reported failing in practice. Treat every fix below as a
 > candidate until reproduced, and re-derive before advising.
 

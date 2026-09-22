@@ -124,7 +124,7 @@ Two layers:
 1. **Mechanical gate** — the audit, as the mode table above says.
 2. **Judgement checklist** — `reference/audit.md`. The items a grep can't decide.
 
-⚠️ A green gate does not prove the copied files match; the first item of the judgement
-checklist says why, and what to do about it.
+> **Note:** a green gate does not prove the copied files match; *Step 1: Callers, not
+> bodies; copies, not paraphrases* in `reference/audit.md` says why, and what to do about it.
 
 ---

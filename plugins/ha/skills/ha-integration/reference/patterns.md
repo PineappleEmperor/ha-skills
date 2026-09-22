@@ -170,8 +170,14 @@ async def async_setup_entry(
     opts = {**entry.data, **entry.options}
     async_add_entities([MyNotifyEntity(hass, opts[CONF_DEVICE_ID])])
 ```
-⚠️ **Do NOT use** `discovery.async_load_platform` + `BaseNotificationService` — deprecated, silently fails in recent HA versions.
-⚠️ `NotifyEntity` only supports `message` and `title` — `data` is **not in its service schema**. If you need custom payload fields (animations, sounds, colours, etc.), register the service directly instead:
+
+| anti-pattern | use instead | why (one clause) | reference |
+|---|---|---|---|
+| `discovery.async_load_platform` with a `BaseNotificationService` | the `NotifyEntity` above | the legacy pair is deprecated and fails silently rather than erroring | Step 1 |
+| a custom payload passed through `NotifyEntity` | a service registered directly, below | `data` is not in its service schema, which carries `message` and `title` only | Step 1 |
+
+**A custom payload — animations, sounds, colours — registered as its own service:**
+
 ```python
 # notify.py
 from collections.abc import Awaitable, Callable
