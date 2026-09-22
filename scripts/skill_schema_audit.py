@@ -4,8 +4,13 @@
 `skill_meta_audit.py` asks whether these skills are well built — frontmatter the spec
 requires, a router whose links resolve, docs that match the templates that ship. This asks
 the narrower question the schema asks: is every block a labelled field or a table row, does
-every table use a column set the schema names, and does the contents list match the
-headings underneath it.
+every table use a column set the schema names, does the contents list match the headings
+underneath it, and do the steps of a procedure run in order. `--list` prints the registry,
+which is the list of record.
+
+It does NOT yet check either `SKILL.md` section order or a task file's, so a router with no
+TRIGGER/SYMPTOMS frontmatter, no signpost and no anti-pattern table passes it — the three
+routers are in exactly that state, and only a reading catches them.
 
 THE CANONICAL COLUMN SETS ARE READ OUT OF THE SCHEMA, not copied here. A checker carrying
 its own copy of a rule is the drift the schema exists to stop, and the brand row is what

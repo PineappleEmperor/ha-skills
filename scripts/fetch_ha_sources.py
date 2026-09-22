@@ -261,11 +261,12 @@ def notes_markdown_url(post_url: str) -> str:
 def breaking_changes(markdown: str, release: str) -> str:
     """The *Backward-incompatible changes* section of a release-notes post, and only it.
 
-    Measured over 2026.6-2026.9: the four posts run to 215 KB and this section to 25 KB of
-    it, the remainder being feature write-ups and three patch-release changelogs of
-    dependency bumps, none of which a custom integration can act on. The section ends with
-    the post's own list of the release's notable developer-blog posts, which is the one
-    place the two sources cross-reference each other.
+    Measured over 2026.6-2026.9, against the markdown this function is given: the four
+    posts run to 295,319 bytes and the four slices written from them to 36,691, the
+    remainder being feature write-ups and three patch-release changelogs of dependency
+    bumps, none of which a custom integration can act on. The section ends with the post's
+    own list of the release's notable developer-blog posts, which is the one place the two
+    sources cross-reference each other.
 
     An absent heading stops the run rather than falling back to the whole post or to
     nothing: a silently empty source is what the gate would then certify as read.
