@@ -118,7 +118,7 @@ The `strict-typing` rule in `reference/quality-scale.md`. Every file passes the 
   `reconfiguration-flow` in `reference/quality-scale.md`
 - `vol.Schema` takes one entry per line and is left to `ruff format` — a flow schema is a
   list of entries, not a table, so it does not earn the `# fmt: off` fence under *Alignment
-  a human chose meets `ruff format`* in `reference/scaffold.md`:
+  a human chose meets `ruff format` — Step 2* in `reference/scaffold.md`:
   ```python
   DATA_SCHEMA = vol.Schema(
       {

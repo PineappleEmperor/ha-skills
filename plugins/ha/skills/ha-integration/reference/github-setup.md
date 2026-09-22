@@ -162,8 +162,8 @@ A ruleset granting admins `bypass_mode: always` does not constrain anyone holdin
 push reports `Bypassed rule violations` and proceeds, so the list stays empty.
 
 **Fix:** disable the ruleset, merge, and re-enable it — deliberate, reversible, and it
-leaves an audit-log entry. *Merge discipline* in `reference/discipline.md` gives exactly one
-sanctioned reason, proven by diff.
+leaves an audit-log entry. *Merge discipline — never merge a red check* in
+`reference/discipline.md` gives exactly one sanctioned reason, proven by diff.
 
 ### An AI session runs with your `gh` credentials — checks Step 1
 

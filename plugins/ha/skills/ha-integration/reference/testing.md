@@ -65,8 +65,11 @@ integration <domain>` — which reads as a test problem and is a wiring problem.
 
 The pinned `pytest-homeassistant-custom-component` in `requirements.test.txt` hard-pins
 `homeassistant==<matching release>`, so **that pin decides which HA the suite runs
-against**. Keep it in lockstep with the Python floor the CI declares; the audit compares the
-two (ha-integration-ci's README, *What the audit checks now*).
+against**. Keep it in lockstep with the Python floor the CI declares.
+
+**Timing:** by hand. `version_sync.py` requires the harness to be pinned and never compares
+the pin against the floor — the gate cell of the harness row in `reference/freshness.md`
+says so, and nothing else asserts the pair.
 
 **Symptom:** a mismatch fails at import, not at test time.
 
@@ -159,8 +162,8 @@ all four are needed:
   to a GitHub environment, so a human approves each run.
 - **A marker excluded from the default run**, e.g. `@pytest.mark.live`. Prefer
   `addopts = "-m 'not live'"` in `pyproject.toml` over `-m 'not live'` on the command line;
-  pytest options are a sanctioned adaptation of that file, per *Sanctioned adaptations — the
-  complete list* in `reference/github-actions.md`.
+  pytest options are a sanctioned adaptation of that file, per *Step 4: Apply only the
+  sanctioned adaptations* in `reference/github-actions.md`.
 - **A dedicated account, and no account identifier in the test.** The data the test reads
   should be a fixture account's, not a real user's, and the assertions name shapes and
   types rather than values that would leak whose account it is.

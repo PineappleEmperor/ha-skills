@@ -23,13 +23,13 @@ their own README and are not reviews.
 2. **One fact, one source**, the rule *The rule* in `docs/skill-file-hierarchy.md` states. Checked as: a
    restatement is deleted, never synced; a pointer names the owning file and the heading
    verbatim; the target exists.
-3. **Copies match their source**, checked the way the first item under *Judgement
-   checklist (read the code — a grep can't decide these)* in
-   `plugins/ha/skills/ha-integration/reference/audit.md` says.
-4. **Commit subjects** meet *Keep messages short* in
+3. **Copies match their source**, checked the way *Step 1: Callers, not bodies; copies, not
+   paraphrases* in `plugins/ha/skills/ha-integration/reference/audit.md` says.
+4. **Commit subjects** meet *Step 2: Write the subject in the Conventional Commits form* and
+   *Step 3: Stop at the subject* in
    `plugins/ha/skills/ha-integration/reference/commits.md`, and each subject covers the
    whole diff of its commit.
-5. **No AI attribution.** The rule is *No AI-attribution trailers* in
+5. **No AI attribution.** The rule is *Step 4: Carry no AI-attribution trailer* in
    `plugins/ha/skills/ha-integration/reference/commits.md`; the review checks PR bodies,
    comments and docs for the same.
 6. **A sentence about code is checked against the code.** "The audit fails a repo that…"

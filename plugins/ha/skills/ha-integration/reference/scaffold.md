@@ -83,7 +83,7 @@ Under `custom_components/<domain>/`. What goes inside each file is `reference/pa
 | `CLAUDE.md` | the per-repo rule that a session invokes this skill before touching integration code | the snippet below |
 | `hacs.json` | the HACS manifest | the shape below |
 | `pyproject.toml` | HA core's ruff rule set adapted for a custom integration — `google` docstrings, HA's Python floor, no `from __future__ import annotations` — and the `asyncio_mode = "auto"` without which no async test runs | `templates/pyproject.toml`, verbatim |
-| `pyrightconfig.json` | the pyright config, with or without the `exclude` | the snippet under *MicroPython firmware files* in `reference/patterns.md` |
+| `pyrightconfig.json` | the pyright config, with or without the `exclude` | the snippet under *MicroPython firmware files — Step 4* in `reference/patterns.md` |
 | `requirements.test.txt` | the pinned test harness — why the pin matters is `reference/testing.md` | `templates/requirements.test.txt` |
 | `conftest.py` | the root conftest, at the repo root and never in `tests/` — why is `reference/testing.md` | `templates/conftest.py` |
 | `tests/` | one file per module under test | `reference/testing.md` |
@@ -154,8 +154,14 @@ install with `Could not download`.
 Into `custom_components/<domain>/brand/`. Which revision of the spec these rules were read
 from is the brand row of `reference/freshness.md`.
 
-**Ship `icon.png`.** It is the only file anything gates on; the rest is quality, and the
-serving layer falls back.
+**Ship `icon.png`.** It is the only file HACS gates on; the serving layer falls back for the
+rest.
+
+> **Note:** the released `check_brand_assets` is stricter than this spec — it fails a
+> repository missing `icon.png`, `icon@2x.png`, `logo.png` or `logo@2x.png`, so the
+> square-logo case below fails your own `quality-audit` until the narrowing CI release is
+> cut. Ship all four meanwhile. The gate cell of the brand row in `reference/freshness.md`
+> is the statement of record.
 
 | Rule | Value |
 |---|---|
