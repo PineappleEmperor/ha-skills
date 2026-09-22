@@ -78,7 +78,7 @@ SKILL_TIERS: dict[str, tuple[str, ...]] = {
     "docs/backlog/": ("plugins/ha/skills/ha-integration/reference/discipline.md",),
     # The release window's fetched sources. Governed by the doc that says what a pass must
     # read and what a post is worth, so reaching for one hands over that procedure first.
-    "docs/ha-release/": ("plugins/ha/skills/ha-integration/reference/freshness.md",),
+    "docs/ha-release/": ("docs/release-refresh.md",),
     ".github/workflows/": (
         "plugins/ha/skills/ha-integration/reference/github-actions.md",
     ),
@@ -357,8 +357,8 @@ def fetched_sources() -> dict[tuple[int, int], list[str]]:
 def unread_sources(rel: str, text: str, now: float | None = None) -> list[str]:
     """Fetched sources the gate has not served, when a patch claims something about a release.
 
-    Row 220. *When the release row goes red* in `freshness.md` says to open every source
-    before writing a row from it, and nothing checked that anything was opened: the 2026.9
+    Row 220. *Step 2: Read both sources* in `docs/release-refresh.md` says to open every
+    source before writing a row from it, and nothing checked that anything was opened: the 2026.9
     pass wrote rows from memory and got eight facts wrong, breaking its own rule. An edit key
     proves the file being written was read. This proves the sources it is written FROM were.
 

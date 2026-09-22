@@ -500,9 +500,7 @@ def test_a_fetched_source_is_read_through_the_gate_and_never_patched(repo, monke
 def test_the_real_map_governs_the_fetched_sources_and_names_the_real_tier() -> None:
     """Rebinding both in the fixture would hide a map that governs neither."""
     assert gs.resolve_tier("docs/ha-release/index.md") == "docs/ha-release/"
-    assert gs.TIERS["docs/ha-release/"] == (
-        "plugins/ha/skills/ha-integration/reference/freshness.md",
-    )
+    assert gs.TIERS["docs/ha-release/"] == ("docs/release-refresh.md",)
     assert gs.REFERENCE_TIER in gs.TIERS
     assert gs.SOURCE_INDEX.startswith(gs.SOURCE_DIR)
 

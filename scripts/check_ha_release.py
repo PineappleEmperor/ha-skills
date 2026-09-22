@@ -6,7 +6,7 @@
 against. Nothing made that row true — it was a note to a future reader, and the table's own
 "re-derive anything older than ~3 months" rule is exactly the kind of rule nobody runs. So
 CI reads the row and compares it with PyPI, and the week a new minor lands the build goes
-red with the procedure to follow. What that procedure is lives beside the row, not here.
+red naming the procedure to follow, which is `docs/release-refresh.md` and not here.
 
 Only the minor is compared: `2026.9.2` and `2026.9.0` are the same guidance window, and a
 patch release changes nothing an integration author has to read. Being *ahead* of PyPI is
@@ -27,6 +27,7 @@ import urllib.request
 
 ROW_NAME = "HA release the skill is current for"
 DEFAULT_FILE = "plugins/ha/skills/ha-integration/reference/freshness.md"
+REFRESH_DOC = "docs/release-refresh.md"
 PYPI = "https://pypi.org/pypi/homeassistant/json"
 
 _MINOR = re.compile(r"^(\d{4})\.(\d{1,2})")
@@ -89,8 +90,7 @@ def main(argv: list[str] | None = None, fetch: Callable[[str], str] = _fetch) ->
         return 0
     print(
         f"skill is current for HA {captured[0]}.{captured[1]} but PyPI has "
-        f"{latest[0]}.{latest[1]}: follow 'When the release row goes red' in "
-        f"{DEFAULT_FILE}",
+        f"{latest[0]}.{latest[1]}: follow {REFRESH_DOC}",
         file=sys.stderr,
     )
     return 1

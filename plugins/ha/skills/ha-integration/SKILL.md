@@ -53,9 +53,10 @@ served** — the committed bundle, its staleness check, registration and cache-b
   see `reference/audit.md`.
 - **Cached facts go stale silently.** Anything captured more than ~3 months ago is re-derived
   before it is trusted; the table and its commands are `reference/freshness.md`.
-- **The skill is current for one Home Assistant release at a time.** What to do when that
-  release moves is *When the release row goes red* in `reference/freshness.md`; what a
-  release changed lands in the section of `reference/patterns.md` that owns the topic.
+- **The skill is current for one Home Assistant release at a time**, which the release row
+  of `reference/freshness.md` names. What a release changed lands in the section of
+  `reference/patterns.md` that owns the topic; moving the row itself is a refresh of the
+  skill, done in the skill's own repository.
 
 ## Reference map
 

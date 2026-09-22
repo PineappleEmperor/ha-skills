@@ -2,31 +2,26 @@
 # skill-audit: local-tool
 """Pull a release window's own sources into `docs/ha-release/`, so the gate can demand them.
 
-*When the release row goes red* in `reference/freshness.md` says to open every developer-blog
-post in the window and the release notes beside them before writing a word of the refresh.
-Nothing made that true. The 2026.9 pass wrote rows from memory, got eight facts wrong, and
-the rule it broke was its own — row 220. A rule with no artefact is a note to a future
-reader, so this turns the sources into files: the gate then refuses a patch to `reference/`
-that names a release until every one of those files has been served whole.
+The procedure is `docs/release-refresh.md`; this turns its sources into files, so the gate can
+refuse a patch to the skill's `reference/` that names a release until every one of them has
+been served whole.
 
-WHAT IT FETCHES, and why both. Neither source contains the other, which *When the release row
-goes red* records from the 2026.9 pair: the release notes linked three of that window's posts,
-and carried nine backward-incompatible changes that had no post at all.
-  * every developer-blog post published in the window THAT THE FEED STILL CARRIES, each
+WHAT IT FETCHES. Neither source contains the other, so both:
+  * every developer-blog post published in the window that the feed still carries, each
     post's own page fetched because the feed carries only an excerpt. The feed holds a fixed
     number of entries, so a backfill reaching further back than it does collects what is
     left rather than what was published, and the run says so when a window comes up empty;
   * the *Backward-incompatible changes* section of the release-notes post for each release
     in the window, taken from the post's own markdown in `home-assistant/home-assistant.io`
-    rather than from the rendered page. Nine tenths of such a post is feature prose and
-    patch-release dependency bumps; the section that is kept is the part that can break a
-    custom integration, and the part the developer blog does not carry. The Atom feed is
-    still read, for each release's title, date and link, and for the post body `dev_links`
-    recovers aged-out posts from.
+    rather than from the rendered page. That section is the part which can break a custom
+    integration and the part the developer blog does not carry; the rest of the post is
+    feature write-ups and patch-release dependency bumps. The Atom feed is still read, for
+    each release's title, date and link, and for the post body `dev_links` recovers
+    aged-out posts from.
 
 WHAT IT IS NOT. A fetched post is a secondary source, and saving one here does not make it
-primary: the same section of `freshness.md` says core at the tag is the source of record. This
-makes the reading enforceable, not the claims true.
+primary: `docs/release-refresh.md` says core at the tag is the source of record. This makes
+the reading enforceable, not the claims true.
 
 The window ends at the release named on the command line, defaulting to the one
 `freshness.md` names, and starts after the previous release — so a post published the week
@@ -188,16 +183,15 @@ class _Links(HTMLParser):
 def dev_links(html: str) -> list[tuple[str, str]]:
     """Developer-blog posts a release-notes body links to, as (url, link text).
 
-    The feed window is a net with a hole: the developer feed holds a fixed number of entries,
-    so a backfill reaching past it collects what is left. Measured on the first run — 2026.6's
-    notes name nine posts for that window and the feed still carried one, and nothing said so,
-    because the run only warns at zero. The notes are the other half of the net.
+    The feed holds a fixed number of entries, so a backfill reaching past it collects what is
+    left rather than what was published. A release's notes link the posts that shipped with
+    it, whatever the feed has since dropped, so they are the other half of the net.
 
-    They are not a free pass: a release's notes also link posts from earlier windows, and
-    filing those here produced a byte-identical copy of 2026.8's modbus post under 2026.9. So
-    the caller holds a recovered post to the same dates as the feed half, and says on stderr
-    when it drops one, because a post the notes name and the window rejects is either a post
-    for another release or a window whose start is the fallback span rather than a real one.
+    They are not a free pass: a release's notes also link posts from earlier windows, which
+    would file a second copy of another release's source here. The caller therefore holds a
+    recovered post to the same dates as the feed half, and says on stderr when it drops one,
+    because a post the notes name and the window rejects is either a post for another release
+    or a window whose start is the fallback span rather than a real one.
     """
     parser = _Links()
     parser.feed(html)
@@ -212,11 +206,10 @@ def dev_links(html: str) -> list[tuple[str, str]]:
 def post_from_url(url: str, title: str) -> dict[str, str] | None:
     """A post entry built from its own URL, for one the feed no longer carries.
 
-    The date is built through `datetime.date`, not by joining three path segments: that
-    accepted `/blog/2026/7/5/x` and produced `2026-7-5`, which becomes the filename and the
-    sort key. And the link text is only a title when it reads like one — a release note that
-    links a post as "here" would otherwise file it under `# here`, so anything shorter than a
-    phrase falls back to the slug.
+    The date is built through `datetime.date` rather than by joining three path segments, so
+    an unpadded month or day cannot reach the filename and the sort key. The link text is
+    taken as a title only when it reads like one; anything shorter than a phrase falls back
+    to the slug, since a post linked as "here" would otherwise be filed under that word.
     """
     parts = urllib.parse.urlsplit(url).path.strip("/").split("/")
     if len(parts) < 5 or parts[0] != "blog":
@@ -244,7 +237,8 @@ def notes_markdown_url(post_url: str) -> str:
 
     The rendered page has to be flattened to text, and that drops exactly what this section
     is read for: the backticks around an API name and the PR link behind each entry — the
-    two things *A post is not the source of record* sends a reader to core with. The
+    two things *Step 3: Settle every claim against core at the tag* in
+    `docs/release-refresh.md` sends a reader to core with. The
     repository's own markdown keeps both, and its `##` headings make the cut below exact
     rather than a match on a phrase that also appears in the page's table of contents.
     """
@@ -261,12 +255,10 @@ def notes_markdown_url(post_url: str) -> str:
 def breaking_changes(markdown: str, release: str) -> str:
     """The *Backward-incompatible changes* section of a release-notes post, and only it.
 
-    Measured over 2026.6-2026.9, against the markdown this function is given: the four
-    posts run to 295,319 bytes and the four slices written from them to 36,691, the
-    remainder being feature write-ups and three patch-release changelogs of dependency
-    bumps, none of which a custom integration can act on. The section ends with the post's
-    own list of the release's notable developer-blog posts, which is the one place the two
-    sources cross-reference each other.
+    The rest of the post is feature write-ups and the patch-release changelogs, which a
+    custom integration cannot act on. The section ends with the post's own list of the
+    release's notable developer-blog posts, which is the one place the two sources
+    cross-reference each other, so the cut keeps it.
 
     An absent heading stops the run rather than falling back to the whole post or to
     nothing: a silently empty source is what the gate would then certify as read.
@@ -400,11 +392,10 @@ def write_release(
 ) -> int:
     """Replace one release's folder, returning how many posts it now holds.
 
-    Every page is fetched before anything is written. A fetch that fails halfway — one 403,
-    one timeout, and there is no retry — would otherwise leave the folder emptied and
-    half-filled, and a half-filled folder is what the gate would then certify as every
-    source read. The notes are sliced here too, before the first write, so a post whose
-    shape has changed stops the run instead of replacing a folder with an empty source.
+    Every page is fetched before anything is written, and the notes are sliced in the same
+    phase. There is no retry, so a fetch that failed midway through writing would leave the
+    folder emptied and half-filled — which is what the gate would then certify as every
+    source read.
     """
     name = f"{release[0]}.{release[1]}"
     notes_url = notes_markdown_url(notes["url"])
@@ -483,9 +474,9 @@ def sources_on_disk(out: Path) -> list[tuple[str, str, str, str]]:
 def recorded_digests(out: Path) -> dict[str, str]:
     """What the index on disk says each source hashes to.
 
-    Empty only before the first fetch. Once releases exist, a missing index is refused rather
-    than treated as nothing to compare against: emptying a source and deleting the index made
-    the next run re-sign it, which is the check paying for its own input. A row deleted from
+    Empty only before the first fetch. Once releases exist a missing index is refused rather
+    than read as nothing to compare against, since deleting it would otherwise make the next
+    run re-sign whatever had changed — the check paying for its own input. A row deleted from
     an otherwise-present index does the same thing one file at a time, and is caught in the
     diff and by `test_the_committed_index_and_the_committed_folders_agree` rather than here.
     """
@@ -510,10 +501,10 @@ def recorded_digests(out: Path) -> dict[str, str]:
 def verify_untouched(out: Path, refetching: set[str]) -> None:
     """Refuse to proceed when a release this run will not refetch has changed under us.
 
-    A source emptied or edited in place is caught by comparing the hashes the index records —
-    and the index is rewritten, for every release, on every run. So a fetch for one release
-    re-signed whatever had been tampered with in the others and the suite went green again:
-    the guard erased its own evidence. Checked BEFORE the first folder is replaced, because a
+    A source emptied or edited in place is caught by comparing the hashes the index records,
+    and the index is rewritten for every release on every run — so without this, a fetch for
+    one release would re-sign whatever had been tampered with in the others and the guard
+    would erase its own evidence. Checked BEFORE the first folder is replaced, because a
     refusal raised afterwards leaves exactly the half-written tree `write_release` goes out of
     its way to avoid.
     """
@@ -541,9 +532,8 @@ def write_index(out: Path, today: str) -> str:
         + today
         + ". Every file below",
         "is a **secondary** source: it says what changed and why, and never how an API is",
-        "spelled — core at the release tag says that, and the paragraph beginning *A post is",
-        "not the source of record* under *When the release row goes red* in",
-        "`plugins/ha/skills/ha-integration/reference/freshness.md` says why.",
+        "spelled — core at the release tag says that, and the core rule of",
+        "`docs/release-refresh.md` says why.",
         "",
         "The governance gate reads this directory and demands these files before it will let",
         "a reference file make a claim about one of the releases below. What exactly it",
@@ -551,11 +541,9 @@ def write_index(out: Path, today: str) -> str:
         "which is the only place that rule is stated; re-run the script to add a release.",
         "",
         "**The window is a net, not a claim.** Posts are gathered by publication date, between",
-        "one release and the next, and a post published in the days before a release usually",
-        "describes the release *after* it — the beta was cut a week earlier. The 2026.9 window",
-        "caught a configurator-deprecation post dated two days before 2026.9 shipped, and",
-        "`configurator/__init__.py` at the `2026.9.0` tag carries no deprecation at all. Which",
-        "release a change is actually in is core's to answer, never the post's. The net has a",
+        "one release and the next, so a post published in the days before a release may well",
+        "describe the release *after* it — the beta was cut a week earlier. Which release a",
+        "change is actually in is core's to answer at the tag, never the post's. The net has a",
         "hole of its own at the far end: the developer blog's feed carries a fixed number of",
         "entries, so a backfill reaching further back than the feed does collects only the",
         "posts still in it.",
@@ -612,9 +600,8 @@ def main(
         after, until = window(release, releases)
         notes = releases[release]
         posts = dev_posts(dev, after, until)
-        # The notes are the second half of the net. A post the feed has aged out is still
-        # linked from the release it shipped in, and without this a backfill quietly kept
-        # one of the nine posts 2026.6's notes name.
+        # The notes are the second half of the net: a post the feed has aged out is still
+        # linked from the release it shipped in.
         known = {post["url"].rstrip("/") for post in posts}
         linked = 0
         for url, text in dev_links(notes["html"]):
@@ -624,8 +611,7 @@ def main(
             if not recovered:
                 continue
             # Same window as the feed half, or the notes drag in whatever they happen to
-            # link: 2026.9's notes link the 2026-07-05 modbus post, and the first version
-            # filed a byte-identical copy of 2026.8's source under 2026.9.
+            # link — including posts that belong to an earlier release's folder.
             if after < dt.date.fromisoformat(recovered["date"]) <= until:
                 posts.append(recovered)
                 linked += 1

@@ -100,13 +100,14 @@ owns what, and what the scaffold carries beyond the callers from
 The skills are treated as code: this repo is a consumer of release-flow like any
 integration, and its own tooling has unit tests that run on every PR. The same CI job
 carries a check that fails once PyPI serves a newer Home Assistant minor than the release
-row in the skill's `reference/freshness.md` names — the nudge for the pass written under
-*When the release row goes red* in that file.
+row in the skill's `reference/freshness.md` names — the nudge for the pass written in
+[`docs/release-refresh.md`](docs/release-refresh.md).
 
-Two repo-local documents decide what a skill file may say, and neither ships:
+Three repo-local documents decide what a skill file may say, and none of them ships:
 
 | Document | Decides |
 |---|---|
+| [`docs/release-refresh.md`](docs/release-refresh.md) | the pass that moves the skill to a new Home Assistant release — maintenance of this repository, which is why it is not in the skill |
 | [`docs/skill-file-hierarchy.md`](docs/skill-file-hierarchy.md) | which file owns which topic, so a fact has one home and every other file points at it |
 | [`docs/skill-schema.md`](docs/skill-schema.md) | the shape that fact takes — the fixed section order, the canonical table column sets, and the rule that every block is a labelled field or a table row |
 

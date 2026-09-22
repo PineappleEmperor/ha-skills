@@ -2,9 +2,8 @@
 
 Fetched by `scripts/fetch_ha_sources.py`, last on 2026-09-20. Every file below
 is a **secondary** source: it says what changed and why, and never how an API is
-spelled — core at the release tag says that, and the paragraph beginning *A post is
-not the source of record* under *When the release row goes red* in
-`plugins/ha/skills/ha-integration/reference/freshness.md` says why.
+spelled — core at the release tag says that, and the core rule of
+`docs/release-refresh.md` says why.
 
 The governance gate reads this directory and demands these files before it will let
 a reference file make a claim about one of the releases below. What exactly it
@@ -12,11 +11,9 @@ demands, and what it does not, is `unread_sources` in `scripts/governance_gate.p
 which is the only place that rule is stated; re-run the script to add a release.
 
 **The window is a net, not a claim.** Posts are gathered by publication date, between
-one release and the next, and a post published in the days before a release usually
-describes the release *after* it — the beta was cut a week earlier. The 2026.9 window
-caught a configurator-deprecation post dated two days before 2026.9 shipped, and
-`configurator/__init__.py` at the `2026.9.0` tag carries no deprecation at all. Which
-release a change is actually in is core's to answer, never the post's. The net has a
+one release and the next, so a post published in the days before a release may well
+describe the release *after* it — the beta was cut a week earlier. Which release a
+change is actually in is core's to answer at the tag, never the post's. The net has a
 hole of its own at the far end: the developer blog's feed carries a fixed number of
 entries, so a backfill reaching further back than the feed does collects only the
 posts still in it.
