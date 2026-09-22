@@ -56,7 +56,7 @@ It holds the copied files Step 2 names: the four plain workflows, `.github/depen
 
 A README block is to a caller what `templates/` is to a copy: the source. Write each file as
 the README or template gives it, and write none of them from memory; how to verify a copy is
-the first item of `reference/audit.md`.
+*Step 1: Callers, not bodies; copies, not paraphrases* in `reference/audit.md`.
 
 - `.github/workflows/pr-checks.yml`, `lint-pr.yml`, `auto-draft-pr.yml`,
   `release-drafter.yml` — the usage blocks under *Calling the workflows* in release-flow's

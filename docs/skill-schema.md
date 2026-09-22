@@ -58,8 +58,8 @@ is what that shape is for.
 **A case is a heading, not a bold label.** The reference implementation labels its deltas in
 bold (`**Device-sibling discovery (Step 1):**`), and that is the one place we deliberately
 diverge: a pointer must name a heading that exists verbatim, and nothing can anchor to a
-bold line. `freshness.md` already carries a pointer at a bold line in
-`ha-panel-design/SKILL.md` that resolves to nothing, which is the failure this avoids.
+bold line, so a citation at one is invisible to `scripts/skill_meta_audit.py` as well as to
+a reader following it.
 
 **A table belongs inside the step or case it qualifies**, never in a section of its own. The
 reference implementation does this throughout — its *Search ALL consumers* step carries the
@@ -162,7 +162,8 @@ Writing `none` in that column is what turns an unavoidable duplication into a kn
 
 | Rule | Value |
 |---|---|
-| form | `[<file> #<heading>](path#slug)` |
+| form | `*<heading>* in \`<file>\`` — the form `check_named_sections` in `scripts/skill_meta_audit.py` reads, and the one every shipped file uses |
+| a pointer inside the same file | the step or case it names — `Step 5`, `*Entity platform files — Step 1*` — with no file |
 | the heading | must exist verbatim in the target |
 | what a pointer never does | restate the fact it points at |
 

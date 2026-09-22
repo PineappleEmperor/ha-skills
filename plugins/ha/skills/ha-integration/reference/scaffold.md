@@ -157,11 +157,10 @@ from is the brand row of `reference/freshness.md`.
 **Ship `icon.png`.** It is the only file HACS gates on; the serving layer falls back for the
 rest.
 
-> **Note:** the released `check_brand_assets` is stricter than this spec — it fails a
-> repository missing `icon.png`, `icon@2x.png`, `logo.png` or `logo@2x.png`, so the
-> square-logo case below fails your own `quality-audit` until the narrowing CI release is
-> cut. Ship all four meanwhile. The gate cell of the brand row in `reference/freshness.md`
-> is the statement of record.
+> **Note:** the released `check_brand_assets` is stricter than this spec, so the square-logo
+> case below fails your own `quality-audit` until the narrowing CI release is cut; ship
+> `icon.png`, `icon@2x.png`, `logo.png` and `logo@2x.png` meanwhile. What it fails on is the
+> gate cell of the brand row in `reference/freshness.md`.
 
 | Rule | Value |
 |---|---|
