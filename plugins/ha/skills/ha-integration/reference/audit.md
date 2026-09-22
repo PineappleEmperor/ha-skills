@@ -41,20 +41,23 @@ The invariant in `SKILL.md`, checked per file.
 
 ### Step 2: Patterns applied
 
-Judged against `reference/patterns.md`, section by section: the `__init__.py` wiring list,
-*Entity platform files*, *Notify platform (modern pattern — HA 2023.8+)*, *Typed
-`ConfigEntry`*. Cite the section beside each finding.
+Judged section by section, citing the section beside each finding:
+
+- the `__init__.py` wiring list of *Step 2: Wire the entry setup and unload* in `reference/patterns.md`
+- *Entity platform files — Step 1* in `reference/patterns.md`
+- *Notify platform (modern pattern — HA 2023.8+) — Step 1* in `reference/patterns.md`
+- *Typed `ConfigEntry` — Step 4* in `reference/patterns.md`
 
 ### Step 3: `quality_scale.yaml` honest
 
-Judged against `reference/quality-scale.md`: the structural rules under *Scaffold
-`quality_scale.yaml` from the start*, plus the one thing no check sees — an optimistic
-`exempt` masking a gap (e.g. `stale-devices` exempt while a device *is* created).
+Judged against *Step 1: Scaffold `quality_scale.yaml` from the start* in
+`reference/quality-scale.md`, plus the one thing no check sees — an optimistic `exempt`
+masking a gap, such as `stale-devices` exempt while a device *is* created.
 
 ### Step 4: Tests mock the boundary
 
-Judged against `reference/testing.md`: *Mock only at the external boundary* and *Minimum
-coverage before claiming a tier*.
+Judged against *Step 1: Mock only at the external boundary* and *Step 4: Minimum coverage
+before claiming a tier* in `reference/testing.md`.
 
 ### Step 5: Commit and PR discipline
 
@@ -71,7 +74,10 @@ one pass.
 
 ### Step 7: Run what CI runs
 
-Run the commands ha-integration-ci's README lists before reporting an audit clean.
+Run the *Lint & quality check* commands in `SKILL.md` against the repository under audit,
+and read the result, before reporting the audit clean. The command block in
+ha-integration-ci's README is that repository's own; a consumer reaches those scripts
+through `quality-audit.yml` instead.
 
 ### Step 8: Report
 

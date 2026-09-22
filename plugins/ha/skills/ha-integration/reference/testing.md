@@ -179,9 +179,10 @@ transport and asserts a sensor populates.
 **Fix:** **shift the fixture's dates forward at runtime** (parse + rewrite, or template)
 rather than `freeze_time(...)`.
 
-**Symptom:** freezing the clock stops the debouncer `reference/patterns.md` describes under
-`update_before_add`, so the entity never populates (state stays `unknown`), *and* it leaves
-a timer scheduled at the frozen wall-clock time that fails teardown.
+**Symptom:** freezing the clock stops the `update_before_add` debouncer that *Entity
+platform files — Step 1* in `reference/patterns.md` describes, so the entity never populates
+— its state stays `unknown` — *and* it leaves a timer scheduled at the frozen wall-clock
+time that fails teardown.
 
 ### Entities still read defaults after `async_block_till_done` — mocking Step 2
 
@@ -192,8 +193,8 @@ In a setup test, the on-add refresh is debounced and won't fire within `block_ti
 no new timer, so teardown stays clean.
 
 > **Note:** the fix for production is the `async_added_to_hass` initial-state population
-> `reference/patterns.md` gives under *Entity platform files*; the test then needs no nudge
-> at all.
+> that *Entity platform files — Step 1* in `reference/patterns.md` gives; the test then
+> needs no nudge at all.
 
 ### Ruff or pyright flags a file under `tests/` or `scripts/` — mocking Step 4
 
