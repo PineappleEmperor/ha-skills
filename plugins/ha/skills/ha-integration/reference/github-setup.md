@@ -94,19 +94,19 @@ bash scripts/bootstrap_repo.sh "One-line description of the integration"
 A *check* runs on a pull request and can be required, so a red one blocks the merge. The
 eight in `ruleset.json`:
 
-| artefact | taken from |
-|---|---|
-| `pr / CC labelling` | the `pr` caller job |
-| `pr / CC label validation` | the `pr` caller job |
-| `lint / CC title validation` | the `lint` caller job |
-| `validate / Ruff, Pyright and Pytest` | the `validate` caller job |
-| `audit / ha-integration conformance check` | the `audit` caller job — `quality-audit.yml` |
-| `HACS validation` | a plain workflow, unprefixed |
-| `Hassfest manifest validation` | a plain workflow, unprefixed |
-| `Dependency review` | `dependency-review.yml`, unprefixed |
+- `pr / CC labelling`
+- `pr / CC label validation`
+- `lint / CC title validation`
+- `validate / Ruff, Pyright and Pytest`
+- `audit / ha-integration conformance check`
+- `HACS validation`
+- `Hassfest manifest validation`
+- `Dependency review`
 
-The five with a prefix are named by GitHub's rule for called workflows, *Check names* in
-release-flow's README, which also says why the three label checks are not redundant.
+The five carrying a `<caller job id> / ` prefix are named by GitHub's rule for called
+workflows, *Check names* in release-flow's README, which also says why the three label
+checks are not redundant. The last three are plain workflows, so GitHub names them after the
+job itself; `Dependency review` is `dependency-review.yml`'s.
 
 - Everything else the stack produces — the process-automation contexts listed under *Check
   names* in release-flow's README and *Calling the workflows* in ha-integration-ci's — fires
@@ -129,14 +129,13 @@ release-flow's README, which also says why the three label checks are not redund
 
 ## Supply chain
 
-- `dependency-review.yml` and `issue_stale.yml` are two of the four plain workflows
-  described in `reference/github-actions.md`.
-- How a consumer pins a release of a CI repository, and why, is *The version model* in
-  ha-integration-ci's README.
-- What the audit requires of every `uses:` line in the scaffold, callers and steps alike,
-  and the two refs it exempts, is *What the audit checks now* there.
-- What that mutability costs, and how it is capped, is `reference/freshness.md`.
-- How Dependabot maintains the pins is `reference/dependabot.md`.
+| file | when to read |
+|---|---|
+| `reference/github-actions.md` | placing `dependency-review.yml` and `issue_stale.yml`, which are two of the four plain workflows it describes |
+| *The version model* in ha-integration-ci's README | pinning a release of a CI repository |
+| *What the audit checks now* in ha-integration-ci's README | checking a `uses:` line, in a caller or a step, and the two refs the audit exempts |
+| `reference/freshness.md` | asking what those two mutable refs cost and how the cost is capped |
+| `reference/dependabot.md` | asking what keeps the pins moving |
 
 ## Cases
 
