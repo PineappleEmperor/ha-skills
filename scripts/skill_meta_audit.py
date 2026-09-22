@@ -269,10 +269,17 @@ def check_named_sections(repo: Repo) -> Result:
     Three of this skill's worst defects were cross-references of the form
     "*Merge discipline* in `SKILL.md`" pointing at a heading that had moved. The link
     check passed throughout, because the file existed — only the section did not.
+
+    The match is VERBATIM, which is what `docs/skill-schema.md` asks of a pointer under
+    *Pointers*, and what an anchor needs. Testing `name in heading` instead let every
+    `— Step N` suffix the schema conversion added keep its old pointers passing while
+    none of them could anchor any more; ten survived a green run that way. The name may
+    also wrap, since these files are wrapped at 100 columns — a pattern that stopped at
+    the newline never saw those at all.
     """
     fails = []
     ref = re.compile(
-        r"\*([A-Z][^*\n]{3,60}?)\* in [`\[]+(?:reference/)?([A-Za-z0-9._-]+\.md)"
+        r"\*([A-Z][^*]{3,80}?)\* in [`\[]+(?:reference/)?([A-Za-z0-9._-]+\.md)"
     )
     for manifest in sorted(repo.root.glob("plugins/*/skills/*/SKILL.md")):
         skill = manifest.parent
@@ -286,14 +293,15 @@ def check_named_sections(repo: Repo) -> Result:
                 if not path.is_file():
                     fails.append(f"{doc.name} points at {target}, which does not exist")
                     continue
-                headings = [
+                headings = {
                     line.lstrip("# ").strip().lower()
                     for line in path.read_text().splitlines()
                     if line.startswith("#")
-                ]
-                if not any(section.strip().lower() in h for h in headings):
+                }
+                wanted = re.sub(r"\s+", " ", section).strip().lower()
+                if wanted not in headings:
                     fails.append(
-                        f"{doc.name} points at '{section}' in {target}, "
+                        f"{doc.name} points at '{wanted}' in {target}, "
                         "which has no such heading"
                     )
     return fails, []

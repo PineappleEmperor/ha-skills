@@ -342,6 +342,48 @@ def test_a_pointer_to_a_moved_section_fails(tmp_path) -> None:
     assert audit.check_named_sections(audit.Repo(tmp_path)) == ([], [])
 
 
+def test_a_heading_that_only_starts_with_the_cited_name_fails(tmp_path) -> None:
+    """`docs/skill-schema.md` asks for the heading verbatim, and a substring is not that.
+
+    The check tested `name in heading`, so every `— Step N` suffix the schema conversion
+    added kept its old pointers passing while none of them could anchor any more. Ten
+    dangling pointers survived a green run that way.
+    """
+    _skill(
+        tmp_path,
+        "ha-thing",
+        "name: ha-thing\ndescription: Use when doing a thing",
+        body="See *Merge discipline* in `reference/discipline.md`.\n",
+    )
+    ref = tmp_path / "plugins/ha/skills/ha-thing/reference"
+    ref.mkdir(exist_ok=True)
+    (ref / "discipline.md").write_text(
+        "# D\n\n## Merge discipline — never merge a red check\n\ntext\n"
+    )
+    fails, _ = audit.check_named_sections(audit.Repo(tmp_path))
+    assert any("no such heading" in f for f in fails)
+
+
+def test_a_pointer_wrapped_across_two_lines_is_still_read(tmp_path) -> None:
+    """A name broken by the 100-column wrap was invisible, so it was never checked."""
+    _skill(
+        tmp_path,
+        "ha-thing",
+        "name: ha-thing\ndescription: Use when doing a thing",
+        body="per *Sanctioned adaptations — the\ncomplete list* in `reference/discipline.md`.\n",
+    )
+    ref = tmp_path / "plugins/ha/skills/ha-thing/reference"
+    ref.mkdir(exist_ok=True)
+    (ref / "discipline.md").write_text("# D\n\n## Something else\n\ntext\n")
+    fails, _ = audit.check_named_sections(audit.Repo(tmp_path))
+    assert any("no such heading" in f for f in fails)
+
+    (ref / "discipline.md").write_text(
+        "# D\n\n## Sanctioned adaptations — the complete list\n\ntext\n"
+    )
+    assert audit.check_named_sections(audit.Repo(tmp_path)) == ([], [])
+
+
 def test_a_required_context_documented_nowhere_fails(tmp_path) -> None:
     """`Dependency review` was required by the ruleset and named in no reference file."""
     _skill(tmp_path, "ha-thing", "name: ha-thing\ndescription: Use when doing a thing")
