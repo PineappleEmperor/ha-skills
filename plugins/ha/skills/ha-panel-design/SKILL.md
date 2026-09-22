@@ -12,7 +12,10 @@ hand-eyeballed pixel values.
 Use this whenever touching a panel's CSS/markup: section headers, disclosure arrows, buttons,
 thumbnails, list density, colours. Re-invoke after `/compact`.
 
-**Fetch before deciding sizes/tokens — don't guess from memory:**
+## Fetch before deciding sizes or tokens
+
+Don't guess one from memory:
+
 - Material 3 type scale: https://m3.material.io/styles/typography/type-scale-tokens
 - Material 3 states/touch targets: https://m3.material.io/foundations/interaction/states/overview
 - HA theme CSS custom properties, as the frontend defines them: https://github.com/home-assistant/frontend/tree/dev/src/resources/theme — `color/color.globals.ts` holds the colour variables (`--primary-text-color`, `--primary-color`, `--divider-color`, …), `typography.globals.ts` the type ones
