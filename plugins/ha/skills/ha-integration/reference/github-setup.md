@@ -65,8 +65,7 @@ Nothing else changes.
 
 ## Make the checks required — a workflow is not a gate until it can block a merge
 
-**GitHub will let a PR merge with every workflow red, so until a ruleset requires them the
-stack is decorative.**
+**GitHub lets a PR merge with every workflow red until a ruleset requires the contexts.**
 
 ### Step 1: Copy `templates/ruleset.json` to the repo root
 
@@ -108,24 +107,15 @@ workflows, *Check names* in release-flow's README, which also says why the three
 checks are not redundant. The last three are plain workflows, so GitHub names them after the
 job itself; `Dependency review` is `dependency-review.yml`'s.
 
-- Everything else the stack produces — the process-automation contexts listed under *Check
-  names* in release-flow's README and *Calling the workflows* in ha-integration-ci's — fires
-  on pushes and releases, and requiring one blocks every PR on a context that never reports.
-- **A context the repo does not produce blocks every PR permanently.** Each of the eight
-  comes from a workflow the audit requires (*What the audit checks now* in
-  ha-integration-ci's README), so in a conforming repo the fix is to add the missing
-  workflow, never to drop the context.
-- **Dropping a context is only for a repo that has deliberately left the canonical set** —
-  no `quality-audit.yml`, no `dependency-review.yml`. Drop the matching context, or PRs wait
-  forever for a check that never runs.
-- **A path-filtered workflow blocks every PR permanently.** `panel / Panel type-check and
-  tests` is absent from the shipped ruleset for the reason ha-panel-ci's README gives: it
-  never reports on a Python-only PR. Do not require it.
-- A skipped job satisfies a required check, so job-level `if:` guards are fine; a cancelled
-  run does not (release-flow's README, *Calling the workflows*, on the `pr-checks` trigger
-  types).
-- Never assume a context equals the job name: a matrix suffixes it (ha-integration-ci's
-  README, *Implementation notes*).
+| Rule | Value |
+|---|---|
+| a process-automation context — the ones *Check names* in release-flow's README and *Calling the workflows* in ha-integration-ci's list | never required: it fires on a push or a release, so a PR waits on a context that never reports |
+| a context the repo does not produce | add the workflow the audit requires, never drop the context |
+| dropping a context | only where the repo has deliberately left the canonical set — no `quality-audit.yml`, no `dependency-review.yml` |
+| `panel / Panel type-check and tests` | never required: it is path-filtered, so it does not report on a Python-only PR |
+| a skipped job | satisfies its required check, so a job-level `if:` guard is fine |
+| a cancelled run | does not, per *Calling the workflows* in release-flow's README on the `pr-checks` trigger types |
+| a matrix job's context | suffixed with the matrix value, so it is not the job name |
 
 ## Supply chain
 
@@ -152,17 +142,17 @@ Read and write`.
 **Symptom:** with the dependency graph off the action does not skip — it fails, so the
 check is red on every PR forever.
 
-**Fix:** enable it at Settings → Advanced Security. `bootstrap_repo.sh` enables it, and says
-so loudly if it cannot.
+**Fix:** enable it at Settings → Advanced Security, or run `bootstrap_repo.sh`, which
+enables it and reports when it cannot.
 
 ### A ruleset must be overruled — checks Step 1
 
 A ruleset granting admins `bypass_mode: always` does not constrain anyone holding admin; the
 push reports `Bypassed rule violations` and proceeds, so the list stays empty.
 
-**Fix:** disable the ruleset, merge, and re-enable it — deliberate, reversible, and it
-leaves an audit-log entry. *Merge discipline — never merge a red check* in
-`reference/discipline.md` gives exactly one sanctioned reason, proven by diff.
+**Fix:** disable the ruleset, merge, re-enable it — which leaves an audit-log entry, unlike
+a bypass. The one sanctioned reason to merge red is *Merge discipline — never merge a red
+check* in `reference/discipline.md`.
 
 ### An AI session runs with your `gh` credentials — checks Step 1
 
