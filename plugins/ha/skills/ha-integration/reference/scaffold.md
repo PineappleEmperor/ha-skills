@@ -71,7 +71,7 @@ Under `custom_components/<domain>/`. What goes inside each file is `reference/pa
 
 | Rule | Value |
 |---|---|
-| module docstring | on every file, and this one may be multi-line — a file-level explanation of a load-bearing constraint belongs here, not demoted to a comment |
+| module docstring | on every file, and the only one that may run to several lines |
 | public function and class docstrings | short, single-line; what the audit checks and what it leaves to you is *What the audit checks now* in ha-integration-ci's README |
 | inline comments | only where the WHY is genuinely non-obvious |
 | the bar | clean under the *Lint & quality check* commands in `SKILL.md`, pyright standard mode |
@@ -96,8 +96,8 @@ Under `custom_components/<domain>/`. What goes inside each file is `reference/pa
 | Rule | Value |
 |---|---|
 | a copy that relaxes `pyproject.toml`'s ruff or pytest tables | drift |
-| enabling the commit hook | `git config core.hooksPath .githooks`, once per clone, documented in `CLAUDE.md` — an unenabled hook is a file, not a guard |
-| omitting `.gitignore` | a local `pytest` plus a `git add -A` tracks `.pyc` files; the cost is *What the audit checks now* in ha-integration-ci's README |
+| enabling the commit hook | `git config core.hooksPath .githooks`, once per clone, documented in `CLAUDE.md` |
+| omitting `.gitignore` | a local `pytest` plus a `git add -A` tracks `.pyc` files, which the audit fails on |
 | where the skill-invocation rule lives | the repository's own `CLAUDE.md`, never a user's global config |
 | `templates/hooks/` | optional per-turn reminders for a user's own `~/.claude`; the shareable enforcement is the `CLAUDE.md` rule, which ships with the repo |
 
@@ -314,9 +314,8 @@ CONF_REFRESH_TOKEN = "refresh_token"
 - One row or record per source line, even where nothing is padded — glyph rasters, icon bitmaps, colour palettes, layout tables, field-descriptor lists.
 - Not a flat wrapped list of strings, which is not a table; leave that to the formatter.
 
-**Symptom:** the last case is the one that bites — a formatter run turned a 13-line font
-bitmask table into 1,194 lines, one pixel per line, and the digit shapes a reader could see
-in the source were gone.
+**Symptom:** an unfenced raster or bitmap table comes back one element per line, and the
+shape a reader could see in the source is gone.
 
 ### A repository adopting the stack carries ruff exclusions — Step 3
 
@@ -328,8 +327,7 @@ repository adopts that file.
 **Fix:** drop the exclusions and format what they were hiding as its own `style:` commit,
 before the migration.
 
-**Timing:** before, not during. A migration diff is no place to meet a hundred files for the
-first time.
+**Timing:** before the migration, so its diff carries no reformatting.
 
 ## Reference
 

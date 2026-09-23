@@ -29,7 +29,7 @@ The invariant in `SKILL.md`, checked per file.
 | a workflow the scaffold carries | either a caller matching its README block with the tokens resolved, or a copy matching this skill's `templates/` |
 | where `templates/` is | *Step 1: Locate `templates/`* in `reference/github-actions.md` |
 | every difference from the source | in that file's sanctioned-adaptations table, or it is a finding |
-| what the mechanical audit checks | *What the audit checks now* in ha-integration-ci's README — it compares neither a caller nor a copy against its source, so this item is yours |
+| what the mechanical audit checks | *What the audit checks now* in ha-integration-ci's README |
 | `.github/` and `scripts/` | scan for extras the template does not have |
 
 | anti-pattern | use instead | why (one clause) | reference |
@@ -61,9 +61,8 @@ before claiming a tier* in `reference/testing.md`.
 
 ### Step 5: Commit and PR discipline
 
-Subjects and titles follow `reference/commits.md`, which points at the types a title may
-carry. The version model is `reference/versioning.md` — check the repo against that, not
-against memory.
+Subjects and titles judged against `reference/commits.md`, the version model against
+`reference/versioning.md`.
 
 ### Step 6: Cached facts still true
 
