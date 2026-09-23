@@ -25,14 +25,11 @@ no workflow body and no script, the invariant in `SKILL.md`.**
 An integration's CI is three repositories of reusable workflows. What each workflow does,
 and why, is the README of the repository that owns it:
 
-- [release-flow](https://github.com/PineappleEmperor/release-flow) owns PR labelling, the
-  label gate, the title lint, the draft-PR opener, release drafting and notes; the drafter
-  config and commit hook a consumer copies.
-- [ha-integration-ci](https://github.com/PineappleEmperor/ha-integration-ci) owns Python
-  validation, the conformance audit, the release zip; the version model every consumer
-  follows, and what the audit checks.
-- [ha-panel-ci](https://github.com/PineappleEmperor/ha-panel-ci) owns the panel check and
-  the `frontend/` templates.
+| file | when to read |
+|---|---|
+| [release-flow](https://github.com/PineappleEmperor/release-flow)'s README | PR labelling, the label gate, the title lint, the draft-PR opener, release drafting and notes, and the drafter config and commit hook a consumer copies |
+| [ha-integration-ci](https://github.com/PineappleEmperor/ha-integration-ci)'s README | Python validation, the conformance audit, the release zip, the version model every consumer follows, and what the audit checks |
+| [ha-panel-ci](https://github.com/PineappleEmperor/ha-panel-ci)'s README | the panel check and the `frontend/` templates |
 
 ### Step 1: Locate `templates/`
 
@@ -54,9 +51,9 @@ It holds the copied files Step 2 names: the four plain workflows, `.github/depen
 
 ### Step 2: Take each file from its source
 
-A README block is to a caller what `templates/` is to a copy: the source. Write each file as
-the README or template gives it, and write none of them from memory; how to verify a copy is
-*Step 1: Callers, not bodies; copies, not paraphrases* in `reference/audit.md`.
+Write each file as its README block or its template gives it, never from memory; how to
+verify a copy is *Step 1: Callers, not bodies; copies, not paraphrases* in
+`reference/audit.md`.
 
 - `.github/workflows/pr-checks.yml`, `lint-pr.yml`, `auto-draft-pr.yml`,
   `release-drafter.yml` — the usage blocks under *Calling the workflows* in release-flow's
@@ -83,18 +80,15 @@ The audit does not compare a caller with its README block — what it does check
 audit checks now* in ha-integration-ci's README — so a caller written from memory can pass
 it.
 
-The four workflows the scaffold copies whole are settings over a third-party action and
-carry nothing of ours to version. Each has its own contract:
+The four workflows the scaffold copies whole are settings over a third-party action, so they
+carry nothing of ours to version:
 
-- **`dependency-review.yml`** fails a PR that adds a dependency carrying a high-severity
-  advisory; lower severities are deliberately not gated, since Dependabot raises those on
-  its own schedule. It needs the dependency graph on, per `reference/github-setup.md`.
-- **`hacs-validate.yml`** runs HACS's nine checks with no `ignore:` input, since ignoring any
-  check disqualifies the repo from the default store.
-- **`hassfest-validate.yml`** runs core's hassfest plugins over the integration — manifest,
-  services, translations and the rest. What it does and does not do with the quality
-  scale for a custom integration is `reference/quality-scale.md`.
-- **`issue_stale.yml`** labels issues and PRs untouched for 60 days and never closes them.
+| Rule | Value |
+|---|---|
+| `dependency-review.yml` | fails a PR adding a dependency with a high-severity advisory, and gates no lower severity, since Dependabot raises those on its own schedule; needs the dependency graph on, per `reference/github-setup.md` |
+| `hacs-validate.yml` | runs HACS's nine checks with no `ignore:` input — *Step 7: Pass HACS validation* in `reference/scaffold.md` says what each demands |
+| `hassfest-validate.yml` | runs core's hassfest plugins over the integration; what it does with a custom integration's quality scale is `reference/quality-scale.md` |
+| `issue_stale.yml` | labels issues and PRs untouched for 60 days, and closes none |
 
 ### Step 3: Resolve each caller's pin
 
@@ -104,8 +98,8 @@ in ha-integration-ci's README says.
 
 ### Step 4: Apply only the sanctioned adaptations
 
-Any other difference from the README block or the template is drift. **This list is the only
-list.** `reference/audit.md` points here; if they ever appear to disagree, this list wins.
+Any other difference from the README block or the template is drift, and this list is the
+only list of them.
 
 - `pyproject.toml` — a `[project]` table carrying no version, and pytest or pyright options;
   never the `[tool.ruff]` tables, which are Home Assistant core's rule set
@@ -125,9 +119,8 @@ list.** `reference/audit.md` points here; if they ever appear to disagree, this 
 - `pr-labeler.yml`, `pr-title-check.yml`, `pr-commit-summary.yml`,
   `check-manifest-version.yml` → no successor of their own name; delete
 
-Leaving one in place leaves a body in a repository that should carry none, and the audit
-reads every file under `.github/workflows/`: what it does with a body is *What the audit
-checks now* in ha-integration-ci's README.
+What the audit does with a body left under `.github/workflows/` is *What the audit checks
+now* in ha-integration-ci's README.
 
 ## Cases
 
