@@ -3,8 +3,8 @@
 Read this when building or fixing an integration that ships a Lit/TS panel. How the panel
 should *look* — type scale, colour, spacing, touch targets — is the `ha-panel-design` skill.
 
-**Verify each step by hand: what CI reports is a warning at most, and the browser reports
-nothing at all.**
+**Register once per process, cache-bust the module URL, pin the frontend, and commit the
+built bundle — each of the four by hand, because no failure here raises.**
 
 ## Contents
 
@@ -21,19 +21,20 @@ nothing at all.**
 
 ### Step 1: Build the bundle and commit it
 
-Run `npm run build` and commit the output into `custom_components/<domain>/panel/`. HACS
-ships the repo as-is and runs no build step on the user's machine, so the esbuild output has
-to be inside the package to reach the release zip. The `frontend/` templates and the
-`panel-bundle.yml` caller come from ha-panel-ci's README.
+Run `npm run build` and commit the output into `custom_components/<domain>/panel/`: HACS
+ships the repository as-is, so the esbuild output has to be inside the package. The
+`frontend/` templates are *The frontend templates* in ha-panel-ci's README, and the
+`panel-bundle.yml` caller is *Calling the workflow* there.
 
 > **Note:** a Lovelace *card* repo attaches the built `.js` as a release asset instead. An
 > integration cannot: the asset is not in the zip HACS installs.
 
-**Symptom:** a stale committed bundle warns rather than fails the panel check, and reads as
-"the fix I made isn't there" to whoever opens the committed file.
+**Symptom:** a stale committed bundle reads as "the fix I made isn't there" to whoever opens
+it; what the panel check does about one, and how to make that fail, is *Calling the workflow*
+in ha-panel-ci's README.
 
-> **Note:** what users install is always a fresh build — `release.yml` under *Implementation
-> notes* in ha-integration-ci's README rebuilds the bundle before packing the zip.
+> **Note:** the zip a user installs is built at publish, not taken from the commit —
+> *Implementation notes* in ha-integration-ci's README.
 
 ### Step 2: Pin `home-assistant-frontend` in `requirements.test.txt`
 
@@ -160,8 +161,8 @@ export function displayName(item: Pick<Set, "name">): string { ... }   // "{?}" 
 
 | Rule | Value |
 |---|---|
-| the runner | ha-panel-ci's `frontend/package.json` ships `vitest` and a `test` script; its README says where the tests go |
-| what it costs users | nothing — `frontend/` is not in the release zip (*The three workflows* in ha-integration-ci's README), so it is CI-time weight only |
+| the runner | `vitest`, which ha-panel-ci's `frontend/package.json` ships with a `test` script — where the test files go is *The frontend templates* in its README |
+| what it costs users | nothing: `frontend/` is not in the release zip, per *The three workflows* in ha-integration-ci's README |
 | `callService` | takes `Record<string, unknown>`, so omitting a `vol.Required` field type-checks cleanly and fails at runtime in the browser |
 
 ## Cases
