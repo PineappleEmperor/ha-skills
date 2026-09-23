@@ -33,9 +33,7 @@ enable it once per clone:
 git config core.hooksPath .githooks
 ```
 
-It is stricter than this file, and the hook itself is the list of what it rejects — read it
-rather than assuming these conventions are the whole of it. Don't retype it from this
-document.
+The hook is stricter than this file, and its own source is the list of what it rejects.
 
 ### Step 2: Write the subject in the Conventional Commits form
 
@@ -79,8 +77,8 @@ No job writes it, and the draft PR arrives empty.
 |---|---|---|---|
 | "this change is complex, it needs explaining" | split it, or write better commit subjects | the subjects are the changelog | commit Step 2 |
 | "reviewers need the reasoning" | put it in the PR conversation | what users get is the commit subjects | PR body Step 3 |
-| "the verification belongs with the change" | put it in a comment | a description is not a lab notebook | PR body Step 3 |
-| "I wrapped it in `<details>` so it's stripped" | leave the fold to Dependabot's own output | the fold is not a licence to write an essay | PR body Step 1 |
+| "the verification belongs with the change" | put it in a comment | the body is published with the release, where verification evidence is noise | PR body Step 3 |
+| "I wrapped it in `<details>` so it's stripped" | leave the fold to Dependabot's own output | a folded body is still published under the repo owner's byline | PR body Step 1 |
 | "it's only a few paragraphs" | leave the body empty | whatever its length it is published under the repo owner's byline | PR body Step 1 |
 
 ### Step 2: Put the narrative in the release description
