@@ -19,8 +19,7 @@ it.
 
 ### Step 1: Scaffold `quality_scale.yaml` from the start
 
-Write it before the code, including when you are modifying an existing integration that
-lacks one, and treat it as the definition-of-done. Ship it as a tracking ledger first.
+Write it before the code, including when modifying an existing integration that lacks one.
 
 ```yaml
 rules:
@@ -32,7 +31,6 @@ rules:
 ```
 
 - Valid statuses: `done`, `todo`, `exempt`; `exempt` requires a `comment`.
-- `exempt` with a comment is always the honest alternative.
 - `todo` is fine indefinitely above any claimed tier.
 
 ### Step 2: Set every rule in the canonical set
@@ -40,37 +38,24 @@ rules:
 Each rule takes `todo`, `done` or `exempt` as appropriate, and all of them must appear in
 `quality_scale.yaml`.
 
-- 🥉 **Bronze** — UI setup, basic coding standards, automated tests for config, basic docs
-- 🥈 **Silver** — + code owners, auto-recovery from errors without log spam, reauth flow
-  (`async_step_reauth`), full test coverage
-- 🥇 **Gold** — + auto-discovery, full translations, reconfigure flow
-  (`async_step_reconfigure`), diagnostics
-- 🏆 **Platinum** — + complete type annotations, fully async (no blocking I/O),
-  `always_update=False` where applicable, all HA coding standards
+The set is a snapshot; re-verify it per its row in `reference/freshness.md`.
 
-> **Note:** `PlatformNotReady` is for legacy `async_setup_platform` only — config-entry
-> integrations use `ConfigEntryNotReady` instead.
-
-**Canonical rule set — a snapshot; rules change.** Re-verify per its row in
-`reference/freshness.md`.
+| tier | adds |
+|---|---|
+| Bronze | `action-setup`, `appropriate-polling`, `brands`, `common-modules`, `config-flow-test-coverage`, `config-flow`, `dependency-transparency`, `docs-actions`, `docs-high-level-description`, `docs-installation-instructions`, `docs-removal-instructions`, `docs-triggers`, `docs-conditions`, `entity-event-setup`, `entity-unique-id`, `has-entity-name`, `runtime-data`, `test-before-configure`, `test-before-setup`, `unique-config-entry` |
+| Silver | `config-entry-unloading`, `log-when-unavailable`, `entity-unavailable`, `action-exceptions`, `reauthentication-flow`, `parallel-updates`, `test-coverage`, `integration-owner`, `docs-installation-parameters`, `docs-configuration-parameters` |
+| Gold | `entity-translations`, `entity-device-class`, `devices`, `entity-category`, `entity-disabled-by-default`, `discovery`, `stale-devices`, `diagnostics`, `exception-translations`, `icon-translations`, `reconfiguration-flow`, `dynamic-devices`, `discovery-update-info`, `repair-issues`, `docs-use-cases`, `docs-supported-devices`, `docs-supported-functions`, `docs-data-update`, `docs-known-limitations`, `docs-troubleshooting`, `docs-examples` |
+| Platinum | `async-dependency`, `inject-websession`, `strict-typing` |
 
 | Rule | Value |
 |---|---|
 | which tier a rule sits in | `ALL_RULES` in core's `script/hassfest/quality_scale.py`, never the rule's name |
 | where one rule is documented | `developers.home-assistant.io/docs/core/integration-quality-scale/rules/<rule-name>/` |
-| the index the freshness row re-derives from | `developers.home-assistant.io/docs/core/integration-quality-scale/` |
 
-- **Bronze:** `action-setup`, `appropriate-polling`, `brands`, `common-modules`, `config-flow-test-coverage`, `config-flow`, `dependency-transparency`, `docs-actions`, `docs-high-level-description`, `docs-installation-instructions`, `docs-removal-instructions`, `docs-triggers`, `docs-conditions`, `entity-event-setup`, `entity-unique-id`, `has-entity-name`, `runtime-data`, `test-before-configure`, `test-before-setup`, `unique-config-entry`
-- **Silver:** `config-entry-unloading`, `log-when-unavailable`, `entity-unavailable`, `action-exceptions`, `reauthentication-flow`, `parallel-updates`, `test-coverage`, `integration-owner`, `docs-installation-parameters`, `docs-configuration-parameters`
-- **Gold:** `entity-translations`, `entity-device-class`, `devices`, `entity-category`, `entity-disabled-by-default`, `discovery`, `stale-devices`, `diagnostics`, `exception-translations`, `icon-translations`, `reconfiguration-flow`, `dynamic-devices`, `discovery-update-info`, `repair-issues`, `docs-use-cases`, `docs-supported-devices`, `docs-supported-functions`, `docs-data-update`, `docs-known-limitations`, `docs-troubleshooting`, `docs-examples`
-- **Platinum:** `async-dependency`, `inject-websession`, `strict-typing`
+> **Note:** `PlatformNotReady` is for legacy `async_setup_platform` only — config-entry
+> integrations use `ConfigEntryNotReady` instead.
 
 ### Step 3: Prove every `done` with a test
-
-Green hassfest and a green audit together prove exactly what Step 4 says and nothing more;
-neither **runs the integration**, so nothing in CI can tell you `diagnostics.py` actually
-redacts, the reconfigure flow works, `async_remove_config_entry_device` returns correctly,
-or that a `translation_key` used in code resolves in `strings.json`.
 
 Each of these needs its own test, not just the code:
 
@@ -100,7 +85,12 @@ A rule that is genuinely untestable is `exempt` with a comment, not an unproven 
 
 ### A local-push MQTT device integration — Step 2
 
-**Fix:** the common `exempt`s are `appropriate-polling` (push, no polling),
-`reauthentication-flow` (no integration-level auth), `inject-websession` (no cloud HTTP),
-`async-dependency` (only sync libs run in executor) and `dynamic-devices` (one device per
-entry).
+**Fix:** mark the five rules below `exempt`, each with the comment its row gives.
+
+| Rule | Value |
+|---|---|
+| `appropriate-polling` | exempt — the device pushes, so nothing polls |
+| `reauthentication-flow` | exempt — no integration-level auth to renew |
+| `inject-websession` | exempt — no cloud HTTP |
+| `async-dependency` | exempt — the sync libraries run in the executor |
+| `dynamic-devices` | exempt — one device per entry |
