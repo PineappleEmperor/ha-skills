@@ -17,9 +17,8 @@ Commits form, subject-only by default.**
 7. Step 1: Leave the body empty
 8. Step 2: Put the narrative in the release description
 9. Step 3: Put the reasoning in the PR conversation
-10. Red flags — stop
-11. Cases
-12. `gh pr edit` fails on the Projects-classic deprecation — PR body Step 1
+10. Cases
+11. `gh pr edit` fails on the Projects-classic deprecation — PR body Step 1
 
 ## Commit subjects
 
@@ -81,6 +80,13 @@ No job writes it, and the draft PR arrives empty.
 | "I wrapped it in `<details>` so it's stripped" | leave the fold to Dependabot's own output | a folded body is still published under the repo owner's byline | PR body Step 1 |
 | "it's only a few paragraphs" | leave the body empty | whatever its length it is published under the repo owner's byline | PR body Step 1 |
 
+| scenario | choice |
+|---|---|
+| typing prose into `gh pr create --body` | put it in a comment, or fix the commit subjects |
+| reaching for `<details>` in a PR description | put it in a comment, or fix the commit subjects |
+| a description longer than its diff | put it in a comment, or fix the commit subjects |
+| explaining *why* anywhere the commit subjects should have said it | fix the commit subjects |
+
 ### Step 2: Put the narrative in the release description
 
 The human-readable "what changed and why it matters" belongs in the **release notes**,
@@ -92,15 +98,6 @@ ha-integration-ci's README.
 
 Reasoning, alternatives and verification evidence go in the PR **conversation**, where
 reviewers read them and the notes do not.
-
-### Red flags — stop
-
-| scenario | choice |
-|---|---|
-| typing prose into `gh pr create --body` | put it in a comment, or fix the commit subjects |
-| reaching for `<details>` in a PR description | put it in a comment, or fix the commit subjects |
-| a description longer than its diff | put it in a comment, or fix the commit subjects |
-| explaining *why* anywhere the commit subjects should have said it | fix the commit subjects |
 
 ## Cases
 
