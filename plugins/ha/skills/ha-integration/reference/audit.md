@@ -20,6 +20,13 @@ its source, and never runs the repo's tests.**
 
 ## The audit
 
+| Rule | Value |
+|---|---|
+| what runs it on every PR | the `quality-audit` caller, per *Calling the workflows* in ha-integration-ci's README |
+| running it by hand | `python3 scripts/skill_audit.py --root <repo>`, from a checkout of ha-integration-ci |
+| the list of mechanical checks | `--list`, and *What the audit checks now* in that README |
+| what this file adds | the items below, which a grep cannot decide |
+
 ### Step 1: Callers, not bodies; copies, not paraphrases
 
 The invariant in `SKILL.md`, checked per file.
