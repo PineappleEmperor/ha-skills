@@ -67,9 +67,8 @@ The pinned `pytest-homeassistant-custom-component` in `requirements.test.txt` ha
 `homeassistant==<matching release>`, so **that pin decides which HA the suite runs
 against**. Keep it in lockstep with the Python floor the CI declares.
 
-**Timing:** by hand. `version_sync.py` requires the harness to be pinned and never compares
-the pin against the floor — the gate cell of the harness row in `reference/freshness.md`
-says so, and nothing else asserts the pair.
+**Timing:** by hand, since nothing compares the pair — the gate cell of the harness row in
+`reference/freshness.md` says so.
 
 **Symptom:** a mismatch fails at import, not at test time.
 
@@ -109,10 +108,13 @@ Regex parsers, date/format extraction and data transforms (`order_parse`, `vouch
 
 ### Step 4: Minimum coverage before claiming a tier
 
-Cover all of: config-flow (happy path + each error + reauth/reconfigure), a real setup-entry
-`LOADED` test (plus a **two-entry parallel `LOADED`** test if multiple devices are allowed),
-coordinator success + auth-failure + the credential-read path against a mocked transport,
-unload, and a unit test per parser.
+| Rule | Value |
+|---|---|
+| the config flow | the happy path, each error, and reauth or reconfigure where either exists |
+| entry setup | a real `LOADED` test, plus a two-entry parallel one where several devices are allowed |
+| the coordinator | success, auth failure, and the credential-read path, against a mocked transport |
+| unload | a test of its own |
+| each parser | a unit test of its own |
 
 **Timing:** wire the regression test *first* on any bug fix — confirm it fails on the
 unpatched code, then fix.
@@ -179,10 +181,8 @@ transport and asserts a sensor populates.
 **Fix:** **shift the fixture's dates forward at runtime** (parse + rewrite, or template)
 rather than `freeze_time(...)`.
 
-**Symptom:** freezing the clock stops the `update_before_add` debouncer that *Entity
-platform files — Step 1* in `reference/patterns.md` describes, so the entity never populates
-— its state stays `unknown` — *and* it leaves a timer scheduled at the frozen wall-clock
-time that fails teardown.
+**Symptom:** a frozen clock leaves the entity at `unknown` and a timer scheduled at the
+frozen wall-clock time, which fails teardown.
 
 ### Entities still read defaults after `async_block_till_done` — mocking Step 2
 
