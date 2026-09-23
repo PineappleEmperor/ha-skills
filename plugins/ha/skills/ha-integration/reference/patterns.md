@@ -248,9 +248,25 @@ This creates `notify.{device_id}` (e.g. `notify.living_room_display`) with full 
 - Prefer `_attr_*` class/instance attributes over property methods for static values — only use properties for dynamic/state-dependent values
 - Implement `_attr_available` to reflect device reachability
 - Read state from `self.coordinator.data` only — never do I/O in properties
-- Don't pass `update_before_add=True` to `async_add_entities`. It papers over a real gap and schedules a refresh **debouncer timer** that lingers in tests and frozen-clock runs. The gap: `CoordinatorEntity` does **not** push initial state on add, so a push-style entity (one that sets `_attr_native_value` inside `_handle_coordinator_update`) reads `unknown` until the next poll. Fix it properly — either compute `native_value` as a **property** off `self.coordinator.data` (always current), or call `self._handle_coordinator_update()` at the end of `async_added_to_hass` (after `await super().async_added_to_hass()`) to populate from the already-loaded coordinator data. `first_refresh` runs before entities are added, so the data is there.
-- **A list/collection sensor's state should be the `len()` count, with the items in an attribute** — not a timestamp or the raw list. (`last_updated`/`last_changed` are already built-in state attributes; don't re-add them.) Add `_attr_state_class = MEASUREMENT` so the count graphs.
-- **A `device_class` constrains which `state_class` is legal — verify the pair against the authoritative source, never guess.** HA hard-codes the allowed combinations in `DEVICE_CLASS_STATE_CLASSES` (`homeassistant/components/sensor/const.py`); a disallowed pair logs *"is using state class X which is impossible considering device class Y"* and silently drops long-term statistics. The constraint: `SensorDeviceClass.MONETARY` permits **only `{SensorStateClass.TOTAL}`** — `MEASUREMENT` is invalid for monetary. Don't "fix" an invalid combo by **deleting** `state_class` (that kills LTS entirely, a worse regression than the warning) — switch to a *valid* one. So a fluctuating money **balance** (settle-up debt, account balance) is `device_class=MONETARY` + `state_class=TOTAL`, not `MEASUREMENT`. Before setting any `device_class`/`state_class` pair, check the current mapping at https://raw.githubusercontent.com/home-assistant/core/dev/homeassistant/components/sensor/const.py (or the device-class table at developers.home-assistant.io/docs/core/entity/sensor) — the mapping changes between HA versions. Lock the chosen pair with an attribute test so a future rewrite can't silently drop it.
+
+**The `device_class` a sensor carries decides which `state_class` is legal:**
+
+| Rule | Value |
+|---|---|
+| where the legal pairs are declared | `DEVICE_CLASS_STATE_CLASSES` in core's `homeassistant/components/sensor/const.py`, which moves between releases |
+| `SensorDeviceClass.MONETARY` | `SensorStateClass.TOTAL` only, so a fluctuating balance is `MONETARY` + `TOTAL` |
+| a disallowed pair | logs *"is using state class X which is impossible considering device class Y"* and drops long-term statistics |
+| the pair once chosen | locked by an attribute test |
+
+| anti-pattern | use instead | why (one clause) | reference |
+|---|---|---|---|
+| `update_before_add=True` on `async_add_entities` | compute `native_value` as a property off `self.coordinator.data`, or call `self._handle_coordinator_update()` at the end of `async_added_to_hass` | it schedules a debouncer timer that outlives the test and the frozen clock | Step 1 |
+| a collection sensor whose state is the raw list or a timestamp | the `len()` count, the items in an attribute, `_attr_state_class = MEASUREMENT` | `last_updated` and `last_changed` are state attributes already, and a count graphs | Step 1 |
+| deleting `state_class` to silence an impossible-pair warning | the `state_class` that device class permits | deleting it drops long-term statistics altogether | Step 1 |
+
+**Symptom:** `CoordinatorEntity` does not push initial state on add, so an entity that sets
+`_attr_native_value` inside `_handle_coordinator_update` reads `unknown` until the next poll
+— `first_refresh` has already run, so the data is there to read.
 
 ### `EntityDescription` pattern — Step 1
 
@@ -282,7 +298,14 @@ async def async_setup_entry(
 ```
 
 ### `UpdateEntity` (firmware/OTA install) — Step 1
-- `_attr_in_progress` only **greys out the dashboard install button** — it does **not** stop a programmatic re-entry. A service call, automation, or two near-simultaneous dashboard clicks can still re-enter `async_install` while an install is mid-flight, double-pushing the OTA. Add an **explicit re-entry guard** at the top of `async_install` (after any can't-install checks), windowed so a crashed/timed-out install can't wedge the entity forever:
+
+| Rule | Value |
+|---|---|
+| what `_attr_in_progress` does | greys out the dashboard install button, and nothing else |
+| what it does not do | stop a second entry from a service call, an automation or two quick clicks |
+| the actual lock | a boolean plus a monotonic timestamp, set at the top of `async_install` after the can't-install checks |
+| the window on that lock | so a crashed or timed-out install cannot wedge the entity |
+
   ```python
   async def async_install(self, version: str | None, backup: bool, **kwargs: Any) -> None:
       """Push the OTA once, refusing a second entry while one is in flight."""
@@ -296,7 +319,8 @@ async def async_setup_entry(
       self.async_write_ha_state()
       await self._push_ota(version)
   ```
-  Clear `_installing` when the new version lands (or the same window elapses) in whatever resyncs state from the device manifest. The `in_progress` flag is for the UI; the boolean+timestamp is the actual lock.
+**Timing:** clear `_installing` where state resyncs from the device manifest — when the new
+version lands, or when the window elapses.
 
 ### `DataUpdateCoordinator` (polling) — Step 1
 - `update_interval` minimum 5 s
@@ -316,19 +340,33 @@ async def async_setup_entry(
 
 Covers the rule `log-when-unavailable` (`reference/quality-scale.md`) and HA's logging conventions.
 
-- **The coordinator already gives you `log-when-unavailable` for free.** When `_async_update_data` raises `UpdateFailed`, `DataUpdateCoordinator` logs the *first* failure at **ERROR**, subsequent consecutive failures at **DEBUG** (no spam), and logs **recovery** automatically. So **do not** wrap the fetch in your own try/log — manual error logging there is double-logging and *fails* the rule. Same for `ConfigEntryNotReady`/`ConfigEntryAuthFailed`: HA logs the reason once; don't also `_LOGGER.exception(...)` in `async_setup_entry` (delete broad `try/except: log; raise` wrappers — they spam and add nothing).
-- **Don't log-and-raise.** Raise the right exception and let HA log it: transient → `UpdateFailed`/`ConfigEntryNotReady`; auth → `ConfigEntryAuthFailed`; service/action errors → `HomeAssistantError`/`ServiceValidationError` (the `action-exceptions` rule). Logging *and* raising the same condition is noise.
-- **Level discipline:** `INFO` is shown by default → use it almost never. **Setup / unload / teardown lifecycle = `DEBUG`, not `INFO`.** `WARNING` = recoverable thing the user should know; `ERROR` = unexpected, actionable bug (never for expected transient failures — those are exceptions HA handles). `DEBUG` = per-poll / developer detail.
-- **Lazy `%` args, never f-strings:** `_LOGGER.debug("added %s", key)` not `f"added {key}"` — ruff `G004` / pylint `logging-fstring-interpolation` enforce. f-string args evaluate even when the level is disabled.
-- **Never log secrets** — credentials, API keys, tokens, raw auth responses.
-- Logger name (`logging.getLogger(__name__)`) already carries the module path — don't prefix messages with the integration name or "Home Assistant".
-- Remove a module-level `_LOGGER` that ends up unused (e.g. after deleting lifecycle spam) — ruff won't flag an unused module global, so it lingers silently.
+| Rule | Value |
+|---|---|
+| what the coordinator logs for you | the first `UpdateFailed` at ERROR, each consecutive one at DEBUG, and the recovery — which is `log-when-unavailable` met |
+| what HA logs for you | the reason behind `ConfigEntryNotReady` and `ConfigEntryAuthFailed`, once |
+| which exception to raise | transient → `UpdateFailed` or `ConfigEntryNotReady`; auth → `ConfigEntryAuthFailed`; an action's own failure → `HomeAssistantError` or `ServiceValidationError`, per `action-exceptions` |
+| `INFO` | almost never; setup, unload and teardown are `DEBUG` |
+| `WARNING` | a recoverable thing the user should know |
+| `ERROR` | an unexpected, actionable bug, never an expected transient failure |
+| `DEBUG` | per-poll and developer detail |
+| the message arguments | lazy `%` args — `_LOGGER.debug("added %s", key)`, which ruff `G004` enforces |
+| the message prefix | none: `logging.getLogger(__name__)` already carries the module path |
+
+| anti-pattern | use instead | why (one clause) | reference |
+|---|---|---|---|
+| wrapping the fetch in your own `try`/log | raise `UpdateFailed` and let the coordinator log | the manual log double-logs and fails `log-when-unavailable` | Step 1 |
+| `_LOGGER.exception(...)` beside a raise in `async_setup_entry` | raise alone | HA logs the reason once already | Step 1 |
+| an f-string in a log call | a lazy `%` arg | the f-string evaluates even when the level is disabled | Step 1 |
+| logging a credential, API key, token or raw auth response | log the fact, never the secret | a log is read by whoever is handed it | Step 1 |
+| a module-level `_LOGGER` left behind after the calls go | delete it | ruff does not flag an unused module global | Step 1 |
 
 ### Custom services — Step 1
 - Register in `async_setup`, not `async_setup_entry` — *Register integration-global resources in `async_setup`, not `async_setup_entry` — Step 2* below says why
 - Use `async_register_platform_entity_service()` for entity-targeted actions
 - Document in `services.yaml`; add icons in `icons.json`
-- A `selector: config_entry` renders a field labelled "Integration" (hardcoded in the HA frontend). To present a device dropdown, use `selector: device` with `integration: {domain}`, then resolve the HA device → config entry in the handler with the helper HA added for exactly this in 2026.9 (read at the `2026.9.0` tag, `homeassistant/helpers/device_registry.py`):
+- Present a device dropdown with `selector: device` and `integration: {domain}`, never
+  `selector: config_entry`, which the HA frontend labels "Integration". Resolve the device
+  to your own config entry in the handler:
   ```python
   from homeassistant.helpers.device_registry import (
       async_get_device_and_config_entry_for_domain,
@@ -338,8 +376,6 @@ Covers the rule `log-when-unavailable` (`reference/quality-scale.md`) and HA's l
       hass, call.data[ATTR_DEVICE_ID], domain=DOMAIN
   )
   ```
-  It returns a pair, either half of which may be `None`. Handle both before using either:
-
   | Scenario | Choice |
   |---|---|
   | an unknown device id, or a child device | `(None, None)` |
@@ -347,10 +383,9 @@ Covers the rule `log-when-unavailable` (`reference/quality-scale.md`) and HA's l
   | a pre-migration composite device id | a matching split device and its config entry, which is the case a hand-written loop gets wrong |
   | whether that config entry is loaded | not checked — keep your own `ConfigEntryState.LOADED` test |
 
-  Do **not** fetch the device and then loop over `device.config_entries` for your own: that
-  property is deprecated, and the loop is what this helper replaces. See *Devices belong to
-  one config entry — Step 2* below.
-- **Target the entry, or the call fans out.** `hass.services.async_call(DOMAIN, svc, …)` with no target reaches **every** config entry. An entity action that should touch only its own device passes its own `entry_id`/`device_id` and the handler filters on it; leave it untargeted only for a deliberate bulk call.
+- **Target the entry, or the call fans out** — `hass.services.async_call(DOMAIN, svc, …)`
+  with no target reaches every config entry, so pass your own `entry_id`/`device_id` and
+  filter on it unless the call is a deliberate bulk one.
 
 ### `services.yaml` + `strings.json` (hassfest rules) — Step 1
 - The modern convention: `services.yaml` carries only field **structure** (selectors, `required`, `default`, collapsible `sections`); names/descriptions live in `strings.json` under a top-level `services` key (`services.{svc}.name/description`, `.fields.{key}.name/description`, `.sections.{key}.name`). Field keys are flat in `strings.json` even when nested in a `sections` block in `services.yaml`. Keep `translations/en.json` a copy of `strings.json`.
@@ -392,10 +427,7 @@ A device has exactly one config entry and at most one subentry: read `config_ent
 | where each release below comes from | the `breaks_in_ha_version` of the call site that reports that usage, read at the `2026.9.0` tag in `homeassistant/helpers/device_registry.py` and `homeassistant/helpers/device.py` |
 | a row naming no release | one core attaches none to |
 | the WebSocket keys of the same names | `reference/panels.md` |
-
-**A core caller hits these sooner than a custom integration does.** Where a call site sets
-`core_behavior=ReportBehavior.ERROR`, core and core integrations raise `RuntimeError` today
-while a custom integration gets a logged warning until the release in the row.
+| a core caller | raises `RuntimeError` today wherever the call site sets `core_behavior=ReportBehavior.ERROR`, while a custom integration gets a logged warning until the row's release |
 
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
@@ -464,11 +496,10 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
     return True
 ```
-**Return `True` or `False`, and log the reason yourself.** A major version bump with no
-`async_migrate_entry` fails setup for every existing user, so ship the handler in the same
-change. Read at the `2026.9.0` tag, `ConfigEntry.async_migrate` wraps the call in
-`except Exception: self.logger.exception(...); return False`, so every exception is
-swallowed alike; what replaces that is *Announced for a release after 2026.9 — Step 1* below.
+**Return `True` or `False`, and log the reason yourself:** `ConfigEntry.async_migrate`
+swallows every exception alike, and what replaces that is *Announced for a release after
+2026.9 — Step 1* below. A major version bump with no `async_migrate_entry` fails setup for
+every existing user, so ship the handler in the same change.
 
 ### Deprecated platform APIs — Step 1
 
