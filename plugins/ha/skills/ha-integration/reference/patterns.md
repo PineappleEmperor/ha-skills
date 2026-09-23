@@ -116,17 +116,20 @@ The `strict-typing` rule in `reference/quality-scale.md`. Every file passes the 
   `reference/quality-scale.md`
 - Implement `async_step_reconfigure` for changing connection settings —
   `reconfiguration-flow` in `reference/quality-scale.md`
-- `vol.Schema` takes one entry per line and is left to `ruff format` — a flow schema is a
-  list of entries, not a table, so it does not earn the `# fmt: off` fence under *Alignment
-  a human chose meets `ruff format` — Step 2* in `reference/scaffold.md`:
-  ```python
-  DATA_SCHEMA = vol.Schema(
-      {
-          vol.Required(CONF_HOST, default="192.168.1.1"): str,
-          vol.Required(CONF_PORT, default=8080): int,
-      }
-  )
-  ```
+
+| Rule | Value |
+|---|---|
+| a `vol.Schema` in a flow | one entry per line, left to `ruff format` |
+| the `# fmt: off` fence | not earned here — a flow schema is a list of entries, not a table; *Alignment a human chose meets `ruff format` — Step 2* in `reference/scaffold.md` |
+
+```python
+DATA_SCHEMA = vol.Schema(
+    {
+        vol.Required(CONF_HOST, default="192.168.1.1"): str,
+        vol.Required(CONF_PORT, default=8080): int,
+    }
+)
+```
 
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
@@ -229,25 +232,31 @@ if hass.services.has_service(NOTIFY_DOMAIN, device_id):
 This creates `notify.{device_id}` (e.g. `notify.living_room_display`) with full data support.
 
 ### Entity platform files — Step 1
-- Extend `CoordinatorEntity` (polling) or `Entity` (push)
-- Access runtime state via `entry.runtime_data` not `hass.data[DOMAIN][entry.entry_id]`
-- Use `DeviceInfo` TypedDict (from `homeassistant.helpers.device_registry`) — not a plain dict:
-  ```python
-  from homeassistant.helpers.device_registry import DeviceInfo
+
+| Rule | Value |
+|---|---|
+| the base class | `CoordinatorEntity` for polling, `Entity` for push |
+| runtime state | `entry.runtime_data`, not `hass.data[DOMAIN][entry.entry_id]` |
+| `device_info` | the `DeviceInfo` TypedDict from `homeassistant.helpers.device_registry`, never a plain dict |
+| `unique_id` | set on every entity |
+| `_attr_has_entity_name` | `True`, mandatory for a new integration — the entity name then identifies only the data point |
+| the main feature entity's name | `_attr_name = None`, so only the device name shows |
+| `_attr_translation_key = "my_key"` | translated entity names and states; pairs with the `entity` section of `strings.json` |
+| `_attr_entity_category` | on a non-primary entity: `EntityCategory.DIAGNOSTIC` for read-only info such as RSSI, `EntityCategory.CONFIG` for a setting that changes device behaviour |
+| a static value | an `_attr_*` class or instance attribute, never a property method |
+| a dynamic or state-dependent value | a property |
+| `_attr_available` | reflects device reachability |
+| the state source | `self.coordinator.data` only — never I/O in a property |
+
+```python
+from homeassistant.helpers.device_registry import DeviceInfo
 
 
-  @property
-  def device_info(self) -> DeviceInfo:
-      """The device this entity belongs to."""
-      return DeviceInfo(identifiers={(DOMAIN, self._device_id)}, name="My Device")
-  ```
-- Set `unique_id` on all entities
-- **`_attr_has_entity_name = True` is mandatory for new integrations** — entity name identifies only the data point; main feature entity sets `_attr_name = None` so only device name shows
-- Set `_attr_translation_key = "my_key"` for translated entity names/states (pairs with `strings.json` `entity` section)
-- Use `_attr_entity_category = EntityCategory.DIAGNOSTIC` (read-only info like RSSI) or `EntityCategory.CONFIG` (settings that change device behaviour) for non-primary entities
-- Prefer `_attr_*` class/instance attributes over property methods for static values — only use properties for dynamic/state-dependent values
-- Implement `_attr_available` to reflect device reachability
-- Read state from `self.coordinator.data` only — never do I/O in properties
+@property
+def device_info(self) -> DeviceInfo:
+    """The device this entity belongs to."""
+    return DeviceInfo(identifiers={(DOMAIN, self._device_id)}, name="My Device")
+```
 
 **The `device_class` a sensor carries decides which `state_class` is legal:**
 
@@ -361,36 +370,45 @@ Covers the rule `log-when-unavailable` (`reference/quality-scale.md`) and HA's l
 | a module-level `_LOGGER` left behind after the calls go | delete it | ruff does not flag an unused module global | Step 1 |
 
 ### Custom services — Step 1
-- Register in `async_setup`, not `async_setup_entry` — *Register integration-global resources in `async_setup`, not `async_setup_entry` — Step 2* below says why
-- Use `async_register_platform_entity_service()` for entity-targeted actions
-- Document in `services.yaml`; add icons in `icons.json`
-- Present a device dropdown with `selector: device` and `integration: {domain}`, never
-  `selector: config_entry`, which the HA frontend labels "Integration". Resolve the device
-  to your own config entry in the handler, with the helper core added in 2026.9:
-  ```python
-  from homeassistant.helpers.device_registry import (
-      async_get_device_and_config_entry_for_domain,
-  )
 
-  device, entry = async_get_device_and_config_entry_for_domain(
-      hass, call.data[ATTR_DEVICE_ID], domain=DOMAIN
-  )
-  ```
-  | Scenario | Choice |
-  |---|---|
-  | an unknown device id, or a child device | `(None, None)` |
-  | a main device no config entry of your domain owns | `(device, None)` |
-  | a pre-migration composite device id | a matching split device and its config entry, which is the case a hand-written loop gets wrong |
-  | whether that config entry is loaded | not checked — keep your own `ConfigEntryState.LOADED` test |
+| Rule | Value |
+|---|---|
+| where to register | `async_setup`, not `async_setup_entry` — *Register integration-global resources in `async_setup`, not `async_setup_entry` — Step 2* below says why |
+| an entity-targeted action | `async_register_platform_entity_service()` |
+| where a service is documented | `services.yaml`, with its icons in `icons.json` |
+| a device dropdown | `selector: device` with `integration: {domain}`, never `selector: config_entry`, which the HA frontend labels "Integration" |
+| resolving that device to your own config entry | `async_get_device_and_config_entry_for_domain`, in the handler — the helper core added in 2026.9 |
+| a call with no target | `hass.services.async_call(DOMAIN, svc, …)` reaches every config entry, so pass your own `entry_id`/`device_id` and filter on it unless the call is a deliberate bulk one |
 
-- **Target the entry, or the call fans out** — `hass.services.async_call(DOMAIN, svc, …)`
-  with no target reaches every config entry, so pass your own `entry_id`/`device_id` and
-  filter on it unless the call is a deliberate bulk one.
+```python
+from homeassistant.helpers.device_registry import (
+    async_get_device_and_config_entry_for_domain,
+)
+
+device, entry = async_get_device_and_config_entry_for_domain(
+    hass, call.data[ATTR_DEVICE_ID], domain=DOMAIN
+)
+```
+
+| Scenario | Choice |
+|---|---|
+| an unknown device id, or a child device | `(None, None)` |
+| a main device no config entry of your domain owns | `(device, None)` |
+| a pre-migration composite device id | a matching split device and its config entry, which is the case a hand-written loop gets wrong |
+| whether that config entry is loaded | not checked — keep your own `ConfigEntryState.LOADED` test |
 
 ### `services.yaml` + `strings.json` (hassfest rules) — Step 1
-- The modern convention: `services.yaml` carries only field **structure** (selectors, `required`, `default`, collapsible `sections`); names/descriptions live in `strings.json` under a top-level `services` key (`services.{svc}.name/description`, `.fields.{key}.name/description`, `.sections.{key}.name`). Field keys are flat in `strings.json` even when nested in a `sections` block in `services.yaml`. Keep `translations/en.json` a copy of `strings.json`.
-- **hassfest forbids literal URLs in `strings.json` descriptions** — `the string should not contain URLs`. Use plain text, or a `{placeholder}` filled via `description_placeholders` in the flow step. A markdown image `![x]({url})` with a placeholder is fine (no literal `http`).
-- Collapsible service form: `fields: { appearance: { collapsed: true, fields: {...} } }` — sections are UI-only; the call data stays flat, so the voluptuous schema is unaffected.
+
+| Rule | Value |
+|---|---|
+| what `services.yaml` carries | field **structure** only — selectors, `required`, `default`, collapsible `sections` |
+| what `strings.json` carries | every name and description, under a top-level `services` key: `services.{svc}.name/description`, `.fields.{key}.name/description`, `.sections.{key}.name` |
+| a field key nested in a `sections` block in `services.yaml` | flat in `strings.json` all the same |
+| `translations/en.json` | a copy of `strings.json` |
+| a literal URL in a `strings.json` description | forbidden by hassfest — `the string should not contain URLs`; use plain text, or a `{placeholder}` filled via `description_placeholders` in the flow step |
+| a markdown image `![x]({url})` with a placeholder | fine, since it leaves no literal `http` |
+| a collapsible service form | `fields: { appearance: { collapsed: true, fields: {...} } }` |
+| what a section changes in the call | nothing — sections are UI-only, the call data stays flat, so the voluptuous schema is unaffected |
 
 ### Register integration-global resources in `async_setup`, not `async_setup_entry` — Step 2
 The registration happens once per process; doing it per entry races when two entries set up in parallel. Claim the `hass.data` flag **before** the `await`, or both entries pass the check. The panel case, with the code, is `reference/panels.md`.
