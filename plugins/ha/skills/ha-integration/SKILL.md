@@ -5,9 +5,10 @@ description: Use when developing or troubleshooting a Home Assistant custom inte
 
 # Home Assistant Integration Assistant
 
-Help create, modify, and lint Home Assistant custom integrations targeting **platinum quality scale**.
+**Target platinum quality scale, and fetch the source below before writing the code that
+meets it.**
 
-**Always fetch before coding** — these are the authoritative sources:
+Authoritative sources:
 - Creating integrations: https://developers.home-assistant.io/docs/creating_integration_index/
 - Config entries: https://developers.home-assistant.io/docs/config_entries_index/
 - Config flows: https://developers.home-assistant.io/docs/config_entries_config_flow_handler/
@@ -15,10 +16,6 @@ Help create, modify, and lint Home Assistant custom integrations targeting **pla
 - Setup failures: https://developers.home-assistant.io/docs/integration_setup_failures/
 - Quality scale: https://developers.home-assistant.io/docs/integration_quality_scale_index/
 - Real examples: https://github.com/home-assistant/core/tree/dev/homeassistant/components
-
-## When to use this skill
-
-Use it when the task touches any of: a `custom_components/<domain>/` package, a `manifest.json` with a `domain`, a config/options/reauth/reconfigure flow, a `DataUpdateCoordinator` or entity platform (`sensor.py`, `notify.py`, …), `services.yaml`/`quality_scale.yaml`, the integration's GitHub CI (the `pr-checks`/release-drafter/hassfest/HACS stack). Symptoms that should pull you here: "add a sensor/platform", "config flow won't validate", "hassfest/HACS check failing", "what `state_class` for this `device_class`", "Dependabot keeps bumping actions", "this PR's release version looks wrong".
 
 ---
 
@@ -44,19 +41,18 @@ served** — the committed bundle, its staleness check, registration and cache-b
 
 - **The release tag sets the version.** No PR carries a manifest bump; `release.yml` patches
   `manifest.json` at publish. Details in `reference/versioning.md`.
-- **The commit subjects are the changelog**, so each is one tight imperative with a mapped
-  Conventional Commit type. The PR body is for reviewers and is never generated.
-- **Never merge a red check**, and never merge by disabling one. Why, and the exceptions that
-  are not exceptions, in `reference/discipline.md`.
+- **The commit subjects are the changelog** — the form each takes, and why the PR body stays
+  empty, are `reference/commits.md`.
+- **Never merge a red check**, and never merge by disabling one —
+  *Merge discipline — never merge a red check* in `reference/discipline.md`.
 - **Callers, not bodies; copies, not paraphrases.** The scaffold calls the CI repositories'
   reusable workflows and copies a few configs; every deviation must be a listed adaptation —
   see `reference/audit.md`.
 - **Cached facts go stale silently.** Anything captured more than ~3 months ago is re-derived
   before it is trusted; the table and its commands are `reference/freshness.md`.
 - **The skill is current for one Home Assistant release at a time**, which the release row
-  of `reference/freshness.md` names. What a release changed lands in the section of
-  `reference/patterns.md` that owns the topic; moving the row itself is a refresh of the
-  skill, done in the skill's own repository.
+  of `reference/freshness.md` names; what that release changed is in the
+  `reference/patterns.md` section that owns the topic.
 
 ## Reference map
 
@@ -115,9 +111,8 @@ Apply the same patterns and code style as a scaffold.
 
 ## Audit — skill conformance
 
-Lint answers *is the code hygienic*. This answers *was the skill followed* — canonical
-workflows present and correct, documented patterns applied, antipatterns gone,
-`quality_scale.yaml` honest. Run it before claiming a tier and before merge.
+Run it before claiming a tier and before merge: canonical workflows present and correct,
+documented patterns applied, antipatterns gone, `quality_scale.yaml` honest.
 
 Two layers:
 
