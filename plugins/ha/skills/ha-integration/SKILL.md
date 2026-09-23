@@ -29,13 +29,11 @@ Check the working directory, pick a mode, then **read that mode's reference file
 | **Modify** | `custom_components/` exists and something is being added or changed | `reference/patterns.md`. Adding a platform also touches `strings.json`/`translations/` and the tier claim — see `reference/quality-scale.md` |
 | **Test** | writing or fixing tests for an integration | `reference/testing.md` — the root `conftest.py` and `asyncio_mode` prerequisites decide whether the suite runs at all |
 | **Lint** | hygiene pass over existing code | this file, *Lint & quality check* below |
-| **Audit** | verify the skill was actually followed | the audit — ha-integration-ci's `skill_audit.py`, run by the `quality-audit` caller on every PR, and by hand from a checkout of that repository with `--root <repo>`; `--list` prints every check — then `reference/audit.md` |
+| **Audit** | verify the skill was actually followed | `reference/audit.md`, which says what the mechanical audit covers and what is left to judgement |
 | **Release / repo setup** | first release, tokens, required checks | `reference/github-setup.md` — token, ruleset, dependency graph, required contexts. Then `reference/versioning.md` for how the version is decided, `reference/commits.md` for commit subjects and titles, `reference/github-actions.md` for what the scaffold carries |
 
-Reading a Home Assistant log is a different skill — `ha-triage`. How a panel **looks**
-(type scale, colour, spacing, touch targets) is `ha-panel-design`. How a panel is **built and
-served** — the committed bundle, its staleness check, registration and cache-busting, the
-`home-assistant-frontend` pin — stays here, in `reference/panels.md`.
+How a panel is **built and served** stays here, in `reference/panels.md`; how it **looks** is
+the `ha-panel-design` skill.
 
 ## Invariants — true in every mode
 
@@ -57,21 +55,21 @@ served** — the committed bundle, its staleness check, registration and cache-b
 
 ## Reference map
 
-| File | Holds |
+| file | when to read |
 |---|---|
-| `reference/scaffold.md` | what to ask, what to generate, the brand assets, manifest key order, HACS validation |
-| `reference/patterns.md` | the code patterns every mode applies, plus file structure and typing |
-| `reference/testing.md` | harness prerequisites, and mocking the boundary rather than your own code |
-| `reference/commits.md` | commit subjects and titles, why the PR body stays empty |
-| `reference/github-setup.md` | RELEASE_TOKEN, required checks, dependency graph, supply chain |
-| `reference/github-actions.md` | what the scaffold carries and where each piece comes from, what may be changed in a copy |
-| `reference/versioning.md` | where the version comes from, publishing an rc and a final |
-| `reference/dependabot.md` | what it bumps, including the callers' pins, and what it cannot reach |
-| `reference/quality-scale.md` | the canonical rule set and what each tier demands |
-| `reference/panels.md` | integrations that serve a custom panel |
-| `reference/discipline.md` | commit, PR, merge and debugging discipline |
-| `reference/audit.md` | the audit items a grep cannot decide |
-| `reference/freshness.md` | cached facts, when captured, how to re-derive |
+| `reference/scaffold.md` | starting a repository: what to ask, what to generate, the brand assets, manifest key order, HACS validation |
+| `reference/patterns.md` | writing or changing Python under `custom_components/`, including file structure and typing |
+| `reference/testing.md` | writing tests, mocking at the boundary, or a suite that fails before any test runs |
+| `reference/commits.md` | writing a commit subject, a PR title or a PR body |
+| `reference/github-setup.md` | configuring the repository on GitHub: token, required checks, dependency graph, supply chain |
+| `reference/github-actions.md` | writing or reviewing a workflow file, and what may differ from its source |
+| `reference/versioning.md` | cutting or gating a release, including an rc |
+| `reference/dependabot.md` | configuring or debugging Dependabot, including the callers' pins and what it cannot reach |
+| `reference/quality-scale.md` | claiming a tier, and the canonical rule set behind it |
+| `reference/panels.md` | building or fixing an integration that serves a panel |
+| `reference/discipline.md` | a check is red, or a root cause is about to be named |
+| `reference/audit.md` | auditing a repository against this skill |
+| `reference/freshness.md` | asking whether a cached value is still true |
 
 ---
 
