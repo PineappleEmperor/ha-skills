@@ -5,12 +5,8 @@ description: Use when changing how a Home Assistant custom panel looks — a Lit
 
 # HA Custom Panel Design
 
-Size, type, spacing, and colour for **Home Assistant custom panels** (Lit/TS web components
-served by an integration). Make the panel look native to HA and follow Material 3 — not
-hand-eyeballed pixel values.
-
-Use this whenever touching a panel's CSS/markup: section headers, disclosure arrows, buttons,
-thumbnails, list density, colours. Re-invoke after `/compact`.
+**Every size, colour and space comes from HA's theme properties or the Material 3 scale,
+never from a value chosen by eye.**
 
 ## Fetch before deciding sizes or tokens
 
@@ -21,17 +17,15 @@ Don't guess one from memory:
 - HA theme CSS custom properties, as the frontend defines them: https://github.com/home-assistant/frontend/tree/dev/src/resources/theme — `color/color.globals.ts` holds the colour variables (`--primary-text-color`, `--primary-color`, `--divider-color`, …), `typography.globals.ts` the type ones
 - The variables a user's theme may override: https://www.home-assistant.io/integrations/frontend/#supported-theme-variables
 
-The HA sources were verified 2026-09-12; when a source is due a re-check is
+When each source is due a re-check is the panel-design row of
 `ha-integration/reference/freshness.md`.
 
 ---
 
 ## The core rule: tokens over literals
 
-Never hardcode a colour and never invent a `font-size` per element. Pull from HA's theme
-custom properties (so the panel follows the user's theme + dark/light), and size from the
-Material 3 type scale. A panel full of `color:#49454f; font-size:13px` is the smell this skill
-exists to kill.
+Take every colour from HA's theme custom properties, so the panel follows the user's theme
+and its dark mode, and every `font-size` from the Material 3 type scale.
 
 ### HA theme custom properties to use (with sane fallbacks)
 
@@ -63,12 +57,12 @@ Define a small `:host` token block mapping panel-local names (`--<domain>-primar
 | Label medium | 12 / 16 / 500 | Badges, chips |
 | Label small | 11 / 16 / 500 | Dense captions only |
 
-**Section headers are title-large (22), not 13-16px.** A collapsible group header is a primary
-landmark — it should clearly outrank body text. If everything is 13-16px the hierarchy is flat
-and it reads as a wall.
-
-HA renders denser than stock M3; it's fine to tighten line-height a touch, but keep the *ratio*
-(header ≥ 1.4× body) so hierarchy survives.
+| Rule | Value |
+|---|---|
+| a section header, including a collapsible group's | title-large at 22, never 13–16px |
+| line-height against stock M3 | tighten it, since HA renders denser |
+| the header-to-body ratio | ≥ 1.4×, whatever the line-height |
+| spacing | a consistent step — 4/8/12/16/20/24 |
 
 ---
 
@@ -98,30 +92,19 @@ HA renders denser than stock M3; it's fine to tighten line-height a touch, but k
 
 ## Lists & sorting
 
-A list the user scans needs a **predictable order** — sort by an intrinsic property (size, type,
-name), never backend insertion order. Group by kind first if kinds exist, then by a numeric
-dimension, then name. State the sort in a hint if non-obvious.
-
----
-
-## Review checklist
-
-1. Any literal hex colour or `font-size` that should be a token / scale step?
-2. Section headers ≥ title-large (22) and clearly outranking body?
-3. Disclosure arrows a 24px icon, not a tiny glyph?
-4. Every interactive element ≥ 48px hit area?
-5. Lists sorted by an intrinsic key, not insertion order?
-6. Dark + light both legible (because colours came from theme vars)?
-7. Spacing on a consistent step (4/8/12/16/20/24), not arbitrary?
+| Rule | Value |
+|---|---|
+| the sort key | an intrinsic property — size, type, name — never backend insertion order |
+| the order of keys | kind first where kinds exist, then a numeric dimension, then name |
+| a sort a reader would not guess | stated in a hint beside the list |
 
 ---
 
 ## Panels built from a source bundle
 
-The full contract for shipping a panel from an integration — the bundle staleness check,
-cache-busting the module URL, and the `home-assistant-frontend` pin, each of which fails
-silently — is `ha-integration/reference/panels.md`. What follows is only
-what a design change must not break.
+The full contract for shipping a panel from an integration is
+`ha-integration/reference/panels.md`. What follows is only what a design change must not
+break.
 
 - One Lit/TS source file builds to a committed bundle the integration serves; rebuild and
   commit it in the same PR as the source change. What CI does about a stale one is
