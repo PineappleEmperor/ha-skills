@@ -10,13 +10,12 @@ Read this when a check is red, or before naming a root cause. Commit and PR-body
 1. Merge discipline — never merge a red check
 2. Step 1: Stop and read the log
 3. Step 2: Fix it, or say in writing why the gate is wrong
-4. Red flags — stop
-5. Debugging discipline
-6. Step 1: Trace the path
-7. Step 2: Name the cause
-8. Cases
-9. One exception, and it is narrow — merge Step 2
-10. An action hits more devices than it should — debugging Step 2
+4. Debugging discipline
+5. Step 1: Trace the path
+6. Step 2: Name the cause
+7. Cases
+8. One exception, and it is narrow — merge Step 2
+9. An action hits more devices than it should — debugging Step 2
 
 ## Merge discipline — never merge a red check
 
@@ -38,8 +37,6 @@ before merging.
 | merging on "the version/label/content is right anyway" | say in writing why the gate is wrong, before merging | the gate is reporting what it can see | Step 2 |
 | merging on "it's only advisory, GitHub let me" | read the log | advisory means GitHub will not stop you, not that the check is wrong | `reference/github-setup.md` |
 | merging on "re-running it would waste minutes" | re-run it | a flake and a real failure look identical until the second run | Step 1 |
-
-### Red flags — stop
 
 | scenario | choice |
 |---|---|
