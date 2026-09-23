@@ -43,8 +43,8 @@ test dependencies are pinned, as the template ships them
 
 | Rule | Value |
 |---|---|
-| why Dependabot never touches them | it cannot parse the manifest, and the entries are open `>=` ranges that HA resolves to the latest matching anyway |
-| raising a `>=` floor | a deliberate safety or feature act, by hand, in a PR of its own |
+| what Dependabot does with them | nothing: it cannot parse the manifest, and an open `>=` range resolves to the latest matching at install anyway |
+| raising a `>=` floor | by hand, in a PR of its own |
 | automating it | nothing in the stack does; anything that ever does is a reusable workflow in ha-integration-ci, never a script and a PR opener written into one repo |
 
 ### Step 5: Merge the PRs as they arrive
@@ -60,9 +60,10 @@ the next release, and need no special case anywhere.
 A bump here moves the **HA version the suite tests against** (`reference/testing.md` says
 why), and can drag the Python floor with it.
 
-**Fix:** review these PRs rather than auto-merging. Your ruff `target-version` and
-`pyrightconfig.json` must then match the floor the CI declares — the audit compares them
-(ha-integration-ci's README) — and a floor move is a CI release first.
+**Fix:** review these PRs rather than auto-merging, and match ruff's `target-version` and
+`pyrightconfig.json` to the floor the CI declares, which the audit compares.
+
+**Timing:** a floor move is a CI release first.
 
 ### Re-copying a plain workflow — Step 2
 

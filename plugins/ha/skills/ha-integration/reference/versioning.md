@@ -57,16 +57,18 @@ A PR merges to `main` as soon as it is approved or auto-merged, and any commit p
 
 **Symptom:** `git status` on the branch looks fine.
 
-**Timing:** check at the start of any rc work and before claiming work is pushed or live;
-start the next branch immediately after a release rather than committing on to a `feat/rcN`
-whose PR has merged.
+**Timing:** check at the start of any rc work, and again before claiming work is pushed.
 
 ```bash
 git fetch origin
 git log --oneline origin/main..feat/rcN
 ```
 
-**Fix:** if `main` already contains a merge of this branch, the branch is spent — branch
-fresh with `git checkout -b feat/rc(N+1) origin/main`, `git cherry-pick` the orphaned
-commits oldest-first, push, then delete the stale branch so nothing lands on it again.
+**Fix:** where `main` already carries a merge of this branch, branch fresh from it:
+
+```bash
+git checkout -b feat/rc$((N+1)) origin/main
+git cherry-pick <orphaned commits, oldest first>
+git push origin --delete feat/rcN
+```
 
