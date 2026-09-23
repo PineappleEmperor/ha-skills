@@ -168,6 +168,63 @@ def check_no_prose_blocks(root: pathlib.Path) -> Result:
     return failures, []
 
 
+def block_caps(schema: str) -> dict[str, int]:
+    """How many lines each labelled block may take, read from *Block types*.
+
+    The Written as cell states it: `≤ N lines` is that number, and `one line` is one
+    logical line, which at the 100-column wrap takes up to `MAX_PROSE_RUN` physical ones.
+    A label may not buy more room than unlabelled prose gets, which is what that bound is.
+    """
+    caps: dict[str, int] = {}
+    for line in section(schema, "Block types, and the only cases that earn one"):
+        if not line.startswith("|") or _SEPARATOR.match(line):
+            continue
+        cells = line.strip("|").split("|")
+        if len(cells) < 2:
+            continue
+        label = re.search(r"\*\*([A-Za-z][A-Za-z ]*):\*\*", cells[0])
+        if not label:
+            continue
+        written = cells[1].lower()
+        if found := re.search(r"≤\s*(\d+)\s*lines", written):
+            caps[label.group(1).strip().lower()] = int(found.group(1))
+        elif "one line" in written:
+            caps[label.group(1).strip().lower()] = MAX_PROSE_RUN
+    return caps
+
+
+def check_labelled_block_length(root: pathlib.Path) -> Result:
+    """A labelled block stays inside the length *Block types* gives it.
+
+    The label is what earns the block its place, and a `**Fix:**` that runs to a paragraph
+    is the prose rule evaded rather than met: `check_no_prose_blocks` counts only runs that
+    carry no marker at all.
+    """
+    caps = block_caps((root / SCHEMA).read_text(encoding="utf-8"))
+    if not caps:
+        return [f"{SCHEMA} names no block caps; this check holds nothing"], []
+    failures = []
+    for path in shipped(root):
+        lines = classify(path.read_text(encoding="utf-8"))
+        for index, (number, kind, line) in enumerate(lines):
+            if kind != "labelled":
+                continue
+            label = re.match(r"^(?:>\s*)?\*\*([A-Za-z][A-Za-z ]*):\*\*", line)
+            if not label or (cap := caps.get(label.group(1).lower())) is None:
+                continue
+            span = 1
+            for _, next_kind, _ in lines[index + 1 :]:
+                if next_kind not in {"prose", "quote"}:
+                    break
+                span += 1
+            if span > cap:
+                failures.append(
+                    f"{path.relative_to(root)}:{number} a `**{label.group(1)}:**` block "
+                    f"runs {span} lines, over the {cap} the schema gives it"
+                )
+    return failures, []
+
+
 def check_contents_matches_headings(root: pathlib.Path) -> Result:
     """A contents list names every heading under it, in order, and invents none."""
     failures = []
@@ -229,6 +286,7 @@ def check_step_numbering(root: pathlib.Path) -> Result:
 CHECKS = (
     check_table_columns,
     check_no_prose_blocks,
+    check_labelled_block_length,
     check_contents_matches_headings,
     check_step_numbering,
 )

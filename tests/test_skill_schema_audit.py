@@ -35,6 +35,15 @@ SCHEMA = """# Schema
 | layout | `file \\| holds`, or `file \\| holds \\| when` where the step says which to write |
 | rule | `rule \\| value` — the default where no narrower shape fits |
 
+## Block types, and the only cases that earn one
+
+| Block | Written as | Earned when |
+|---|---|---|
+| row | a table line | always the default |
+| `**Symptom:**` | one line | the failure misattributes its own cause |
+| `**Fix:**` | one line | there is a fix path, or there is provably none |
+| `> **Note:**` | blockquote, ≤ 3 lines | a caveat that changes the action in one case |
+
 ## Something else
 
 | Table | Columns |
@@ -137,6 +146,50 @@ def test_steps_out_of_order_fail_and_restart_at_each_procedure(tmp_path) -> None
 
     two = "# T\n\n## A\n\n### Step 1: x\n\n## B\n\n### Step 1: y\n\n### Step 2: z\n"
     assert audit.check_step_numbering(_repo(tmp_path, two)) == ([], [])
+
+
+def test_the_block_caps_are_read_from_the_schema_not_from_the_code() -> None:
+    """The *Written as* column states each cap; the checker must not carry its own copy."""
+    caps = audit.block_caps(SCHEMA)
+    assert caps["note"] == 3
+    assert caps["symptom"] == audit.MAX_PROSE_RUN, "a one-line block may still wrap"
+    assert caps["fix"] == audit.MAX_PROSE_RUN
+    assert "row" not in caps, "a table line carries no label to measure"
+
+
+def test_the_real_schema_still_names_its_block_caps() -> None:
+    """An empty map would let every paragraph-length block through, silently."""
+    caps = audit.block_caps((REPO / audit.SCHEMA).read_text(encoding="utf-8"))
+    assert caps["note"] == 3
+    assert {"symptom", "timing", "fix"} <= set(caps)
+
+
+def test_a_note_longer_than_the_schema_allows_fails(tmp_path) -> None:
+    """`> **Note:**` is capped at three lines by the *Block types* table itself."""
+    body = "# T\n\n> **Note:** one\n> two\n> three\n"
+    assert audit.check_labelled_block_length(_repo(tmp_path, body)) == ([], [])
+
+    body = "# T\n\n> **Note:** one\n> two\n> three\n> four\n"
+    fails, _ = audit.check_labelled_block_length(_repo(tmp_path, body))
+    assert len(fails) == 1 and "runs 4 lines" in fails[0]
+
+
+def test_a_labelled_one_liner_may_wrap_but_not_become_a_paragraph(tmp_path) -> None:
+    """A wrapped line is still one line; a `**Fix:**` of six is a paragraph with a label."""
+    wrapped = "# T\n\n**Fix:** the fix starts here\n" + "and wraps.\n" * (
+        audit.MAX_PROSE_RUN - 1
+    )
+    assert audit.check_labelled_block_length(_repo(tmp_path, wrapped)) == ([], [])
+
+    paragraph = "# T\n\n**Fix:** the fix starts here\n" + "and wraps.\n" * 5
+    fails, _ = audit.check_labelled_block_length(_repo(tmp_path, paragraph))
+    assert len(fails) == 1 and "**Fix:**" in fails[0]
+
+
+def test_a_block_ends_at_the_next_block_rather_than_swallowing_it(tmp_path) -> None:
+    """Two labels in a row are two blocks; a table or a fence ends one as a blank line does."""
+    body = "# T\n\n**Symptom:** one\n**Fix:** two\n\n| Rule | Value |\n|---|---|\n| a | b |\n"
+    assert audit.check_labelled_block_length(_repo(tmp_path, body)) == ([], [])
 
 
 # ------------------------------------------------------ the committed artefact
