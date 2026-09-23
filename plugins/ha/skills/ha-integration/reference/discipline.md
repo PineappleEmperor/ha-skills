@@ -34,10 +34,10 @@ before merging.
 | merging on "I understand why it's red" | fix it | understanding a failure is a reason to fix it, not to merge it | Step 2 |
 | merging on "the content is correct, only the check is wrong" | fix the check | a wrong check is a defect, not an exemption | Step 2 |
 | merging on "it's the `pull_request_target` self-validation case" | prove it with the diff, on that job, on that PR | if you did not check, it is not that case | *One exception, and it is narrow — merge Step 2* |
-| merging on "I merged past a red check earlier for a good reason" | carry this merge's own proof | precedent is not evidence | *One exception, and it is narrow — merge Step 2* |
+| merging on "I merged past a red check earlier for a good reason" | carry this merge's own proof | the earlier exception was proved on its own diff, which says nothing about this one | *One exception, and it is narrow — merge Step 2* |
 | merging on "the version/label/content is right anyway" | say in writing why the gate is wrong, before merging | the gate is reporting what it can see | Step 2 |
 | merging on "it's only advisory, GitHub let me" | read the log | advisory means GitHub will not stop you, not that the check is wrong | `reference/github-setup.md` |
-| merging on "re-running it would waste minutes" | re-run it | minutes against a bad merge on `main` | Step 1 |
+| merging on "re-running it would waste minutes" | re-run it | a flake and a real failure look identical until the second run | Step 1 |
 
 ### Red flags — stop
 
@@ -60,7 +60,7 @@ Grep the path — publish → subscribe → handler — then confirm it in code.
 
 ### Step 2: Name the cause
 
-Only after the trace: a pre-trace hunch is a guess, not the diagnosis.
+Name it from the trace, and say which call in the trace produces the behaviour.
 
 ## Cases
 
@@ -70,11 +70,11 @@ A PR fixing a `pull_request_target` caller can never go green on its own; why is
 `pr-checks.yml` under *The five workflows* in release-flow's README. That is the only
 sanctioned case, and it covers **one job, on one PR, whose own definition the PR changes**.
 
-**Fix:** prove it with a diff (`git show origin/main:.github/workflows/pr-checks.yml`
-against the branch's), say in the PR that the failure is the bug being fixed, and verify on
-the next PR.
+**Fix:** prove it with `git show origin/main:.github/workflows/pr-checks.yml` against the
+branch's copy, then say in the PR that the failure is the bug being fixed.
 
-**Timing:** re-derive the diff every time, before claiming the exception.
+**Timing:** re-derive that diff every time before claiming the exception, and verify on the
+next PR, where the fixed caller runs as `main`'s.
 
 ### An action hits more devices than it should — debugging Step 2
 
