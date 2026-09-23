@@ -82,11 +82,13 @@ Collapse each logger cluster to one row. Then read **one representative line** p
 
 **Actionable — real bugs to fix:**
 
-- **`extra keys not allowed @ data['<key>']`** in a script/automation `call_service` → a **service-schema deprecation**. The live one: `light.turn_on` **removed `color_temp` and `kelvin`** (the release is in the table above) — use **`color_temp_kelvin`** (kelvin = `1000000 / mired`, floored). The same release removed the state attributes the table names, so templates and dashboards break too, not just service calls. Grep the config for all four names.
-- **`Action notify.mobile_app_* not found`** / **`Service … not found`** → a referenced entity/service was renamed or its device removed (re-onboarded phone, deleted integration). Update the automation to the current slug.
-- **Z-Wave `NotFoundError: Value N-CC-… not found on node Node(node_id=N)`** → a `zwave_js.set_value` targets a value id the node no longer exposes (most often a re-interview, a firmware change, or the wrong endpoint — heuristics from community reports, not documented behaviour). Resolve `node_id` via the map, re-check the value id in the device's Z-Wave page.
-- **`Bad credentials` / auth errors** from any integration holding a token → expired credential. Reconfigure that integration; it will not recover on its own.
-- **Anything under `custom_components.<your_domain>`** → your code. Trace it (publish→subscribe→handler) per *Debugging discipline* in the `ha-integration` skill (`ha-integration/reference/discipline.md`); this is the only cluster the rest of this skill directly acts on.
+| Scenario | Choice |
+|---|---|
+| `extra keys not allowed @ data['<key>']` from a script or automation | a service-schema deprecation: for `light.turn_on`, swap `color_temp` and `kelvin` for `color_temp_kelvin` (kelvin = `1000000 / mired`, floored), and grep the config for the two state attributes the table above names, which templates and dashboards also read |
+| `Action notify.mobile_app_* not found`, `Service … not found` | the entity or service was renamed, or its device removed — update the automation to the current slug |
+| Z-Wave `NotFoundError: Value N-CC-… not found on node Node(node_id=N)` | `zwave_js.set_value` targets a value id the node no longer exposes: resolve `node_id` through the map, then re-read the value id on the device's Z-Wave page |
+| `Bad credentials`, or an auth error from an integration holding a token | reconfigure that integration; an expired credential never recovers on its own |
+| anything under `custom_components.<your_domain>` | your own code — trace publish → subscribe → handler per *Debugging discipline* in `ha-integration/reference/discipline.md` |
 
 ## Step 4 — Report
 
@@ -101,7 +103,7 @@ Ranked table: **severity · cluster · root cause · fix · evidence (`timestamp
 | Rule | Value |
 |---|---|
 | fetching the image at notification time | adds a round trip that can time out on a slow link |
-| storing the image and serving it | may be the more reliable shape, which makes authenticated file access the thing to get right rather than URL form |
+| storing the image and serving it | trades that round trip for getting authenticated file access right |
 
 Recurring config-side fix: a `notify.mobile_app_*` image "works on Wi-Fi, fails on cellular". Root cause is always that the **phone** downloads the attachment over the internet through Nabu Casa — so anything only reachable on the LAN, or served stale, breaks off-network. Two causes:
 
@@ -120,5 +122,3 @@ Recurring config-side fix: a `notify.mobile_app_*` image "works on Wi-Fi, fails 
 - **`content-type: jpeg` is valid.** It is used when the URL carries no usable extension; a bare extension is what the docs ask for. Do not "fix" it to `image/jpeg`.
 - **Size caps:** per the table above. iOS 2021.5+ retries a larger file when the content is opened.
 - **A reused `tag:` replaces the previous notification** on both platforms — give each alert source a distinct one. iOS cannot replace *critical* notifications, and on Android a tag reused across different `group`s misbehaves.
-
-> **Scope note:** most HA log errors are **config / automation / external-device** issues, *not* custom-integration code. This skill triages and routes them; the editing patterns in the `ha-integration` skill apply only to the `custom_components.<your_domain>` cluster.
