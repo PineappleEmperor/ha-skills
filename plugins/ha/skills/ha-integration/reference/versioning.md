@@ -57,7 +57,8 @@ A PR merges to `main` as soon as it is approved or auto-merged, and any commit p
 
 **Symptom:** `git status` on the branch looks fine.
 
-**Timing:** check at the start of any rc work, and again before claiming work is pushed.
+**Timing:** check at the start of any rc work and before claiming work is pushed, and branch
+fresh the moment a release is cut rather than committing on to a merged `feat/rcN`.
 
 ```bash
 git fetch origin
@@ -69,6 +70,7 @@ git log --oneline origin/main..feat/rcN
 ```bash
 git checkout -b feat/rc$((N+1)) origin/main
 git cherry-pick <orphaned commits, oldest first>
+git push -u origin feat/rc$((N+1))
 git push origin --delete feat/rcN
 ```
 

@@ -52,7 +52,8 @@ served** — the committed bundle, its staleness check, registration and cache-b
   before it is trusted; the table and its commands are `reference/freshness.md`.
 - **The skill is current for one Home Assistant release at a time**, which the release row
   of `reference/freshness.md` names; what that release changed is in the
-  `reference/patterns.md` section that owns the topic.
+  `reference/patterns.md` section that owns the topic, and the row moves only in the skill's
+  own repository.
 
 ## Reference map
 

@@ -71,7 +71,7 @@ Under `custom_components/<domain>/`. What goes inside each file is `reference/pa
 
 | Rule | Value |
 |---|---|
-| module docstring | on every file, and the only one that may run to several lines |
+| module docstring | on every file, the only one that may run to several lines, and where a file-level constraint is explained rather than in a comment |
 | public function and class docstrings | short, single-line; what the audit checks and what it leaves to you is *What the audit checks now* in ha-integration-ci's README |
 | inline comments | only where the WHY is genuinely non-obvious |
 | the bar | clean under the *Lint & quality check* commands in `SKILL.md`, pyright standard mode |
@@ -97,7 +97,7 @@ Under `custom_components/<domain>/`. What goes inside each file is `reference/pa
 |---|---|
 | a copy that relaxes `pyproject.toml`'s ruff or pytest tables | drift |
 | enabling the commit hook | `git config core.hooksPath .githooks`, once per clone, documented in `CLAUDE.md` |
-| omitting `.gitignore` | a local `pytest` plus a `git add -A` tracks `.pyc` files, which the audit fails on |
+| omitting `.gitignore` | a local `pytest` plus a `git add -A` tracks `.pyc` files, which *What the audit checks now* in ha-integration-ci's README fails a repository for |
 | where the skill-invocation rule lives | the repository's own `CLAUDE.md`, never a user's global config |
 | `templates/hooks/` | optional per-turn reminders for a user's own `~/.claude`; the shareable enforcement is the `CLAUDE.md` rule, which ships with the repo |
 

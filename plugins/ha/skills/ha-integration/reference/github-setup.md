@@ -110,8 +110,8 @@ job itself; `Dependency review` is `dependency-review.yml`'s.
 | Rule | Value |
 |---|---|
 | a process-automation context — the ones *Check names* in release-flow's README and *Calling the workflows* in ha-integration-ci's list | never required: it fires on a push or a release, so a PR waits on a context that never reports |
-| a context the repo does not produce | add the workflow the audit requires, never drop the context |
-| dropping a context | only where the repo has deliberately left the canonical set — no `quality-audit.yml`, no `dependency-review.yml` |
+| a context the repo does not produce | blocks every PR permanently: add the workflow *What the audit checks now* in ha-integration-ci's README requires, never drop the context |
+| dropping a context | required, not merely permitted, where the repo has deliberately left the canonical set — no `quality-audit.yml`, no `dependency-review.yml` — since the PR otherwise waits for a check that never runs |
 | `panel / Panel type-check and tests` | never required: it is path-filtered, so it does not report on a Python-only PR |
 | a skipped job | satisfies its required check, so a job-level `if:` guard is fine |
 | a cancelled run | does not, per *Calling the workflows* in release-flow's README on the `pr-checks` trigger types |

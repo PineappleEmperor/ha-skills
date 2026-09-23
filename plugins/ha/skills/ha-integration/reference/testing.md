@@ -181,8 +181,9 @@ transport and asserts a sensor populates.
 **Fix:** **shift the fixture's dates forward at runtime** (parse + rewrite, or template)
 rather than `freeze_time(...)`.
 
-**Symptom:** a frozen clock leaves the entity at `unknown` and a timer scheduled at the
-frozen wall-clock time, which fails teardown.
+**Symptom:** a frozen clock stops the debouncer *Entity platform files — Step 1* in
+`reference/patterns.md` describes, so the entity stays `unknown` and a timer sits at the
+frozen wall-clock time, failing teardown.
 
 ### Entities still read defaults after `async_block_till_done` — mocking Step 2
 

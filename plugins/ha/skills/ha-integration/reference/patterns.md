@@ -260,7 +260,7 @@ This creates `notify.{device_id}` (e.g. `notify.living_room_display`) with full 
 
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
-| `update_before_add=True` on `async_add_entities` | compute `native_value` as a property off `self.coordinator.data`, or call `self._handle_coordinator_update()` at the end of `async_added_to_hass` | it schedules a debouncer timer that outlives the test and the frozen clock | Step 1 |
+| `update_before_add=True` on `async_add_entities` | compute `native_value` as a property off `self.coordinator.data`, or call `self._handle_coordinator_update()` at the end of `async_added_to_hass`, after `await super().async_added_to_hass()` | it schedules a debouncer timer that outlives the test and the frozen clock | Step 1 |
 | a collection sensor whose state is the raw list or a timestamp | the `len()` count, the items in an attribute, `_attr_state_class = MEASUREMENT` | `last_updated` and `last_changed` are state attributes already, and a count graphs | Step 1 |
 | deleting `state_class` to silence an impossible-pair warning | the `state_class` that device class permits | deleting it drops long-term statistics altogether | Step 1 |
 
@@ -366,7 +366,7 @@ Covers the rule `log-when-unavailable` (`reference/quality-scale.md`) and HA's l
 - Document in `services.yaml`; add icons in `icons.json`
 - Present a device dropdown with `selector: device` and `integration: {domain}`, never
   `selector: config_entry`, which the HA frontend labels "Integration". Resolve the device
-  to your own config entry in the handler:
+  to your own config entry in the handler, with the helper core added in 2026.9:
   ```python
   from homeassistant.helpers.device_registry import (
       async_get_device_and_config_entry_for_domain,

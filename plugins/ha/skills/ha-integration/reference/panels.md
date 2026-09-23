@@ -3,8 +3,8 @@
 Read this when building or fixing an integration that ships a Lit/TS panel. How the panel
 should *look* — type scale, colour, spacing, touch targets — is the `ha-panel-design` skill.
 
-**Verify every step here by hand: nothing in CI and nothing in the browser reports a panel
-that is stale, unregistered, cached or missing its frontend pin.**
+**Verify each step by hand: what CI reports is a warning at most, and the browser reports
+nothing at all.**
 
 ## Contents
 
@@ -32,6 +32,9 @@ to be inside the package to reach the release zip. The `frontend/` templates and
 **Symptom:** a stale committed bundle warns rather than fails the panel check, and reads as
 "the fix I made isn't there" to whoever opens the committed file.
 
+> **Note:** what users install is always a fresh build — `release.yml` under *Implementation
+> notes* in ha-integration-ci's README rebuilds the bundle before packing the zip.
+
 ### Step 2: Pin `home-assistant-frontend` in `requirements.test.txt`
 
 Take the pin from core's own manifest for your HA version, never from PyPI latest:
@@ -55,7 +58,7 @@ integration-global resources in `async_setup`, not `async_setup_entry` — Step 
 
 | Rule | Value |
 |---|---|
-| claim the registered flag | before the `await`, per that step |
+| claim the registered flag in `hass.data` | before the `await`, or two entries setting up in parallel both register |
 | cache-bust the module URL with the integration version | otherwise a browser serves the previous panel after an update |
 
 Both traps are marked by their comments in the snippet:

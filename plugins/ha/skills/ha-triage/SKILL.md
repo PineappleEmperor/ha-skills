@@ -84,9 +84,9 @@ Collapse each logger cluster to one row. Then read **one representative line** p
 
 | Scenario | Choice |
 |---|---|
-| `extra keys not allowed @ data['<key>']` from a script or automation | a service-schema deprecation: for `light.turn_on`, swap `color_temp` and `kelvin` for `color_temp_kelvin` (kelvin = `1000000 / mired`, floored), and grep the config for the two state attributes the table above names, which templates and dashboards also read |
+| `extra keys not allowed @ data['<key>']` from a script or automation | a service-schema deprecation: for `light.turn_on`, swap `color_temp` and `kelvin` for `color_temp_kelvin` (kelvin = `1000000 / mired`, floored), then grep the config for all four names the table above gives, since the same release took the state attributes that templates and dashboards read |
 | `Action notify.mobile_app_* not found`, `Service … not found` | the entity or service was renamed, or its device removed — update the automation to the current slug |
-| Z-Wave `NotFoundError: Value N-CC-… not found on node Node(node_id=N)` | `zwave_js.set_value` targets a value id the node no longer exposes: resolve `node_id` through the map, then re-read the value id on the device's Z-Wave page |
+| Z-Wave `NotFoundError: Value N-CC-… not found on node Node(node_id=N)` | `zwave_js.set_value` targets a value id the node no longer exposes — a re-interview, a firmware change or the wrong endpoint, none of it documented behaviour: resolve `node_id` through the map, then re-read the value id on the device's Z-Wave page |
 | `Bad credentials`, or an auth error from an integration holding a token | reconfigure that integration; an expired credential never recovers on its own |
 | anything under `custom_components.<your_domain>` | your own code — trace publish → subscribe → handler per *Debugging discipline* in `ha-integration/reference/discipline.md` |
 
