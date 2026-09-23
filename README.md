@@ -111,10 +111,14 @@ Three repo-local documents decide what a skill file may say, and none of them sh
 | [`docs/skill-file-hierarchy.md`](docs/skill-file-hierarchy.md) | which file owns which topic, so a fact has one home and every other file points at it |
 | [`docs/skill-schema.md`](docs/skill-schema.md) | the shape that fact takes — the fixed section order, the canonical table column sets, and the rule that every block is a labelled field or a table row |
 
-`scripts/skill_schema_audit.py` reads the canonical column sets **out of** the schema
-document and holds every shipped file to them, so the rule and its enforcement cannot drift.
-`scripts/skill_meta_audit.py` is the separate authoring audit — frontmatter, resolving links,
-docs that match the templates that ship.
+`scripts/skill_schema_audit.py` is a **structural** check over the shipped files and nothing
+more: table headers against the canonical column sets, which it reads **out of** the schema
+document so rule and enforcement cannot drift; runs of unlabelled prose over a lead-in's
+length; a contents list against the headings under it; step numbering. It does not read a
+`SKILL.md`'s section order, and it judges no content — whether a fact is true, and whether
+it is in the file that owns it, are review, not CI. `scripts/skill_meta_audit.py` is the
+separate authoring audit — frontmatter, resolving links, cited headings that exist, docs
+that match the templates that ship.
 
 [ha-ci-testing](https://github.com/PineappleEmperor/ha-ci-testing) is a throwaway
 integration that runs the whole cycle — branch, draft PR, merge, release candidate, final —
