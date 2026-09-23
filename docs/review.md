@@ -42,6 +42,11 @@ their own README and are not reviews.
    names — `raw.githubusercontent.com/home-assistant/core/<tag>/…`. A deprecation deadline
    is quoted from the `breaks_in_ha_version` of the call site it describes, one per API, not
    summarised across a group of them.
+9. **A rewrite is lossless.** Where a diff changes the *shape* of a passage — prose into a
+   table, a bullet into a row, a block retitled — every fact the previous version stated is
+   in the new one, or was deleted deliberately and named as deleted in the register. Checked
+   against `git show <base>:<path>`, clause by clause, not by reading the new file alone: a
+   deletion makes a structural audit greener, so nothing mechanical objects to it.
 
 ## Protocol
 
@@ -80,3 +85,8 @@ their own README and are not reviews.
   gave `2027.8` for the same APIs. Core carries five distinct values there. No invariant
   asked for a release number to be read back, so none of the four rounds looked — hence
   invariant 8.
+- A pass converting sixteen files to `docs/skill-schema.md` dropped fifteen facts and changed
+  the meaning of six rules, and `scripts/skill_schema_audit.py` went greener with every one
+  of them, because a deleted clause shortens a prose run. The sweep that found them was
+  looking for schema violations, not for losses; hence invariant 9, and hence one file per
+  pass, each diffed against its previous version before it is committed (row 228).
