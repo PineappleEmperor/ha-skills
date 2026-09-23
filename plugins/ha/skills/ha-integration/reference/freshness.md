@@ -20,7 +20,6 @@ the same pass. A value fixed in one place and not the others is worse than one u
 | HACS dashboard brand source | the legacy CDN, not the inline `brand/` folder | 2026-06 | hacs/integration #5171, #5223 | the `> **Note:**` under *Step 5: Ship the brand assets* in `reference/scaffold.md` | none — it clears when HACS points its dashboard at the proxy |
 | Panel design sources | the frontend's `src/resources/theme/` (`color/color.globals.ts`, `typography.globals.ts`) · the *Supported theme variables* section of the `frontend` integration page · the two m3.material.io pages | 2026-09-12 for the HA sources; the Material pages were not fetched | `gh api repos/home-assistant/frontend/contents/src/resources/theme --jq '.[].name'` · the headings of `source/_integrations/frontend.markdown` in `home-assistant/home-assistant.io` | the source list under *Fetch before deciding sizes or tokens* in `ha-panel-design/SKILL.md` | none |
 
-> **Note:** `hacs/action@main` and `home-assistant/actions/hassfest@master` are deliberately
-> on mutable refs and the audit exempts them — *What the audit checks now* in
-> ha-integration-ci's README. A tag would stop tracking their validation rules; the
-> trade-off is capped with read-only permissions and `persist-credentials: false`.
+> **Note:** `hacs/action@main` and `home-assistant/actions/hassfest@master` are on mutable
+> refs deliberately, and the audit exempts them — *What the audit checks now* in
+> ha-integration-ci's README.
