@@ -395,6 +395,7 @@ device, entry = async_get_device_and_config_entry_for_domain(
 | an unknown device id, or a child device | `(None, None)` |
 | a main device no config entry of your domain owns | `(device, None)` |
 | a pre-migration composite device id | a matching split device and its config entry, which is the case a hand-written loop gets wrong |
+| a composite device id no split matches | the restored composite device, and `None` |
 | whether that config entry is loaded | not checked — keep your own `ConfigEntryState.LOADED` test |
 
 ### `services.yaml` + `strings.json` (hassfest rules) — Step 1
