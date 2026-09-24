@@ -77,6 +77,33 @@ with its own `### Step 1:`, and a case names which one it attaches to (`— merg
 The file's core rule is the primary topic's; a second topic states its own rule as the bold
 line opening its section.
 
+## Anti-patterns, and where they live
+
+An anti-pattern nobody reads changes nothing. A reader reaches a reference file only once the
+router has sent them there, so a rule that only exists in `dependabot.md` is invisible to
+every session that never touches Dependabot — and the expensive mistakes are exactly the ones
+made before the relevant file is open.
+
+| Rule | Value |
+|---|---|
+| where the detail lives | the reference file that owns the topic, in its own anti-pattern table beside the step it contradicts |
+| what `SKILL.md` carries | one anti-pattern table, whose rows are the cross-cutting and the expensive ones |
+| what earns a `SKILL.md` row | the mistake is available in every mode, or it costs a release, a rewrite or a merged red check to undo |
+| what a `SKILL.md` row holds | the anti-pattern, the replacement, one clause of why, and a pointer to the owning section — never the reasoning the owning file gives |
+| a rule stated in both | not a restatement, provided the `SKILL.md` row is the one-clause form and the detail is not repeated |
+
+**What the `reference` column names**, in every anti-pattern table:
+
+| Scenario | Choice |
+|---|---|
+| the rule is Home Assistant's | the developer-docs page, or the core call site the value was read at |
+| the rule is a deprecation | the removal release, and the call site that states it |
+| the rule is ours | the step or case in this repository's files that states it |
+| the rule is a CI behaviour | the heading in the CI repository's README that owns it |
+
+A `reference` cell reading `Step 1`, in a table that sits under Step 1, tells a reader
+nothing they did not have.
+
 ## Canonical tables
 
 Fixed column sets. A table that invents its own shape cannot be diffed across a refresh.
