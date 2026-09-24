@@ -213,6 +213,21 @@ def test_the_register_and_its_phase_files_are_both_governed() -> None:
     assert gs.resolve_tier("docs/backlog/2026-09-04-testbed-run.md") is not None
 
 
+def test_the_format_standard_is_governed_by_both_its_halves() -> None:
+    """The audit parses the schema rather than copying it, so editing it moves the rules.
+
+    `scripts/skill_schema_audit.py` reads its canonical column sets and its block caps out
+    of `docs/skill-schema.md`, which means an unread edit there changes what every shipped
+    file is judged against — and both halves of the standard were writable by ordinary means
+    while the files they govern were not. Each is governed by the pair, since the hierarchy
+    decides which file may hold a fact and the schema decides the shape it takes.
+    """
+    both = ("docs/skill-file-hierarchy.md", "docs/skill-schema.md")
+    for rel in both:
+        assert gs.resolve_tier(rel) == rel
+        assert gs.TIERS[rel] == both
+
+
 def test_a_phase_file_is_claim_checked_like_the_register(repo, monkeypatch):
     """A row that moves into a phase file keeps the check that row 89 put on it.
 

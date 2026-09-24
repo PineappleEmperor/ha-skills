@@ -71,6 +71,19 @@ SKILL_TIERS: dict[str, tuple[str, ...]] = {
     "plugins/ha/skills/ha-integration/reference/": (
         "plugins/ha/skills/ha-integration/reference/discipline.md",
     ),
+    # The two halves of the format standard. `scripts/skill_schema_audit.py` reads its rules
+    # out of `docs/skill-schema.md`, so an unread edit there silently changes what the audit
+    # enforces on every shipped file, and `docs/skill-file-hierarchy.md` decides which file
+    # may hold a fact at all. Each is governed by the pair, so reaching for one hands over
+    # both halves, and editing either kills every outstanding key for both.
+    "docs/skill-schema.md": (
+        "docs/skill-file-hierarchy.md",
+        "docs/skill-schema.md",
+    ),
+    "docs/skill-file-hierarchy.md": (
+        "docs/skill-file-hierarchy.md",
+        "docs/skill-schema.md",
+    ),
     # The register and the phase files it sheds. Both, because a cleared row moves out of
     # the first into the second, and a tier naming only the register would drop the claim
     # check on every row the moment it moved — a guard lost to a reorganisation.
