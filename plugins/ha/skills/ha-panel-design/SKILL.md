@@ -1,6 +1,12 @@
 ---
 name: ha-panel-design
-description: Use when changing how a Home Assistant custom panel looks — a Lit/TS panel web component, its built bundle, or any CSS/markup affecting sizing, typography, colour, spacing, or layout. Reach for it on symptoms too: a panel that looks foreign next to HA's own pages, text that does not scale, hardcoded hex colours that break in dark mode, or tap targets too small on a tablet. NOT for integration backend Python, Lovelace cards, or YAML dashboards. Invoke before changing panel CSS/markup; re-invoke after /compact.
+description: >-
+  Use when changing how a Home Assistant custom panel looks — a Lit/TS panel web component,
+  its built bundle, or any CSS/markup affecting sizing, typography, colour, spacing, or
+  layout. Reach for it on symptoms too: a panel that looks foreign next to HA's own pages,
+  text that does not scale, hardcoded hex colours that break in dark mode, or tap targets
+  too small on a tablet. NOT for integration backend Python, Lovelace cards, or YAML
+  dashboards. Invoke before changing panel CSS/markup; re-invoke after /compact.
 ---
 
 # HA Custom Panel Design
