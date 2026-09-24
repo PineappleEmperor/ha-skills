@@ -113,6 +113,30 @@ def test_a_paragraph_fails_and_a_lead_in_does_not(tmp_path) -> None:
     assert len(fails) == 1 and "consecutive" in fails[0]
 
 
+def test_frontmatter_is_not_prose(tmp_path) -> None:
+    """A router's YAML block is metadata, and the schema's folded description is ten lines.
+
+    A three-field block was exactly `MAX_PROSE_RUN` lines of "prose" — `---`, two fields,
+    `---` — so it passed by coincidence, and the TRIGGER/SYMPTOMS form the schema asks for
+    failed the moment it was written. The block is delimited; it is classified as such.
+    """
+    root = _repo(tmp_path, "# T\n")
+    router = root / "plugins/ha/skills/demo/SKILL.md"
+    router.write_text(
+        "---\nname: demo\ndescription: >-\n  Use when demoing.\n  TRIGGER WHEN:\n"
+        "  - asked\n  - told\n  SYMPTOMS:\n  - a demo\n  - another\n---\n\n# Demo\n",
+        encoding="utf-8",
+    )
+    assert audit.check_no_prose_blocks(root) == ([], [])
+    kinds = {kind for _, kind, _ in audit.classify(router.read_text(encoding="utf-8"))}
+    assert "frontmatter" in kinds and "prose" not in kinds
+
+    # A `---` that is not at the top of the file is a rule, not a block opener.
+    router.write_text("# Demo\n\ntext\n\n---\n\nmore\n", encoding="utf-8")
+    kinds = [kind for _, kind, _ in audit.classify(router.read_text(encoding="utf-8"))]
+    assert "frontmatter" not in kinds
+
+
 def test_a_bullet_that_runs_to_a_paragraph_is_prose_wearing_a_dash(tmp_path) -> None:
     """The schema's wording; the wrapped continuations carry no marker of their own."""
     body = "# T\n\n- the bullet starts here\n" + "  and wraps, and wraps.\n" * 6

@@ -84,19 +84,33 @@ def canonical_columns(schema: str) -> set[tuple[str, ...]]:
 def classify(text: str) -> list[tuple[int, str, str]]:
     """Every line as (1-based number, kind, text), with fenced blocks resolved.
 
-    Kinds: fence, heading, table, bullet, labelled, quote, blank, prose. Only `prose` is
-    unlabelled, which is what the core rule forbids in quantity.
+    Kinds: frontmatter, fence, heading, table, bullet, labelled, quote, blank, prose. Only
+    `prose` is unlabelled, which is what the core rule forbids in quantity.
 
     A wrapped continuation line carries no marker of its own, so it classifies as prose and
     a bullet that runs to a paragraph is counted as the paragraph it is. That is the
     schema's own rule — "a bullet that runs to a paragraph is prose wearing a dash" — and
     it is deliberate here rather than an artefact of stripping the indent.
+
+    A router's YAML block is metadata rather than markdown, and the folded description the
+    schema asks for runs to ten lines, so it is delimited here: `---` on the first line,
+    through the next `---`. A rule elsewhere in a file is not an opener.
     """
     out: list[tuple[int, str, str]] = []
     fenced = False
-    for number, raw in enumerate(text.splitlines(), 1):
+    lines = text.splitlines()
+    front = 0
+    if lines and lines[0].strip() == "---":
+        close = next(
+            (i for i, raw in enumerate(lines) if i and raw.strip() == "---"), None
+        )
+        if close is not None:
+            front = close + 1
+    for number, raw in enumerate(lines, 1):
         line = raw.strip()
-        if line.startswith("```"):
+        if number <= front:
+            out.append((number, "frontmatter", line))
+        elif line.startswith("```"):
             fenced = not fenced
             out.append((number, "fence", line))
         elif fenced:
