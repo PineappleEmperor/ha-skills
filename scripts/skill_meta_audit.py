@@ -205,18 +205,31 @@ def check_skill_frontmatter(repo: Repo) -> Result:
             fails.append(f"{skill.parent.name}/SKILL.md has no frontmatter block")
             continue
         fm = parts[1]
-        fields = dict(re.findall(r"^([a-z-]+):\s*(.*)$", fm, re.MULTILINE))
-        if "name" not in fields:
+        # The block is YAML, so it is judged as YAML: the schema's TRIGGER/SYMPTOMS form
+        # needs a `>-` block scalar, and a line regex read the indicator as the text.
+        try:
+            fields = yaml.safe_load(fm) or {}
+        except yaml.YAMLError as exc:
+            fails.append(f"{skill.parent.name}/SKILL.md frontmatter is not YAML: {exc}")
+            continue
+        if not isinstance(fields, dict):
+            fails.append(f"{skill.parent.name}/SKILL.md frontmatter is not a mapping")
+            continue
+        name = fields.get("name")
+        if name is None:
             fails.append(f"{skill.parent.name}/SKILL.md frontmatter has no name field")
-        elif fields["name"].strip() != skill.parent.name:
+        elif str(name).strip() != skill.parent.name:
             fails.append(
-                f"{skill.parent.name}/SKILL.md name field is {fields['name'].strip()!r}"
+                f"{skill.parent.name}/SKILL.md name field is {str(name).strip()!r}"
             )
-        if "description" not in fields:
+        description = fields.get("description")
+        if description is None:
             fails.append(
                 f"{skill.parent.name}/SKILL.md frontmatter has no description field"
             )
-        elif not fields["description"].lstrip().startswith("Use when"):
+        elif not isinstance(description, str):
+            fails.append(f"{skill.parent.name}/SKILL.md description is not a string")
+        elif not description.lstrip().startswith("Use when"):
             fails.append(
                 f"{skill.parent.name}/SKILL.md description must start with 'Use when' "
                 "and state triggers, not what the skill does"

@@ -208,6 +208,40 @@ def test_description_summarising_the_skill_fails(tmp_path) -> None:
     assert any("must start with 'Use when'" in f for f in fails)
 
 
+def test_a_folded_description_is_judged_on_its_text_not_its_indicator(tmp_path) -> None:
+    """`docs/skill-schema.md` wants TRIGGER and SYMPTOMS bullet lists, which need `>-`.
+
+    A bullet line ends in a colon and a plain scalar cannot carry one, so the schema's
+    form has to be a block scalar — and a line regex then sees `>-` where the text
+    begins. The field is YAML; judge what YAML makes of it.
+    """
+    _skill(
+        tmp_path,
+        "ha-thing",
+        "name: ha-thing\n"
+        "description: >-\n"
+        "  Use when doing a thing.\n"
+        "  TRIGGER WHEN:\n"
+        "  - a thing is asked for\n"
+        "  SYMPTOMS:\n"
+        "  - the thing is wrong",
+    )
+    fails, _ = audit.check_skill_frontmatter(audit.Repo(tmp_path))
+    assert fails == []
+
+    _skill(
+        tmp_path,
+        "ha-thing",
+        "name: ha-thing\ndescription: >-\n  Material 3 tokens.\n  TRIGGER WHEN:\n  - asked",
+    )
+    fails, _ = audit.check_skill_frontmatter(audit.Repo(tmp_path))
+    assert any("must start with 'Use when'" in f for f in fails)
+
+    _skill(tmp_path, "ha-thing", "name: ha-thing\ndescription: [not, a, string]")
+    fails, _ = audit.check_skill_frontmatter(audit.Repo(tmp_path))
+    assert any("description" in f for f in fails)
+
+
 def test_name_must_match_its_directory(tmp_path) -> None:
     """The name field is how a skill is invoked, so it must be the directory's name."""
     _skill(tmp_path, "ha-thing", "name: ha-other\ndescription: Use when doing a thing")
