@@ -36,10 +36,15 @@ reading every pattern.
 |---|---|---|
 | 1 | frontmatter | `name`; `description` as TRIGGER and SYMPTOMS bullet lists, never a prose blob |
 | 2 | core principle | one bold line |
-| 3 | signpost | mermaid flowchart: task → file |
-| 4 | decision workflow | numbered gates; gate 0 is "read X first" when one exists |
-| 5 | anti-patterns | the anti-pattern table |
+| 3 | mode router | the `mode \| when \| read first` table — the decision workflow, and the only gate a reader needs |
+| 4 | mode detail | a `##` per mode that owns commands no reference file holds, and no other mode |
+| 5 | anti-patterns | the anti-pattern table, holding the rows *Anti-patterns, and where they live* admits |
 | 6 | reference files | the reference table |
+
+There is no signpost diagram. The mode router is the routing device, and a flowchart beside
+it is a second copy of the same decision — the reference implementation carries none either.
+A diagram explaining how the skill's parts fit is maintaining-tier material and belongs in
+this repository's `README.md`, which a reader of the skill never fetches.
 
 ## A task file — section order, fixed
 
@@ -96,7 +101,7 @@ column. Matching ignores case and backticks.
 | rule | `rule \| value` — a named constraint and what it is; the default where no narrower shape fits |
 | requirement | `# \| requirement \| answer \| default` — what is asked before anything is written |
 | check | `check \| what's needed \| where to fix` — an external validator's checks, one row each |
-| mode | `mode \| when \| read first` — `SKILL.md`'s router, and nowhere else |
+| mode | `mode \| when \| read first` — `SKILL.md`'s router, and nowhere else; `read first` names the entry file and nothing the reference table already says about it |
 
 A table whose columns fit none of these is a finding, not a licence to invent one — but a
 table degraded into a bullet list is a loss, so report it and the set gains a row. The
