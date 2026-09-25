@@ -29,7 +29,7 @@ No fixture. The agent needs read access to `plugins/ha/skills/` — all three sk
 | A | `ha-triage` | the skill file itself; no `reference/` layer in this package |
 | B | `ha-integration` | `reference/patterns.md` |
 | C | `ha-panel-design` | the skill file itself, plus the Material 3 / HA theming sources it names |
-| D | `ha-integration` | `reference/github-setup.md`, then `reference/versioning.md` |
+| D | `ha-integration` | `reference/github-setup.md`, from the mode table; also naming `reference/versioning.md` from the reference map's "cutting or gating a release" row is correct, not a fail |
 | E | `ha-integration` | `reference/testing.md` |
 
 Each answer must cite a sentence from the skill, not an inference. **An answer reached
