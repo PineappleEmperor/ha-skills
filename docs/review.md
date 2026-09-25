@@ -9,7 +9,7 @@ This file owns only the review itself.
 
 | Kind | When | Scope the reviewer is given | What it reports |
 |---|---|---|---|
-| **Diff review** | Before every push is handed over | The diff since the last pushed commit, and the register rows the diff claims to close | A row whose claim the diff does not bear out; an invariant below that the diff breaks |
+| **Diff review** | After every file pass, and before every push is handed over | The diff since the last review, the register rows the diff claims to close, and every shipped file the diff touches read in full | A row whose claim the diff does not bear out; an invariant below that the diff breaks |
 | **Single-source sweep** | After any pass that touched more than one prose file, and on request | Every shipped file, read in full, against the hierarchy and the three CI READMEs | A fact stated in two places (both locations); a fact stated outside its owner; a pointer whose target file or heading does not exist |
 | **Purpose audit** | On request, when the shape of the plugin is in question | Every file, read in full, against the goal each `SKILL.md` states in its `description` and the three tiers in the hierarchy | A file or section that serves no task a reader opens it for; two files serving the same one |
 
@@ -47,6 +47,13 @@ their own README and are not reviews.
    in the new one, or was deleted deliberately and named as deleted in the register. Checked
    against `git show <base>:<path>`, clause by clause, not by reading the new file alone: a
    deletion makes a structural audit greener, so nothing mechanical objects to it.
+10. **Every shipped file has the shape `docs/skill-schema.md` gives it**, read section by
+    section: the section order for its kind, every block one of the *Block types*, every
+    table a canonical column set, a `SKILL.md` anti-pattern table holding only what
+    *Anti-patterns, and where they live* admits, a `reference` cell naming what that section
+    says it names, a mode row naming only its entry file, and a pointer in the *Pointers*
+    form. `scripts/skill_schema_audit.py` measures runs, columns and numbering; everything
+    else in that document is a reading.
 
 ## Protocol
 
