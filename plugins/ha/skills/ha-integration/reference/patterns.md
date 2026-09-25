@@ -40,24 +40,25 @@ it.**
 
 ### Step 1: Lay out the files by responsibility
 
-If `__init__.py` exceeds ~100 lines of logic, extract. `api.py` is the split that matters
-most: it decouples device logic from the HA lifecycle, so it is unit-testable without a
-running HA instance.
+The developer docs' set — https://developers.home-assistant.io/docs/creating_integration_file_structure/
+— plus the splits the quality scale asks for and the ones this skill adds. If `__init__.py`
+exceeds ~100 lines of logic, extract. `api.py` is the split that matters most: it decouples
+device logic from the HA lifecycle, so it is unit-testable without a running HA instance.
 
-| File | Holds |
-|---|---|
-| `__init__.py` | `async_setup_entry`, `async_unload_entry`, `async_migrate_entry` only — no business logic |
-| `coordinator.py` | `DataUpdateCoordinator` subclass |
-| `api.py` | all I/O to the device or service — no HA imports |
-| `models.py` | dataclasses and type aliases for device data |
-| `entity.py` | shared base entity class when several platforms extend the same base |
-| `const.py` | constants only — no imports from other local modules |
-| `config_flow.py` | config and options flows |
-| `diagnostics.py` | `async_get_config_entry_diagnostics` |
-| `services.py` | `async_setup_services(hass)` called from `async_setup` |
-| `migration.py` | `async_migrate_entry` logic when it is complex; import into `__init__.py` |
-| `helpers.py` / `util.py` | pure functions shared across platforms |
-| `<platform>.py` | one per HA platform (`sensor.py`, `button.py`, …) |
+| File | Holds | Taken from |
+|---|---|---|
+| `__init__.py` | `async_setup_entry`, `async_unload_entry`, `async_migrate_entry` only — no business logic | the file-structure page |
+| `<platform>.py` | one per HA platform — `sensor.py`, `switch.py`, `light.py`, `button.py`, … | the file-structure page |
+| `coordinator.py` | `DataUpdateCoordinator` subclass | the `common-modules` rule, https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/common-modules/ |
+| `entity.py` | shared base entity class when several platforms extend the same base | the `common-modules` rule |
+| `config_flow.py` | config and options flows | the `config-flow` rule in `reference/quality-scale.md` |
+| `diagnostics.py` | `async_get_config_entry_diagnostics` | the `diagnostics` rule in `reference/quality-scale.md` |
+| `api.py` | all I/O to the device or service — no HA imports | this skill |
+| `models.py` | dataclasses and type aliases for device data | this skill |
+| `const.py` | constants only — no imports from other local modules | this skill |
+| `services.py` | `async_setup_services(hass)` called from `async_setup` | this skill |
+| `migration.py` | `async_migrate_entry` logic when it is complex; import into `__init__.py` | this skill |
+| `helpers.py` / `util.py` | pure functions shared across platforms | this skill |
 
 ### Step 2: Pick the shape HA models
 
