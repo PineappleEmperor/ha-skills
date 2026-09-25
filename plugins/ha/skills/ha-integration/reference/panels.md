@@ -55,7 +55,7 @@ as `'MockConfigEntry' object has no attribute 'runtime_data'`.
 ### Step 3: Register the static path and the panel in `async_setup`
 
 Once per process, for the reason `reference/patterns.md` gives under *Register
-integration-global resources in `async_setup`, not `async_setup_entry` — Step 2*.
+integration-global resources in `async_setup`, not `async_setup_entry` — Step 3*.
 
 | Rule | Value |
 |---|---|
@@ -170,7 +170,7 @@ export function displayName(item: Pick<Set, "name">): string { ... }   // "{?}" 
 ### A panel that reads devices reads them by config entry — Step 3
 
 A panel is a client of the device registry WebSocket API, which changed under the same
-rewrite `reference/patterns.md` describes in *Devices belong to one config entry — Step 2*.
+rewrite `reference/patterns.md` describes in *Devices belong to one config entry — Step 3*.
 Read at the `2026.9.0` tag, `homeassistant/helpers/device_registry.py` and
 `homeassistant/components/config/device_registry.py`.
 

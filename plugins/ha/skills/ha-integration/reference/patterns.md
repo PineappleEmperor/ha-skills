@@ -9,9 +9,9 @@ it.**
 ## Contents
 
 1. Writing code in `custom_components/`
-2. Step 1: Pick the shape HA models
-3. Step 2: Wire the entry setup and unload
-4. Step 3: Split the files by responsibility
+2. Step 1: Lay out the files by responsibility
+3. Step 2: Pick the shape HA models
+4. Step 3: Wire the entry setup and unload
 5. Step 4: Type it, and suppress nothing
 6. Cases
 7. `config_flow.py` — Step 1
@@ -21,15 +21,15 @@ it.**
 11. `UpdateEntity` (firmware/OTA install) — Step 1
 12. `DataUpdateCoordinator` (polling) — Step 1
 13. Entity push subscriptions — Step 1
-14. `ConfigEntry` mutation — Step 2
+14. `ConfigEntry` mutation — Step 3
 15. Logging — Step 1
 16. Custom services — Step 1
 17. `services.yaml` + `strings.json` (hassfest rules) — Step 1
-18. Register integration-global resources in `async_setup`, not `async_setup_entry` — Step 2
+18. Register integration-global resources in `async_setup`, not `async_setup_entry` — Step 3
 19. Diagnostics platform — Step 1
-20. Devices belong to one config entry — Step 2
+20. Devices belong to one config entry — Step 3
 21. Units: prefer the enumerators — Step 1
-22. Config entry migration — Step 2
+22. Config entry migration — Step 3
 23. Deprecated platform APIs — Step 1
 24. Announced for a release after 2026.9 — Step 1
 25. `TYPE_CHECKING` for expensive or circular imports — Step 4
@@ -38,33 +38,7 @@ it.**
 
 ## Writing code in `custom_components/`
 
-### Step 1: Pick the shape HA models
-
-- An entity platform when the thing has state a user would see in history or on a dashboard.
-- A registered service when it is an action with no state.
-- An option on the config entry when it is configuration.
-
-> **Note:** notify is an entity platform because a notifier is addressable; a one-shot "send
-> this" with no addressable target is a service.
-
-### Step 2: Wire the entry setup and unload
-
-1. `PLATFORMS` lists the platforms this integration provides, and each name has a module
-   beside it — `async_forward_entry_setups` imports `<domain>/<platform>.py` per name.
-2. `async_setup_entry` stores state on `entry.runtime_data`, then forwards:
-   `await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)`.
-3. `async_unload_entry` mirrors it:
-   `return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)`, plus
-   `await coordinator.async_shutdown()` when the unload succeeds.
-4. If setup creates a device, add `async_remove_config_entry_device` so a user can remove it.
-5. If the entity carries `_attr_translation_key`, add the matching block to `strings.json`
-   and `translations/en.json` — `entity-translations` in `reference/quality-scale.md`.
-
-**Timing:** the audit fails a repo whose `PLATFORMS` names a module that does not exist
-(*What the audit checks now* in ha-integration-ci's README), so a half-wired platform is
-caught at PR time rather than by a reader remembering this list.
-
-### Step 3: Split the files by responsibility
+### Step 1: Lay out the files by responsibility
 
 If `__init__.py` exceeds ~100 lines of logic, extract. `api.py` is the split that matters
 most: it decouples device logic from the HA lifecycle, so it is unit-testable without a
@@ -84,6 +58,32 @@ running HA instance.
 | `migration.py` | `async_migrate_entry` logic when it is complex; import into `__init__.py` |
 | `helpers.py` / `util.py` | pure functions shared across platforms |
 | `<platform>.py` | one per HA platform (`sensor.py`, `button.py`, …) |
+
+### Step 2: Pick the shape HA models
+
+- An entity platform when the thing has state a user would see in history or on a dashboard.
+- A registered service when it is an action with no state.
+- An option on the config entry when it is configuration.
+
+> **Note:** notify is an entity platform because a notifier is addressable; a one-shot "send
+> this" with no addressable target is a service.
+
+### Step 3: Wire the entry setup and unload
+
+1. `PLATFORMS` lists the platforms this integration provides, and each name has a module
+   beside it — `async_forward_entry_setups` imports `<domain>/<platform>.py` per name.
+2. `async_setup_entry` stores state on `entry.runtime_data`, then forwards:
+   `await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)`.
+3. `async_unload_entry` mirrors it:
+   `return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)`, plus
+   `await coordinator.async_shutdown()` when the unload succeeds.
+4. If setup creates a device, add `async_remove_config_entry_device` so a user can remove it.
+5. If the entity carries `_attr_translation_key`, add the matching block to `strings.json`
+   and `translations/en.json` — `entity-translations` in `reference/quality-scale.md`.
+
+**Timing:** the audit fails a repo whose `PLATFORMS` names a module that does not exist
+(*What the audit checks now* in ha-integration-ci's README), so a half-wired platform is
+caught at PR time rather than by a reader remembering this list.
 
 ### Step 4: Type it, and suppress nothing
 
@@ -342,7 +342,7 @@ version lands, or when the window elapses.
 - Subscribe in `async_added_to_hass`, unsubscribe in `async_will_remove_from_hass` — prevents resource leaks
 - Never subscribe in `__init__`
 
-### `ConfigEntry` mutation — Step 2
+### `ConfigEntry` mutation — Step 3
 - Never mutate `ConfigEntry` directly — always use `hass.config_entries.async_update_entry(entry, data=..., options=...)`
 
 ### Logging — Step 1
@@ -373,7 +373,7 @@ Covers the rule `log-when-unavailable` (`reference/quality-scale.md`) and HA's l
 
 | Rule | Value |
 |---|---|
-| where to register | `async_setup`, not `async_setup_entry` — *Register integration-global resources in `async_setup`, not `async_setup_entry` — Step 2* below says why |
+| where to register | `async_setup`, not `async_setup_entry` — *Register integration-global resources in `async_setup`, not `async_setup_entry` — Step 3* below says why |
 | an entity-targeted action | `async_register_platform_entity_service()` |
 | where a service is documented | `services.yaml`, with its icons in `icons.json` |
 | a device dropdown | `selector: device` with `integration: {domain}`, never `selector: config_entry`, which the HA frontend labels "Integration" |
@@ -411,7 +411,7 @@ device, entry = async_get_device_and_config_entry_for_domain(
 | a collapsible service form | `fields: { appearance: { collapsed: true, fields: {...} } }` |
 | what a section changes in the call | nothing — sections are UI-only, the call data stays flat, so the voluptuous schema is unaffected |
 
-### Register integration-global resources in `async_setup`, not `async_setup_entry` — Step 2
+### Register integration-global resources in `async_setup`, not `async_setup_entry` — Step 3
 The registration happens once per process; doing it per entry races when two entries set up in parallel. Claim the `hass.data` flag **before** the `await`, or both entries pass the check. The panel case, with the code, is `reference/panels.md`.
 
 ### Diagnostics platform — Step 1
@@ -436,7 +436,7 @@ async def async_get_config_entry_diagnostics(
 ```
 No registration needed — HA discovers it automatically from the file name.
 
-### Devices belong to one config entry — Step 2
+### Devices belong to one config entry — Step 3
 
 A device has exactly one config entry and at most one subentry: read `config_entry_id` and
 `config_subentry_id`.
@@ -493,7 +493,7 @@ A device has exactly one config entry and at most one subentry: read `config_ent
 | `CONCENTRATION_PARTS_PER_CUBIC_METER` | nothing — core names no replacement unit | removed in **2027.8** | Step 1 |
 | `PERCENTAGE` as a unit of measurement, on a humidity or battery sensor | `UnitOfRatio.PERCENTAGE` | the constant itself is not deprecated and is now defined from the enum (`PERCENTAGE: Final = UnitOfRatio.PERCENTAGE.value`), but using it as a unit is | Step 1 |
 
-### Config entry migration — Step 2
+### Config entry migration — Step 3
 
 Implement `async_migrate_entry` in `__init__.py` whenever the stored `entry.data` schema changes:
 ```python
