@@ -25,7 +25,7 @@ Nothing here is authored from memory.
 
 ### Step 1: Gather the requirements
 
-Ask all ten at once.
+Ask all nine at once.
 
 | # | Requirement | Answer | Default |
 |---|---|---|---|
@@ -36,9 +36,8 @@ Ask all ten at once.
 | 5 | data model | polling, via `DataUpdateCoordinator` · push, via a subscription | — |
 | 6 | auth model | none · API key · OAuth · username and password | — |
 | 7 | platforms | any of button, sensor, binary_sensor, switch, light, number, select, text, notify, cover, climate, fan, lock, media_player, vacuum | — |
-| 8 | MicroPython firmware | yes adds the `firmware/` exclude to `pyrightconfig.json` | no |
-| 9 | licence | the full text goes in `LICENSE` | MIT |
-| 10 | version | — | `0.1.0` |
+| 8 | licence | the full text goes in `LICENSE` | MIT |
+| 9 | version | — | `0.1.0` |
 
 **Timing:** the domain is fixed once the repository exists — it is the folder name, the
 manifest key, the brand folder and every entity id. Settle it before Step 2.
@@ -83,7 +82,7 @@ Under `custom_components/<domain>/`. What goes inside each file is `reference/pa
 | `CLAUDE.md` | the per-repo rule that a session invokes this skill before touching integration code | the snippet below |
 | `hacs.json` | the HACS manifest | the shape below |
 | `pyproject.toml` | HA core's ruff rule set adapted for a custom integration — `google` docstrings, HA's Python floor, no `from __future__ import annotations` — and the `asyncio_mode = "auto"` without which no async test runs | `templates/pyproject.toml`, verbatim |
-| `pyrightconfig.json` | the pyright config, with or without the `exclude` | the snippet under *MicroPython firmware files — Step 4* in `reference/patterns.md` |
+| `pyrightconfig.json` | the pyright config — keep the `pythonVersion` key, since it is what the audit's version comparison (ha-integration-ci's README) reads from this file | the snippet below |
 | `requirements.test.txt` | the pinned test harness — why the pin matters is `reference/testing.md` | `templates/requirements.test.txt` |
 | `conftest.py` | the root conftest, at the repo root and never in `tests/` — why is `reference/testing.md` | `templates/conftest.py` |
 | `tests/` | one file per module under test | `reference/testing.md` |
@@ -108,6 +107,12 @@ Under `custom_components/<domain>/`. What goes inside each file is `reference/pa
 Before writing or modifying integration code (config flow, platforms, manifest,
 websocket, services…), invoke the `ha-integration` skill. Re-invoke it after any
 `/compact`, since compaction can drop the skill's guidance from context.
+```
+
+**`pyrightconfig.json`**
+
+```json
+{"pythonVersion": "3.14", "typeCheckingMode": "standard"}
 ```
 
 **`README.md` — the AI-assistance note**, as a GitHub `> [!NOTE]` admonition, the skill name

@@ -34,7 +34,6 @@ it.**
 24. Announced for a release after 2026.9 — Step 1
 25. `TYPE_CHECKING` for expensive or circular imports — Step 4
 26. Typed `ConfigEntry` — Step 4
-27. MicroPython firmware files — Step 4
 
 ## Writing code in `custom_components/`
 
@@ -513,17 +512,3 @@ async def async_setup_entry(
     coordinator = entry.runtime_data  # typed as MyCoordinator, no cast needed
     async_add_entities(MySensor(coordinator, desc) for desc in SENSORS)
 ```
-
-### MicroPython firmware files — Step 4
-
-Exclude them from Pyright entirely in `pyrightconfig.json`. Keep the `pythonVersion` key:
-it is what the audit's version comparison (ha-integration-ci's README) reads from this
-file:
-```json
-{
-  "pythonVersion": "3.14",
-  "exclude": ["firmware/"],
-  "typeCheckingMode": "standard"
-}
-```
-
