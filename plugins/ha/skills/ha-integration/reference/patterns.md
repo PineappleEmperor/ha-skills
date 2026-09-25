@@ -82,9 +82,8 @@ device logic from the HA lifecycle, so it is unit-testable without a running HA 
 5. If the entity carries `_attr_translation_key`, add the matching block to `strings.json`
    and `translations/en.json` — `entity-translations` in `reference/quality-scale.md`.
 
-**Timing:** the audit fails a repo whose `PLATFORMS` names a module that does not exist
-(*What the audit checks now* in ha-integration-ci's README), so a half-wired platform is
-caught at PR time rather than by a reader remembering this list.
+**Timing:** what the audit checks of this list at PR time, and how, is *What the audit
+checks now* in ha-integration-ci's README.
 
 ### Step 4: Type it, and suppress nothing
 
