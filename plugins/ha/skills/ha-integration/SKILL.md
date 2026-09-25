@@ -46,25 +46,6 @@ Check the working directory, pick a mode, then **read that mode's file before ac
 | **Audit** | verify the skill was actually followed | `reference/audit.md` |
 | **Release / repo setup** | first release, tokens, required checks | `reference/github-setup.md` |
 
-## Modify existing integration
-
-Identify the integration domain from `custom_components/`. Then ask what to add or change:
-
-- Add new platform — also `strings.json`/`translations/`, and the tier claim in `reference/quality-scale.md`
-- Extend an existing platform, or the coordinator
-- Add/update translations
-- Add options flow
-- Add or fix tests (start from `reference/testing.md`)
-- Add reconfigure flow (`async_step_reconfigure`)
-- Add reauth flow (`async_step_reauth`)
-- Add or update `quality_scale.yaml`
-- Add GitHub workflows
-- Fix a bug — *Debugging discipline* in `reference/discipline.md` before naming the cause
-- Cut a release (publish the rc draft, then the full one)
-- Other
-
-Apply the same patterns and code style as a scaffold.
-
 ## Lint & quality check
 
 1. Run `ruff check .` and `ruff format --check .` under the shipped `pyproject.toml` — fix all actionable issues; suppress intentional ones with `# noqa` and a reason
@@ -83,12 +64,10 @@ Each owning file carries the rest.
 | a version bump in a PR, a branch or the committed manifest | leave the version to the release tag | `release.yml` patches `manifest.json` at publish, so a hand bump conflicts with it | *Step 1: Let the merged PRs' labels decide the version* in `reference/versioning.md` |
 | a PR body carrying prose | the commit subjects, or nothing | the subjects are the changelog | *Step 3: Stop at the subject* in `reference/commits.md` |
 | merging past a red check, or disabling one to merge | fix the failure, or write down why the gate is wrong first | a failing check is the gate working | *Merge discipline — never merge a red check* in `reference/discipline.md` |
-| a workflow authored by hand, or a copied config paraphrased | the CI repositories' reusable workflows as callers, and the configs copied verbatim with every deviation listed | the audit compares copies against their source, not intent | *Step 1: Callers, not bodies; copies, not paraphrases* in `reference/audit.md` |
+| a workflow authored by hand, or a copied config paraphrased | the CI repositories' reusable workflows as callers, and the configs copied verbatim with every deviation listed | the mechanical audit compares no copy against its source, so only a listed adaptation is checkable | *Step 1: Callers, not bodies; copies, not paraphrases* in `reference/audit.md` |
 | trusting a pin, SHA, count or release captured more than ~3 months ago | the re-derive command in that value's row | a cached value rots silently | *The cached facts* in `reference/freshness.md` |
 | a rule written from a Home Assistant release newer than the release row | the row's own re-derive command, moved in the skill's repository and never in a consumer | the skill is current for one release at a time, and what that release changed is in the `reference/patterns.md` section that owns the topic | *The cached facts* in `reference/freshness.md` |
 | naming a root cause before tracing it | trace publish → subscribe → handler, then name the call | a hunch that arrives first is a guess wearing the diagnosis's clothes | *Debugging discipline* in `reference/discipline.md` |
-| `from __future__ import annotations` | nothing — HA's Python floor is past PEP 649 | core bans it, and the shipped `pyproject.toml` enforces the ban | *Step 4: Type it, and suppress nothing* in `reference/patterns.md` |
-| a suite with no root `conftest.py`, or no `asyncio_mode = "auto"` | `templates/conftest.py` at the repo root and `templates/pyproject.toml`, copied | each fails the whole suite rather than one test | *Testing — prerequisites before any of the rules below apply* in `reference/testing.md` |
 
 ## Reference map
 
