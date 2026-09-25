@@ -46,7 +46,7 @@ device logic from the HA lifecycle, so it is unit-testable without a running HA 
 
 | File | Holds | Taken from |
 |---|---|---|
-| `__init__.py` | `async_setup_entry`, `async_unload_entry`, `async_migrate_entry` only — no business logic | the file-structure page |
+| `__init__.py` | `async_setup_entry`, `async_unload_entry`, `async_migrate_entry` only — no business logic | the file-structure page names it; the no-business-logic constraint is this skill's |
 | `<platform>.py` | one per HA platform — `sensor.py`, `switch.py`, `light.py`, `button.py`, … | the file-structure page |
 | `coordinator.py` | `DataUpdateCoordinator` subclass | the `common-modules` rule, https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/common-modules/ |
 | `entity.py` | shared base entity class when several platforms extend the same base | the `common-modules` rule |
@@ -81,8 +81,8 @@ device logic from the HA lifecycle, so it is unit-testable without a running HA 
 5. If the entity carries `_attr_translation_key`, add the matching block to `strings.json`
    and `translations/en.json` — `entity-translations` in `reference/quality-scale.md`.
 
-**Timing:** what the audit checks of this list at PR time, and how, is *What the audit
-checks now* in ha-integration-ci's README.
+What the audit checks of this list at PR time, and how, is *What the audit checks now* in
+ha-integration-ci's README.
 
 ### Step 4: Type it, and suppress nothing
 
@@ -146,7 +146,7 @@ the rows a custom integration gets wrong against it.
 |---|---|
 | the base class | `NotifyEntity`, from `homeassistant.components.notify` |
 | `async_send_message` | `(self, message: str, title: str \| None = None) -> None` — no `**kwargs` and no `data` to read, since the service schema carries `message` and `title` only |
-| `_attr_unique_id` | set per instance, never at class scope |
+| `_attr_unique_id` | `f"{device_id}_notify"`, set per instance and never at class scope |
 | `_attr_has_entity_name` and `_attr_name` | `True` and `"Notify"` |
 | what setup reads | `{**entry.data, **entry.options}`, off the typed entry — *Typed `ConfigEntry` — Step 4* |
 
@@ -161,8 +161,8 @@ the rows a custom integration gets wrong against it.
 |---|---|
 | the schema | `vol.Required(ATTR_MESSAGE): cv.string`, `vol.Optional(ATTR_TITLE): cv.string`, `vol.Optional(ATTR_DATA): dict` — the constants and `DOMAIN as NOTIFY_DOMAIN` from `homeassistant.components.notify.const` |
 | the handler | a closure bound to one device, reading `call.data.get(ATTR_DATA) or {}` beside `call.data[ATTR_MESSAGE]` |
-| registering | in `async_setup_entry`, since the service is per device: `hass.services.async_register(NOTIFY_DOMAIN, device_id, handler, schema=SERVICE_SCHEMA)`, guarded by `hass.services.has_service(NOTIFY_DOMAIN, device_id)` |
-| removing | in `async_unload_entry`, `hass.services.async_remove(NOTIFY_DOMAIN, device_id)` under the same guard |
+| registering | in `async_setup_entry`, since the service is per device: `hass.services.async_register(NOTIFY_DOMAIN, device_id, handler, schema=SERVICE_SCHEMA)`, under `if not hass.services.has_service(NOTIFY_DOMAIN, device_id)` |
+| removing | in `async_unload_entry`, `hass.services.async_remove(NOTIFY_DOMAIN, device_id)`, under the inverse guard, `if hass.services.has_service(NOTIFY_DOMAIN, device_id)` |
 | what it creates | `notify.{device_id}` — `notify.living_room_display`, say — with full `data` support |
 
 ### Entity platform files — Step 1
@@ -384,29 +384,29 @@ A device has exactly one config entry and at most one subentry: read `config_ent
 
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
-| `DeviceEntry.config_entries` | `config_entry_id` | a compatibility property returning `{config_entry_id}`, carrying no `report_usage` and **no removal release stated by core** | Step 2 |
-| `DeviceEntry.config_entries_subentries` | `config_entry_id` and `config_subentry_id` | a compatibility property returning `{config_entry_id: {config_subentry_id}}`, with **no removal release stated by core** | Step 2 |
-| `DeviceEntry.primary_config_entry` | `config_entry_id` | a compatibility property returning `config_entry_id` itself, with **no removal release stated by core** | Step 2 |
+| `DeviceEntry.config_entries` | `config_entry_id` | a compatibility property returning `{config_entry_id}`, carrying no `report_usage` and **no removal release stated by core** | Step 3 |
+| `DeviceEntry.config_entries_subentries` | `config_entry_id` and `config_subentry_id` | a compatibility property returning `{config_entry_id: {config_subentry_id}}`, with **no removal release stated by core** | Step 3 |
+| `DeviceEntry.primary_config_entry` | `config_entry_id` | a compatibility property returning `config_entry_id` itself, with **no removal release stated by core** | Step 3 |
 | a loop over a device's config entries to find your own | `async_get_device_and_config_entry_for_domain(hass, device_id, domain=DOMAIN)` | the loop gets a pre-migration composite device id wrong, which the helper resolves | *Custom services — Step 1* |
-| `DeviceInfo["via_device"]`, `async_get_or_create(via_device=…)` | `via_device_id`, looked up with `async_get_device_id_by_identifier(hass, identifier, config_entry_id=…)` | an identifier is unique only within a config entry; stops working in **2027.8.0** | Step 2 |
-| a `via_device` or `via_device_id` naming the device itself | drop the self-reference | ignored and logged now; raises from **2027.8.0** | Step 2 |
-| a composite device id passed as `via_device_id` | the id of one real device | resolved and logged now; stops working in **2027.8** | Step 2 |
-| `DeviceRegistry.async_get_device()` | `async_get_device_by_identifier()`, `async_get_device_by_connection()` or `async_get_devices()`, each with the config entry id | the lookup is ambiguous once identifiers repeat across entries; stops working in **2027.8.0** | Step 2 |
-| `async_update_device(add_config_entry_id=…, add_config_subentry_id=…, remove_config_entry_id=…, remove_config_subentry_id=…)` | `new_config_entry_id`, `new_config_subentry_id`, or `async_remove_device` | a move is no longer an add plus a remove; stops working in **2027.8.0** | Step 2 |
-| `async_get_or_create` re-registering an existing device under a different subentry | `async_update_device(new_config_subentry_id=…)` | it silently moves the device; raises from **2027.8.0** | Step 2 |
-| a `disabled_by` that contradicts the owning config entry or the parent device | leave it `UNDEFINED` and let the registry derive it | the value is dropped and logged now; raises from **2027.8** | Step 2 |
-| `async_update_device(merge_connections=…, merge_identifiers=…)` | `new_connections`, `new_identifiers`, with the full set computed yourself | merging only ever adds; stops working in **2027.9.0** | Step 2 |
-| `async_get_or_create(default_manufacturer=…, default_model=…, default_name=…)` | `manufacturer`, `model`, `name` | there is no primary integration left to defer to; stops working in **2027.9.0** | Step 2 |
-| `async_get_or_create(created_at=…, modified_at=…)` | drop the arguments | the registry owns both and always ignored them; stops working in **2027.9.0** | Step 2 |
-| `suggested_area` on `DeviceEntry`, `async_get_or_create` or `async_update_device` | drop it | it is ignored; **2026.9** on the property and **2026.9.0** on the `async_update_device` call site | Step 2 |
-| a non-`str` value in a device-registry string field (`model`, `sw_version`, …) | pass a `str` | coerced with a warning now; stops working in **2026.12.0** | Step 2 |
-| `DeviceRegistry.devices` as a mapping — `.get()`, `.values()`, `.keys()`, `registry.devices[id]`, `device_id in registry.devices` | iterate it for the entries, `async_get(device_id)` for a lookup | it is a read-only collection now; the mapping shim stops working in **2027.9.0** | Step 2 |
-| `DeviceRegistry.child_devices` as a mapping | iterate it | there is no compatibility shim at all: no `.get()`, no `.values()`, no lookup by id | Step 2 |
-| `DeviceRegistry.deleted_devices` | nothing — it is an internal detail of the registry | stops working in **2027.9.0** | Step 2 |
-| `DeviceRegistry.async_is_composite_device_id()` | `async_get(device_id, include_composite_devices=False)` returning `None` | the parameter makes the same test; stops working in **2027.9.0** | Step 2 |
-| a `DeviceEntry`-only attribute read off a child device — `connections`, `manufacturer`, `model`, `model_id`, `hw_version`, `sw_version`, `serial_number`, `configuration_url`, `entry_type`, `via_device_id` | branch on `parent_device_id`, then read the parent device | the shim hands back the `DeviceEntry` default, not the parent's value; stops working in **2027.9.0** | Step 2 |
-| `async_device_info_to_link_from_entity()`, `async_device_info_to_link_from_device_id()` | `entity.device_entry = async_entity_id_to_device(hass, source_entity_id)` | both already return `None`; removed in **2027.8.0** | Step 2 |
-| `async_remove_stale_devices_links_keep_entity_device()`, `async_remove_stale_devices_links_keep_current_device()` | `helper_integration.async_remove_helper_devices(…, remove_all_devices=True)` | both already do nothing; removed in **2027.8.0** | Step 2 |
+| `DeviceInfo["via_device"]`, `async_get_or_create(via_device=…)` | `via_device_id`, looked up with `async_get_device_id_by_identifier(hass, identifier, config_entry_id=…)` | an identifier is unique only within a config entry; stops working in **2027.8.0** | Step 3 |
+| a `via_device` or `via_device_id` naming the device itself | drop the self-reference | ignored and logged now; raises from **2027.8.0** | Step 3 |
+| a composite device id passed as `via_device_id` | the id of one real device | resolved and logged now; stops working in **2027.8** | Step 3 |
+| `DeviceRegistry.async_get_device()` | `async_get_device_by_identifier()`, `async_get_device_by_connection()` or `async_get_devices()`, each with the config entry id | the lookup is ambiguous once identifiers repeat across entries; stops working in **2027.8.0** | Step 3 |
+| `async_update_device(add_config_entry_id=…, add_config_subentry_id=…, remove_config_entry_id=…, remove_config_subentry_id=…)` | `new_config_entry_id`, `new_config_subentry_id`, or `async_remove_device` | a move is no longer an add plus a remove; stops working in **2027.8.0** | Step 3 |
+| `async_get_or_create` re-registering an existing device under a different subentry | `async_update_device(new_config_subentry_id=…)` | it silently moves the device; raises from **2027.8.0** | Step 3 |
+| a `disabled_by` that contradicts the owning config entry or the parent device | leave it `UNDEFINED` and let the registry derive it | the value is dropped and logged now; raises from **2027.8** | Step 3 |
+| `async_update_device(merge_connections=…, merge_identifiers=…)` | `new_connections`, `new_identifiers`, with the full set computed yourself | merging only ever adds; stops working in **2027.9.0** | Step 3 |
+| `async_get_or_create(default_manufacturer=…, default_model=…, default_name=…)` | `manufacturer`, `model`, `name` | there is no primary integration left to defer to; stops working in **2027.9.0** | Step 3 |
+| `async_get_or_create(created_at=…, modified_at=…)` | drop the arguments | the registry owns both and always ignored them; stops working in **2027.9.0** | Step 3 |
+| `suggested_area` on `DeviceEntry`, `async_get_or_create` or `async_update_device` | drop it | it is ignored; **2026.9** on the property and **2026.9.0** on the `async_update_device` call site | Step 3 |
+| a non-`str` value in a device-registry string field (`model`, `sw_version`, …) | pass a `str` | coerced with a warning now; stops working in **2026.12.0** | Step 3 |
+| `DeviceRegistry.devices` as a mapping — `.get()`, `.values()`, `.keys()`, `registry.devices[id]`, `device_id in registry.devices` | iterate it for the entries, `async_get(device_id)` for a lookup | it is a read-only collection now; the mapping shim stops working in **2027.9.0** | Step 3 |
+| `DeviceRegistry.child_devices` as a mapping | iterate it | there is no compatibility shim at all: no `.get()`, no `.values()`, no lookup by id | Step 3 |
+| `DeviceRegistry.deleted_devices` | nothing — it is an internal detail of the registry | stops working in **2027.9.0** | Step 3 |
+| `DeviceRegistry.async_is_composite_device_id()` | `async_get(device_id, include_composite_devices=False)` returning `None` | the parameter makes the same test; stops working in **2027.9.0** | Step 3 |
+| a `DeviceEntry`-only attribute read off a child device — `connections`, `manufacturer`, `model`, `model_id`, `hw_version`, `sw_version`, `serial_number`, `configuration_url`, `entry_type`, `via_device_id` | branch on `parent_device_id`, then read the parent device | the shim hands back the `DeviceEntry` default, not the parent's value; stops working in **2027.9.0** | Step 3 |
+| `async_device_info_to_link_from_entity()`, `async_device_info_to_link_from_device_id()` | `entity.device_entry = async_entity_id_to_device(hass, source_entity_id)` | both already return `None`; removed in **2027.8.0** | Step 3 |
+| `async_remove_stale_devices_links_keep_entity_device()`, `async_remove_stale_devices_links_keep_current_device()` | `helper_integration.async_remove_helper_devices(…, remove_all_devices=True)` | both already do nothing; removed in **2027.8.0** | Step 3 |
 
 > **Note:** the three compatibility properties are the supported way to read a *synthesized
 > composite* device — the read-only entry `async_get()` returns for a pre-migration composite
