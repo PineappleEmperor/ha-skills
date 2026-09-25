@@ -101,8 +101,8 @@ The `strict-typing` rule in `reference/quality-scale.md`. Every file passes the 
 
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
-| `# type: ignore` to silence a typing error | fix the type | under `strict-typing` a suppression is a violation, not a shortcut | Step 4 |
-| `hass.data[DOMAIN][entry.entry_id]`, which is untyped | `entry.runtime_data` on a typed `ConfigEntry` | the alias carries the runtime type, so no cast is needed | *Typed `ConfigEntry` — Step 4* |
+| `# type: ignore` to silence a typing error | fix the type | under `strict-typing` a suppression is a violation, not a shortcut | https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/strict-typing/ |
+| `hass.data[DOMAIN][entry.entry_id]`, which is untyped | `entry.runtime_data` on a typed `ConfigEntry` | the alias carries the runtime type, so no cast is needed | https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/runtime-data/, and *Typed `ConfigEntry` — Step 4* |
 | a bare `cast()` on a stubless third-party import | `# type: ignore[import-untyped]`, or contribute stubs | it is the one accepted suppression, and only with the reason beside it | Step 4 |
 
 ## Cases
@@ -177,7 +177,7 @@ async def async_setup_entry(
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
 | `discovery.async_load_platform` with a `BaseNotificationService` | the `NotifyEntity` above | the legacy pair is deprecated and fails silently rather than erroring | Step 1 |
-| a custom payload passed through `NotifyEntity` | a service registered directly, below | `data` is not in its service schema, which carries `message` and `title` only | Step 1 |
+| a custom payload passed through `NotifyEntity` | a service registered directly, below | `data` is not in its service schema, which carries `message` and `title` only | https://developers.home-assistant.io/docs/core/entity/notify/ |
 
 **A custom payload — animations, sounds, colours — registered as its own service:**
 
@@ -271,7 +271,7 @@ def device_info(self) -> DeviceInfo:
 |---|---|---|---|
 | `update_before_add=True` on `async_add_entities` | compute `native_value` as a property off `self.coordinator.data`, or call `self._handle_coordinator_update()` at the end of `async_added_to_hass`, after `await super().async_added_to_hass()` | it schedules a debouncer timer that outlives the test and the frozen clock | Step 1 |
 | a collection sensor whose state is the raw list or a timestamp | the `len()` count, the items in an attribute, `_attr_state_class = MEASUREMENT` | `last_updated` and `last_changed` are state attributes already, and a count graphs | Step 1 |
-| deleting `state_class` to silence an impossible-pair warning | the `state_class` that device class permits | deleting it drops long-term statistics altogether | Step 1 |
+| deleting `state_class` to silence an impossible-pair warning | the `state_class` that device class permits | deleting it drops long-term statistics altogether | `DEVICE_CLASS_STATE_CLASSES` in `homeassistant/components/sensor/const.py` |
 
 **Symptom:** `CoordinatorEntity` does not push initial state on add, so an entity that sets
 `_attr_native_value` inside `_handle_coordinator_update` reads `unknown` until the next poll
@@ -363,7 +363,7 @@ Covers the rule `log-when-unavailable` (`reference/quality-scale.md`) and HA's l
 
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
-| wrapping the fetch in your own `try`/log | raise `UpdateFailed` and let the coordinator log | the manual log double-logs and fails `log-when-unavailable` | Step 1 |
+| wrapping the fetch in your own `try`/log | raise `UpdateFailed` and let the coordinator log | the manual log double-logs and fails `log-when-unavailable` | https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/log-when-unavailable/ |
 | `_LOGGER.exception(...)` beside a raise in `async_setup_entry` | raise alone | HA logs the reason once already | Step 1 |
 | an f-string in a log call | a lazy `%` arg | the f-string evaluates even when the level is disabled | Step 1 |
 | logging a credential, API key, token or raw auth response | log the fact, never the secret | a log is read by whoever is handed it | Step 1 |
