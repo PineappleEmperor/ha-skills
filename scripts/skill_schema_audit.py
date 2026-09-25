@@ -9,8 +9,9 @@ underneath it, and do the steps of a procedure run in order. `--list` prints the
 which is the list of record.
 
 It does NOT yet check either `SKILL.md` section order or a task file's, so a router with no
-TRIGGER/SYMPTOMS frontmatter, no signpost and no anti-pattern table passes it — the three
-routers are in exactly that state, and only a reading catches them.
+mode table and no anti-pattern table passes it, and only a reading catches that — invariant
+10 of `docs/review.md` is that reading. The schema names no signpost, and a single-file
+skill's order is not yet stated there, which is what a section-order check waits on.
 
 THE CANONICAL COLUMN SETS ARE READ OUT OF THE SCHEMA, not copied here, so a shape is added
 by adding a row to *Canonical tables* and nowhere else. A checker carrying its own copy of a
