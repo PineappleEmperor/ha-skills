@@ -139,97 +139,32 @@ DATA_SCHEMA = vol.Schema(
 | a hand-written `SelectSelector` of device-class values | `DeviceClassSelector` | it carries HA's own values, so the hand-written translations for them go too | Step 1 |
 
 ### Notify platform (modern pattern — HA 2023.8+) — Step 1
-```python
-# notify.py
-from homeassistant.components.notify import NotifyEntity
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .models import MyConfigEntry  # the typed-entry alias, under Step 4 above
+The entity itself is https://developers.home-assistant.io/docs/core/entity/notify/; these are
+the rows a custom integration gets wrong against it.
 
-
-class MyNotifyEntity(NotifyEntity):
-    """The notify entity for one device."""
-
-    _attr_has_entity_name = True
-    _attr_name = "Notify"
-
-    def __init__(self, hass: HomeAssistant, device_id: str) -> None:
-        """Bind the entity to its device."""
-        self.hass = hass
-        self._device_id = device_id
-        self._attr_unique_id = f"{device_id}_notify"  # per instance, not class scope
-
-    # This is the real signature. NotifyEntity's service schema carries message and
-    # title only, so there is no **kwargs and no `data` to read.
-    async def async_send_message(self, message: str, title: str | None = None) -> None:
-        """Send the message to the device."""
-
-
-async def async_setup_entry(
-    hass: HomeAssistant, entry: MyConfigEntry, async_add_entities: AddEntitiesCallback
-) -> None:
-    """Add one notify entity for the config entry."""
-    opts = {**entry.data, **entry.options}
-    async_add_entities([MyNotifyEntity(hass, opts[CONF_DEVICE_ID])])
-```
+| Rule | Value |
+|---|---|
+| the base class | `NotifyEntity`, from `homeassistant.components.notify` |
+| `async_send_message` | `(self, message: str, title: str \| None = None) -> None` — no `**kwargs` and no `data` to read, since the service schema carries `message` and `title` only |
+| `_attr_unique_id` | set per instance, never at class scope |
+| `_attr_has_entity_name` and `_attr_name` | `True` and `"Notify"` |
+| what setup reads | `{**entry.data, **entry.options}`, off the typed entry — *Typed `ConfigEntry` — Step 4* |
 
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
-| `discovery.async_load_platform` with a `BaseNotificationService` | the `NotifyEntity` above | the legacy pair is deprecated and fails silently rather than erroring | Step 1 |
+| `discovery.async_load_platform` with a `BaseNotificationService` | `NotifyEntity` | the legacy pair is deprecated and fails silently rather than erroring | Step 1 |
 | a custom payload passed through `NotifyEntity` | a service registered directly, below | `data` is not in its service schema, which carries `message` and `title` only | https://developers.home-assistant.io/docs/core/entity/notify/ |
 
 **A custom payload — animations, sounds, colours — registered as its own service:**
 
-```python
-# notify.py
-from collections.abc import Awaitable, Callable
-
-from homeassistant.components.notify.const import (
-    ATTR_DATA,
-    ATTR_MESSAGE,
-    ATTR_TITLE,
-    DOMAIN as NOTIFY_DOMAIN,
-)
-from homeassistant.core import HomeAssistant, ServiceCall
-from homeassistant.helpers import config_validation as cv
-import voluptuous as vol
-
-SERVICE_SCHEMA = vol.Schema(
-    {
-        vol.Required(ATTR_MESSAGE): cv.string,
-        vol.Optional(ATTR_TITLE): cv.string,
-        vol.Optional(ATTR_DATA): dict,
-    }
-)
-
-
-def make_notify_handler(
-    hass: HomeAssistant, device_id: str
-) -> Callable[[ServiceCall], Awaitable[None]]:
-    """Build the service handler bound to one device."""
-
-    async def async_handle(call: ServiceCall) -> None:
-        """Push the message, with any extra payload, to the device."""
-        data = call.data.get(ATTR_DATA) or {}
-        await push_to_device(hass, device_id, call.data[ATTR_MESSAGE], data)
-
-    return async_handle
-
-
-# __init__.py async_setup_entry:
-if not hass.services.has_service(NOTIFY_DOMAIN, device_id):
-    hass.services.async_register(
-        NOTIFY_DOMAIN,
-        device_id,
-        make_notify_handler(hass, device_id),
-        schema=SERVICE_SCHEMA,
-    )
-# async_unload_entry:
-if hass.services.has_service(NOTIFY_DOMAIN, device_id):
-    hass.services.async_remove(NOTIFY_DOMAIN, device_id)
-```
-This creates `notify.{device_id}` (e.g. `notify.living_room_display`) with full data support.
+| Rule | Value |
+|---|---|
+| the schema | `vol.Required(ATTR_MESSAGE): cv.string`, `vol.Optional(ATTR_TITLE): cv.string`, `vol.Optional(ATTR_DATA): dict` — the constants and `DOMAIN as NOTIFY_DOMAIN` from `homeassistant.components.notify.const` |
+| the handler | a closure bound to one device, reading `call.data.get(ATTR_DATA) or {}` beside `call.data[ATTR_MESSAGE]` |
+| registering | in `async_setup_entry`, since the service is per device: `hass.services.async_register(NOTIFY_DOMAIN, device_id, handler, schema=SERVICE_SCHEMA)`, guarded by `hass.services.has_service(NOTIFY_DOMAIN, device_id)` |
+| removing | in `async_unload_entry`, `hass.services.async_remove(NOTIFY_DOMAIN, device_id)` under the same guard |
+| what it creates | `notify.{device_id}` — `notify.living_room_display`, say — with full `data` support |
 
 ### Entity platform files — Step 1
 
