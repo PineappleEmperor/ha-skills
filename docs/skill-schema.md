@@ -142,7 +142,7 @@ column. Matching ignores case and backticks.
 | rule | `rule \| value` — a named constraint and what it is; the default where no narrower shape fits |
 | requirement | `# \| requirement \| answer \| default` — what is asked before anything is written |
 | check | `check \| what's needed \| where to fix` — an external validator's checks, one row each |
-| mode | `mode \| when \| read first \| source`, or `mode \| when \| read first` in a router with no external pages to name — `SKILL.md`'s router, and nowhere else; `read first` names the entry file, `when` says when to open it, and `source` holds the developer-docs pages for that action or `—` |
+| mode | `mode \| when \| read first \| source`, or `mode \| when \| read first` in a router with no external pages to name — `SKILL.md`'s router, and nowhere else; `read first` names the entry file, `when` says when to open it, and `source` holds the external pages for that action — developer docs, or core's own tree — or `—` |
 
 A table whose columns fit none of these is a finding, not a licence to invent one — but a
 table degraded into a bullet list is a loss, so report it and the set gains a row. The
