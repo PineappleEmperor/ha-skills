@@ -286,9 +286,10 @@ requires the action to pass with no errors **and no ignores**, so every row is r
 | `archived` | the repository is not archived | GitHub repo settings |
 | `brands` | `brand/icon.png` present, else the domain listed in `home-assistant/brands` | a file in the repo |
 | `description` | the repository has a description | GitHub repo settings → About |
-| `hacsjson` | `hacs.json` exists | a file in the repo |
+| `hacsjson` | `hacs.json` exists, carries `name`, and names a `filename` whenever `zip_release` is set | a file in the repo |
 | `images` | the README carries at least one image | add a screenshot to the README |
 | `information` | `README.md` exists | a file in the repo |
+| `integration_manifest` | `manifest.json` carrying `domain`, `name`, `version`, `documentation`, `issue_tracker` and `codeowners` — Step 6 | a file in the repo |
 | `issues` | the Issues tab is enabled | GitHub repo settings → Features |
 | `topics` | the repository has at least one topic | GitHub repo settings → About |
 | `license` | a `LICENSE`, per Step 1 | a file in the repo |

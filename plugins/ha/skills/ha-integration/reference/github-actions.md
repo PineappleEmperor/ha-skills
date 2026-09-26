@@ -86,7 +86,7 @@ carry nothing of ours to version:
 | Rule | Value |
 |---|---|
 | `dependency-review.yml` | fails a PR adding a dependency with a high-severity advisory, and gates no lower severity, since Dependabot raises those on its own schedule; needs the dependency graph on, per `reference/github-setup.md` |
-| `hacs-validate.yml` | runs HACS's nine checks with no `ignore:` input — *Step 7: Pass HACS validation* in `reference/scaffold.md` says what each demands |
+| `hacs-validate.yml` | runs HACS's ten checks with no `ignore:` input — *Step 7: Pass HACS validation* in `reference/scaffold.md` says what each demands |
 | `hassfest-validate.yml` | runs core's hassfest plugins over the integration; what it does with a custom integration's quality scale is `reference/quality-scale.md` |
 | `issue_stale.yml` | labels issues and PRs untouched for 60 days, and closes none |
 
