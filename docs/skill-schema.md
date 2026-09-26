@@ -46,6 +46,10 @@ it is a second copy of the same decision — the reference implementation carrie
 A diagram explaining how the skill's parts fit is maintaining-tier material and belongs in
 this repository's `README.md`, which a reader of the skill never fetches.
 
+Every `SKILL.md` is a router. A body of knowledge with no modes of its own — how a panel
+should look, say — is a reference file of the skill whose task reaches it, never a skill of
+its own, so there is no single-file skill and no third section order.
+
 ## A task file — section order, fixed
 
 | # | Section | Form |
@@ -92,17 +96,22 @@ made before the relevant file is open.
 | what a `SKILL.md` row holds | the anti-pattern, the replacement, one clause of why, and a pointer to the owning section — never the reasoning the owning file gives |
 | a rule stated in both | not a restatement, provided the `SKILL.md` row is the one-clause form and the detail is not repeated |
 
-**What the `reference` column names**, in every anti-pattern table:
+**What the `reference` column names**, in every anti-pattern table: where the rule was read
+or observed. A row is trusted as written, so the cell is the rule's origin, not a place to
+go and verify it.
 
 | Scenario | Choice |
 |---|---|
-| the rule is Home Assistant's | the developer-docs page, or the core call site the value was read at |
-| the rule is a deprecation | the removal release, and the call site that states it |
-| the rule is ours | the step or case in this repository's files that states it |
+| the rule is Home Assistant's | the developer-docs page, or the quality-scale rule |
+| the rule is a deprecation | the removal release, and the core file and call site it was read at, at the tag the release row of `reference/freshness.md` names |
+| the rule follows an external spec | the spec and the revision `reference/freshness.md` names for it — the brands README, the harness release |
 | the rule is a CI behaviour | the heading in the CI repository's README that owns it |
+| the rule was discovered here | where it was observed: the register row, or the repository and issue |
 
-A `reference` cell reading `Step 1`, in a table that sits under Step 1, tells a reader
-nothing they did not have.
+A cell never names a step of the file it sits in, `this file`, or a tool that enforces the
+rule. None of those is where the rule came from, and a reader who wants the reasoning is
+sent to the origin, not back to the row. Anti-patterns are not invented; each one was read
+somewhere or happened somewhere, and the cell says which.
 
 ## Canonical tables
 
