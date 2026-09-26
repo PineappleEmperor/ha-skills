@@ -67,8 +67,12 @@ their own README and are not reviews.
    does not survive is recorded as not upheld, with the reason.
 4. **An upheld finding is a register row before it is a fix.** From there the row's life is
    `docs/backlog.md`'s header.
-5. **Re-run the same kind over the new diff until a pass returns nothing.** The closing row
-   records the passes and the count from each.
+5. **One review per file pass, and its findings go to the author with a verdict on each
+   before anything else moves.** A re-run happens only when a shipped file changed in
+   response to a finding; a diff that touches only the register or a commit subject is
+   checked by the author, not by another dispatch. Four passes over one register diff on
+   2026-09-25 returned wording each time, at ~145k tokens a pass, which is what this rule
+   stops. The closing row records the passes and the count from each.
 6. **The closing report** says, in this order: what was found per pass, which rows closed and
    in which commits, which rows remain open, and a `## Your turn` table for the push or the
    merge. A push whose PR opener is still queued is still a hand-over.
