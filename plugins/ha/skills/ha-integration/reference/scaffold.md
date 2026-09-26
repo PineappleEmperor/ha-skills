@@ -237,11 +237,7 @@ consistent and nothing is upscaled.
 ### Step 6: Order `manifest.json`
 
 `domain` first, `name` second, then every remaining key alphabetically — hassfest fails any
-other order. Every key below is read from
-https://developers.home-assistant.io/docs/creating_integration_manifest/; what hassfest and
-HACS require beyond the page is read from `script/hassfest/manifest.py` in core and
-`custom_components/hacs/utils/validate.py` in hacs/integration, at the revisions the release
-row and the HACS validation row of `reference/freshness.md` name.
+other order.
 
 ```json
 {
@@ -262,6 +258,7 @@ row and the HACS validation row of `reference/freshness.md` name.
 
 | Rule | Value |
 |---|---|
+| where each rule below was read | https://developers.home-assistant.io/docs/creating_integration_manifest/; beyond the page, `script/hassfest/manifest.py` in core at the release row's tag and `custom_components/hacs/utils/validate.py` in hacs/integration at the HACS validation row's revision, both rows in `reference/freshness.md` |
 | `domain`, `name` | required; the domain is the directory name and never changes |
 | `version` | required for a custom integration — hassfest and HACS both fail its absence; SemVer or CalVer, the forms hassfest's `verify_version` accepts; what sets it at release is `reference/versioning.md` |
 | `documentation` | required; `https`, and not under `www.home-assistant.io/integrations/`, which hassfest reserves for core |
