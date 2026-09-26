@@ -36,10 +36,16 @@ reading every pattern.
 |---|---|---|
 | 1 | frontmatter | `name`; `description` as TRIGGER and SYMPTOMS bullet lists, never a prose blob |
 | 2 | core principle | one bold line |
-| 3 | mode router | the `mode \| when \| read first` table — the decision workflow, and the only gate a reader needs |
+| 3 | mode router | the `mode \| when \| read first` table — the decision workflow, and the only gate a reader needs; a row for every action that has a file, not only for every state of the working directory |
 | 4 | mode detail | a `##` per mode that owns commands no reference file holds, and no other mode |
-| 5 | anti-patterns | the anti-pattern table, holding the rows *Anti-patterns, and where they live* admits |
-| 6 | reference files | the reference table |
+| 5 | reference files | the reference table |
+
+A router carries no anti-pattern table. Every anti-pattern lives in the file that owns its
+topic, beside the step it contradicts, and the mode table is what gets a reader there before
+the mistake: committing, merging, releasing, debugging and acting on a cached value are
+rows, so the rules those actions break are one hop away. The reference implementation's
+*Critical Anti-Patterns* table is its router, because that skill has no modes; a second
+table beside a mode table is a second router, carrying facts the hierarchy places elsewhere.
 
 There is no signpost diagram. The mode router is the routing device, and a flowchart beside
 it is a second copy of the same decision — the reference implementation carries none either.
@@ -83,30 +89,23 @@ line opening its section.
 
 ## Anti-patterns, and where they live
 
-An anti-pattern nobody reads changes nothing. A reader reaches a reference file only once the
-router has sent them there, so a rule that only exists in `dependabot.md` is invisible to
-every session that never touches Dependabot — and the expensive mistakes are exactly the ones
-made before the relevant file is open.
-
 | Rule | Value |
 |---|---|
-| where the detail lives | the reference file that owns the topic, in its own anti-pattern table beside the step it contradicts |
-| what `SKILL.md` carries | one anti-pattern table, whose rows are the cross-cutting and the expensive ones |
-| what earns a `SKILL.md` row | the mistake is available in every mode, or it costs a release, a rewrite or a merged red check to undo |
-| what a `SKILL.md` row holds | the anti-pattern, the replacement, one clause of why, and a pointer to the owning section — never the reasoning the owning file gives |
-| a rule stated in both | not a restatement, provided the `SKILL.md` row is the one-clause form and the detail is not repeated |
+| where an anti-pattern lives | the reference file that owns the topic, in the anti-pattern table beside the step it contradicts, and nowhere else |
+| what gets a reader to it before the mistake | the mode table — a row for the action, naming that file |
+| what `SKILL.md` carries | no anti-pattern table; a router that restates a rule is a second copy of it |
 
-**What the `reference` column names**, in every anti-pattern table: where the rule was read
-or observed. A row is trusted as written, so the cell is the rule's origin, not a place to
-go and verify it.
+**What the `reference` column names**: where the rule was read or observed. A row is trusted
+as written, so the cell is the rule's origin, not a place to go and verify it.
 
 | Scenario | Choice |
 |---|---|
 | the rule is Home Assistant's | the developer-docs page, or the quality-scale rule |
-| the rule is a deprecation | the removal release, and the core file and call site it was read at, at the tag the release row of `reference/freshness.md` names |
+| the rule was read from core | the core file and call site, at the `.0` tag of the release the release row of `reference/freshness.md` names |
+| the rule is a deprecation | the removal release, and the core file and call site that states it, read at that same tag |
 | the rule follows an external spec | the spec and the revision `reference/freshness.md` names for it — the brands README, the harness release |
 | the rule is a CI behaviour | the heading in the CI repository's README that owns it |
-| the rule was discovered here | where it was observed: the register row, or the repository and issue |
+| the rule was discovered in use | the public repository and the issue or pull request where it happened — never `docs/backlog.md`, which no consumer has |
 
 A cell never names a step of the file it sits in, `this file`, or a tool that enforces the
 rule. None of those is where the rule came from, and a reader who wants the reasoning is
