@@ -38,8 +38,9 @@ their own README and are not reviews.
    `.claude/settings.json`, states it. The one exception is the evals directory, which its
    README says is maintenance of the skill and not copied into a scaffold (row 203).
 8. **Every Home Assistant release number stated in a skill file is read back from core**, at
-   the tag the release row of `plugins/ha/skills/ha-integration/reference/freshness.md`
-   names — `raw.githubusercontent.com/home-assistant/core/<tag>/…`. A deprecation deadline
+   the `.0` tag of the release the release row of
+   `plugins/ha/skills/ha-integration/reference/freshness.md` names —
+   `raw.githubusercontent.com/home-assistant/core/<tag>/…`. A deprecation deadline
    is quoted from the `breaks_in_ha_version` of the call site it describes, one per API, not
    summarised across a group of them.
 9. **A rewrite is lossless.** Where a diff changes the *shape* of a passage — prose into a
@@ -49,10 +50,10 @@ their own README and are not reviews.
    deletion makes a structural audit greener, so nothing mechanical objects to it.
 10. **Every shipped file has the shape `docs/skill-schema.md` gives it**, read section by
     section: the section order for its kind, every block one of the *Block types*, every
-    table a canonical column set, a `SKILL.md` anti-pattern table holding only what
-    *Anti-patterns, and where they live* admits, a `reference` cell naming what that section
-    says it names, a mode row naming only its entry file, and a pointer in the *Pointers*
-    form. `scripts/skill_schema_audit.py` measures runs, columns and numbering; everything
+    table a canonical column set, no anti-pattern table in a router and every anti-pattern
+    in the file that owns its topic with a `reference` cell naming where the rule was read
+    or observed, a mode row for every action that has a file and naming only its entry
+    file, and a pointer in the *Pointers* form. `scripts/skill_schema_audit.py` measures runs, columns and numbering; everything
     else in that document is a reading.
 
 ## Protocol
