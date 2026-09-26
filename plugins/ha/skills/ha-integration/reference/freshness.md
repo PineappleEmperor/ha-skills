@@ -1,8 +1,9 @@
 # Cached facts and when to re-derive them
 
 Scope: values copied from somewhere else, which were right when captured and go wrong
-silently. No rule lives here — a rule stays in the file that owns it, and a row holds only
-the value and the revision it was read at.
+silently. No rule about an integration lives here — that stays in the file that owns its
+topic; a row holds only the value and the revision it was read at, and the one rule this
+file states is how its own rows move.
 
 **Core rule:** re-derive any row older than ~3 months, and update every listed consumer in
 the same pass; the release row moves only in a refresh of the skill's own repository, never
