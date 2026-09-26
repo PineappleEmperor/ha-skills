@@ -39,10 +39,12 @@ reading every pattern.
 | 3 | mode router | the `mode \| when \| read first \| source` table — the decision workflow, and the only gate a reader needs; a row for every action that has a file, not only for every state of the working directory, and the external pages for that action in the fourth column |
 | 4 | mode detail | a `##` per mode that owns commands no reference file holds, and no other mode |
 
-The mode router is the reference map: one row per file, keyed by the action that opens it,
-with the developer-docs pages for that action beside it. A separate `file | when to read`
-table under the router, or a list of source URLs above it, is the same relation stated a
-second time, and the two drift — the `ha-integration` router carried both until 2026-09-26.
+The mode router is the reference map: one row per action, each naming the file that action
+opens — a file may take several rows, and a mode whose commands live in the router names
+none — with the developer-docs pages for that action beside it. A separate
+`file | when to read` table under the router, or a list of source URLs above it, is the
+same relation stated a second time, and the two drift — the `ha-integration` router carried
+both until 2026-09-26.
 
 A router carries no anti-pattern table. Every anti-pattern lives in the file that owns its
 topic, beside the step it contradicts, and the mode table is what gets a reader there before
