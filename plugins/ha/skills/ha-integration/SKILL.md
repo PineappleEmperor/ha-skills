@@ -1,8 +1,8 @@
 ---
 name: ha-integration
 description: >-
-  Use when developing or troubleshooting a Home Assistant custom integration — Python under
-  `custom_components/`.
+  Use when developing or troubleshooting a Home Assistant custom integration — the package
+  under `custom_components/`.
   TRIGGER WHEN:
   - scaffolding an integration, or adding a platform, flow, coordinator, service, diagnostics
   or manifest key to one

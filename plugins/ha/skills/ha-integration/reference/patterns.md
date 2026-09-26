@@ -1,7 +1,9 @@
 # Implementation patterns, file structure and typing
 
-Read this when writing or changing Python under `custom_components/`. Panel code is
-`reference/panels.md`; tests are `reference/testing.md`.
+Read this when writing or changing the package under `custom_components/` — its Python, and
+the `strings.json`, `services.yaml` and translation files hassfest checks against it. Panel
+code is `reference/panels.md`; tests are `reference/testing.md`; the manifest is *Step 6:
+Order `manifest.json`* in `reference/scaffold.md`.
 
 **Pick the shape Home Assistant already models, then write that shape the way core writes
 it.**
