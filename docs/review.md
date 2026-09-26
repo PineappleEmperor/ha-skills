@@ -106,3 +106,7 @@ their own README and are not reviews.
   of them, because a deleted clause shortens a prose run. The sweep that found them was
   looking for schema violations, not for losses; hence invariant 9, and hence one file per
   pass, each diffed against its previous version before it is committed (row 228).
+- Invariant 4, then "each subject covers the whole diff of its commit", was read on
+  2026-09-26 as forbidding a commit that touches four files for one decision, and the
+  history was recut by file three times before the author ruled that a commit is one
+  decision (row 247); hence the invariant's present wording.
