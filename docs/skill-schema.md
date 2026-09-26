@@ -158,9 +158,6 @@ are eight names; a second column exists only if this file knows what goes in it,
 `github-setup.md` knows the producing workflow for two of the eight. A column padded with
 what another file owns is a restatement waiting to drift.
 
-In a file with two procedures, the anti-pattern table's `reference` column names the topic
-as well as the step — `commit Step 2`, `PR body Step 3` — matching the case-heading form.
-
 ## Block types, and the only cases that earn one
 
 | Block | Written as | Earned when |
