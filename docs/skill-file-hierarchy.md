@@ -12,19 +12,22 @@ links.
 
 Three tiers:
 
-1. **SKILL.md** — routes. Owns the mode table, the reference map, and one anti-pattern
-   table of the mistakes that cost a release, a rewrite or a merged red check when made
-   before the owning file is open. Each of those rows is a one-clause pointer to the file
-   that owns the rule, never the rule's reasoning. Any fact stated here is stated *only* here.
-2. **Task files** — one per trigger. Own their topic outright, including the anti-pattern
-   table for that topic.
-3. **The currency ledger** (`freshness.md`) — owns every fact the skill took from outside
-   itself: the Home Assistant release it is written for, the Python floor, the harness pin,
-   the action versions, the revision of an external spec it was read against. Each row
-   carries when the fact was captured, the command that re-derives it, the files that
-   depend on it, and the check that keeps them in step. A reader opens it to ask whether
-   the skill is still current, and what moves if it is not. Task files cite a row; they
-   never restate its value.
+1. **SKILL.md** — routes. Owns the mode table, the reference map, and the commands of a
+   mode no reference file holds. It carries no anti-pattern table: the mode table has a row
+   for every action that has a file, so the rules an action breaks are one hop away — the
+   shape is *Anti-patterns, and where they live* in `docs/skill-schema.md`. Any fact stated
+   here is stated *only* here.
+2. **Task files** — one per trigger. Own their topic outright, including every anti-pattern
+   for that topic.
+3. **The currency ledger** (`freshness.md`) — owns the values the skill copies from outside
+   itself and must keep in step with their source: the Home Assistant release it is written
+   for, the Python floor, the harness pin, the action versions, the revision of an external
+   spec it was read against. Each row carries when the value was captured, the command that
+   re-derives it, the files that hold a copy, and the check that keeps the copies in step. A
+   reader opens it to ask whether the skill is still current, and what moves if it is not.
+   A task file cites a row; where a file has to hold the value itself — a config file's
+   schema, a release read at a tag — the row lists it as a consumer. A fact read from core
+   and stated once in its owning file needs no row.
 
 ## Ownership
 
@@ -44,8 +47,8 @@ Three tiers:
 | Dependabot: ecosystems, grouping, floors, exemption | `dependabot.md` | The reader is configuring or debugging Dependabot. `versioning.md` and `github-setup.md` link. |
 | scaffolding: what to ask, what to generate | `scaffold.md` | The reader is starting a repo. |
 | audit procedure — the judgement items | `audit.md` | The reader is auditing. Owns no facts of its own; it cites the owners. |
-| the skill's currency — every external fact it depends on, with its capture date, re-derivation command, consumers and gate | `freshness.md` | The reader is asking whether the skill is still current. Every other file cites a row and never restates its value. |
-| how a panel looks — type scale, theme tokens, spacing, touch targets, disclosure | `panel-design.md` | The reader is changing a panel's CSS or markup. `panels.md` owns how it is built and served and links here; arrives when the `ha-panel-design` skill folds into this one (row 238). |
+| the skill's currency — the values it copies from outside itself, each with its capture date, re-derivation command, the files holding a copy, and the check that keeps them in step | `freshness.md` | The reader is asking whether the skill is still current. A task file cites the row; a file that must hold the value is listed as its consumer. |
+| how a panel looks — type scale, theme tokens, spacing, touch targets, disclosure | `panel-design.md` | The reader is changing a panel's CSS or markup. Planned: this file arrives when the `ha-panel-design` skill folds into this one (row 242); until then `panels.md` and `SKILL.md` point at that skill, and `panels.md` will point here instead. |
 
 ## Conflicts found, and how each was resolved
 
