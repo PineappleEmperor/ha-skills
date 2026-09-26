@@ -12,11 +12,19 @@ links.
 
 Three tiers:
 
-1. **SKILL.md** — routes. Owns nothing except the mode table and the invariants that cause
-   damage when missed. Any fact stated here is stated *only* here.
-2. **Task files** — one per trigger. Own their topic outright.
-3. **Fact files** (`freshness.md`) — own values that rot, with dates and re-derivation
-   commands. Task files cite them; they never restate the values.
+1. **SKILL.md** — routes. Owns the mode table, the reference map, and one anti-pattern
+   table of the mistakes that cost a release, a rewrite or a merged red check when made
+   before the owning file is open. Each of those rows is a one-clause pointer to the file
+   that owns the rule, never the rule's reasoning. Any fact stated here is stated *only* here.
+2. **Task files** — one per trigger. Own their topic outright, including the anti-pattern
+   table for that topic.
+3. **The currency ledger** (`freshness.md`) — owns every fact the skill took from outside
+   itself: the Home Assistant release it is written for, the Python floor, the harness pin,
+   the action versions, the revision of an external spec it was read against. Each row
+   carries when the fact was captured, the command that re-derives it, the files that
+   depend on it, and the check that keeps them in step. A reader opens it to ask whether
+   the skill is still current, and what moves if it is not. Task files cite a row; they
+   never restate its value.
 
 ## Ownership
 
@@ -36,7 +44,8 @@ Three tiers:
 | Dependabot: ecosystems, grouping, floors, exemption | `dependabot.md` | The reader is configuring or debugging Dependabot. `versioning.md` and `github-setup.md` link. |
 | scaffolding: what to ask, what to generate | `scaffold.md` | The reader is starting a repo. |
 | audit procedure — the judgement items | `audit.md` | The reader is auditing. Owns no facts of its own; it cites the owners. |
-| values that rot | `freshness.md` | Dated, with a re-derivation command per row. |
+| the skill's currency — every external fact it depends on, with its capture date, re-derivation command, consumers and gate | `freshness.md` | The reader is asking whether the skill is still current. Every other file cites a row and never restates its value. |
+| how a panel looks — type scale, theme tokens, spacing, touch targets, disclosure | `panel-design.md` | The reader is changing a panel's CSS or markup. `panels.md` owns how it is built and served and links here; arrives when the `ha-panel-design` skill folds into this one (row 238). |
 
 ## Conflicts found, and how each was resolved
 
