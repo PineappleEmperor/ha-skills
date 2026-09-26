@@ -72,8 +72,9 @@ their own README and are not reviews.
    before anything else moves.** A re-run happens only when a shipped file changed in
    response to a finding; a diff that touches only the register or a commit subject is
    checked by the author, not by another dispatch. Four passes over one register diff on
-   2026-09-25 returned wording each time, at ~145k tokens a pass, which is what this rule
-   stops. The closing row records the passes and the count from each.
+   2026-09-25 cost 265k, 160k, 144k and 143k subagent tokens, and the last three returned
+   only wording, which is what this rule stops. The closing row records the passes and the
+   count from each.
 6. **The closing report** says, in this order: what was found per pass, which rows closed and
    in which commits, which rows remain open, and a `## Your turn` table for the push or the
    merge. A push whose PR opener is still queued is still a hand-over.
