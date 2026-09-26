@@ -29,7 +29,7 @@ its source, and never runs the repo's tests.**
 
 ### Step 1: Callers, not bodies; copies, not paraphrases
 
-The invariant in `SKILL.md`, checked per file.
+The core rule of `reference/github-actions.md`, checked per file.
 
 | Rule | Value |
 |---|---|

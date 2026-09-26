@@ -5,7 +5,7 @@ carries, where each piece comes from, and what may differ from its source. GitHu
 settings (token, ruleset, required checks) are `reference/github-setup.md`.
 
 **A scaffold carries one caller workflow per reusable workflow plus a few copied configs —
-no workflow body and no script, the invariant in `SKILL.md`.**
+no workflow body and no script.**
 
 ## Contents
 
