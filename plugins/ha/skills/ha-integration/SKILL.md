@@ -35,7 +35,7 @@ meets it.**
 
 ## Detect the mode
 
-Check the working directory, pick a mode, then **read that mode's file before acting**.
+Pick the mode from what is about to be done, then **read that mode's file before acting**.
 
 | Mode | When | Read first |
 |---|---|---|
@@ -43,8 +43,14 @@ Check the working directory, pick a mode, then **read that mode's file before ac
 | **Modify** | `custom_components/` exists and something is being added, changed or fixed | `reference/patterns.md` |
 | **Test** | writing or fixing tests for an integration | `reference/testing.md` |
 | **Lint** | hygiene pass over existing code | *Lint & quality check* below |
+| **Debug** | a root cause is about to be named | `reference/discipline.md` |
+| **Commit / PR** | writing a commit subject, a PR title or a PR body | `reference/commits.md` |
+| **Merge** | a check is red, or a merge is about to happen | `reference/discipline.md` |
+| **Workflow** | writing or reviewing a workflow file | `reference/github-actions.md` |
+| **Release** | cutting or gating a release, or touching the version in `manifest.json` | `reference/versioning.md` |
+| **Repo setup** | first release, tokens, required checks | `reference/github-setup.md` |
 | **Audit** | verify the skill was actually followed | `reference/audit.md` |
-| **Release / repo setup** | first release, tokens, required checks | `reference/github-setup.md` |
+| **Currency** | acting on a pin, SHA, count or Home Assistant release number | `reference/freshness.md` |
 
 ## Lint & quality check
 
@@ -53,21 +59,6 @@ Check the working directory, pick a mode, then **read that mode's file before ac
 3. Check `quality_scale.yaml` exists; if not, offer to create it
 4. Check `manifest.json` — correct `documentation` URL pointing to the repo, keys in the order *Step 6: Order `manifest.json`* in `reference/scaffold.md` gives
 5. Report: files changed · issues fixed · issues intentionally suppressed (with rationale) · remaining manual work
-
-## Anti-patterns
-
-The ones that reach every mode, or cost a release, a rewrite or a merged red check to undo.
-Each owning file carries the rest.
-
-| anti-pattern | use instead | why (one clause) | reference |
-|---|---|---|---|
-| a version bump in a PR, a branch or the committed manifest | leave the version to the release tag | `release.yml` patches `manifest.json` at publish, so a hand bump conflicts with it | *Step 1: Let the merged PRs' labels decide the version* in `reference/versioning.md` |
-| a PR body carrying prose | the commit subjects, or nothing | the subjects are the changelog | *Step 3: Stop at the subject* in `reference/commits.md` |
-| merging past a red check, or disabling one to merge | fix the failure, or write down why the gate is wrong first | a failing check is the gate working | *Merge discipline — never merge a red check* in `reference/discipline.md` |
-| a workflow authored by hand, or a copied config paraphrased | the CI repositories' reusable workflows as callers, and the configs copied verbatim with every deviation listed | the mechanical audit compares no copy against its source, so only a listed adaptation is checkable | *Step 1: Callers, not bodies; copies, not paraphrases* in `reference/audit.md` |
-| trusting a pin, SHA, count or release captured more than ~3 months ago | the re-derive command in that value's row | a cached value rots silently | *The cached facts* in `reference/freshness.md` |
-| a rule written from a Home Assistant release newer than the release row | the row's own re-derive command, moved in the skill's repository and never in a consumer | the skill is current for one release at a time, and what that release changed is in the `reference/patterns.md` section that owns the topic | *The cached facts* in `reference/freshness.md` |
-| naming a root cause before tracing it | trace publish → subscribe → handler, then name the call | a hunch that arrives first is a guess wearing the diagnosis's clothes | *Debugging discipline* in `reference/discipline.md` |
 
 ## Reference map
 
