@@ -36,9 +36,13 @@ reading every pattern.
 |---|---|---|
 | 1 | frontmatter | `name`; `description` as TRIGGER and SYMPTOMS bullet lists, never a prose blob |
 | 2 | core principle | one bold line |
-| 3 | mode router | the `mode \| when \| read first` table — the decision workflow, and the only gate a reader needs; a row for every action that has a file, not only for every state of the working directory |
+| 3 | mode router | the `mode \| when \| read first \| source` table — the decision workflow, and the only gate a reader needs; a row for every action that has a file, not only for every state of the working directory, and the external pages for that action in the fourth column |
 | 4 | mode detail | a `##` per mode that owns commands no reference file holds, and no other mode |
-| 5 | reference files | the reference table |
+
+The mode router is the reference map: one row per file, keyed by the action that opens it,
+with the developer-docs pages for that action beside it. A separate `file | when to read`
+table under the router, or a list of source URLs above it, is the same relation stated a
+second time, and the two drift — the `ha-integration` router carried both until 2026-09-26.
 
 A router carries no anti-pattern table. Every anti-pattern lives in the file that owns its
 topic, beside the step it contradicts, and the mode table is what gets a reader there before
@@ -136,7 +140,7 @@ column. Matching ignores case and backticks.
 | rule | `rule \| value` — a named constraint and what it is; the default where no narrower shape fits |
 | requirement | `# \| requirement \| answer \| default` — what is asked before anything is written |
 | check | `check \| what's needed \| where to fix` — an external validator's checks, one row each |
-| mode | `mode \| when \| read first` — `SKILL.md`'s router, and nowhere else; `read first` names the entry file and nothing the reference table already says about it |
+| mode | `mode \| when \| read first \| source`, or `mode \| when \| read first` in a router with no external pages to name — `SKILL.md`'s router, and nowhere else; `read first` names the entry file, `when` says when to open it, and `source` holds the developer-docs pages for that action or `—` |
 
 A table whose columns fit none of these is a finding, not a licence to invent one — but a
 table degraded into a bullet list is a loss, so report it and the set gains a row. The
