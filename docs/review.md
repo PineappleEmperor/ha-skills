@@ -25,10 +25,12 @@ their own README and are not reviews.
    verbatim; the target exists.
 3. **Copies match their source**, checked the way *Step 1: Callers, not bodies; copies, not
    paraphrases* in `plugins/ha/skills/ha-integration/reference/audit.md` says.
-4. **Commit subjects** meet *Step 2: Write the subject in the Conventional Commits form* and
-   *Step 3: Stop at the subject* in
-   `plugins/ha/skills/ha-integration/reference/commits.md`, and each subject covers the
-   whole diff of its commit.
+4. **One decision per commit.** The subject meets *Step 2: Write the subject in the
+   Conventional Commits form* and *Step 3: Stop at the subject* in
+   `plugins/ha/skills/ha-integration/reference/commits.md` and names the decision the
+   commit makes; every hunk in the commit serves that decision, whichever files it touches.
+   A commit is not split by file, and a subject that names one file of a four-file decision
+   is the defect, not the four files.
 5. **No AI attribution.** The rule is *Step 4: Carry no AI-attribution trailer* in
    `plugins/ha/skills/ha-integration/reference/commits.md`; the review checks PR bodies,
    comments and docs for the same.
