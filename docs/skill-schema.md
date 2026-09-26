@@ -41,7 +41,7 @@ reading every pattern.
 
 The mode router is the reference map: one row per action, each naming the file that action
 opens — a file may take several rows, and a mode whose commands live in the router names
-none — with the developer-docs pages for that action beside it. A separate
+none — with the external pages for that action beside it. A separate
 `file | when to read` table under the router, or a list of source URLs above it, is the
 same relation stated a second time, and the two drift — the `ha-integration` router carried
 both until 2026-09-26.
