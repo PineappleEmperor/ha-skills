@@ -98,7 +98,6 @@ Under `custom_components/<domain>/`. What goes inside each file is `reference/pa
 | enabling the commit hook | `git config core.hooksPath .githooks`, once per clone, documented in `CLAUDE.md` |
 | omitting `.gitignore` | a local `pytest` plus a `git add -A` tracks `.pyc` files, which *What the audit checks now* in ha-integration-ci's README fails a repository for |
 | where the skill-invocation rule lives | the repository's own `CLAUDE.md`, never a user's global config |
-| `templates/hooks/` | optional per-turn reminders for a user's own `~/.claude`; the shareable enforcement is the `CLAUDE.md` rule, which ships with the repo |
 
 **`CLAUDE.md` — the AI-session rule**
 
