@@ -147,7 +147,7 @@ install with `Could not download`.
 
 | Rule | Value |
 |---|---|
-| authored or copied | copied, never authored — the core rule of `reference/github-actions.md` |
+| authored or copied | copied, never authored — `reference/github-actions.md` |
 | which files, and where each comes from | the table in `reference/github-actions.md` |
 | a caller block | the CI repository's README block with its `{{sha}} # {{tag}}` tokens resolved |
 | `panel-bundle.yml` and `frontend/` | only an integration that serves a panel — `reference/panels.md` |
