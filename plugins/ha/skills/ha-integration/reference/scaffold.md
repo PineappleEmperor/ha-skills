@@ -32,7 +32,7 @@ Ask all nine at once.
 | 1 | domain | snake_case, e.g. `my_device` | — |
 | 2 | friendly name | e.g. `My Device` | — |
 | 3 | description | one sentence | — |
-| 4 | IoT class | `local_polling` · `local_push` · `cloud_polling` · `cloud_push` · `assumed_state` · `calculated` | — |
+| 4 | IoT class | one of the `iot_class` values in Step 6 | — |
 | 5 | data model | polling, via `DataUpdateCoordinator` · push, via a subscription | — |
 | 6 | auth model | none · API key · OAuth · username and password | — |
 | 7 | platforms | any of button, sensor, binary_sensor, switch, light, number, select, text, notify, cover, climate, fan, lock, media_player, vacuum | — |
@@ -238,7 +238,10 @@ consistent and nothing is upscaled.
 
 `domain` first, `name` second, then every remaining key alphabetically — hassfest fails any
 other order. Every key below is read from
-https://developers.home-assistant.io/docs/creating_integration_manifest/.
+https://developers.home-assistant.io/docs/creating_integration_manifest/; what hassfest and
+HACS require beyond the page is read from `script/hassfest/manifest.py` in core and
+`custom_components/hacs/utils/validate.py` in hacs/integration, at the revisions the release
+row and the HACS validation row of `reference/freshness.md` name.
 
 ```json
 {
@@ -260,7 +263,7 @@ https://developers.home-assistant.io/docs/creating_integration_manifest/.
 | Rule | Value |
 |---|---|
 | `domain`, `name` | required; the domain is the directory name and never changes |
-| `version` | required for a custom integration — hassfest and HACS both fail its absence; any form AwesomeVersion reads, SemVer here; what sets it at release is `reference/versioning.md` |
+| `version` | required for a custom integration — hassfest and HACS both fail its absence; SemVer or CalVer, the forms hassfest's `verify_version` accepts; what sets it at release is `reference/versioning.md` |
 | `documentation` | required; `https`, and not under `www.home-assistant.io/integrations/`, which hassfest reserves for core |
 | `codeowners` | required by hassfest and HACS — at least your own GitHub username |
 | `issue_tracker` | required by HACS's `integration_manifest` check |
@@ -273,7 +276,9 @@ https://developers.home-assistant.io/docs/creating_integration_manifest/.
 | `dependencies` | integrations that must be set up before this one, built-in or custom — `mqtt` goes here when the integration needs the client |
 | `after_dependencies` | integrations set up first only when they are configured; their requirements are installed either way |
 | `quality_scale` | *Step 4: Claim the tier in the manifest only once it is fully met* in `reference/quality-scale.md` |
-| `zeroconf`, `ssdp`, `bluetooth`, `dhcp`, `usb`, `homekit`, `mqtt` | a discovery matcher list, and the config flow gains the step of that name; the matcher shapes are on the manifest page under each key |
+| `zeroconf`, `ssdp`, `bluetooth`, `dhcp`, `usb` | a list of discovery matchers, whose shapes are on the manifest page under each key; the config flow gains the step of that name |
+| `homekit` | `{"models": [...]}`, the model-name prefixes to match; the flow gains a `homekit` step |
+| `mqtt` | the discovery topics to subscribe to, with `mqtt` in `dependencies`; the flow gains an `mqtt` step |
 
 ### Step 7: Pass HACS validation
 
