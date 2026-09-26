@@ -14,10 +14,9 @@ Three tiers:
 
 1. **SKILL.md** — routes. Owns the mode table — whose shape, and that it is the reference
    map as well, is *`SKILL.md` — section order, fixed* in `docs/skill-schema.md` — and the
-   commands of a mode no reference file holds. It carries no anti-pattern
-   table: a row for every action means the rules an action breaks are one hop away — the
-   shape is *Anti-patterns, and where they live* in `docs/skill-schema.md`. Any fact stated
-   here is stated *only* here.
+   commands of a mode no reference file holds. It carries no anti-pattern table, for the
+   reason *Anti-patterns, and where they live* in `docs/skill-schema.md` gives. Any fact
+   stated here is stated *only* here.
 2. **Task files** — one per trigger. Own their topic outright, including every anti-pattern
    for that topic.
 3. **The currency ledger** (`freshness.md`) — owns the values the skill copies from outside
