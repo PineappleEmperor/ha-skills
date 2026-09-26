@@ -49,7 +49,8 @@ their own README and are not reviews.
    against `git show <base>:<path>`, clause by clause, not by reading the new file alone: a
    deletion makes a structural audit greener, so nothing mechanical objects to it.
 10. **Every shipped file has the shape `docs/skill-schema.md` gives it**, read section by
-    section: the section order for its kind, every block one of the *Block types*, every
+    section: the section order for its kind, every block one of the *Block types, and the
+    only cases that earn one*, every
     table a canonical column set, no anti-pattern table in a router and every anti-pattern
     in the file that owns its topic with a `reference` cell naming where the rule was read
     or observed, a mode row for every action that has a file and naming only its entry
