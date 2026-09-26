@@ -258,16 +258,16 @@ other order.
 
 | Rule | Value |
 |---|---|
-| where each rule below was read | https://developers.home-assistant.io/docs/creating_integration_manifest/; beyond the page, `script/hassfest/manifest.py` in core at the release row's tag and `custom_components/hacs/utils/validate.py` in hacs/integration at the HACS validation row's revision, both rows in `reference/freshness.md` |
+| where each rule below was read | https://developers.home-assistant.io/docs/creating_integration_manifest/; beyond the page, `script/hassfest/manifest.py` in core at the `.0` tag of the release row's value and `custom_components/hacs/utils/validate.py` in hacs/integration at the HACS validation row's revision, both rows in `reference/freshness.md` |
 | `domain`, `name` | required; the domain is the directory name and never changes |
-| `version` | required for a custom integration — hassfest and HACS both fail its absence; SemVer or CalVer, the forms hassfest's `verify_version` accepts; what sets it at release is `reference/versioning.md` |
+| `version` | required for a custom integration — hassfest and HACS both fail its absence; a version AwesomeVersion reads as CalVer, SemVer, SimpleVer, BuildVer or PEP 440, the five forms hassfest's `verify_version` accepts; what sets it at release is `reference/versioning.md` |
 | `documentation` | required; `https`, and not under `www.home-assistant.io/integrations/`, which hassfest reserves for core |
 | `codeowners` | required by hassfest and HACS — at least your own GitHub username |
 | `issue_tracker` | required by HACS's `integration_manifest` check |
 | `iot_class` | required — `assumed_state` · `calculated` · `cloud_polling` · `cloud_push` · `local_polling` · `local_push` |
 | `integration_type` | `device` · `hub` · `service` · `entity` · `hardware` · `helper` · `system`; absent means `hub`, so set it; `virtual` is core-only |
 | `config_flow` | `true`, and `config_flow.py` must exist |
-| `single_config_entry` | right for a cloud account or a single hub; omit it where a user may add several devices, and implement the `unique-config-entry` rule with a unique id instead |
+| `single_config_entry` | `true` when the integration supports one config entry only; otherwise omit it and meet the `unique-config-entry` rule, `reference/quality-scale.md` |
 | `requirements` | pip requirement strings, `aiohue==1.9.1`; only libraries core's own `requirements.txt` does not already carry |
 | `loggers` | the names the requirements pass to `getLogger` |
 | `dependencies` | integrations that must be set up before this one, built-in or custom — `mqtt` goes here when the integration needs the client |
@@ -275,7 +275,7 @@ other order.
 | `quality_scale` | *Step 4: Claim the tier in the manifest only once it is fully met* in `reference/quality-scale.md` |
 | `zeroconf`, `ssdp`, `bluetooth`, `dhcp`, `usb` | a list of discovery matchers, whose shapes are on the manifest page under each key; the config flow gains the step of that name |
 | `homekit` | `{"models": [...]}`, the model-name prefixes to match; the flow gains a `homekit` step |
-| `mqtt` | the discovery topics to subscribe to, with `mqtt` in `dependencies`; the flow gains an `mqtt` step |
+| `mqtt` | the discovery topics to subscribe to; the flow gains an `mqtt` step |
 
 ### Step 7: Pass HACS validation
 
