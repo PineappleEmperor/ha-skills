@@ -23,3 +23,7 @@ the same pass.
 > **Note:** `hacs/action@main` and `home-assistant/actions/hassfest@master` are on mutable
 > refs deliberately, and the audit exempts them — *What the audit checks now* in
 > ha-integration-ci's README.
+
+> **Note:** the release row moves only in a refresh of the skill's own repository, never in
+> a consumer; what that release changed lives in the `reference/patterns.md` section that
+> owns the topic, and a rule written from a newer release than the row names is not current.
