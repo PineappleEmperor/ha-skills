@@ -84,8 +84,8 @@ No job writes it, and the draft PR arrives empty.
 |---|---|
 | typing prose into `gh pr create --body` | put it in a comment, or fix the commit subjects |
 | reaching for `<details>` in a PR description | put it in a comment, or fix the commit subjects |
-| a description longer than its diff | put it in a comment, or fix the commit subjects |
-| explaining *why* anywhere the commit subjects should have said it | fix the commit subjects |
+| a description longer than its diff is interesting | put it in a comment, or fix the commit subjects |
+| explaining *why* anywhere the commit subjects should have said it | put it in a comment, or fix the commit subjects |
 
 ### Step 2: Put the narrative in the release description
 

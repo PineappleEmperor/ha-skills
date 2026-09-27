@@ -57,7 +57,7 @@ Judged section by section, citing the section beside each finding:
 
 ### Step 3: `quality_scale.yaml` honest
 
-Judged against *Step 1: Scaffold `quality_scale.yaml` from the start* in
+Judged against *Step 4: Claim the tier in the manifest only once it is fully met* in
 `reference/quality-scale.md`, plus the one thing no check sees — an optimistic `exempt`
 masking a gap, such as `stale-devices` exempt while a device *is* created.
 
@@ -80,10 +80,15 @@ one pass.
 
 ### Step 7: Run what CI runs
 
-Run the *Lint & quality check* commands in `SKILL.md` against the repository under audit,
-and read the result, before reporting the audit clean. The command block in
-ha-integration-ci's README is that repository's own; a consumer reaches those scripts
-through `quality-audit.yml` instead.
+Run the *Lint & quality check* commands in `SKILL.md` and the test suite against the
+repository under audit, and read the result, before reporting the audit clean.
+
+```bash
+python -m pytest tests/ -q
+```
+
+> **Note:** the command block in ha-integration-ci's README is that repository's own; a
+> consumer reaches those scripts through `quality-audit.yml` instead.
 
 ### Step 8: Report
 

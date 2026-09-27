@@ -36,13 +36,13 @@ and why, is the README of the repository that owns it:
 `templates/` sits next to the `SKILL.md` you are reading, in this skill's own directory.
 Resolve it in this order:
 
-- **The base directory announced when the skill loaded.** Invoking a skill prints
-  `Base directory for this skill: <path>` — `templates/` is `<path>/templates/`. Always
-  correct; try it first.
-- **Installed as a plugin:** `~/.claude/plugins/cache/*/ha/*/skills/ha-integration/templates/`
-- **Personal or repo skill:** `~/.claude/skills/ha-integration/templates/`, or
-  `plugins/ha/skills/ha-integration/templates/` inside a checkout of the skill repo.
-- **Last resort:** `find ~/.claude ~/.agents . -type d -path '*ha-integration/templates' 2>/dev/null`
+1. **The base directory announced when the skill loaded.** Invoking a skill prints
+   `Base directory for this skill: <path>` — `templates/` is `<path>/templates/`. Always
+   correct; try it first.
+2. **Installed as a plugin:** `~/.claude/plugins/cache/*/ha/*/skills/ha-integration/templates/`
+3. **Personal or repo skill:** `~/.claude/skills/ha-integration/templates/`, or
+   `plugins/ha/skills/ha-integration/templates/` inside a checkout of the skill repo.
+4. **Last resort:** `find ~/.claude ~/.agents . -type d -path '*ha-integration/templates' 2>/dev/null`
 
 It holds the copied files Step 2 names: the four plain workflows, `.github/dependabot.yml`,
 `conftest.py`, `pyproject.toml`, `requirements.test.txt`, `ruleset.json`, `.gitignore`, the

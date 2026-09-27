@@ -112,7 +112,7 @@ job itself; `Dependency review` is `dependency-review.yml`'s.
 | Rule | Value |
 |---|---|
 | a process-automation context — the ones *Check names* in release-flow's README and *Calling the workflows* in ha-integration-ci's list | never required: it fires on a push or a release, so a PR waits on a context that never reports |
-| a context the repo does not produce | blocks every PR permanently: add the workflow *What the audit checks now* in ha-integration-ci's README requires, never drop the context |
+| a context the repo does not produce | blocks every PR permanently: in a conforming repo, add the workflow *What the audit checks now* in ha-integration-ci's README requires rather than drop the context |
 | dropping a context | required, not merely permitted, where the repo has deliberately left the canonical set — no `quality-audit.yml`, no `dependency-review.yml` — since the PR otherwise waits for a check that never runs |
 | `panel / Panel type-check and tests` | never required: it is path-filtered, so it does not report on a Python-only PR |
 | a skipped job | satisfies its required check, so a job-level `if:` guard is fine |
@@ -152,8 +152,8 @@ enables it and reports when it cannot.
 A ruleset granting admins `bypass_mode: always` does not constrain anyone holding admin; the
 push reports `Bypassed rule violations` and proceeds, so the list stays empty.
 
-**Fix:** disable the ruleset, merge, re-enable it — which leaves an audit-log entry, unlike
-a bypass. The one sanctioned reason to merge red is *Merge discipline — never merge a red
+**Fix:** disable the ruleset, merge, re-enable it, which is deliberate, reversible and
+leaves an audit-log entry. The one sanctioned reason to merge red is *Merge discipline — never merge a red
 check* in `reference/discipline.md`.
 
 ### An AI session runs with your `gh` credentials — checks Step 1

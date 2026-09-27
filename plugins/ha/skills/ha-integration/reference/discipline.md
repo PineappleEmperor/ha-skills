@@ -43,7 +43,7 @@ before merging.
 | about to run `gh pr merge` while any check is red | stop, and read the log |
 | diagnosing a failure **after** merging rather than before | diagnose first, merge after |
 | reusing a previous exception without re-deriving why it applies | re-derive the diff before claiming it |
-| reaching for `--admin`, `--force`, or a `bypass_actors` entry to get a merge through | fix the check |
+| reaching for `--admin`, `--force`, or a `bypass_actors` entry to get a merge through | stop and read the log, then fix it or say in writing why the gate is wrong |
 | telling yourself the failure is "unrelated" without having read the log | read the log |
 
 ## Debugging discipline
