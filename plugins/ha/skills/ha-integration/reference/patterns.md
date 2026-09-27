@@ -23,20 +23,21 @@ it.**
 12. `DataUpdateCoordinator` (polling) — Step 1
 13. Entity push subscriptions — Step 1
 14. A connection that drops — Step 1
-15. A blocking call inside the event loop — Step 1
-16. `ConfigEntry` mutation — Step 3
-17. Logging — Step 1
-18. Custom services — Step 1
-19. `services.yaml` + `strings.json` (hassfest rules) — Step 1
-20. Register integration-global resources in `async_setup`, not `async_setup_entry` — Step 3
-21. Diagnostics platform — Step 1
-22. Devices belong to one config entry — Step 3
-23. Units: prefer the enumerators — Step 1
-24. Config entry migration — Step 3
-25. Deprecated platform APIs — Step 1
-26. Announced for a release after 2026.9 — Step 1
-27. `TYPE_CHECKING` for expensive or circular imports — Step 4
-28. Typed `ConfigEntry` — Step 4
+15. A reply the code does not expect — Step 1
+16. A blocking call inside the event loop — Step 1
+17. `ConfigEntry` mutation — Step 3
+18. Logging — Step 1
+19. Custom services — Step 1
+20. `services.yaml` + `strings.json` (hassfest rules) — Step 1
+21. Register integration-global resources in `async_setup`, not `async_setup_entry` — Step 3
+22. Diagnostics platform — Step 1
+23. Devices belong to one config entry — Step 3
+24. Units: prefer the enumerators — Step 1
+25. Config entry migration — Step 3
+26. Deprecated platform APIs — Step 1
+27. Announced for a release after 2026.9 — Step 1
+28. `TYPE_CHECKING` for expensive or circular imports — Step 4
+29. Typed `ConfigEntry` — Step 4
 
 ## Writing code in `custom_components/`
 
@@ -337,6 +338,55 @@ async def _async_reconnect(self) -> None:
 | a log line above DEBUG for each failed retry | pass the reason to the exception | Home Assistant logs the retry itself, so yours fills the log | https://developers.home-assistant.io/docs/integration_setup_failures/ |
 | `asyncio.create_task` or `hass.async_create_task` for the reconnect loop | `entry.async_create_background_task` | unload cancels the entry's background tasks and no others, so the loop outlives a reload | `_async_process_on_unload` in `homeassistant/config_entries.py`, at the `2026.9.0` tag |
 | the last value left showing while the connection is down | mark the entity unavailable | unavailable is the better state than the last known one | https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/entity-unavailable/ |
+
+### A reply the code does not expect — Step 1
+
+**Symptom:** every entity of the integration goes unavailable at once and the log reads
+`Unexpected error fetching <name> data` over a `KeyError` or a `TypeError` — after a
+firmware update, a new model, or a change at the service.
+
+**Fix:** parse the reply in one place, into fields that may be absent.
+
+```python
+@dataclass(frozen=True, kw_only=True)
+class Reading:
+    """One device's reading; a field the source left out is None."""
+
+    temperature: float | None = None
+    mode: str | None = None
+
+
+def parse_reading(raw: dict[str, Any]) -> Reading:
+    """Read what is there, and nothing that is not."""
+    mode = raw.get("mode")
+    return Reading(
+        temperature=raw.get("temperature"),
+        mode=mode if mode in MODES else None,
+    )
+```
+
+| Rule | Value |
+|---|---|
+| where each row was read | the `entity-unavailable` and `dynamic-devices` rules; `_async_refresh` and `async_update_listeners` in `homeassistant/helpers/update_coordinator.py` and `SensorEntity.state` in `homeassistant/components/sensor/__init__.py`, at the `2026.9.0` tag |
+| where a reply is parsed | `api.py`, into the dataclasses of `models.py`, so no entity indexes a raw dict |
+| a field missing from an otherwise good reply | `None` for that value: the entity reads `unknown` and the others update |
+| a device missing from an otherwise good reply | that entity alone unavailable — `return super().available and self._device_id in self.coordinator.data` |
+| a reply that cannot be read at all | `UpdateFailed("<reason>")` |
+| any other exception leaving `_async_update_data` | logged with its traceback, and `last_update_success` goes false — so one `KeyError` takes every entity on the coordinator unavailable |
+| an exception in one entity's `_handle_coordinator_update` | logged as `Unexpected error updating listener`, and the other entities still update |
+| an `ENUM` sensor handed a value outside its `options` | `ValueError`, *"provides state value '…', which is not in the list of options provided"* — map a value you do not know to `None` |
+| a sensor with a unit or a state class handed text that is no number | `ValueError`, *"it has the non-numeric value"* |
+| a `TIMESTAMP` sensor handed a `datetime` with no timezone | `ValueError`, *"which is missing timezone information"* |
+| a device new to the reply | entities added from a coordinator listener, as the `dynamic-devices` rule's example does |
+| finding out that the source changed | *A question a mock cannot answer — mocking Step 1* in `reference/testing.md` |
+
+| anti-pattern | use instead | why (one clause) | reference |
+|---|---|---|---|
+| `raw["field"]` in `_async_update_data` | `.get()` into a field that may be `None` | the `KeyError` is an unexpected error, which takes every entity down for one field | `_async_refresh` in `homeassistant/helpers/update_coordinator.py`, at the `2026.9.0` tag |
+| `except Exception: return self.data`, to ride out a bad reply | raise `UpdateFailed` | the entities go on showing the last value as though it were current | https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/entity-unavailable/ |
+| an entity made unavailable for one missing field | `None`, which reads `unknown` | unavailable is for a fetch that failed, unknown for a piece that is missing | https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/entity-unavailable/ |
+
+**Timing:** capture the changed reply as a fixture and fail a test on it before the fix.
 
 ### A blocking call inside the event loop — Step 1
 
