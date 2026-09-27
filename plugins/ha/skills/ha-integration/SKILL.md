@@ -16,7 +16,7 @@ description: >-
   - a red check on an integration repository
   - a panel foreign beside HA's pages: unscaled text, hardcoded colours broken in dark
   mode, tap targets too small
-  NOT for Lovelace cards, YAML dashboards, log triage (ha-triage), or non-HA Python. Invoke
+  NOT for Lovelace cards, YAML dashboards, fault triage (ha-triage), or non-HA Python. Invoke
   before editing integration code or panel CSS; re-invoke after /compact.
 ---
 

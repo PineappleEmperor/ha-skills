@@ -27,7 +27,7 @@ No fixture. The agent needs read access to `plugins/ha/skills/` — both skills.
 
 | Request | Skill | What to read next |
 |---|---|---|
-| A | `ha-triage` | *A reply the code does not expect — Step 1* in `ha-integration/reference/patterns.md`, from the Unexpected reply row |
+| A | `ha-triage` | `ha-integration/reference/patterns.md`, from the Unexpected reply row; naming its case *A reply the code does not expect — Step 1* as well is correct |
 | B | `ha-integration` | `reference/patterns.md` |
 | C | `ha-integration` | `reference/panel-design.md`, from the Panel design row, plus the Material 3 / HA theming sources it names |
 | D | `ha-integration` | `reference/github-setup.md`, from the mode table; also naming `reference/versioning.md` from the mode table's Release row is correct, not a fail |
@@ -38,7 +38,8 @@ Each answer must cite a sentence from the skill, not an inference. **An answer r
 router did not say it, and the next reader may eliminate differently.
 
 ⚠️ **"No `reference/` directory" is not "nothing else to read".** `ha-triage` carries no
-reference layer of its own: every row of its table names a file of `ha-integration`. An
+reference layer of its own: every fault class in its table names a file of
+`ha-integration`. An
 answer for A that stops at the triage file, or names the class without the file that owns
 the fix, is a fail.
 

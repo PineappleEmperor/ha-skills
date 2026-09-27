@@ -136,7 +136,7 @@ column. Matching ignores case and backticks.
 | source | `artefact \| taken from` — what a scaffold carries and where each piece comes from |
 | layout | `file \| holds`, or `file \| holds \| when` and `file \| holds \| taken from` where the step also says which files to write, or on what condition, or where each is copied from |
 | tier | `tier \| adds` — a level and what it requires beyond the one below |
-| cached fact | `fact \| value \| captured \| re-derive with \| consumers \| gate`, or `fact \| value \| verify at` in a skill with no `reference/freshness.md`, where there is no consumer to list and no gate to name |
+| cached fact | `fact \| value \| captured \| re-derive with \| consumers \| gate` |
 | decision | `scenario \| choice` |
 | token | `token \| value \| use` — a named design token, what it is, and where it is spent |
 | rule | `rule \| value` — a named constraint and what it is; the default where no narrower shape fits |
