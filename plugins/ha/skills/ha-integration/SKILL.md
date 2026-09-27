@@ -1,8 +1,8 @@
 ---
 name: ha-integration
 description: >-
-  Use when developing or troubleshooting a HA custom integration — the package under
-  `custom_components/`, or the panel it serves.
+  Use when developing or troubleshooting a Home Assistant custom integration — the package
+  under `custom_components/`, or the panel it serves.
   TRIGGER WHEN:
   - scaffolding an integration, or adding a platform, flow, coordinator, service, diagnostics
   or manifest key to one
@@ -12,7 +12,7 @@ description: >-
   SYMPTOMS:
   - an entity unavailable after restart
   - a notify or custom service broken by an HA update
-  - a device_class/state_class mismatch HA complains about
+  - a device_class/state_class mismatch warning
   - a red check on an integration repository
   - a panel foreign beside HA's pages: unscaled text, hardcoded colours broken in dark
   mode, tap targets too small
