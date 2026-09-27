@@ -303,37 +303,6 @@ is back.
 | the wait between attempts | `await asyncio.sleep(…)` inside that task; core's MQTT client waits a fixed `RECONNECT_INTERVAL_SECONDS`, 10 |
 | a reconnect refused for its credentials | stop retrying and call `entry.async_start_reauth(hass)`, as core's MQTT client does |
 
-```python
-RECONNECT_INTERVAL = 10
-
-
-@callback
-def _async_on_disconnect(self, err: Exception) -> None:
-    """Take the entities unavailable, then start one reconnect task."""
-    self.coordinator.async_set_update_error(err)
-    if self._reconnect_task is None:
-        self._reconnect_task = self._entry.async_create_background_task(
-            self.hass,
-            self._async_reconnect(),
-            name=f"{DOMAIN} reconnect",
-            eager_start=False,
-        )
-
-
-async def _async_reconnect(self) -> None:
-    """Try again until the client connects, waiting after each failure."""
-    while True:
-        try:
-            await self._client.connect()
-        except OSError as err:
-            _LOGGER.debug("Reconnect failed: %s", err)
-            await asyncio.sleep(RECONNECT_INTERVAL)
-            continue
-        self._reconnect_task = None
-        _LOGGER.info("Connection restored")
-        return
-```
-
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
 | `ConfigEntryNotReady` raised from a platform's `async_setup_entry` | raise it from `__init__.py` | it is too late there to be caught by the config entry setup | https://developers.home-assistant.io/docs/integration_setup_failures/ |
