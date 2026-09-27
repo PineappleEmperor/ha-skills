@@ -183,7 +183,7 @@ the rows a custom integration gets wrong against it.
 | `_attr_entity_category` | on a non-primary entity: `EntityCategory.DIAGNOSTIC` for read-only info such as RSSI, `EntityCategory.CONFIG` for a setting that changes device behaviour |
 | a static value | an `_attr_*` class or instance attribute, never a property method |
 | a dynamic or state-dependent value | a property |
-| `_attr_available` | reflects device reachability |
+| `_attr_available` | reflects device reachability — `False` where the fetch fails, `True` where it succeeds |
 | the state source | `self.coordinator.data` only — never I/O in a property |
 
 ```python
@@ -438,7 +438,7 @@ Covers the rule `log-when-unavailable` (`reference/quality-scale.md`) and HA's l
 | what the coordinator logs for you | on a poll, the first `UpdateFailed` at ERROR, each consecutive one at DEBUG, and the recovery — which is `log-when-unavailable` met; what it leaves to you on a push connection is *A connection that drops — Step 1* |
 | what HA logs for you | the reason behind `ConfigEntryNotReady` and `ConfigEntryAuthFailed`, once |
 | which exception to raise | transient → `UpdateFailed` or `ConfigEntryNotReady`; auth → `ConfigEntryAuthFailed`; an action's own failure → `HomeAssistantError` or `ServiceValidationError`, per `action-exceptions` |
-| `INFO` | almost never; setup, unload and teardown are `DEBUG` |
+| `INFO` | almost never: the one line saying a device or service is gone, and the one saying it is back, where `log-when-unavailable` asks for that level; setup, unload and teardown are `DEBUG` |
 | `WARNING` | a recoverable thing the user should know |
 | `ERROR` | an unexpected, actionable bug, never an expected transient failure |
 | `DEBUG` | per-poll and developer detail |
