@@ -16,7 +16,7 @@ Commits form, subject-only by default.**
 6. The PR body — for reviewers, and nothing users read
 7. Step 1: Leave the body empty
 8. Step 2: Put the narrative in the release description
-9. Step 3: Post no comment on the PR
+9. Step 3: Post no comment on the PR by default
 10. Cases
 11. `gh pr edit` fails on the Projects-classic deprecation — PR body Step 1
 
@@ -94,13 +94,14 @@ written once, in the release description. GitHub's own `generate_release_notes` 
 mechanism here; the one-writer rule the audit enforces is *What the audit checks now* in
 ha-integration-ci's README.
 
-### Step 3: Post no comment on the PR
+### Step 3: Post no comment on the PR by default
 
 | Rule | Value |
 |---|---|
 | an explanation worth keeping | the README, or another file in the repo |
 | verification | the checks |
 | a reply to a comment a human wrote | always fine |
+| something the owner has to act on, with no better home | the one comment worth posting — *One exception, and it is narrow — merge Step 2* in `reference/discipline.md` is the case |
 
 ## Cases
 
