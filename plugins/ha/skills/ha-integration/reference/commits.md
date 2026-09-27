@@ -76,7 +76,7 @@ No job writes it, and the draft PR arrives empty.
 |---|---|---|---|
 | "this change is complex, it needs explaining" | split it, or write better commit subjects | the subjects are the changelog | commit Step 2 |
 | "reviewers need the reasoning" | put it in the PR conversation | what users get is the commit subjects | PR body Step 3 |
-| "the verification belongs with the change" | put it in a comment | the body is published with the release, where verification evidence is noise | PR body Step 3 |
+| "the verification belongs with the change" | put it in a comment | the conversation is where reviewers read evidence, and the body is not | PR body Step 3 |
 | "I wrapped it in `<details>` so it's stripped" | leave the fold to Dependabot's own output | a folded body is still published under the repo owner's byline | PR body Step 1 |
 | "it's only a few paragraphs" | leave the body empty | whatever its length it is published under the repo owner's byline | PR body Step 1 |
 
