@@ -13,7 +13,8 @@ No fixture. The agent needs read access to `plugins/ha/skills/` — both skills.
 > skill's SKILL.md and state exactly which reference file you would read next before
 > doing any work. Do not do the work.
 >
-> A. "My HA log has 4000 errors since the restart last night — what's actually wrong?"
+> A. "Every entity of my integration went unavailable after the device's firmware update,
+> and the log says `Unexpected error fetching` — what's actually wrong?"
 > B. "Add a reconfigure flow so users can change the host without deleting the entry."
 > C. "The panel I serve looks wrong in dark mode — tiny headings, hardcoded colours."
 > D. "Set up the release process for my new integration repo."
@@ -26,7 +27,7 @@ No fixture. The agent needs read access to `plugins/ha/skills/` — both skills.
 
 | Request | Skill | What to read next |
 |---|---|---|
-| A | `ha-triage` | the skill file itself; no `reference/` layer in this package |
+| A | `ha-triage` | *A reply the code does not expect — Step 1* in `ha-integration/reference/patterns.md`, from the Unexpected reply row |
 | B | `ha-integration` | `reference/patterns.md` |
 | C | `ha-integration` | `reference/panel-design.md`, from the Panel design row, plus the Material 3 / HA theming sources it names |
 | D | `ha-integration` | `reference/github-setup.md`, from the mode table; also naming `reference/versioning.md` from the mode table's Release row is correct, not a fail |
@@ -37,10 +38,9 @@ Each answer must cite a sentence from the skill, not an inference. **An answer r
 router did not say it, and the next reader may eliminate differently.
 
 ⚠️ **"No `reference/` directory" is not "nothing else to read".** `ha-triage` carries no
-reference layer *in the package*, but it cites authoritative external sources (the
-companion-app docs, HA core) that the task still requires. An answer that treats a
-single-file skill as self-contained is a fail: the skill is where the guidance lives, not
-where the current state of HA lives.
+reference layer of its own: every row of its table names a file of `ha-integration`. An
+answer for A that stops at the triage file, or names the class without the file that owns
+the fix, is a fail.
 
 **E is the deliberate edge case.** Testing rules used to sit in `patterns.md` and moved to
 `testing.md` when the skill split; the mode table is the only thing that now distinguishes

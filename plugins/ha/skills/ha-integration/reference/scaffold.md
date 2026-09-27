@@ -88,7 +88,7 @@ Under `custom_components/<domain>/`. What goes inside each file is `reference/pa
 | `tests/` | one file per module under test | `reference/testing.md` |
 | `README.md` | the project readme, carrying the AI-assistance note below | — |
 | `LICENSE` | the full text of the Step 1 licence | the licence's own text |
-| `.gitignore` | `__pycache__/`, caches, venvs, HA dev artefacts (`.storage/`, `home-assistant.log*`, the `_v2.db`) and `device_map.md`, which the `ha-triage` skill says is never committed | `templates/.gitignore` |
+| `.gitignore` | `__pycache__/`, caches, venvs, HA dev artefacts (`.storage/`, `home-assistant.log*`, the `_v2.db`) and `device_map.md`, a note of a home's devices and addresses kept beside its logs | `templates/.gitignore` |
 | `ruleset.json` | the branch ruleset — what it requires is `reference/github-setup.md` | `templates/ruleset.json` |
 | `.githooks/commit-msg` | the Conventional Commit check — `reference/commits.md` | release-flow's copy, `chmod +x` |
 | `.pre-commit-config.yaml` | the local hooks: ruff, codespell, `check-json`, a guard on `main`, yamllint and prettier | `templates/.pre-commit-config.yaml`, verbatim |

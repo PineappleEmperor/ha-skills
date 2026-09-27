@@ -1,124 +1,80 @@
 ---
 name: ha-triage
-description: Use when something in a Home Assistant instance is misbehaving and the question is what is actually wrong — most often from a log (`home-assistant.log`, a Settings → System → Logs download, a pasted dump), but also from a symptom with no log at hand. Reach for it on "thousands of errors after restart", "what is spamming my log", "is this error real or noise", a repeating `websocket_api` pending-messages burst, `extra keys not allowed` from a script or automation, a `notify.mobile_app_*` service that stopped existing, or a Z-Wave value id that no longer resolves. Also when a companion-app notification image works on Wi-Fi but fails on cellular. NOT for writing integration code — that is the `ha-integration` skill.
+description: >-
+  Use when a Home Assistant custom integration misbehaves and the fault is not yet named —
+  from a log, a traceback or a symptom — to find the class of fault and the file that owns
+  the fix.
+  TRIGGER WHEN:
+  - reading `home-assistant.log`, or a traceback that names `custom_components`
+  - an integration fails to set up, or its entities go unavailable, stale, missing or
+  duplicated
+  - an action, a config flow or a panel of an integration stops working
+  - an integration broke after a Home Assistant update
+  SYMPTOMS:
+  - `Setup failed for custom integration`
+  - `Error setting up entry`
+  - `Unexpected error fetching … data`
+  - `Detected blocking call to … inside the event loop`
+  - `Detected that custom integration … This will stop working in Home Assistant`
+  - `does not generate unique IDs`
+  NOT for writing the fix (ha-integration), nor for automations, dashboards, add-ons or the
+  devices of core integrations.
 ---
 
 # Home Assistant Triage
 
-Input is a `home-assistant.log`, a **Settings → System → Logs** download, or a pasted dump.
-Turn thousands of log lines into a short ranked list of *actionable* issues, separating real
-faults from the background noise HA emits constantly.
+**Name the class of fault from a line core printed or a symptom someone saw, then open the
+file that owns that class. A line count ranks nothing.**
 
-**A raw error count is meaningless** — one slow client emits 1000+ identical lines; one config
-typo emits one. Rank by distinct root cause, never by line count.
+## Detect the fault class
 
-Most of what a log reports is config, automation or external-device trouble rather than
-integration code. When a cluster does land under `custom_components.<domain>`, hand off to the
-`ha-integration` skill.
+Match the line or the symptom to a row, then **read that row's file before naming a cause**.
+Every file named is under `ha-integration/reference/`, and every quoted line was read in core at the
+`2026.9.0` tag, in the file the Source column names.
 
-## Cached facts — re-derive before trusting
+| Mode | When | Read first | Source |
+|---|---|---|---|
+| **Read a log** | a log or a traceback with no class named yet | *Read a log* below | `async_enable_logging` in `homeassistant/bootstrap.py` |
+| **Blocked at load** | `The custom integration '<domain>' does not have a version key in the manifest file and was blocked from loading`, or the same with `a valid version key` | *Step 6: Order `manifest.json`* in `ha-integration/reference/scaffold.md` | `homeassistant/loader.py` |
+| **Setup fails** | `Setup failed for custom integration '<domain>'`, `Error setting up entry <title> for <domain>`, `Error importing platform config_flow from integration`, or `Error while setting up <domain> platform for <platform>` | *Step 3: Wire the entry setup and unload* in `ha-integration/reference/patterns.md` | `homeassistant/setup.py`, `homeassistant/config_entries.py`, `homeassistant/helpers/entity_platform.py` |
+| **Setup retried too late** | `<domain> raises exception ConfigEntryNotReady in forwarded platform <platform>; Instead raise ConfigEntryNotReady before calling async_forward_entry_setups` | *A connection that drops — Step 1* in `ha-integration/reference/patterns.md` | `homeassistant/helpers/entity_platform.py` |
+| **Sign-in** | `Config entry '<title>' for <domain> integration could not authenticate`, `Authentication failed while fetching <name> data`, or a request to sign in again that keeps returning | *`config_flow.py` — Step 1* in `ha-integration/reference/patterns.md` | `homeassistant/config_entries.py`, `homeassistant/helpers/update_coordinator.py` |
+| **Connection** | `Timeout fetching <name> data`, `Error requesting <name> data`, `Error fetching <name> data`; or entities unavailable until the integration is reloaded | *A connection that drops — Step 1* in `ha-integration/reference/patterns.md` | `homeassistant/helpers/update_coordinator.py` |
+| **Unexpected reply** | `Unexpected error fetching <name> data`, `Unexpected error updating listener`, or a `ValueError` from a sensor — `which is not in the list of options provided`, `it has the non-numeric value`, `which is missing timezone information` | *A reply the code does not expect — Step 1* in `ha-integration/reference/patterns.md` | `homeassistant/helpers/update_coordinator.py`, `homeassistant/components/sensor/__init__.py` |
+| **Value wrong or stuck** | a state that reads `unknown` once the entity is added, never changes, or carries the wrong unit, with no line in the log | *Entity platform files — Step 1* in `ha-integration/reference/patterns.md` | — |
+| **Entities missing or duplicated** | `Platform <domain> does not generate unique IDs`, `Entity id already exists - ignoring`, `Error adding entity`, or `Not adding entity with invalid device info` | *Entity platform files — Step 1* in `ha-integration/reference/patterns.md` | `homeassistant/helpers/entity_platform.py` |
+| **Devices** | a device missing, doubled or split after an update, or a warning naming the device registry | *Devices belong to one config entry — Step 3* in `ha-integration/reference/patterns.md` | — |
+| **Action does nothing** | an action returns with no effect, or reaches more devices than it was aimed at | *Custom services — Step 1* in `ha-integration/reference/patterns.md` | — |
+| **Flow** | the config or options flow will not open, or aborts | *`config_flow.py` — Step 1* in `ha-integration/reference/patterns.md` | — |
+| **Deprecation** | `Detected that custom integration '<domain>' … This will stop working in Home Assistant <release>` | *Deprecated platform APIs — Step 1* in `ha-integration/reference/patterns.md` | `homeassistant/helpers/frame.py` |
+| **Broke after an update** | it worked before the update — `Setup failed for custom integration '<domain>': Unable to import component`, or a call core no longer has | *Deprecated platform APIs — Step 1* in `ha-integration/reference/patterns.md` | `homeassistant/setup.py` |
+| **Blocking call** | `Detected blocking call to <function> … inside the event loop by custom integration '<domain>'`, or a `RuntimeError` beginning `Caught blocking call to` | *A blocking call inside the event loop — Step 1* in `ha-integration/reference/patterns.md` | `homeassistant/util/loop.py` |
+| **Panel** | the panel shows its previous version after an update, or a change made in its source is not there | `ha-integration/reference/panels.md` | — |
+| **hassfest** | a red hassfest check | *`services.yaml` + `strings.json` (hassfest rules) — Step 1* in `ha-integration/reference/patterns.md` | — |
+| **Naming the cause** | a class is matched and a root cause is about to be named | *Debugging discipline* in `ha-integration/reference/discipline.md` | — |
 
-Every row below was verified against `home-assistant/core@dev` and the companion-app docs
-on **2026-08-24**. They are the claims most likely to rot; check any older than ~3 months
-before acting on one.
+## Read a log
 
-| Fact | Value | Verify at |
-|---|---|---|
-| `color_temp` / `kelvin` removed from `light.turn_on` | HA **2026.3**; state attributes `color_temp`, `min_mireds`, `max_mireds` went too | developers.home-assistant.io/blog/2026/02/23/remove-deprecate-light-features |
-| websocket pending-message limit | `MAX_PENDING_MSG = 4096`, peak warning at 1024 held 10s | `websocket_api/const.py` |
-| log line format | `%(asctime)s.%(msecs)03d %(levelname)s (%(threadName)s) [%(name)s] %(message)s` | `homeassistant/bootstrap.py` |
-| notification size caps | image 10 MB both platforms · video 50 MB both · audio 5 MB iOS | companion.home-assistant.io/docs/notifications/notification-attachments |
-| `/local` cache header | `Cache-Control: public, max-age=2678400` (31 days) | `homeassistant/components/http/static.py` |
-
-## Step 1 — Build (or load) the device inventory FIRST
-
-Logs identify clients/devices by **opaque tokens** — an IP, a browser user-agent, a Z-Wave `node_id`, a `notify.mobile_app_*` slug, a UniFi/camera hostname. Triage stalls every time on "what *is* `192.168.1.42`?". Resolve it **once**, up front, into a persistent map so every future triage is instant.
-
-**The map is user/environment-specific — it does NOT belong in this (shareable) skill repo.** Keep it in a **local, git-ignored file next to the logs** (e.g. `device_map.md` in the log directory) or in Claude auto-memory. Never commit a home's IP/device layout to a public repo.
-
-**Up-front Q&A** — when no map exists, extract the distinct tokens from the log and ask the user to name each once:
-
-```bash
-# Web/app clients: IP + device fingerprint (SM-X210 = Galaxy Tab, KFTRPWI = Amazon Fire, etc.)
-grep -oE "from [0-9.]+ \([^)]*\)" LOG | sort -u   # every client, not just those with a Build/ token
-# All LAN IPs by frequency
-grep -oE "\b(10|192\.168|172\.(1[6-9]|2[0-9]|3[01]))\.[0-9.]+" LOG | sort | uniq -c | sort -rn
-# Named device tokens worth resolving
-grep -oE "mobile_app_[a-z0-9_]+|node_id=[0-9]+|notify\.[a-z0-9_]+" LOG | sort | uniq -c | sort -rn
-```
-
-Then ask the user to fill **device · room/owner · role** for each token. Store as a table:
-
-```markdown
-| Token | Device | Room / owner | Role |
-|-------|--------|--------------|------|
-| 192.168.1.42 (SM-X210) | Android tablet | Kitchen | Wall dashboard |
-| node_id=3 | Z-Wave keypad | Front door | Alarm panel entry |
-| notify.mobile_app_pixel | Phone | (owner) | Alarm notifications |
-```
-
-Decode common fingerprints without asking: `SM-*` = Samsung Galaxy (Tab/phone), `KF*` or `Silk/` = Amazon Fire (current Silk user-agents often omit the `Build/` token entirely), `Pixel*` = Google Pixel, `iPad`/`iPhone` = Apple. Ask only for room/role.
-
-## Step 2 — Aggregate by logger, not by line
+1. Count by logger, not by line — one fault can print a thousand lines, another one.
+2. Keep the clusters a custom integration stands behind.
+3. Read one line of each cluster in full, with its traceback, and match it to a row above.
+4. Report one row per cluster: class · the line · the file that owns the fix · timestamp.
 
 ```bash
+# 1. clusters, by level and logger
 grep -oE "(ERROR|WARNING|CRITICAL) \([^)]+\) \[[^]]+\]" LOG | sort | uniq -c | sort -rn
-# Tracebacks are attributed to their header line only — count them separately:
-grep -c "^Traceback" LOG
+# 2. which integrations are named at all
+grep -oE "custom_components[./][a-z0-9_]+" LOG | sort | uniq -c | sort -rn
+# 3. one cluster, with the lines after each hit
+grep -n -A 25 "\[custom_components.<domain>" LOG
 ```
-
-Collapse each logger cluster to one row. Then read **one representative line** per cluster — not all of them.
-
-## Step 3 — Classify each cluster: noise vs actionable
-
-**Known noise — acknowledge once, do not chase:**
-
-| Scenario | Choice |
-|---|---|
-| `[homeassistant.loader] We found a custom integration X which has not been tested` | **Acknowledge and move on.** A boot banner, one per directory under `custom_components/` rather than per HACS install, so a hand-copied or installed-but-unconfigured integration warns too; once per restart. |
-| `[websocket_api.http.connection] … Reached 4096 pending messages` | **Resolve the connection's IP through the device map, then judge.** One line per connection — the socket is closed (`_cancel()`) and further logging suppressed, so a high count means many reconnect cycles rather than one noisy client. Grep `Stayed over 1024 for 10 seconds`, which fires before the kill. |
-| cloud-relay and transient network errors — `ClientConnectionResetError`, `Task exception was never retrieved` | **Ignore**, unless frequent *and* correlated with an outage. |
-| a cloud integration's one-off fetch failure | **Ignore**, unless sustained — and sustained is that integration's reauth or availability handling, not a log problem. |
-
-**Actionable — real bugs to fix:**
-
-| Scenario | Choice |
-|---|---|
-| `extra keys not allowed @ data['<key>']` from a script or automation | a service-schema deprecation: for `light.turn_on`, swap `color_temp` and `kelvin` for `color_temp_kelvin` (kelvin = `1000000 / mired`, floored), then grep the config for all four names the table above gives, since the same release took the state attributes that templates and dashboards read |
-| `Action notify.mobile_app_* not found`, `Service … not found` | the entity or service was renamed, or its device removed — update the automation to the current slug |
-| Z-Wave `NotFoundError: Value N-CC-… not found on node Node(node_id=N)` | `zwave_js.set_value` targets a value id the node no longer exposes — a re-interview, a firmware change or the wrong endpoint, none of it documented behaviour: resolve `node_id` through the map, then re-read the value id on the device's Z-Wave page |
-| `Bad credentials`, or an auth error from an integration holding a token | reconfigure that integration; an expired credential never recovers on its own |
-| anything under `custom_components.<your_domain>` | your own code — trace publish → subscribe → handler per *Debugging discipline* in `ha-integration/reference/discipline.md` |
-
-## Step 4 — Report
-
-Ranked table: **severity · cluster · root cause · fix · evidence (`timestamp` / `file:line`)**. State explicitly which clusters are *known noise* (so the user stops worrying about a scary count) and which are *actionable*. Resolve every opaque token through the device map so the report reads in plain device names ("Kitchen wall tablet", not `192.168.1.42`). If a fix is config-side (scripts/automations/integration settings) and you only have the log, say so and offer to apply it once given the config path.
-
-## Companion-app notification images (off-network delivery)
-
-> **Note:** this section is verified against the companion-app docs and not against a
-> live instance, and images are reported failing in practice. Treat every fix below as a
-> candidate until reproduced, and re-derive before advising.
 
 | Rule | Value |
 |---|---|
-| fetching the image at notification time | adds a round trip that can time out on a slow link |
-| storing the image and serving it | trades that round trip for getting authenticated file access right |
+| `We found a custom integration <domain> which has not been tested by Home Assistant` | not a fault: logged at each start for every directory under `custom_components/` that holds a `manifest.json`, configured or not |
+| a line at INFO, such as `Config entry '<title>' for <domain> integration not ready yet … Retrying in <n> seconds` | absent from the log unless Home Assistant runs verbose — the root logger sits at WARNING; read the entry's state on the integrations page |
+| a line no `custom_components` frame or logger stands behind | not this skill's — an automation, a core integration or an add-on |
+| a traceback | classed by the core line above it, and located by its last `custom_components/<domain>/` frame |
 
-Recurring config-side fix: a `notify.mobile_app_*` image "works on Wi-Fi, fails on cellular". Root cause is always that the **phone** downloads the attachment over the internet through Nabu Casa — so anything only reachable on the LAN, or served stale, breaks off-network. Two causes:
-
-1. **Hardcoded LAN / internal URL** (`http://192.168.x.x…`, an `internal_url`-based absolute) — unreachable off-network. Use a **relative** path; the companion app prepends the *active* base URL (cloud when remote) and adds auth. Attachments must be reachable from the internet, but not necessarily unauthenticated — the app supplies the auth headers.
-2. **Stale cached image** — the killer, and the mechanism is usually misdiagnosed. A snapshot written to a **fixed** `/config/www/…` filename and served via `/local/…` is sent with HA's own long-lived `Cache-Control` header on static paths (the value is in the table above), not a CDN's. The phone/OS/app HTTP cache then serves you the *previous* image (or a pre-first-write 404). It does **not** go away off Nabu Casa. Compounded by a write→push race, where the push beats the file flush.
-
-**Fixes, best first:**
-
-- **Live camera frame, per platform.** Android: `image: /api/camera_proxy/camera.<name>`. iOS: the camera stream via `data: entity_id: camera.<name>`. The `camera_proxy` path is documented Android-only — using it as a universal answer silently fails on iOS. Either form beats a snapshot: no file, no race, no static cache, framed at fetch time.
-- **Point at a public URL** when the image is already internet-hosted — skips HA entirely, and lets you drop any `downloader` + `delay` steps.
-- **Keep a frozen local snapshot** only if you must: add a cache-buster `?v={{ now().timestamp() | int }}` and a ~1 s `delay` after `camera.snapshot` so the write flushes.
-
-**Keys, sizes and replacement — check the docs before "modernising" a working config:**
-
-- **`attachment:` is not legacy.** It is a current, iOS-specific block (`hide-thumbnail`, `lazy`, `url`, `content-type`) and its `url` deliberately overrides `image`/`video`/`audio`. Replacing it with `image:` loses `hide-thumbnail` and `lazy`, which have no equivalent.
-- **`content-type: jpeg` is valid.** It is used when the URL carries no usable extension; a bare extension is what the docs ask for. Do not "fix" it to `image/jpeg`.
-- **Size caps:** per the table above. iOS 2021.5+ retries a larger file when the content is opened.
-- **A reused `tag:` replaces the previous notification** on both platforms — give each alert source a distinct one. iOS cannot replace *critical* notifications, and on Android a tag reused across different `group`s misbehaves.
+**Timing:** run the first command before reading any line, since a raw count is what
+misleads.

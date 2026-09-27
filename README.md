@@ -18,10 +18,10 @@ These are the skills behind the AI-assistance note on my HA integrations, such a
 | Skill | What it does |
 |-------|--------------|
 | [`ha-integration`](plugins/ha/skills/ha-integration/SKILL.md) | Scaffold, modify, audit, and lint a HA custom integration targeting **Platinum** quality scale. Config flows, the `DataUpdateCoordinator` pattern, entity and notify platforms, diagnostics, `quality_scale.yaml` discipline, and panel integrations, including how a panel looks: the Material 3 type scale, 48px touch targets and HA theme properties over hardcoded literals. |
-| [`ha-triage`](plugins/ha/skills/ha-triage/SKILL.md) | Work out what is actually wrong in a HA instance — from a `home-assistant.log`, a Settings → System → Logs download, or a symptom with no log at hand. Turns thousands of lines into a short list ranked by root cause, separating real faults from HA's background noise. |
+| [`ha-triage`](plugins/ha/skills/ha-triage/SKILL.md) | Work out what is wrong with a misbehaving HA custom integration — from a `home-assistant.log`, a traceback or a symptom. Matches the line core printed to a class of fault, and names the `ha-integration` file that owns the fix. |
 
-Both ship in one **`ha`** plugin, and each looks up the current HA or Material 3 docs
-before acting, because these APIs move and memory goes stale.
+Both ship in one **`ha`** plugin. `ha-integration` looks up the current HA or Material 3
+docs before acting, because these APIs move and memory goes stale.
 
 ## How `ha-integration` works
 

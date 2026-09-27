@@ -21,7 +21,6 @@ node_modules/
 home-assistant.log*
 home-assistant_v2.db*
 
-# Local, environment-specific notes that must never be committed — e.g. the
-# device map the ha-triage skill keeps beside the logs, which holds a home's
-# IP/device layout.
+# Local, environment-specific notes that must never be committed — e.g. a
+# device map kept beside the logs, which holds a home's IP/device layout.
 device_map.md
