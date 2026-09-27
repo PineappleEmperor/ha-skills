@@ -91,11 +91,16 @@ Under `custom_components/<domain>/`. What goes inside each file is `reference/pa
 | `.gitignore` | `__pycache__/`, caches, venvs, HA dev artefacts (`.storage/`, `home-assistant.log*`, the `_v2.db`) and `device_map.md`, which the `ha-triage` skill says is never committed | `templates/.gitignore` |
 | `ruleset.json` | the branch ruleset — what it requires is `reference/github-setup.md` | `templates/ruleset.json` |
 | `.githooks/commit-msg` | the Conventional Commit check — `reference/commits.md` | release-flow's copy, `chmod +x` |
+| `.pre-commit-config.yaml` | the local hooks: ruff, codespell, `check-json`, a guard on `main`, yamllint and prettier | `templates/.pre-commit-config.yaml`, verbatim |
+| `.yamllint`, `.prettierrc.js`, `.prettierignore` | the configs yamllint and prettier read | the files of those names in `templates/`, verbatim |
+| `.githooks/pre-commit` | the wrapper that runs the local hooks on commit | the snippet below, `chmod +x` |
 
 | Rule | Value |
 |---|---|
 | a copy that relaxes `pyproject.toml`'s ruff or pytest tables | drift |
 | enabling the commit hook | `git config core.hooksPath .githooks`, once per clone, documented in `CLAUDE.md` |
+| enabling the local hooks | install `pre-commit`; the same `core.hooksPath` setting runs the wrapper, and `pre-commit install` refuses to run while that setting is in place |
+| what the local hooks leave alone | `.github/`, `ruleset.json` and a built panel bundle, so a copied file stays identical to its source |
 | omitting `.gitignore` | a local `pytest` plus a `git add -A` tracks `.pyc` files, which *What the audit checks now* in ha-integration-ci's README fails a repository for |
 | where the skill-invocation rule lives | the repository's own `CLAUDE.md`, never a user's global config |
 
@@ -112,6 +117,17 @@ websocket, services…), invoke the `ha-integration` skill. Re-invoke it after a
 
 ```json
 {"pythonVersion": "3.14", "typeCheckingMode": "standard"}
+```
+
+**`.githooks/pre-commit`**
+
+```sh
+#!/bin/sh
+if ! command -v pre-commit >/dev/null 2>&1; then
+  echo "pre-commit is not installed: pip install pre-commit" >&2
+  exit 1
+fi
+exec pre-commit run
 ```
 
 **`README.md` — the AI-assistance note**, as a GitHub `> [!NOTE]` admonition, the skill name

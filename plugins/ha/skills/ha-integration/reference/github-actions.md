@@ -45,9 +45,9 @@ Resolve it in this order:
 - **Last resort:** `find ~/.claude ~/.agents . -type d -path '*ha-integration/templates' 2>/dev/null`
 
 It holds the copied files Step 2 names: the four plain workflows, `.github/dependabot.yml`,
-`conftest.py`, `pyproject.toml`, `requirements.test.txt`, `ruleset.json`, `.gitignore`,
-`scripts/bootstrap_repo.sh` and `hooks/` (optional per-turn reminders for your own
-`~/.claude`, installed per the header in each script).
+`conftest.py`, `pyproject.toml`, `requirements.test.txt`, `ruleset.json`, `.gitignore`, the
+four local-hook files, `scripts/bootstrap_repo.sh` and `hooks/` (optional per-turn reminders
+for your own `~/.claude`, installed per the header in each script).
 
 ### Step 2: Take each file from its source
 
@@ -70,7 +70,9 @@ verify a copy is *Step 1: Callers, not bodies; copies, not paraphrases* in
 - `.github/dependabot.yml` — this skill's `templates/`; what it must contain is
   `reference/dependabot.md`
 - `ruleset.json`, `pyproject.toml`, `conftest.py`, `requirements.test.txt`, `.gitignore`,
-  `CLAUDE.md` snippet — this skill's `templates/` and `reference/scaffold.md`
+  `.pre-commit-config.yaml`, `.yamllint`, `.prettierrc.js`, `.prettierignore`, and the
+  `CLAUDE.md` and `.githooks/pre-commit` snippets — this skill's `templates/` and
+  `reference/scaffold.md`
 - `frontend/package.json`, `frontend/tsconfig.json` (panel repos only) — ha-panel-ci's
   `frontend/`
 - `scripts/bootstrap_repo.sh` — this skill's `templates/scripts/`; when to run it is
@@ -107,6 +109,9 @@ only list of them.
   values, as ha-panel-ci's README says
 - `requirements.test.txt` — uncomment the `home-assistant-frontend` pin, panel repos only
 - `ruleset.json` — drop a context the repo does not produce
+- `.pre-commit-config.yaml` — a hook `rev` newer than the template's, and words added to
+  codespell's `--ignore-words-list`
+- `.prettierignore` — a path added for another file the repo copies or builds
 - the four plain workflows — an action pin **newer** than the template's, where Dependabot
   has already bumped yours; keep the newer pin
 
