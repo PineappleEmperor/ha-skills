@@ -100,7 +100,7 @@ Under `custom_components/<domain>/`. What goes inside each file is `reference/pa
 | a copy that relaxes `pyproject.toml`'s ruff or pytest tables | drift |
 | enabling the commit hook | `git config core.hooksPath .githooks`, once per clone, documented in `CLAUDE.md` |
 | enabling the local hooks | install `pre-commit`; the same `core.hooksPath` setting runs the wrapper, and `pre-commit install` refuses to run while that setting is in place |
-| what prettier leaves alone | Markdown, and `.github/`, `ruleset.json` and a built panel bundle, so a copied file stays identical to its source |
+| what prettier leaves alone | Markdown, as core leaves it; and `.github/`, `ruleset.json` and a built panel bundle, so a copied or built file stays identical to its source |
 | omitting `.gitignore` | a local `pytest` plus a `git add -A` tracks `.pyc` files, which *What the audit checks now* in ha-integration-ci's README fails a repository for |
 | where the skill-invocation rule lives | the repository's own `CLAUDE.md`, never a user's global config |
 
