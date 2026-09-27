@@ -45,7 +45,7 @@ draft-PR opener. Why the opener needs a token of its own, and what happens witho
 4. **Expiration**: 90 days or less
 5. **Generate token**, copy the `github_pat_…` value — it is shown once
 
-What the grant allows:
+**What the grant allows:**
 
 - `Contents: write` covers creating releases, tags and commits in the repos it is scoped
   to.
@@ -53,6 +53,8 @@ What the grant allows:
   GitHub does not separate those.
 - Neither permission can edit rulesets or branch protection, change repository settings, or
   reach any repo outside its scope, so a required-checks ruleset still holds.
+- The token exists to trigger workflows, so anything it can do a workflow it starts can do
+  too.
 
 ### Step 2: Store it as the `RELEASE_TOKEN` repository secret
 
@@ -115,7 +117,7 @@ job itself; `Dependency review` is `dependency-review.yml`'s.
 | `panel / Panel type-check and tests` | never required: it is path-filtered, so it does not report on a Python-only PR |
 | a skipped job | satisfies its required check, so a job-level `if:` guard is fine |
 | a cancelled run | does not, per *Calling the workflows* in release-flow's README on the `pr-checks` trigger types |
-| a matrix job's context | suffixed with the matrix value, so it is not the job name |
+| a matrix job's context | suffixed with the matrix value, so it is not the job name — *Implementation notes* in ha-integration-ci's README |
 
 ## Supply chain
 
