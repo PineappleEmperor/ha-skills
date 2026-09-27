@@ -406,23 +406,25 @@ async def async_read_state(hass: HomeAssistant, path: Path) -> str:
 
 | Rule | Value |
 |---|---|
-| where each row was read | https://developers.home-assistant.io/docs/asyncio_blocking_operations/, with `_BLOCKING_CALLS` in `homeassistant/block_async_io.py` and `raise_for_blocking_call` in `homeassistant/util/loop.py` at the `2026.9.0` tag |
+| where each row was read | https://developers.home-assistant.io/docs/asyncio_blocking_operations/, https://developers.home-assistant.io/docs/asyncio_imports/ and the `inject-websession` rule; `_BLOCKING_CALLS` in `homeassistant/block_async_io.py`, `raise_for_blocking_call` in `homeassistant/util/loop.py` and `async_add_executor_job` in `homeassistant/core.py`, at the `2026.9.0` tag |
 | what core detects | `open` and `Path.open`, `read_text`, `read_bytes`, `write_text`, `write_bytes`; `glob.glob`, `glob.iglob`, `os.walk`, `os.listdir`, `os.scandir`; `time.sleep`; `HTTPConnection.putrequest`, which `urllib` goes through; `importlib.import_module`; and `SSLContext.load_default_certs`, `load_verify_locations`, `load_cert_chain` and `set_default_verify_paths` |
+| what it lets through all the same | a path under `/proc`, the import of a module already imported, and `load_verify_locations` handed `cadata` alone |
 | which of those raise as well as log | `time.sleep` and `HTTPConnection.putrequest` — a `RuntimeError` beginning `Caught blocking call to`, so the call never runs |
 | what core cannot detect | anything off that list, the reads and writes on a file once it is open among them |
 | a positional argument | `await hass.async_add_executor_job(func, arg)` |
 | a keyword argument | `functools.partial`, as above — the method passes positional arguments only |
-| a sync library | every call into it through the executor; `async-dependency` in `reference/quality-scale.md` is met only by an async one |
-| an HTTP client | `async_get_clientsession` from `homeassistant.helpers.aiohttp_client`, or `get_async_client` from `homeassistant.helpers.httpx_client` — each loads the certificates in the executor |
+| a sync library | every call into it through the executor |
+| an HTTP client shared with the rest of Home Assistant | `async_get_clientsession` from `homeassistant.helpers.aiohttp_client`, or `get_async_client` from `homeassistant.helpers.httpx_client` |
+| an HTTP client of your own, where cookies are used say | `async_create_clientsession` or `create_async_httpx_client`, from the same two modules |
 | an import | at module level, which Home Assistant runs before the loop starts or in its import executor |
-| an import that must stay inside a function | through the executor, or `async_import_module` from `homeassistant.helpers.importlib` where several callers may import it at once |
+| an import that must stay inside a function | through the executor, or `async_import_module` from `homeassistant.helpers.importlib` where the module may be imported from more than one place |
 
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
 | `time.sleep` in a coroutine or a `@callback` | `await asyncio.sleep` | core raises as well as logging | `_BLOCKING_CALLS` in `homeassistant/block_async_io.py`, at the `2026.9.0` tag |
 | moving only the `open` to the executor | move the reads and writes with it | core sees the `open` and nothing after it, so what is left is never reported | https://developers.home-assistant.io/docs/asyncio_blocking_operations/ |
-| an `aiohttp.ClientSession()` or `httpx.AsyncClient()` of your own | the two helpers above | building one loads the certificates from disk, on the loop | https://developers.home-assistant.io/docs/asyncio_blocking_operations/ |
-| an `import` inside a function that runs on the loop | a module-level import | the import machinery reads the module from disk | https://developers.home-assistant.io/docs/asyncio_imports/ |
+| an `SSLContext` loaded with certificates on the loop | `async_get_clientsession`, `get_async_client`, or `homeassistant.util.ssl` for a context alone | loading the certificates is blocking disk I/O, which those three keep in the executor | https://developers.home-assistant.io/docs/asyncio_blocking_operations/ |
+| an `import` inside a function on the loop, of a module not yet imported | a module-level import | the import machinery reads the module from disk | https://developers.home-assistant.io/docs/asyncio_imports/ |
 
 ### `ConfigEntry` mutation — Step 3
 - Never mutate `ConfigEntry` directly — always use `hass.config_entries.async_update_entry(entry, data=..., options=...)`
