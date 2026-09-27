@@ -61,7 +61,8 @@ A bump here moves the **HA version the suite tests against** (`reference/testing
 why), and can drag the Python floor with it.
 
 **Fix:** review these PRs rather than auto-merging, and match ruff's `target-version` and
-`pyrightconfig.json` to the floor the CI declares, which the audit compares.
+`pyrightconfig.json` to the floor the CI declares, which the audit compares — *What the
+audit checks now* in ha-integration-ci's README.
 
 **Timing:** a floor move is a CI release first.
 
