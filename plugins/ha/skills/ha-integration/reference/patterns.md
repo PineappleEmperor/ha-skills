@@ -273,7 +273,7 @@ version lands, or when the window elapses.
 - `update_interval` minimum 5 s
 - Set `always_update=False` when API responses support `__eq__` — avoids unnecessary state machine writes
 - Raise `ConfigEntryAuthFailed` on auth errors inside `_async_update_data`
-- Raise `UpdateFailed` on other errors; use `UpdateFailed(retry_after=60)` for rate-limited APIs
+- Raise `UpdateFailed` on other errors; use `UpdateFailed(retry_after=60)` for rate-limited APIs — it sets the wait before the next poll once, and is ignored during the first refresh
 - For push APIs: use `coordinator.async_set_updated_data(data)` instead of adapting to polling
 
 ### Entity push subscriptions — Step 1
@@ -290,21 +290,18 @@ is back.
 
 | Rule | Value |
 |---|---|
-| where each row was read | https://developers.home-assistant.io/docs/integration_setup_failures/, https://developers.home-assistant.io/docs/integration_fetching_data/ and the `entity-unavailable` rule; `homeassistant/config_entries.py`, `homeassistant/helpers/update_coordinator.py` and `homeassistant/components/mqtt/client.py` at the `2026.9.0` tag |
-| unreachable at setup | raise `ConfigEntryNotReady("<reason>")` from `async_setup_entry` in `__init__.py` |
-| how Home Assistant retries that setup | after 5 seconds, doubling on each failure up to `SETUP_RETRY_MAX_WAIT`, 600 seconds; and as soon as discovery sees the device again |
-| a poll that fails | raise `UpdateFailed`: `last_update_success` goes false, `CoordinatorEntity.available` returns it, and the next interval tries again |
+| where each row was read | https://developers.home-assistant.io/docs/integration_setup_failures/, https://developers.home-assistant.io/docs/integration_fetching_data/ and the `entity-unavailable` and `log-when-unavailable` rules; `homeassistant/config_entries.py`, `homeassistant/helpers/update_coordinator.py` and `homeassistant/components/mqtt/client.py` at the `2026.9.0` tag |
+| how Home Assistant retries a setup that raised `ConfigEntryNotReady` | after 5 seconds, doubling on each failure up to `SETUP_RETRY_MAX_WAIT`, 600 seconds; and, where the integration supports discovery, as soon as the device is discovered |
+| what a failed poll does | `last_update_success` goes false, `CoordinatorEntity.available` returns it, and the next interval tries again |
 | what the coordinator catches unaided | `TimeoutError`, `aiohttp.ClientError`, `requests.exceptions.RequestException` and `urllib.error.URLError`, each a failed update |
 | a request timeout | `async with asyncio.timeout(10):` round the fetch, the value the fetching-data page's example uses |
-| `UpdateFailed(retry_after=…)` | sets the wait before the next poll, once; ignored during the first refresh |
+| who notices a push connection has dropped | the client library's own disconnect callback — core's MQTT client takes paho's `on_disconnect` |
+| a connection that goes quiet without closing | the keepalive the protocol offers — core's MQTT client passes `keepalive` to `connect` |
 | a push connection that drops | `coordinator.async_set_update_error(err)`, which logs once at ERROR and takes every `CoordinatorEntity` unavailable |
-| a push connection that returns | the next `coordinator.async_set_updated_data(data)` makes them available again, and logs at DEBUG only — the line saying it is back is yours, once, at INFO |
+| a push connection that returns | the next data handed to the coordinator makes them available again and is logged at DEBUG only, so the line saying it is back is yours, once |
 | the task that reconnects | `entry.async_create_background_task(hass, coro, name)`, which Home Assistant cancels when the entry unloads |
 | the wait between attempts | `await asyncio.sleep(…)` inside that task; core's MQTT client waits a fixed `RECONNECT_INTERVAL_SECONDS`, 10 |
 | a reconnect refused for its credentials | stop retrying and call `entry.async_start_reauth(hass)`, as core's MQTT client does |
-| an entity with no coordinator | `_attr_available = False` where the fetch fails and `True` where it succeeds |
-
-Modelled on `_async_connection_result` and `_reconnect_loop` in core's MQTT client:
 
 ```python
 RECONNECT_INTERVAL = 10
@@ -316,26 +313,30 @@ def _async_on_disconnect(self, err: Exception) -> None:
     self.coordinator.async_set_update_error(err)
     if self._reconnect_task is None:
         self._reconnect_task = self._entry.async_create_background_task(
-            self.hass, self._async_reconnect(), name=f"{DOMAIN} reconnect"
+            self.hass,
+            self._async_reconnect(),
+            name=f"{DOMAIN} reconnect",
+            eager_start=False,
         )
 
 
 async def _async_reconnect(self) -> None:
-    """Try again until the client connects, waiting between attempts."""
-    while not self._client.connected:
+    """Try again until the client connects, waiting after each failure."""
+    while True:
         try:
             await self._client.connect()
         except OSError as err:
             _LOGGER.debug("Reconnect failed: %s", err)
-        await asyncio.sleep(RECONNECT_INTERVAL)
-    self._reconnect_task = None
-    _LOGGER.info("Connection restored")
+            await asyncio.sleep(RECONNECT_INTERVAL)
+            continue
+        self._reconnect_task = None
+        _LOGGER.info("Connection restored")
+        return
 ```
 
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
 | `ConfigEntryNotReady` raised from a platform's `async_setup_entry` | raise it from `__init__.py` | it is too late there to be caught by the config entry setup | https://developers.home-assistant.io/docs/integration_setup_failures/ |
-| a log line above DEBUG for each failed retry | pass the reason to the exception | Home Assistant logs the retry itself, so yours fills the log | https://developers.home-assistant.io/docs/integration_setup_failures/ |
 | `asyncio.create_task` or `hass.async_create_task` for the reconnect loop | `entry.async_create_background_task` | unload cancels the entry's background tasks and no others, so the loop outlives a reload | `_async_process_on_unload` in `homeassistant/config_entries.py`, at the `2026.9.0` tag |
 | the last value left showing while the connection is down | mark the entity unavailable | unavailable is the better state than the last known one | https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/entity-unavailable/ |
 
@@ -434,7 +435,7 @@ Covers the rule `log-when-unavailable` (`reference/quality-scale.md`) and HA's l
 
 | Rule | Value |
 |---|---|
-| what the coordinator logs for you | the first `UpdateFailed` at ERROR, each consecutive one at DEBUG, and the recovery — which is `log-when-unavailable` met |
+| what the coordinator logs for you | on a poll, the first `UpdateFailed` at ERROR, each consecutive one at DEBUG, and the recovery — which is `log-when-unavailable` met; what it leaves to you on a push connection is *A connection that drops — Step 1* |
 | what HA logs for you | the reason behind `ConfigEntryNotReady` and `ConfigEntryAuthFailed`, once |
 | which exception to raise | transient → `UpdateFailed` or `ConfigEntryNotReady`; auth → `ConfigEntryAuthFailed`; an action's own failure → `HomeAssistantError` or `ServiceValidationError`, per `action-exceptions` |
 | `INFO` | almost never; setup, unload and teardown are `DEBUG` |
