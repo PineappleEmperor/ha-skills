@@ -1,5 +1,6 @@
-// Home Assistant core's .prettierrc.js, with `homeassistant/` read as `custom_components/`.
-// Copy verbatim. JSON keys are sorted, and a manifest keeps domain and name first.
+// Home Assistant core's .prettierrc.js, with `homeassistant/` read as `custom_components/`
+// and core's brands glob dropped. Copy verbatim. JSON keys are sorted, and a manifest keeps
+// domain and name first.
 
 /** @type {import("prettier").Config} */
 module.exports = {

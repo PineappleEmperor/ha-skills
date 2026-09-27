@@ -1,7 +1,8 @@
 # Home Assistant core's .yamllint rules. Copy verbatim.
 #
-# One difference from core: truthy does not check keys. Core writes a disable comment above
-# `on:` in each of its workflows, and a workflow copied from its source cannot carry one.
+# Two differences from core. Its `ignore` block names paths of core's own and is dropped.
+# And truthy does not check keys: core silences `on:` with a disable comment in the workflow,
+# and a workflow copied from its source cannot carry one.
 rules:
   braces:
     level: error
