@@ -55,28 +55,17 @@ Write each file as its README block or its template gives it, never from memory;
 verify a copy is *Step 1: Callers, not bodies; copies, not paraphrases* in
 `reference/audit.md`.
 
-- `.github/workflows/pr-checks.yml`, `lint-pr.yml`, `auto-draft-pr.yml`,
-  `release-drafter.yml` — the usage blocks under *Calling the workflows* in release-flow's
-  README
-- `.github/workflows/python-validate.yml`, `quality-audit.yml`, `release.yml` — the usage
-  blocks under *Calling the workflows* in ha-integration-ci's README
-- `.github/workflows/panel-bundle.yml` (panel repos only) — the usage block under *Calling
-  the workflow* in ha-panel-ci's README
-- `.github/release-drafter.yml`, `.githooks/commit-msg` — release-flow's own files, per
-  *Called versus copied* in its README
-- `.github/workflows/dependency-review.yml`, `hacs-validate.yml`, `hassfest-validate.yml`,
-  `issue_stale.yml` — this skill's `templates/.github/workflows/`; each is settings over a
-  third-party action
-- `.github/dependabot.yml` — this skill's `templates/`; what it must contain is
-  `reference/dependabot.md`
-- `ruleset.json`, `pyproject.toml`, `conftest.py`, `requirements.test.txt`, `.gitignore`,
-  `.pre-commit-config.yaml`, `.yamllint`, `.prettierrc.js`, `.prettierignore`, and the
-  `CLAUDE.md` and `.githooks/pre-commit` snippets — this skill's `templates/` and
-  `reference/scaffold.md`
-- `frontend/package.json`, `frontend/tsconfig.json` (panel repos only) — ha-panel-ci's
-  `frontend/`
-- `scripts/bootstrap_repo.sh` — this skill's `templates/scripts/`; when to run it is
-  `reference/github-setup.md`
+| Artefact | Taken from |
+|---|---|
+| `.github/workflows/pr-checks.yml`, `lint-pr.yml`, `auto-draft-pr.yml`, `release-drafter.yml` | the usage blocks under *Calling the workflows* in release-flow's README |
+| `.github/workflows/python-validate.yml`, `quality-audit.yml`, `release.yml` | the usage blocks under *Calling the workflows* in ha-integration-ci's README |
+| `.github/workflows/panel-bundle.yml` (panel repos only) | the usage block under *Calling the workflow* in ha-panel-ci's README |
+| `.github/release-drafter.yml`, `.githooks/commit-msg` | release-flow's own files, per *Called versus copied* in its README |
+| `.github/workflows/dependency-review.yml`, `hacs-validate.yml`, `hassfest-validate.yml`, `issue_stale.yml` | this skill's `templates/.github/workflows/`; each is settings over a third-party action |
+| `.github/dependabot.yml` | this skill's `templates/`; what it must contain is `reference/dependabot.md` |
+| `ruleset.json`, `pyproject.toml`, `conftest.py`, `requirements.test.txt`, `.gitignore`, `.pre-commit-config.yaml`, `.yamllint`, `.prettierrc.js`, `.prettierignore`, and the `CLAUDE.md` and `.githooks/pre-commit` snippets | this skill's `templates/` and `reference/scaffold.md` |
+| `frontend/package.json`, `frontend/tsconfig.json` (panel repos only) | ha-panel-ci's `frontend/` |
+| `scripts/bootstrap_repo.sh` | this skill's `templates/scripts/`; when to run it is `reference/github-setup.md` |
 
 The audit does not compare a caller with its README block — what it does check is *What the
 audit checks now* in ha-integration-ci's README — so a caller written from memory can pass
@@ -100,20 +89,18 @@ in ha-integration-ci's README says.
 
 ### Step 4: Apply only the sanctioned adaptations
 
-Any other difference from the README block or the template is drift, and this list is the
+Any other difference from the README block or the template is drift, and this table is the
 only list of them.
 
-- `pyproject.toml` — a `[project]` table carrying no version, and pytest or pyright options;
-  never the `[tool.ruff]` tables, which are Home Assistant core's rule set
-- `frontend/package.json` — the `<domain>` and `<name>` placeholders → this integration's
-  values, as ha-panel-ci's README says
-- `requirements.test.txt` — uncomment the `home-assistant-frontend` pin, panel repos only
-- `ruleset.json` — drop a context the repo does not produce
-- `.pre-commit-config.yaml` — a hook `rev` newer than the template's, and words added to
-  codespell's `--ignore-words-list`
-- `.prettierignore` — a path added for another file the repo copies or builds
-- the four plain workflows — an action pin **newer** than the template's, where Dependabot
-  has already bumped yours; keep the newer pin
+| Rule | Value |
+|---|---|
+| `pyproject.toml` | a `[project]` table carrying no version, and pytest or pyright options; never the `[tool.ruff]` tables, which are Home Assistant core's rule set |
+| `frontend/package.json` | the `<domain>` and `<name>` placeholders → this integration's values, as ha-panel-ci's README says |
+| `requirements.test.txt` | uncomment the `home-assistant-frontend` pin, panel repos only |
+| `ruleset.json` | drop a context the repo does not produce |
+| `.pre-commit-config.yaml` | a hook `rev` newer than the template's, and words added to codespell's `--ignore-words-list` |
+| `.prettierignore` | a path added for another file the repo copies or builds |
+| the four plain workflows | an action pin **newer** than the template's, where Dependabot has already bumped yours; keep the newer pin |
 
 ### Step 5: Delete any superseded workflow
 
