@@ -16,7 +16,7 @@ Commits form, subject-only by default.**
 6. The PR body — for reviewers, and nothing users read
 7. Step 1: Leave the body empty
 8. Step 2: Put the narrative in the release description
-9. Step 3: Put the reasoning in the PR conversation
+9. Step 3: Post no comment on the PR
 10. Cases
 11. `gh pr edit` fails on the Projects-classic deprecation — PR body Step 1
 
@@ -75,17 +75,17 @@ No job writes it, and the draft PR arrives empty.
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
 | "this change is complex, it needs explaining" | split it, or write better commit subjects | the subjects are the changelog | commit Step 2 |
-| "reviewers need the reasoning" | put it in the PR conversation | what users get is the commit subjects | PR body Step 3 |
-| "the verification belongs with the change" | put it in a comment | the conversation is where reviewers read evidence, and the body is not | PR body Step 3 |
+| "reviewers need the reasoning" | put it in the README or another file in the repo | a file is versioned with the code, and a PR page is not | PR body Step 3 |
+| "the verification belongs with the change" | leave it to the checks | a green check is the evidence | PR body Step 3 |
 | "I wrapped it in `<details>` so it's stripped" | leave the fold to Dependabot's own output | a folded body is still published under the repo owner's byline | PR body Step 1 |
 | "it's only a few paragraphs" | leave the body empty | whatever its length it is published under the repo owner's byline | PR body Step 1 |
 
 | scenario | choice |
 |---|---|
-| typing prose into `gh pr create --body` | put it in a comment, or fix the commit subjects |
-| reaching for `<details>` in a PR description | put it in a comment, or fix the commit subjects |
-| a description longer than its diff is interesting | put it in a comment, or fix the commit subjects |
-| explaining *why* anywhere the commit subjects should have said it | put it in a comment, or fix the commit subjects |
+| typing prose into `gh pr create --body` | fix the commit subjects, or put it in a file in the repo |
+| reaching for `<details>` in a PR description | fix the commit subjects, or put it in a file in the repo |
+| a description longer than its diff is interesting | fix the commit subjects, or put it in a file in the repo |
+| explaining *why* anywhere the commit subjects should have said it | fix the commit subjects, or put it in a file in the repo |
 
 ### Step 2: Put the narrative in the release description
 
@@ -94,10 +94,13 @@ written once, in the release description. GitHub's own `generate_release_notes` 
 mechanism here; the one-writer rule the audit enforces is *What the audit checks now* in
 ha-integration-ci's README.
 
-### Step 3: Put the reasoning in the PR conversation
+### Step 3: Post no comment on the PR
 
-Reasoning, alternatives and verification evidence go in the PR **conversation**, where
-reviewers read them and the notes do not.
+| Rule | Value |
+|---|---|
+| an explanation worth keeping | the README, or another file in the repo |
+| verification | the checks |
+| a reply to a comment a human wrote | always fine |
 
 ## Cases
 
