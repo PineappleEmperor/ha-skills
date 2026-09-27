@@ -29,11 +29,15 @@ before acting, because these APIs move and memory goes stale.
 ```mermaid
 flowchart LR
     request([a request]) --> router["SKILL.md<br/>picks the mode"]
-    router --> file["the reference file<br/>for that mode"]
-    file --> docs["Home Assistant docs and core<br/>read before writing"]
-    file --> copies["templates/ and the CI repositories<br/>copied, never authored"]
-    file --> ledger["freshness.md<br/>versions and pins, and how to re-check them"]
+    router --> read["what that mode says<br/>to read first"]
+    read --> act["the work"]
 ```
+
+Three rules hold across the modes:
+
+- A rule about Home Assistant is read from its developer docs or from core, not from memory.
+- CI files and configs are copied from `templates/` or from the CI repositories, never authored.
+- Versions, pins and revisions taken from outside sit in one ledger, `reference/freshness.md`.
 
 ## Install
 
@@ -45,6 +49,12 @@ Add this repo as a marketplace and install the plugin from inside Claude Code:
 ```
 
 Update later with `/plugin marketplace update ha-skills`.
+
+## Development
+
+This repository's CI is [`.github/workflows/ci.yml`](.github/workflows/ci.yml): ruff, the
+tests under `tests/`, the two audits in `scripts/`, and a check that fails once PyPI serves a
+newer Home Assistant minor than the release row of the skill's `reference/freshness.md` names.
 
 ## License
 
