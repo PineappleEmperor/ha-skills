@@ -85,12 +85,13 @@ A rule that is genuinely untestable is `exempt` with a comment, not an unproven 
 
 ### A local-push MQTT device integration — Step 2
 
-**Fix:** mark the five rules below `exempt`, each with the comment its row gives.
+**Fix:** mark the four rules below `exempt`, each with the comment its row gives, and leave
+`async-dependency` at `todo` while a library is sync.
 
 | Rule | Value |
 |---|---|
 | `appropriate-polling` | exempt — the device pushes, so nothing polls |
 | `reauthentication-flow` | exempt — no integration-level auth to renew |
 | `inject-websession` | exempt — no cloud HTTP |
-| `async-dependency` | exempt — the sync libraries run in the executor |
 | `dynamic-devices` | exempt — one device per entry |
+| `async-dependency` | `todo`, never exempt — the rule's page allows no exception, and a sync library run in the executor does not meet it |
