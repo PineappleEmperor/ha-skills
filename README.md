@@ -24,6 +24,49 @@ These are the skills behind the AI-assistance note on my HA integrations, such a
 All three ship in one **`ha`** plugin, and each looks up the current HA or Material 3 docs
 before acting, because these APIs move and memory goes stale.
 
+## How `ha-integration` is put together
+
+```mermaid
+flowchart LR
+    request([a request about a custom integration]) --> router
+
+    subgraph skill["the ha-integration skill"]
+        router["SKILL.md, the router<br/>picks a mode, names one file"]
+        subgraph task["task files, one topic each"]
+            build["building<br/>scaffold · patterns · panels · testing · quality-scale"]
+            ship["shipping<br/>commits · versioning · github-actions · github-setup · dependabot"]
+            judge["judging<br/>discipline · audit"]
+        end
+        ledger["freshness.md, the currency ledger"]
+        templates["templates/<br/>files copied, never authored"]
+    end
+
+    subgraph outside["outside the skill"]
+        docs["Home Assistant developer docs<br/>and core at the release tag"]
+        ci["READMEs of release-flow,<br/>ha-integration-ci, ha-panel-ci"]
+    end
+
+    router --> build
+    router --> ship
+    router --> judge
+    router --> ledger
+    build -- reads before writing --> docs
+    build -- copies --> templates
+    ship -- copies --> templates
+    ship -- points at --> ci
+    build -. cites a value .-> ledger
+    ship -. cites a value .-> ledger
+    ledger -- re-derives from --> docs
+```
+
+| Approach | What it means in practice |
+|---|---|
+| route, then read one file | `SKILL.md` holds a table with a row per action — scaffold, modify, test, release, and so on. Each row names the one file to read first and the external pages behind it. |
+| one fact, one home | each task file owns its topic, including the mistakes to avoid there. Every other file points at it and restates nothing. |
+| fetch before writing | a rule about Home Assistant is read from the developer docs or from core at the release tag, and the file says which. |
+| copy, never author | CI files and configs come from `templates/` or from a CI repository's README block. Nothing is written from memory. |
+| keep a ledger of what goes stale | versions, pins and revisions copied from outside sit in `freshness.md`, each with the command that re-derives it and the files that hold a copy. |
+
 ## Install
 
 Add this repo as a marketplace and install the plugin from inside Claude Code:
