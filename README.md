@@ -31,8 +31,8 @@ flowchart LR
     request([a request about a custom integration]) --> router
 
     subgraph skill["the ha-integration skill"]
-        router["SKILL.md, the router<br/>picks a mode, names one file"]
-        subgraph task["task files, one topic each"]
+        router["SKILL.md, the router<br/>picks a mode, says what to read first"]
+        subgraph task["task files, each owning its topics"]
             build["building<br/>scaffold · patterns · panels · testing · quality-scale"]
             ship["shipping<br/>commits · versioning · github-actions · github-setup · dependabot"]
             judge["judging<br/>discipline · audit"]
@@ -42,8 +42,9 @@ flowchart LR
     end
 
     subgraph outside["outside the skill"]
-        docs["Home Assistant developer docs<br/>and core at the release tag"]
-        ci["READMEs of release-flow,<br/>ha-integration-ci, ha-panel-ci"]
+        docs["Home Assistant developer docs<br/>and core"]
+        upstream["PyPI, GitHub releases,<br/>the brands and HACS repositories"]
+        ci["release-flow, ha-integration-ci, ha-panel-ci<br/>their READMEs and the files they publish"]
     end
 
     router --> build
@@ -53,19 +54,22 @@ flowchart LR
     build -- reads before writing --> docs
     build -- copies --> templates
     ship -- copies --> templates
-    ship -- points at --> ci
+    ship -- copies from, points at --> ci
+    build -- points at --> ci
+    judge -- points at --> ci
     build -. cites a value .-> ledger
-    ship -. cites a value .-> ledger
+    judge -. re-derives the rows .-> ledger
     ledger -- re-derives from --> docs
+    ledger -- re-derives from --> upstream
 ```
 
 | Approach | What it means in practice |
 |---|---|
-| route, then read one file | `SKILL.md` holds a table with a row per action — scaffold, modify, test, release, and so on. Each row names the one file to read first and the external pages behind it. |
-| one fact, one home | each task file owns its topic, including the mistakes to avoid there. Every other file points at it and restates nothing. |
-| fetch before writing | a rule about Home Assistant is read from the developer docs or from core at the release tag, and the file says which. |
-| copy, never author | CI files and configs come from `templates/` or from a CI repository's README block. Nothing is written from memory. |
-| keep a ledger of what goes stale | versions, pins and revisions copied from outside sit in `freshness.md`, each with the command that re-derives it and the files that hold a copy. |
+| route, then read first | `SKILL.md` holds a table with a row per action — scaffold, modify, test, release, and so on. Each row says what to read first, a reference file or the commands in `SKILL.md` itself, and names the external pages where the action has them. |
+| one fact, one home | each task file owns its topics, including the mistakes to avoid there. Every other file points at it and restates nothing. |
+| fetch before writing | a rule about Home Assistant is read from the developer docs or from core, not from memory. |
+| copy, never author | CI files and configs come from `templates/`, from a CI repository's README block, or from that repository's own files. Nothing is written from memory. |
+| keep a ledger of what goes stale | versions, pins and revisions copied from outside sit in `freshness.md`, each with how to re-derive it and the files that hold a copy. |
 
 ## Install
 
