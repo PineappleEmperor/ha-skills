@@ -22,19 +22,20 @@ it.**
 11. `UpdateEntity` (firmware/OTA install) — Step 1
 12. `DataUpdateCoordinator` (polling) — Step 1
 13. Entity push subscriptions — Step 1
-14. `ConfigEntry` mutation — Step 3
-15. Logging — Step 1
-16. Custom services — Step 1
-17. `services.yaml` + `strings.json` (hassfest rules) — Step 1
-18. Register integration-global resources in `async_setup`, not `async_setup_entry` — Step 3
-19. Diagnostics platform — Step 1
-20. Devices belong to one config entry — Step 3
-21. Units: prefer the enumerators — Step 1
-22. Config entry migration — Step 3
-23. Deprecated platform APIs — Step 1
-24. Announced for a release after 2026.9 — Step 1
-25. `TYPE_CHECKING` for expensive or circular imports — Step 4
-26. Typed `ConfigEntry` — Step 4
+14. A blocking call inside the event loop — Step 1
+15. `ConfigEntry` mutation — Step 3
+16. Logging — Step 1
+17. Custom services — Step 1
+18. `services.yaml` + `strings.json` (hassfest rules) — Step 1
+19. Register integration-global resources in `async_setup`, not `async_setup_entry` — Step 3
+20. Diagnostics platform — Step 1
+21. Devices belong to one config entry — Step 3
+22. Units: prefer the enumerators — Step 1
+23. Config entry migration — Step 3
+24. Deprecated platform APIs — Step 1
+25. Announced for a release after 2026.9 — Step 1
+26. `TYPE_CHECKING` for expensive or circular imports — Step 4
+27. Typed `ConfigEntry` — Step 4
 
 ## Writing code in `custom_components/`
 
@@ -276,6 +277,43 @@ version lands, or when the window elapses.
 ### Entity push subscriptions — Step 1
 - Subscribe in `async_added_to_hass`, unsubscribe in `async_will_remove_from_hass` — prevents resource leaks
 - Never subscribe in `__init__`
+
+### A blocking call inside the event loop — Step 1
+
+**Symptom:** the log reads `Detected blocking call to <function> with args … inside the
+event loop by custom integration '<domain>' at <file>, line <n>` — at WARNING with a
+traceback the first time a line does it, at DEBUG after.
+
+**Fix:** move the call to the executor, or replace it with its async equivalent.
+
+```python
+from functools import partial
+
+
+async def async_read_state(hass: HomeAssistant, path: Path) -> str:
+    """Read a file the device writes, off the event loop."""
+    return await hass.async_add_executor_job(partial(path.read_text, encoding="utf-8"))
+```
+
+| Rule | Value |
+|---|---|
+| where each row was read | https://developers.home-assistant.io/docs/asyncio_blocking_operations/, with `_BLOCKING_CALLS` in `homeassistant/block_async_io.py` and `raise_for_blocking_call` in `homeassistant/util/loop.py` at the `2026.9.0` tag |
+| what core detects | `open` and `Path.open`, `read_text`, `read_bytes`, `write_text`, `write_bytes`; `glob.glob`, `glob.iglob`, `os.walk`, `os.listdir`, `os.scandir`; `time.sleep`; `HTTPConnection.putrequest`, which `urllib` goes through; `importlib.import_module`; and `SSLContext.load_default_certs`, `load_verify_locations`, `load_cert_chain` and `set_default_verify_paths` |
+| which of those raise as well as log | `time.sleep` and `HTTPConnection.putrequest` — a `RuntimeError` beginning `Caught blocking call to`, so the call never runs |
+| what core cannot detect | anything off that list, the reads and writes on a file once it is open among them |
+| a positional argument | `await hass.async_add_executor_job(func, arg)` |
+| a keyword argument | `functools.partial`, as above — the method passes positional arguments only |
+| a sync library | every call into it through the executor; `async-dependency` in `reference/quality-scale.md` is met only by an async one |
+| an HTTP client | `async_get_clientsession` from `homeassistant.helpers.aiohttp_client`, or `get_async_client` from `homeassistant.helpers.httpx_client` — each loads the certificates in the executor |
+| an import | at module level, which Home Assistant runs before the loop starts or in its import executor |
+| an import that must stay inside a function | through the executor, or `async_import_module` from `homeassistant.helpers.importlib` where several callers may import it at once |
+
+| anti-pattern | use instead | why (one clause) | reference |
+|---|---|---|---|
+| `time.sleep` in a coroutine or a `@callback` | `await asyncio.sleep` | core raises as well as logging | `_BLOCKING_CALLS` in `homeassistant/block_async_io.py`, at the `2026.9.0` tag |
+| moving only the `open` to the executor | move the reads and writes with it | core sees the `open` and nothing after it, so what is left is never reported | https://developers.home-assistant.io/docs/asyncio_blocking_operations/ |
+| an `aiohttp.ClientSession()` or `httpx.AsyncClient()` of your own | the two helpers above | building one loads the certificates from disk, on the loop | https://developers.home-assistant.io/docs/asyncio_blocking_operations/ |
+| an `import` inside a function that runs on the loop | a module-level import | the import machinery reads the module from disk | https://developers.home-assistant.io/docs/asyncio_imports/ |
 
 ### `ConfigEntry` mutation — Step 3
 - Never mutate `ConfigEntry` directly — always use `hass.config_entries.async_update_entry(entry, data=..., options=...)`
