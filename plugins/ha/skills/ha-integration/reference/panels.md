@@ -26,6 +26,9 @@ ships the repository as-is, so the esbuild output has to be inside the package. 
 `frontend/` templates are *The frontend templates* in ha-panel-ci's README, and the
 `panel-bundle.yml` caller is *Calling the workflow* there.
 
+**Timing:** rebuild and commit the bundle in the same PR as the source change; the built
+file is display-only and never hand-edited.
+
 > **Note:** a Lovelace *card* repo attaches the built `.js` as a release asset instead. An
 > integration cannot: the asset is not in the zip HACS installs.
 

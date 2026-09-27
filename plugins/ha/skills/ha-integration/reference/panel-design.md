@@ -11,8 +11,8 @@ never from a value chosen by eye.**
 1. Styling a panel
 2. Step 1: Fetch before deciding sizes or tokens
 3. Step 2: Take every colour from a theme property
-4. Step 3: Take every font size from the type scale
-5. Step 4: Give every control a 48px target
+4. Step 3: Take type and spacing from the scale
+5. Step 4: Size targets, icons and thumbnails
 6. Step 5: Sort a list by an intrinsic property
 7. Step 6: Rebuild the bundle in the same change
 8. Cases
@@ -33,7 +33,7 @@ row of `reference/freshness.md`.
 
 ### Step 2: Take every colour from a theme property
 
-So the panel follows the user's theme and its dark mode. Each takes a sane fallback:
+So the panel follows the user's theme and its dark mode. With sane fallbacks:
 
 ```css
 color: var(--primary-text-color, #1c1b1f);
@@ -48,7 +48,7 @@ border-radius: var(--ha-card-border-radius, 12px);
 Define a small `:host` token block mapping panel-local names (`--<domain>-primary`,
 `--<domain>-outline`) to HA vars once, then reference those — one place to retune.
 
-### Step 3: Take every font size from the type scale
+### Step 3: Take type and spacing from the scale
 
 Pick by role.
 
@@ -70,7 +70,7 @@ Pick by role.
 | the header-to-body ratio | ≥ 1.4×, whatever the line-height |
 | spacing | a consistent step — 4/8/12/16/20/24 |
 
-### Step 4: Give every control a 48px target
+### Step 4: Size targets, icons and thumbnails
 
 - Minimum interactive target **48×48** (M3). The visual icon can be smaller (24), but
   padding makes the hit area 48.
@@ -86,23 +86,22 @@ Pick by role.
 
 ### Step 6: Rebuild the bundle in the same change
 
-The full contract for shipping a panel is `reference/panels.md`. What follows is only what a
-design change must not break.
+One Lit/TS source file builds to a committed bundle the integration serves. When to rebuild
+it, and what CI does about a stale one, is *Step 1: Build the bundle and commit it* in
+`reference/panels.md`.
 
-- One Lit/TS source file builds to a committed bundle the integration serves; rebuild and
-  commit it in the same PR as the source change. What CI does about a stale one is
-  ha-panel-ci's README. The built file is display-only — never hand-edit it.
 - Existing class names (section title, disclosure arrow, thumbnail) get retuned against the
-  scale above, not nudged a pixel at a time.
+  scale in Step 3, not nudged a pixel at a time.
 - Render logic stays in the Python backend; the panel stays presentation.
 
 ## Cases
 
 ### Disclosure arrows and expand indicators — Step 4
 
-- Use a **24px icon**, not a 12px text glyph (`▸`). In HA, prefer `<ha-icon icon="mdi:chevron-right">`
-  (it inherits `--mdc-icon-size`, default 24px) or an inline 24px SVG. A text caret can't hit
-  24px crisply and ignores theme icon sizing.
+- Use a **24px icon**, not a 12px text glyph (`▸`).
+- In HA, prefer `<ha-icon icon="mdi:chevron-right">` (it inherits `--mdc-icon-size`, default
+  24px) or an inline 24px SVG.
+- A text caret can't hit 24px crisply and ignores theme icon sizing.
 - Rotate 90° on expand with a `transform .15s` transition; colour `--secondary-text-color`.
 - The whole header row is the click target (not just the arrow).
 

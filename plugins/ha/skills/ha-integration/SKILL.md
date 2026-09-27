@@ -1,8 +1,8 @@
 ---
 name: ha-integration
 description: >-
-  Use when developing or troubleshooting a Home Assistant custom integration — the package
-  under `custom_components/`, or the panel it serves.
+  Use when developing or troubleshooting a HA custom integration — the package under
+  `custom_components/`, or the panel it serves.
   TRIGGER WHEN:
   - scaffolding an integration, or adding a platform, flow, coordinator, service, diagnostics
   or manifest key to one
@@ -14,10 +14,10 @@ description: >-
   - a notify or custom service broken by an HA update
   - a device_class/state_class mismatch HA complains about
   - a red check on an integration repository
-  - a panel foreign beside HA's pages: unscaled text, hex colours broken in dark mode,
-  tap targets too small
+  - a panel foreign beside HA's pages: unscaled text, hardcoded colours broken in dark
+  mode, tap targets too small
   NOT for Lovelace cards, YAML dashboards, log triage (ha-triage), or non-HA Python. Invoke
-  before editing integration code; re-invoke after /compact.
+  before editing integration code or panel CSS; re-invoke after /compact.
 ---
 
 # Home Assistant Integration Assistant
@@ -35,7 +35,7 @@ Pick the mode from what is about to be done, then **read that mode's file before
 | **Modify** | `custom_components/` exists and its package is being added to, changed or fixed — Python, `strings.json`, `services.yaml`, translations — including file structure and typing | `reference/patterns.md` | Config entries: https://developers.home-assistant.io/docs/config_entries_index/ · Config flows: https://developers.home-assistant.io/docs/config_entries_config_flow_handler/ · Data fetching + coordinator: https://developers.home-assistant.io/docs/integration_fetching_data/ · Setup failures: https://developers.home-assistant.io/docs/integration_setup_failures/ · Real examples: https://github.com/home-assistant/core/tree/dev/homeassistant/components |
 | **Manifest** | adding or changing a `manifest.json` key | `reference/scaffold.md` | Manifest: https://developers.home-assistant.io/docs/creating_integration_manifest/ |
 | **Panel** | building or fixing an integration that serves a panel — how it is built and served; how it looks is the Panel design row | `reference/panels.md` | — |
-| **Panel design** | changing how a panel looks — its CSS or markup: sizing, typography, colour, spacing, layout | `reference/panel-design.md` | Material 3 type scale: https://m3.material.io/styles/typography/type-scale-tokens · Material 3 states and touch targets: https://m3.material.io/foundations/interaction/states/overview · HA theme properties: https://github.com/home-assistant/frontend/tree/dev/src/resources/theme · Theme variables a user may override: https://www.home-assistant.io/integrations/frontend/#supported-theme-variables |
+| **Panel design** | changing how a panel looks — the CSS or markup of a Lit/TS panel web component: sizing, typography, colour, spacing, layout | `reference/panel-design.md` | Material 3 type scale: https://m3.material.io/styles/typography/type-scale-tokens · Material 3 states and touch targets: https://m3.material.io/foundations/interaction/states/overview · HA theme properties: https://github.com/home-assistant/frontend/tree/dev/src/resources/theme · Theme variables a user may override: https://www.home-assistant.io/integrations/frontend/#supported-theme-variables |
 | **Test** | writing or fixing tests, mocking at the boundary, or a suite that fails before any test runs | `reference/testing.md` | — |
 | **Lint** | hygiene pass over existing code | *Lint & quality check* below | — |
 | **Tier** | claiming a quality-scale tier, and the canonical rule set behind it | `reference/quality-scale.md` | Quality scale: https://developers.home-assistant.io/docs/integration_quality_scale_index/ |
