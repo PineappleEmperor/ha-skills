@@ -14,7 +14,7 @@ never from a value chosen by eye.**
 4. Step 3: Take type and spacing from the scale
 5. Step 4: Size targets, icons and thumbnails
 6. Step 5: Sort a list by an intrinsic property
-7. Step 6: Rebuild the bundle in the same change
+7. Step 6: Keep the change to presentation
 8. Cases
 9. Disclosure arrows and expand indicators — Step 4
 10. Pixel-art thumbnails — Step 4
@@ -84,11 +84,11 @@ Pick by role.
 | the order of keys | kind first where kinds exist, then a numeric dimension, then name |
 | a sort a reader would not guess | stated in a hint beside the list |
 
-### Step 6: Rebuild the bundle in the same change
+### Step 6: Keep the change to presentation
 
 One Lit/TS source file builds to a committed bundle the integration serves. When to rebuild
 it, and what CI does about a stale one, is *Step 1: Build the bundle and commit it* in
-`reference/panels.md`.
+`reference/panels.md`. What follows is only what a design change must not break.
 
 - Existing class names (section title, disclosure arrow, thumbnail) get retuned against the
   scale in Step 3, not nudged a pixel at a time.
