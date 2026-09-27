@@ -22,20 +22,21 @@ it.**
 11. `UpdateEntity` (firmware/OTA install) — Step 1
 12. `DataUpdateCoordinator` (polling) — Step 1
 13. Entity push subscriptions — Step 1
-14. A blocking call inside the event loop — Step 1
-15. `ConfigEntry` mutation — Step 3
-16. Logging — Step 1
-17. Custom services — Step 1
-18. `services.yaml` + `strings.json` (hassfest rules) — Step 1
-19. Register integration-global resources in `async_setup`, not `async_setup_entry` — Step 3
-20. Diagnostics platform — Step 1
-21. Devices belong to one config entry — Step 3
-22. Units: prefer the enumerators — Step 1
-23. Config entry migration — Step 3
-24. Deprecated platform APIs — Step 1
-25. Announced for a release after 2026.9 — Step 1
-26. `TYPE_CHECKING` for expensive or circular imports — Step 4
-27. Typed `ConfigEntry` — Step 4
+14. A connection that drops — Step 1
+15. A blocking call inside the event loop — Step 1
+16. `ConfigEntry` mutation — Step 3
+17. Logging — Step 1
+18. Custom services — Step 1
+19. `services.yaml` + `strings.json` (hassfest rules) — Step 1
+20. Register integration-global resources in `async_setup`, not `async_setup_entry` — Step 3
+21. Diagnostics platform — Step 1
+22. Devices belong to one config entry — Step 3
+23. Units: prefer the enumerators — Step 1
+24. Config entry migration — Step 3
+25. Deprecated platform APIs — Step 1
+26. Announced for a release after 2026.9 — Step 1
+27. `TYPE_CHECKING` for expensive or circular imports — Step 4
+28. Typed `ConfigEntry` — Step 4
 
 ## Writing code in `custom_components/`
 
@@ -277,6 +278,65 @@ version lands, or when the window elapses.
 ### Entity push subscriptions — Step 1
 - Subscribe in `async_added_to_hass`, unsubscribe in `async_will_remove_from_hass` — prevents resource leaks
 - Never subscribe in `__init__`
+
+### A connection that drops — Step 1
+
+**Symptom:** entities stay unavailable, or keep their last value, until the integration is
+reloaded by hand.
+
+**Fix:** say the connection is gone, retry on a task the config entry owns, and say when it
+is back.
+
+| Rule | Value |
+|---|---|
+| where each row was read | https://developers.home-assistant.io/docs/integration_setup_failures/, https://developers.home-assistant.io/docs/integration_fetching_data/ and the `entity-unavailable` rule; `homeassistant/config_entries.py`, `homeassistant/helpers/update_coordinator.py` and `homeassistant/components/mqtt/client.py` at the `2026.9.0` tag |
+| unreachable at setup | raise `ConfigEntryNotReady("<reason>")` from `async_setup_entry` in `__init__.py` |
+| how Home Assistant retries that setup | after 5 seconds, doubling on each failure up to `SETUP_RETRY_MAX_WAIT`, 600 seconds; and as soon as discovery sees the device again |
+| a poll that fails | raise `UpdateFailed`: `last_update_success` goes false, `CoordinatorEntity.available` returns it, and the next interval tries again |
+| what the coordinator catches unaided | `TimeoutError`, `aiohttp.ClientError`, `requests.exceptions.RequestException` and `urllib.error.URLError`, each a failed update |
+| a request timeout | `async with asyncio.timeout(10):` round the fetch, the value the fetching-data page's example uses |
+| `UpdateFailed(retry_after=…)` | sets the wait before the next poll, once; ignored during the first refresh |
+| a push connection that drops | `coordinator.async_set_update_error(err)`, which logs once at ERROR and takes every `CoordinatorEntity` unavailable |
+| a push connection that returns | the next `coordinator.async_set_updated_data(data)` makes them available again, and logs at DEBUG only — the line saying it is back is yours, once, at INFO |
+| the task that reconnects | `entry.async_create_background_task(hass, coro, name)`, which Home Assistant cancels when the entry unloads |
+| the wait between attempts | `await asyncio.sleep(…)` inside that task; core's MQTT client waits a fixed `RECONNECT_INTERVAL_SECONDS`, 10 |
+| a reconnect refused for its credentials | stop retrying and call `entry.async_start_reauth(hass)`, as core's MQTT client does |
+| an entity with no coordinator | `_attr_available = False` where the fetch fails and `True` where it succeeds |
+
+Modelled on `_async_connection_result` and `_reconnect_loop` in core's MQTT client:
+
+```python
+RECONNECT_INTERVAL = 10
+
+
+@callback
+def _async_on_disconnect(self, err: Exception) -> None:
+    """Take the entities unavailable, then start one reconnect task."""
+    self.coordinator.async_set_update_error(err)
+    if self._reconnect_task is None:
+        self._reconnect_task = self._entry.async_create_background_task(
+            self.hass, self._async_reconnect(), name=f"{DOMAIN} reconnect"
+        )
+
+
+async def _async_reconnect(self) -> None:
+    """Try again until the client connects, waiting between attempts."""
+    while not self._client.connected:
+        try:
+            await self._client.connect()
+        except OSError as err:
+            _LOGGER.debug("Reconnect failed: %s", err)
+        await asyncio.sleep(RECONNECT_INTERVAL)
+    self._reconnect_task = None
+    _LOGGER.info("Connection restored")
+```
+
+| anti-pattern | use instead | why (one clause) | reference |
+|---|---|---|---|
+| `ConfigEntryNotReady` raised from a platform's `async_setup_entry` | raise it from `__init__.py` | it is too late there to be caught by the config entry setup | https://developers.home-assistant.io/docs/integration_setup_failures/ |
+| a log line above DEBUG for each failed retry | pass the reason to the exception | Home Assistant logs the retry itself, so yours fills the log | https://developers.home-assistant.io/docs/integration_setup_failures/ |
+| `asyncio.create_task` or `hass.async_create_task` for the reconnect loop | `entry.async_create_background_task` | unload cancels the entry's background tasks and no others, so the loop outlives a reload | `_async_process_on_unload` in `homeassistant/config_entries.py`, at the `2026.9.0` tag |
+| the last value left showing while the connection is down | mark the entity unavailable | unavailable is the better state than the last known one | https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/entity-unavailable/ |
 
 ### A blocking call inside the event loop — Step 1
 
