@@ -5,7 +5,7 @@ reach the right skill, and then the right reference file, without reading everyt
 
 ## Setup
 
-No fixture. The agent needs read access to `plugins/ha/skills/` — all three skills.
+No fixture. The agent needs read access to `plugins/ha/skills/` — both skills.
 
 ## Prompt
 
@@ -28,19 +28,19 @@ No fixture. The agent needs read access to `plugins/ha/skills/` — all three sk
 |---|---|---|
 | A | `ha-triage` | the skill file itself; no `reference/` layer in this package |
 | B | `ha-integration` | `reference/patterns.md` |
-| C | `ha-panel-design` | the skill file itself, plus the Material 3 / HA theming sources it names |
-| D | `ha-integration` | `reference/github-setup.md`, from the mode table; also naming `reference/versioning.md` from the reference map's "cutting or gating a release" row is correct, not a fail |
+| C | `ha-integration` | `reference/panel-design.md`, from the Panel design row, plus the Material 3 / HA theming sources it names |
+| D | `ha-integration` | `reference/github-setup.md`, from the mode table; also naming `reference/versioning.md` from the mode table's Release row is correct, not a fail |
 | E | `ha-integration` | `reference/testing.md` |
 
 Each answer must cite a sentence from the skill, not an inference. **An answer reached
 "by elimination" is a routing failure even when the destination is right** — it means the
 router did not say it, and the next reader may eliminate differently.
 
-⚠️ **"No `reference/` directory" is not "nothing else to read".** `ha-triage` and
-`ha-panel-design` carry no reference layer *in the package*, but both cite authoritative
-external sources (Material 3, the HA frontend theming docs, the companion-app docs, HA core)
-that the task still requires. An answer that treats a single-file skill as self-contained is
-a fail: the skill is where the guidance lives, not where the current state of HA lives.
+⚠️ **"No `reference/` directory" is not "nothing else to read".** `ha-triage` carries no
+reference layer *in the package*, but it cites authoritative external sources (the
+companion-app docs, HA core) that the task still requires. An answer that treats a
+single-file skill as self-contained is a fail: the skill is where the guidance lives, not
+where the current state of HA lives.
 
 **E is the deliberate edge case.** Testing rules used to sit in `patterns.md` and moved to
 `testing.md` when the skill split; the mode table is the only thing that now distinguishes

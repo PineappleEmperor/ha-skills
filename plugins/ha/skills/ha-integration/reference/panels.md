@@ -1,7 +1,7 @@
 # Integrations that serve a custom panel
 
 Read this when building or fixing an integration that ships a Lit/TS panel. How the panel
-should *look* — type scale, colour, spacing, touch targets — is the `ha-panel-design` skill.
+should *look* — type scale, colour, spacing, touch targets — is `reference/panel-design.md`.
 
 **Register once per process, cache-bust the module URL, pin the frontend, and commit the
 built bundle — each of the four by hand, because no failure here raises.**

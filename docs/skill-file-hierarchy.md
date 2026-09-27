@@ -49,7 +49,7 @@ Three tiers:
 | `manifest.json` — its keys, what each requires, their order | `scaffold.md` | The manifest is written at scaffold time and its rules do not change after; a later key change reads the same step. `patterns.md` and `SKILL.md`'s Manifest row point here. |
 | audit procedure — the judgement items | `audit.md` | The reader is auditing. Owns no facts of its own; it cites the owners. |
 | the skill's currency — the values it copies from outside itself, each with its capture date, re-derivation command, the files holding a copy, and the check that keeps them in step | `freshness.md` | The reader is asking whether the skill is still current. A task file cites the row; a file that must hold the value is listed as its consumer. |
-| how a panel looks — type scale, theme tokens, spacing, touch targets, disclosure | `panel-design.md` | The reader is changing a panel's CSS or markup. Planned: this file arrives when the `ha-panel-design` skill folds into this one (row 242); until then `panels.md` and `SKILL.md` point at that skill, and `panels.md` will point here instead. |
+| how a panel looks — type scale, theme tokens, spacing, touch targets, disclosure | `panel-design.md` | The reader is changing a panel's CSS or markup. `panels.md` and `SKILL.md`'s Panel design row point here; it points at `panels.md` for the bundle. |
 
 ## Conflicts found, and how each was resolved
 
