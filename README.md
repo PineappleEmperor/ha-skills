@@ -24,52 +24,16 @@ These are the skills behind the AI-assistance note on my HA integrations, such a
 All three ship in one **`ha`** plugin, and each looks up the current HA or Material 3 docs
 before acting, because these APIs move and memory goes stale.
 
-## How `ha-integration` is put together
+## How `ha-integration` works
 
 ```mermaid
 flowchart LR
-    request([a request about a custom integration]) --> router
-
-    subgraph skill["the ha-integration skill"]
-        router["SKILL.md, the router<br/>picks a mode, says what to read first"]
-        subgraph task["task files, each owning its topics"]
-            build["building<br/>scaffold · patterns · panels · testing · quality-scale"]
-            ship["shipping<br/>commits · versioning · github-actions · github-setup · dependabot"]
-            judge["judging<br/>discipline · audit"]
-        end
-        ledger["freshness.md, the currency ledger"]
-        templates["templates/<br/>files copied, never authored"]
-    end
-
-    subgraph outside["outside the skill"]
-        docs["Home Assistant developer docs<br/>and core"]
-        upstream["PyPI, GitHub releases,<br/>the brands and HACS repositories"]
-        ci["release-flow, ha-integration-ci, ha-panel-ci<br/>their READMEs and the files they publish"]
-    end
-
-    router --> build
-    router --> ship
-    router --> judge
-    router --> ledger
-    build -- reads before writing --> docs
-    build -- copies --> templates
-    ship -- copies --> templates
-    ship -- copies from, points at --> ci
-    build -- points at --> ci
-    judge -- points at --> ci
-    build -. cites a value .-> ledger
-    judge -. re-derives the rows .-> ledger
-    ledger -- re-derives from --> docs
-    ledger -- re-derives from --> upstream
+    request([a request]) --> router["SKILL.md<br/>picks the mode"]
+    router --> file["the reference file<br/>for that mode"]
+    file --> docs["Home Assistant docs and core<br/>read before writing"]
+    file --> copies["templates/ and the CI repositories<br/>copied, never authored"]
+    file --> ledger["freshness.md<br/>versions and pins, and how to re-check them"]
 ```
-
-| Approach | What it means in practice |
-|---|---|
-| route, then read first | `SKILL.md` holds a table with a row per action — scaffold, modify, test, release, and so on. Each row says what to read first, a reference file or the commands in `SKILL.md` itself, and names the external pages where the action has them. |
-| one fact, one home | each task file owns its topics, including the mistakes to avoid there. Every other file points at it and restates nothing. |
-| fetch before writing | a rule about Home Assistant is read from the developer docs or from core, not from memory. |
-| copy, never author | CI files and configs come from `templates/`, from a CI repository's README block, or from that repository's own files. Nothing is written from memory. |
-| keep a ledger of what goes stale | versions, pins and revisions copied from outside sit in `freshness.md`, each with how to re-derive it and the files that hold a copy. |
 
 ## Install
 
@@ -81,109 +45,6 @@ Add this repo as a marketplace and install the plugin from inside Claude Code:
 ```
 
 Update later with `/plugin marketplace update ha-skills`.
-
-### Without the plugin system
-
-Symlink the `SKILL.md` files into your commands directory to get plain
-`/ha-integration`, `/ha-panel-design` and `/ha-triage`:
-
-```bash
-git clone git@github.com:PineappleEmperor/ha-skills.git
-ln -s "$PWD/ha-skills/plugins/ha/skills/ha-integration/SKILL.md"  ~/.claude/commands/ha-integration.md
-ln -s "$PWD/ha-skills/plugins/ha/skills/ha-panel-design/SKILL.md" ~/.claude/commands/ha-panel-design.md
-ln -s "$PWD/ha-skills/plugins/ha/skills/ha-triage/SKILL.md"       ~/.claude/commands/ha-triage.md
-```
-
-That gets you the guidance without the templates. When it needs them the skill asks where
-you cloned the repo; it will not write a CI file from memory.
-
-## Using the skills
-
-Claude invokes a skill when the task matches its `description`, or you can call one
-directly. Plugin skills are namespaced:
-
-```
-/ha:ha-integration
-/ha:ha-panel-design
-/ha:ha-triage
-```
-
-To have Claude reach for them without being asked, add this to your global
-`~/.claude/CLAUDE.md`:
-
-```markdown
-## Home Assistant integrations
-When the task touches a HA custom integration (a `custom_components/<domain>/` package,
-a `manifest.json` with a `domain`, a config/options flow, or platform code), invoke the
-`ha-integration` skill before writing or modifying integration code. Re-invoke after a
-`/compact`, since compaction can drop the skill's guidance from context.
-
-## Home Assistant panels
-When the task touches a HA custom panel or any display/UI layer, invoke the
-`ha-panel-design` skill before changing it. Re-invoke after a `/compact`.
-
-## Home Assistant triage
-When the question is what is wrong in a running HA instance — a `home-assistant.log`,
-a pasted log dump, or a symptom with no log — invoke the `ha-triage` skill before
-diagnosing. Re-invoke after a `/compact`.
-```
-
-## The CI stack
-
-An integration's CI lives in three repositories of reusable workflows, and a scaffolded
-integration calls them rather than carrying their bodies, so a CI release reaches every
-integration as a Dependabot PR:
-
-[release-flow](https://github.com/PineappleEmperor/release-flow),
-[ha-integration-ci](https://github.com/PineappleEmperor/ha-integration-ci) and
-[ha-panel-ci](https://github.com/PineappleEmperor/ha-panel-ci). Each README says what its
-workflows do and why, and carries the caller blocks a consumer copies. Which repository
-owns what, and what the scaffold carries beyond the callers from
-[`templates/`](plugins/ha/skills/ha-integration/templates), is the skill's
-[`reference/github-actions.md`](plugins/ha/skills/ha-integration/reference/github-actions.md).
-
-## Development
-
-The skills are treated as code: this repo is a consumer of release-flow like any
-integration, and its own tooling has unit tests that run on every PR. The same CI job
-carries a check that fails once PyPI serves a newer Home Assistant minor than the release
-row in the skill's `reference/freshness.md` names — the nudge for the pass written in
-[`docs/release-refresh.md`](docs/release-refresh.md).
-
-Three repo-local documents decide what a skill file may say, and none of them ships:
-
-| Document | Decides |
-|---|---|
-| [`docs/release-refresh.md`](docs/release-refresh.md) | the pass that moves the skill to a new Home Assistant release — maintenance of this repository, which is why it is not in the skill |
-| [`docs/skill-file-hierarchy.md`](docs/skill-file-hierarchy.md) | which file owns which topic, so a fact has one home and every other file points at it |
-| [`docs/skill-schema.md`](docs/skill-schema.md) | the shape that fact takes — the fixed section order, the canonical table column sets, and the rule that every block is a labelled field or a table row |
-
-`scripts/skill_schema_audit.py` is a **structural** check over the shipped files and nothing
-more: table headers against the canonical column sets, which it reads **out of** the schema
-document so rule and enforcement cannot drift; runs of unlabelled prose over a lead-in's
-length; a contents list against the headings under it; step numbering. It does not read a
-`SKILL.md`'s section order, and it judges no content — whether a fact is true, and whether
-it is in the file that owns it, are review, not CI. `scripts/skill_meta_audit.py` is the
-separate authoring audit — frontmatter, resolving links, cited headings that exist, docs
-that match the templates that ship.
-
-[ha-ci-testing](https://github.com/PineappleEmperor/ha-ci-testing) is a throwaway
-integration that runs the whole cycle — branch, draft PR, merge, release candidate, final —
-because the parts that break only execute when something publishes. What a CI repository
-must prove there before it tags, and the check that enforces it, are `testbed-coverage.yml`
-under *The five workflows* in release-flow's README.
-
-[`evals/`](plugins/ha/skills/ha-integration/evals) holds six pressure scenarios, each
-stating its pass and fail criteria. The intent is to run every one twice, once with the
-skill and once with it withheld, because a withheld run that also passes means the guidance
-was doing nothing. Which scenarios have run, and in which arms, is the table in
-[`evals/README.md`](plugins/ha/skills/ha-integration/evals/README.md).
-
-On the scaffolding task, the withheld runs produce a confident, well-tested CI setup that
-would not reach the HACS default store. With the skill, they stop and ask for the templates.
-
-`docs/ha-integration-change-rationale.md` records why each convention exists, usually
-because something broke.
 
 ## License
 
