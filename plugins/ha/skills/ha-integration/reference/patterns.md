@@ -79,8 +79,11 @@ device logic from the HA lifecycle, so it is unit-testable without a running HA 
 2. `async_setup_entry` stores state on `entry.runtime_data`, then forwards:
    `await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)`.
 3. `async_unload_entry` mirrors it:
-   `return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)`, plus
-   `await coordinator.async_shutdown()` when the unload succeeds.
+   `return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)`, and
+   nothing more for the coordinator: built with `config_entry=entry`, it registers its own
+   `async_shutdown` through `entry.async_on_unload`, which the entry runs once the unload
+   succeeds — `DataUpdateCoordinator.__init__` in `homeassistant/helpers/update_coordinator.py`
+   and `ConfigEntry.async_unload` in `homeassistant/config_entries.py`, at the `2026.9.0` tag.
 4. If setup creates a device, add `async_remove_config_entry_device` so a user can remove it.
    Type its device parameter `AnyDeviceEntry` (`DeviceEntry | ChildDeviceEntry`), since from
    2026.9 Home Assistant hands it a child device too — `_async_remove_device` in
