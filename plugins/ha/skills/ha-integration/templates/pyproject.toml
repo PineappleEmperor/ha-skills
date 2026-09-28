@@ -11,6 +11,8 @@
 #     cannot meet
 #   - core's ban on `from __future__ import annotations` kept: Python 3.14 defers annotation
 #     evaluation natively, so the import only switches that off
+# The [tool.pytest.ini_options] table keeps core's asyncio settings and its two `error`
+# warning filters; core's `ignore` filters silence its own dependencies and are left out.
 # Do not relax these tables in a copy; that is drift. A [project] table is not needed,
 # and if one is added it carries no version: the release tag is the version.
 
@@ -234,5 +236,11 @@ convention = "google"
 property-decorators = ["propcache.api.cached_property"]
 
 [tool.pytest.ini_options]
+asyncio_debug = true
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+filterwarnings = [
+  "error::sqlalchemy.exc.SAWarning",
+  "error:usefixtures\\(\\) in .* without arguments has no effect:UserWarning",
+]
 testpaths = ["tests"]
