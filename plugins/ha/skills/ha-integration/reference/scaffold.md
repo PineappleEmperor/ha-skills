@@ -261,7 +261,6 @@ other order.
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/username/repo/issues",
   "requirements": [],
-  "single_config_entry": true,
   "version": "0.1.0"
 }
 ```
