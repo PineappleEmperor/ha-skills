@@ -6,8 +6,9 @@
 #     (ha-integration-ci's README) can read it
 #   - custom_components is the first-party package; homeassistant is third-party here
 #   - voluptuous is imported as vol, which core enforces by convention rather than by rule
-#   - core-only paths dropped from per-file-ignores; a repo's own scripts/ and tests/ are
-#     exempted from the rules a standalone tool and a test tree cannot meet
+#   - per-file-ignores keep core's own for an integration's files and its tests, with the
+#     paths renamed; a repo's own scripts/ is exempted from the rules a standalone tool
+#     cannot meet
 #   - core's ban on `from __future__ import annotations` kept: Python 3.14 defers annotation
 #     evaluation natively, so the import only switches that off
 # Do not relax these tables in a copy; that is drift. A [project] table is not needed,
@@ -221,7 +222,8 @@ split-on-trailing-comma = false
 
 [tool.ruff.lint.per-file-ignores]
 "custom_components/**" = ["PTH"]
-"tests/**" = ["PTH", "SLF001", "INP001"]
+"custom_components/*/*/*" = ["TID252"]
+"tests/**" = ["PTH"]
 "scripts/*" = ["T20", "INP001"]
 
 [tool.ruff.lint.mccabe]

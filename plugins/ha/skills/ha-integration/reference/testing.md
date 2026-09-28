@@ -199,5 +199,7 @@ no new timer, so teardown stays clean.
 
 ### Ruff flags a file under `tests/` or `scripts/` — mocking Step 4
 
-The shipped `pyproject.toml` already exempts `scripts/*` and `tests/**` from the rules its
-per-file-ignores table names.
+The shipped `pyproject.toml` exempts `tests/**` from `PTH` alone, as core does, so the rest
+of the rule set applies to tests: `tests/` carries an `__init__.py` (`INP001`), and a test
+reaches the integration through its public surface, never a `_private` name (`SLF001`).
+`scripts/*` is exempted from `T20` and `INP001`, the rules a standalone tool cannot meet.
