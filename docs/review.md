@@ -5,10 +5,11 @@ the brief is never rewritten from memory. `docs/backlog.md` owns what happens to
 once it is a row; `docs/skill-file-hierarchy.md` owns which skill file owns which topic.
 This file owns only the review itself.
 
-## The three kinds
+## The four kinds
 
 | Kind | When | Scope the reviewer is given | What it reports |
 |---|---|---|---|
+| **Case review** | Before any builder is dispatched | One brief, and every file its `Sources read` lists | A case the brief's `Defect class` covers and its `Cases` table does not; the verdict file *The case review* in `docs/brief.md` describes |
 | **Diff review** | After every file pass, and before every push is handed over | The diff since the last review, the register rows the diff claims to close, and every shipped file the diff touches read in full | A row whose claim the diff does not bear out; an invariant below that the diff breaks |
 | **Single-source sweep** | After any pass that touched more than one prose file, and on request | Every shipped file, read in full, against the hierarchy and the three CI READMEs | A fact stated in two places (both locations); a fact stated outside its owner; a pointer whose target file or heading does not exist |
 | **Purpose audit** | On request, when the shape of the plugin is in question | Every file, read in full, against the goal each `SKILL.md` states in its `description` and the three tiers in the hierarchy | A file or section that serves no task a reader opens it for; two files serving the same one |
