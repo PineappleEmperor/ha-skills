@@ -65,6 +65,8 @@ rest are proved by what they name:
 | a rule about runtime behaviour — a flow, setup, unload, an entity, an action | a test that exercises it |
 | every `docs-*` rule | the documentation it asks for, read — no test can reach it |
 | `brands`, `common-modules`, `dependency-transparency`, `integration-owner` | the file or manifest key the rule names, read |
+| `async-dependency` | the dependency, read |
+| `parallel-updates` | the `PARALLEL_UPDATES` module constant in each platform file, read |
 | `strict-typing` | the mypy run — *Step 4: Type it, and suppress nothing* in `reference/patterns.md` |
 | `test-coverage` | ha-integration-ci's `scripts/coverage_gate.py` — which modules it holds, and to what bar, is *The coverage gate* under *Implementation notes* in ha-integration-ci's README |
 
@@ -78,7 +80,8 @@ Each of these needs its own test, not just the code:
   scrapes the `translation_key`s used in code and asserts each exists in `strings.json`,
   which catches a typo'd key that hassfest passes
 
-A runtime rule no test can reach is `exempt` with a comment, not an unproven `done`.
+A runtime rule no test can reach is `exempt` with a comment, not an unproven `done`; a rule
+proved by reading is never `exempt` for want of a test.
 
 ### Step 4: Claim the tier in the manifest only once it is fully met
 
