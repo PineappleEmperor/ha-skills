@@ -99,9 +99,10 @@ before a PR is ready.
   deferred natively, core bans it, and the shipped `pyproject.toml` enforces the ban through
   ruff (`TID251`).
 - **Import HA's own types rather than re-typing them** — `DeviceInfo` from
-  `homeassistant.helpers.device_registry`, `AddEntitiesCallback` from
-  `homeassistant.helpers.entity_platform`, `ConfigType`, `DiscoveryInfoType` and `StateType`
-  from `homeassistant.helpers.typing`.
+  `homeassistant.helpers.device_registry`, `AddConfigEntryEntitiesCallback` from
+  `homeassistant.helpers.entity_platform` for a config-entry platform's
+  `async_add_entities` (`AddEntitiesCallback` is the YAML platform's), `ConfigType`,
+  `DiscoveryInfoType` and `StateType` from `homeassistant.helpers.typing`.
 - **Mark every method that overrides a base-class method with `@override`**, imported
   `from typing import override` — the `mypy.ini` enables `explicit-override`, so an
   unmarked `async_added_to_hass`, `device_info` or `async_step_user` fails the run:
@@ -245,7 +246,9 @@ SENSORS: tuple[MySensorDescription, ...] = (
 
 
 async def async_setup_entry(
-    hass: HomeAssistant, entry: MyConfigEntry, async_add_entities: AddEntitiesCallback
+    hass: HomeAssistant,
+    entry: MyConfigEntry,
+    async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Add one sensor per description."""
     coordinator = entry.runtime_data
@@ -634,7 +637,9 @@ type MyConfigEntry = ConfigEntry[MyCoordinator]
 
 # In platform files:
 async def async_setup_entry(
-    hass: HomeAssistant, entry: MyConfigEntry, async_add_entities: AddEntitiesCallback
+    hass: HomeAssistant,
+    entry: MyConfigEntry,
+    async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up the platform from the typed entry."""
     coordinator = entry.runtime_data  # typed as MyCoordinator, no cast needed
