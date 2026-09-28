@@ -489,22 +489,36 @@ The registration happens once per process; doing it per entry races when two ent
 The `diagnostics` rule in `reference/quality-scale.md`. Add `diagnostics.py`:
 
 ```python
+from dataclasses import asdict
+from typing import Any
+
 from homeassistant.components.diagnostics import async_redact_data
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_API_KEY, CONF_PASSWORD
 from homeassistant.core import HomeAssistant
 
-TO_REDACT = {CONF_PASSWORD, CONF_API_KEY, "token"}
+from .coordinator import MyConfigEntry
+
+TO_REDACT = {CONF_API_KEY, CONF_PASSWORD, "token"}
 
 
 async def async_get_config_entry_diagnostics(
-    hass: HomeAssistant, entry: ConfigEntry
-) -> dict:
-    """Return the entry and its runtime data with secrets redacted."""
-    return async_redact_data(
-        {"entry": entry.as_dict(), "data": entry.runtime_data}, TO_REDACT
-    )
+    hass: HomeAssistant, entry: MyConfigEntry
+) -> dict[str, Any]:
+    """Return the entry's settings and the coordinator's data, secrets redacted."""
+    coordinator = entry.runtime_data
+    return {
+        "entry_data": async_redact_data(entry.data, TO_REDACT),
+        "entry_options": async_redact_data(entry.options, TO_REDACT),
+        "data": async_redact_data(asdict(coordinator.data), TO_REDACT),
+    }
 ```
-No registration needed — HA discovers it automatically from the file name.
+
+| Rule | Value |
+|---|---|
+| where this was read | `async_redact_data` in `homeassistant/components/diagnostics/util.py`, and `homeassistant/components/nam/diagnostics.py`, at the `2026.9.0` tag |
+| what goes in | the fields a bug report needs, each chosen — never `entry.runtime_data` whole |
+| what `async_redact_data` walks | mappings and lists only, so an object inside the dict passes through unredacted; turn a dataclass into a dict with `asdict` first |
+| registration | none — HA discovers it from the file name |
 
 ### Devices belong to one config entry — Step 3
 
