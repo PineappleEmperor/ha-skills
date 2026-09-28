@@ -98,7 +98,7 @@ eight in `ruleset.json`:
 - `pr / CC labelling`
 - `pr / CC label validation`
 - `lint / CC title validation`
-- `validate / Ruff, Pyright and Pytest`
+- `validate / Python validation`
 - `audit / ha-integration conformance check`
 - `HACS validation`
 - `Hassfest manifest validation`

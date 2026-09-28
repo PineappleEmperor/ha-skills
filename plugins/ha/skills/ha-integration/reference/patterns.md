@@ -90,8 +90,9 @@ ha-integration-ci's README.
 
 ### Step 4: Type it, and suppress nothing
 
-The `strict-typing` rule in `reference/quality-scale.md`. Every file passes the pyright run
-*Lint & quality check* in `SKILL.md` names, with zero errors, before a PR is ready.
+The `strict-typing` rule in `reference/quality-scale.md`. Every file passes the mypy run
+*Lint & quality check* in `SKILL.md` names, under the shipped `mypy.ini`, with zero errors,
+before a PR is ready.
 
 - **Never add `from __future__ import annotations`** — HA's Python floor (the row in
   `reference/freshness.md`) is past the release where PEP 649 made annotation evaluation
@@ -101,12 +102,17 @@ The `strict-typing` rule in `reference/quality-scale.md`. Every file passes the 
   `homeassistant.helpers.device_registry`, `AddEntitiesCallback` from
   `homeassistant.helpers.entity_platform`, `ConfigType`, `DiscoveryInfoType` and `StateType`
   from `homeassistant.helpers.typing`.
+- **Mark every method that overrides a base-class method with `@override`**, imported
+  `from typing import override` — the `mypy.ini` enables `explicit-override`, so an
+  unmarked `async_added_to_hass`, `device_info` or `async_step_user` fails the run:
+  `@override` on the line above `async def async_added_to_hass(self) -> None:`.
 
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
 | `# type: ignore` to silence a typing error | fix the type | under `strict-typing` a suppression is a violation, not a shortcut | https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/strict-typing/ |
+| a suppression with no error code, `# type: ignore` | name the code, `# type: ignore[attr-defined]` | the `mypy.ini` enables `ignore-without-code`, so a codeless one is itself an error | `templates/mypy.ini` |
+| `# type: ignore[import-untyped]` on a stubless third-party import | nothing — import it plainly | the `mypy.ini` disables `import-untyped` and fails an unused ignore, so the leftover one is the error | `templates/mypy.ini` |
 | `hass.data[DOMAIN][entry.entry_id]`, which is untyped | `entry.runtime_data` on a typed `ConfigEntry` | the alias carries the runtime type, so no cast is needed | https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/runtime-data/, and *Typed `ConfigEntry` — Step 4* |
-| a bare `cast()` on a stubless third-party import | `# type: ignore[import-untyped]`, or contribute stubs | it is the one accepted suppression, and only with the reason beside it | Step 4 |
 
 ## Cases
 
@@ -187,10 +193,13 @@ the rows a custom integration gets wrong against it.
 | the state source | `self.coordinator.data` only — never I/O in a property |
 
 ```python
+from typing import override
+
 from homeassistant.helpers.device_registry import DeviceInfo
 
 
 @property
+@override
 def device_info(self) -> DeviceInfo:
     """The device this entity belongs to."""
     return DeviceInfo(identifiers={(DOMAIN, self._device_id)}, name="My Device")
@@ -254,6 +263,7 @@ async def async_setup_entry(
 | the window on that lock | so a crashed or timed-out install cannot wedge the entity |
 
   ```python
+  @override
   async def async_install(self, version: str | None, backup: bool, **kwargs: Any) -> None:
       """Push the OTA once, refusing a second entry while one is in flight."""
       if self._reflash:

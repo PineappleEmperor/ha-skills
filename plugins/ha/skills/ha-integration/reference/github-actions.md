@@ -45,9 +45,9 @@ Resolve it in this order:
 4. **Last resort:** `find ~/.claude ~/.agents . -type d -path '*ha-integration/templates' 2>/dev/null`
 
 It holds the copied files Step 2 names: the four plain workflows, `.github/dependabot.yml`,
-`conftest.py`, `pyproject.toml`, `requirements.test.txt`, `ruleset.json`, `.gitignore`, the
-four local-hook files, `scripts/bootstrap_repo.sh` and `hooks/` (optional per-turn reminders
-for your own `~/.claude`, installed per the header in each script).
+`conftest.py`, `pyproject.toml`, `mypy.ini`, `requirements.test.txt`, `ruleset.json`,
+`.gitignore`, the four local-hook files, `scripts/bootstrap_repo.sh` and `hooks/` (optional
+per-turn reminders for your own `~/.claude`, installed per the header in each script).
 
 ### Step 2: Take each file from its source
 
@@ -63,7 +63,7 @@ verify a copy is *Step 1: Callers, not bodies; copies, not paraphrases* in
 | `.github/release-drafter.yml`, `.githooks/commit-msg` | release-flow's own files, per *Called versus copied* in its README |
 | `.github/workflows/dependency-review.yml`, `hacs-validate.yml`, `hassfest-validate.yml`, `issue_stale.yml` | this skill's `templates/.github/workflows/`; each is settings over a third-party action |
 | `.github/dependabot.yml` | this skill's `templates/`; what it must contain is `reference/dependabot.md` |
-| `ruleset.json`, `pyproject.toml`, `conftest.py`, `requirements.test.txt`, `.gitignore`, `.pre-commit-config.yaml`, `.yamllint`, `.prettierrc.js`, `.prettierignore`, and the `CLAUDE.md` and `.githooks/pre-commit` snippets | this skill's `templates/` and `reference/scaffold.md` |
+| `ruleset.json`, `pyproject.toml`, `mypy.ini`, `conftest.py`, `requirements.test.txt`, `.gitignore`, `.pre-commit-config.yaml`, `.yamllint`, `.prettierrc.js`, `.prettierignore`, and the `CLAUDE.md` and `.githooks/pre-commit` snippets | this skill's `templates/` and `reference/scaffold.md` |
 | `frontend/package.json`, `frontend/tsconfig.json` (panel repos only) | ha-panel-ci's `frontend/` |
 | `scripts/bootstrap_repo.sh` | this skill's `templates/scripts/`; when to run it is `reference/github-setup.md` |
 
@@ -94,7 +94,7 @@ only list of them.
 
 | Rule | Value |
 |---|---|
-| `pyproject.toml` | a `[project]` table carrying no version, and pytest or pyright options; never the `[tool.ruff]` tables, which are Home Assistant core's rule set |
+| `pyproject.toml` | a `[project]` table carrying no version, and pytest options; never the `[tool.ruff]` tables, which are Home Assistant core's rule set |
 | `frontend/package.json` | the `<domain>` and `<name>` placeholders → this integration's values, as ha-panel-ci's README says |
 | `requirements.test.txt` | uncomment the `home-assistant-frontend` pin, panel repos only |
 | `ruleset.json` | drop a context the repo does not produce |

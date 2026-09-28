@@ -23,7 +23,7 @@ Read this when writing or fixing an integration's tests. The code patterns being
 14. A question a mock cannot answer — mocking Step 1
 15. A fixture payload whose dates must be upcoming — mocking Step 2
 16. Entities still read defaults after `async_block_till_done` — mocking Step 2
-17. Ruff or pyright flags a file under `tests/` or `scripts/` — mocking Step 4
+17. Ruff flags a file under `tests/` or `scripts/` — mocking Step 4
 
 ## Testing — prerequisites before any of the rules below apply
 
@@ -85,7 +85,7 @@ Mock the third-party client, socket, or library (`imaplib.IMAP4_SSL`, `aiohttp` 
 - **Never patch your own `_async_update_data`, `email_triage`, `api.fetch`, etc.**
 - The integration's *own* wiring then runs: reading `entry.data`/`entry.options` into
   attributes, building requests, parsing responses, populating the coordinator.
-- Pass config as explicit constructor args, so pyright catches a missing field instead of a
+- Pass config as explicit constructor args, so mypy catches a missing field instead of a
   helper reaching into `self.<attr>` set elsewhere.
 
 ### Step 2: Make `test-before-setup` a real config-entry setup
@@ -197,11 +197,7 @@ no new timer, so teardown stays clean.
 > that *Entity platform files — Step 1* in `reference/patterns.md` gives; the test then
 > needs no nudge at all.
 
-### Ruff or pyright flags a file under `tests/` or `scripts/` — mocking Step 4
+### Ruff flags a file under `tests/` or `scripts/` — mocking Step 4
 
 The shipped `pyproject.toml` already exempts `scripts/*` and `tests/**` from the rules its
 per-file-ignores table names.
-
-`result["type"]` → `result.get("type")` in tests, and the same for `["errors"]` and
-`["reason"]`: on a flow `ConfigFlowResult` they are `reportTypedDictNotRequiredAccess` under
-pyright.
