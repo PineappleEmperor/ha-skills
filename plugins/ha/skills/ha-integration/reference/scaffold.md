@@ -85,7 +85,7 @@ Under `custom_components/<domain>/`. What goes inside each file is `reference/pa
 | `mypy.ini` | the general section of HA core's mypy config — keep `python_version` in `[mypy]`, since it is what the audit's version comparison reads from this file — *What the audit checks now* in ha-integration-ci's README | `templates/mypy.ini`, verbatim |
 | `requirements.test.txt` | the pinned test harness — why the pin matters is `reference/testing.md` | `templates/requirements.test.txt` |
 | `conftest.py` | the root conftest, at the repo root and never in `tests/` — why is `reference/testing.md` | `templates/conftest.py` |
-| `tests/` | an `__init__.py`, which the shipped ruff rules require, and one file per module under test | `reference/testing.md` |
+| `tests/` | an `__init__.py` with a module docstring, in `tests/` and in every sub-directory holding tests, which the shipped ruff rules require, and one file per module under test | `reference/testing.md` |
 | `README.md` | the project readme, carrying the AI-assistance note below | — |
 | `LICENSE` | the full text of the Step 1 licence | the licence's own text |
 | `.gitignore` | `__pycache__/`, caches, venvs, HA dev artefacts (`.storage/`, `home-assistant.log*`, the `_v2.db`) and `device_map.md`, a note of a home's devices and addresses kept beside its logs | `templates/.gitignore` |
