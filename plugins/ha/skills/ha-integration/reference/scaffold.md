@@ -82,7 +82,7 @@ Under `custom_components/<domain>/`. What goes inside each file is `reference/pa
 | `CLAUDE.md` | the per-repo rule that a session invokes this skill before touching integration code | the snippet below |
 | `hacs.json` | the HACS manifest | the shape below |
 | `pyproject.toml` | HA core's ruff rule set adapted for a custom integration — `google` docstrings, HA's Python floor, no `from __future__ import annotations` — and the `asyncio_mode = "auto"` without which no async test runs | `templates/pyproject.toml`, verbatim |
-| `mypy.ini` | the general section of HA core's mypy config — keep `python_version` in `[mypy]`, since it is what the audit's version comparison (the `version_sync.py` paragraph in ha-integration-ci's README) reads from this file | `templates/mypy.ini`, verbatim |
+| `mypy.ini` | the general section of HA core's mypy config — keep `python_version` in `[mypy]`, since it is what the audit's version comparison reads from this file — *What the audit checks now* in ha-integration-ci's README | `templates/mypy.ini`, verbatim |
 | `requirements.test.txt` | the pinned test harness — why the pin matters is `reference/testing.md` | `templates/requirements.test.txt` |
 | `conftest.py` | the root conftest, at the repo root and never in `tests/` — why is `reference/testing.md` | `templates/conftest.py` |
 | `tests/` | one file per module under test | `reference/testing.md` |
