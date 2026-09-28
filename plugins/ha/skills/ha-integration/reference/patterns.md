@@ -505,12 +505,18 @@ TO_REDACT = {CONF_API_KEY, CONF_PASSWORD, "token"}
 async def async_get_config_entry_diagnostics(
     hass: HomeAssistant, entry: MyConfigEntry
 ) -> dict[str, Any]:
-    """Return the entry's settings and the coordinator's data, secrets redacted."""
+    """Return the entry's settings and each device's reading, secrets redacted."""
     coordinator = entry.runtime_data
     return {
         "entry_data": async_redact_data(entry.data, TO_REDACT),
         "entry_options": async_redact_data(entry.options, TO_REDACT),
-        "data": async_redact_data(asdict(coordinator.data), TO_REDACT),
+        "devices": async_redact_data(
+            {
+                device_id: asdict(reading)
+                for device_id, reading in coordinator.data.items()
+            },
+            TO_REDACT,
+        ),
     }
 ```
 
@@ -518,7 +524,7 @@ async def async_get_config_entry_diagnostics(
 |---|---|
 | where this was read | `async_redact_data` in `homeassistant/components/diagnostics/util.py`, and `homeassistant/components/nam/diagnostics.py`, at the `2026.9.0` tag |
 | what goes in | the fields a bug report needs, each chosen — never `entry.runtime_data` whole |
-| what `async_redact_data` walks | mappings and lists only, so an object inside the dict passes through unredacted; turn a dataclass into a dict with `asdict` first |
+| what `async_redact_data` walks | mappings and lists only, so an object inside the dict passes through unredacted; turn each device's dataclass into a dict with `asdict` first, keyed by device id as `coordinator.data` is |
 | registration | none — HA discovers it from the file name |
 
 ### Devices belong to one config entry — Step 3
