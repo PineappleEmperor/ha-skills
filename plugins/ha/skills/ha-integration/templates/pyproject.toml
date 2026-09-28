@@ -1,5 +1,8 @@
 # Ruff and pytest configuration for a Home Assistant custom integration. Copy verbatim.
 #
+# The core tag the [tool.ruff] and [tool.pytest.ini_options] tables were taken from is the
+# mypy and ruff row of the ha-integration skill's reference/freshness.md.
+#
 # The [tool.ruff] tables are Home Assistant core's own (home-assistant/core, pyproject.toml),
 # adapted for a repo that is one integration rather than core itself:
 #   - target-version instead of requires-python, so the audit's version comparison
