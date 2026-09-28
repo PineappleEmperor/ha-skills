@@ -84,8 +84,7 @@ device logic from the HA lifecycle, so it is unit-testable without a running HA 
 4. If setup creates a device, add `async_remove_config_entry_device` so a user can remove it.
    Type its device parameter `AnyDeviceEntry` (`DeviceEntry | ChildDeviceEntry`), since from
    2026.9 Home Assistant hands it a child device too — `_async_remove_device` in
-   `homeassistant/components/config/device_registry.py` at the `2026.9.0` tag; everywhere
-   else a device is a `DeviceEntry`.
+   `homeassistant/components/config/device_registry.py` at the `2026.9.0` tag.
 5. If the entity carries `_attr_translation_key`, add the matching block to `strings.json`
    and `translations/en.json` — `entity-translations` in `reference/quality-scale.md`.
 
