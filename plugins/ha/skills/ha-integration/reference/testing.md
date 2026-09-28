@@ -203,4 +203,5 @@ The shipped `pyproject.toml` exempts `tests/**` from `PTH` alone, as core does, 
 of the rule set applies to tests: `tests/` and every sub-directory of it holding tests
 carries an `__init__.py` (`INP001`) with a module docstring (`D104`), and a test reaches
 the integration through its public surface, never `obj._private` member access (`SLF001`).
+
 `scripts/*` is exempted from `T20` and `INP001`, the rules a standalone tool cannot meet.
