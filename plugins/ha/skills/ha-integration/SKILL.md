@@ -51,7 +51,7 @@ Pick the mode from what is about to be done, then **read that mode's file before
 
 ## Lint & quality check
 
-1. Run `ruff check .` and `ruff format --check .` under the shipped `pyproject.toml` — fix all actionable issues; suppress intentional ones with `# noqa` and a reason
+1. Run `ruff check .` and `ruff format --check .` under the shipped `pyproject.toml`, with ruff at the version the mypy and ruff row of `reference/freshness.md` names — fix all actionable issues; suppress intentional ones with `# noqa` and a reason
 2. Run `mypy --config-file mypy.ini custom_components/`, with mypy at the version the mypy and ruff row of `reference/freshness.md` names — fix all actionable issues
 3. Check `quality_scale.yaml` exists; if not, offer to create it
 4. Check `manifest.json` against *Step 6: Order `manifest.json`* in `reference/scaffold.md`
