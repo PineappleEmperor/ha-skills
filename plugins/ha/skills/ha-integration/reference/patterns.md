@@ -192,8 +192,8 @@ the rows a custom integration gets wrong against it.
 | the main feature entity's name | `_attr_name = None`, so only the device name shows |
 | `_attr_translation_key = "my_key"` | translated entity names and states; pairs with the `entity` section of `strings.json` |
 | `_attr_entity_category` | on a non-primary entity: `EntityCategory.DIAGNOSTIC` for read-only info such as RSSI, `EntityCategory.CONFIG` for a setting that changes device behaviour |
-| a static value | an `_attr_*` class or instance attribute, never a property method |
-| a dynamic or state-dependent value | a property |
+| a value set at init or on update | an `_attr_*` class or instance attribute, assigned in `__init__` or in `_handle_coordinator_update`, never a property method |
+| a value derived on read, from `self.coordinator.data` say | a property — https://developers.home-assistant.io/docs/core/entity/ |
 | `_attr_available` | reflects device reachability — `False` where the fetch fails, `True` where it succeeds |
 | the state source | `self.coordinator.data` only — never I/O in a property |
 
