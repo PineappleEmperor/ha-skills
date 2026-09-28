@@ -3,7 +3,7 @@
 #
 # The pin below decides which Home Assistant release the suite runs against; why,
 # and how it must track the Python floor the CI declares, is the ha-integration
-# skill's reference/testing.md. Nothing compares the two, so they move by hand.
+# skill's reference/testing.md.
 #
 # Which HA release a given pin carries, and its Python floor, is on
 # pypi.org/project/pytest-homeassistant-custom-component. No mapping is written
