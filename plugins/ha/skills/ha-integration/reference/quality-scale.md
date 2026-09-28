@@ -66,6 +66,7 @@ rest are proved by what they name:
 | every `docs-*` rule | the documentation it asks for, read — no test can reach it |
 | `brands`, `common-modules`, `dependency-transparency`, `integration-owner` | the file or manifest key the rule names, read |
 | `strict-typing` | the mypy run — *Step 4: Type it, and suppress nothing* in `reference/patterns.md` |
+| `test-coverage` | ha-integration-ci's `scripts/coverage_gate.py` — which modules it holds, and to what bar, is *The coverage gate* under *Implementation notes* in ha-integration-ci's README |
 
 Each of these needs its own test, not just the code:
 
