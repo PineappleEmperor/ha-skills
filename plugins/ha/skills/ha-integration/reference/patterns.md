@@ -194,7 +194,7 @@ the rows a custom integration gets wrong against it.
 | `_attr_entity_category` | on a non-primary entity: `EntityCategory.DIAGNOSTIC` for read-only info such as RSSI, `EntityCategory.CONFIG` for a setting that changes device behaviour |
 | a value set at init or on update | an `_attr_*` class or instance attribute, assigned in `__init__` or in `_handle_coordinator_update`, never a property method |
 | a value derived on read, from `self.coordinator.data` say | a property — https://developers.home-assistant.io/docs/core/entity/ |
-| `_attr_available` | reflects device reachability — `False` where the fetch fails, `True` where it succeeds |
+| availability on a `CoordinatorEntity` | override `available` and call `super()`, as the device-missing row of *A reply the code does not expect — Step 1* does — `CoordinatorEntity.available` already returns `last_update_success`, so an `_attr_available` beside it is never read |
 | the state source | `self.coordinator.data` only — never I/O in a property |
 
 ```python
