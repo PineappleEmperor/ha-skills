@@ -33,6 +33,7 @@ SECTIONS = (
     "Repository",
     "Sources read",
     "Defect class",
+    "Rules applied",
     "Cases",
     "Single source",
     "Files",
@@ -44,11 +45,21 @@ SECTIONS = (
 KINDS = ("reported", "sibling", "guard")
 CASE_COLUMNS = ["#", "Kind", "Situation", "Expected", "Proof"]
 SOURCE_COLUMNS = ["Fact", "Owner", "Pointers"]
+RULE_COLUMNS = ["Rule", "Applies", "How the plan meets it"]
 NO_FACT = "No fact introduced or moved."
+REVIEW = ROOT / "docs" / "review.md"
+INVARIANTS_HEADING = "## Invariants every kind checks"
 
 _BRIEF = re.compile(r"Brief:\s*(\S+?\.md)\b")
 _CORE = re.compile(r"\bcore\b", re.IGNORECASE)
 _TAG = re.compile(r"\b20\d\d\.\d{1,2}\.\d+\b")
+_INVARIANT = re.compile(r"^(\d+)\. \*\*")
+
+
+def invariants() -> list[int]:
+    """The invariant numbers docs/review.md lists, which every brief answers in advance."""
+    body = REVIEW.read_text().split(INVARIANTS_HEADING, 1)[1].split("\n## ", 1)[0]
+    return [int(m[1]) for line in body.splitlines() if (m := _INVARIANT.match(line))]
 
 
 def _sections(text: str) -> list[tuple[str, str]]:
@@ -103,6 +114,42 @@ def _check_cases(body: str) -> list[str]:
     return problems
 
 
+def _shipped(files_body: str) -> list[str]:
+    """The skill documents a brief's Files section names, each of which carries rules."""
+    paths = [
+        line.strip()[2:].split()[0]
+        for line in files_body.splitlines()
+        if line.strip().startswith("- ") and len(line.strip()) > 2
+    ]
+    return [p for p in paths if p.startswith("plugins/") and p.endswith(".md")]
+
+
+def _check_rules(body: str, files_body: str) -> list[str]:
+    table = _table(body)
+    if table is None or table[0] != RULE_COLUMNS:
+        return [f"Rules applied: needs a table with columns {' | '.join(RULE_COLUMNS)}"]
+    rows = {row[0]: row for row in table[1] if row}
+    problems = []
+    for rule, row in rows.items():
+        applies = row[1] if len(row) > 1 else ""
+        if applies not in ("yes", "no"):
+            problems.append(
+                f"Rules applied: `{rule}` applies `{applies}`, not yes or no"
+            )
+        if len(row) < 3 or not row[2]:
+            problems.append(
+                f"Rules applied: `{rule}` does not say how the plan meets it"
+            )
+    required = [f"Invariant {n}" for n in invariants()]
+    required += [f"Anti-patterns: {path}" for path in _shipped(files_body)]
+    problems += [
+        f"Rules applied: no `{rule}` row; docs/brief.md says what each answers"
+        for rule in required
+        if rule not in rows
+    ]
+    return problems
+
+
 def _check_single_source(body: str) -> list[str]:
     if body == NO_FACT:
         return []
@@ -152,6 +199,8 @@ def validate(path: pathlib.Path) -> list[str]:
     if "Sources read" in bodies:
         outside = "\n".join(b for n, b in found if n != "Sources read")
         problems += _check_sources(bodies["Sources read"], outside)
+    if bodies.get("Rules applied"):
+        problems += _check_rules(bodies["Rules applied"], bodies.get("Files", ""))
     if bodies.get("Cases"):
         problems += _check_cases(bodies["Cases"])
     if "Single source" in bodies:

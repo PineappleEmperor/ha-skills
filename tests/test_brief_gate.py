@@ -17,7 +17,20 @@ bg = importlib.util.module_from_spec(_SPEC)
 assert _SPEC.loader is not None
 _SPEC.loader.exec_module(bg)
 
-VALID = """\
+_RULES_HEAD = "| Rule | Applies | How the plan meets it |\n|---|---|---|\n"
+
+
+def _rules(extra: tuple[str, ...] = ()) -> str:
+    """A rules table answering every invariant, plus an anti-patterns row per file."""
+    rows = [
+        f"| Invariant {n} | no | nothing in this change touches it |"
+        for n in bg.invariants()
+    ]
+    rows += [f"| Anti-patterns: {path} | yes | read; none applies |" for path in extra]
+    return _RULES_HEAD + "\n".join(rows)
+
+
+_TEMPLATE = """\
 # Brief: retry every transient download failure
 
 ## Goal
@@ -37,6 +50,10 @@ The sync script survives a flaky network and says plainly when a tag does not ex
 
 Every failure that could succeed on a second attempt is retried; every failure that cannot
 stops at once with a message that says why.
+
+## Rules applied
+
+<<RULES>>
 
 ## Cases
 
@@ -75,6 +92,7 @@ python -m pytest tests/ -q -p no:homeassistant
 
 - a failure cannot be told apart from a transient one by its type
 """
+VALID = _TEMPLATE.replace("<<RULES>>", _rules())
 
 
 def _write(
@@ -151,7 +169,69 @@ def test_sections_out_of_order_are_refused(tmp_path) -> None:
     assert "order" in reason
 
 
-@pytest.mark.parametrize("section", ["Goal", "Defect class", "Files", "Out of scope"])
+def test_invariants_are_read_from_the_review_standard() -> None:
+    """The planning checklist is docs/review.md's, so a new invariant binds briefs too."""
+    found = bg.invariants()
+    assert found == list(range(1, len(found) + 1))
+    assert len(found) >= 10
+
+
+def test_every_invariant_needs_a_row(tmp_path) -> None:
+    """A rule the plan never weighed is the finding a review would make later."""
+    text = VALID.replace(
+        "| Invariant 3 | no | nothing in this change touches it |\n", ""
+    )
+    reason = bg.decide(_agent(_write(tmp_path, text)))
+    assert reason is not None
+    assert "Invariant 3" in reason
+
+
+def test_applies_is_yes_or_no(tmp_path) -> None:
+    """A rule either shapes the plan or it does not; maybe is an unmade decision."""
+    text = VALID.replace("| Invariant 2 | no |", "| Invariant 2 | maybe |")
+    reason = bg.decide(_agent(_write(tmp_path, text)))
+    assert reason is not None
+    assert "maybe" in reason
+
+
+def test_a_rule_row_names_how_it_is_met(tmp_path) -> None:
+    """A bare yes or no is a box ticked, not a rule applied."""
+    text = VALID.replace(
+        "| Invariant 4 | no | nothing in this change touches it |",
+        "| Invariant 4 | yes |  |",
+    )
+    reason = bg.decide(_agent(_write(tmp_path, text)))
+    assert reason is not None
+    assert "Invariant 4" in reason
+
+
+def test_a_rules_table_with_other_columns_is_refused(tmp_path) -> None:
+    """The columns are fixed so every rule says whether and how it applies."""
+    text = VALID.replace(
+        "| Rule | Applies | How the plan meets it |", "| Rule | Note |"
+    )
+    reason = bg.decide(_agent(_write(tmp_path, text)))
+    assert reason is not None
+    assert "Rules applied" in reason
+
+
+def test_a_shipped_file_needs_its_anti_patterns_weighed(tmp_path) -> None:
+    """Each skill file the change touches carries rules of its own; the plan reads them."""
+    shipped = "plugins/ha/skills/ha-integration/reference/testing.md"
+    text = VALID.replace(
+        "- tests/test_pylint_upstream.py\n",
+        f"- tests/test_pylint_upstream.py\n- {shipped} (edited)\n",
+    )
+    reason = bg.decide(_agent(_write(tmp_path, text)))
+    assert reason is not None
+    assert shipped in reason
+    text = text.replace(_rules(), _rules((shipped,)))
+    assert bg.decide(_agent(_write(tmp_path, text))) is None
+
+
+@pytest.mark.parametrize(
+    "section", ["Goal", "Defect class", "Rules applied", "Files", "Out of scope"]
+)
 def test_an_empty_section_is_refused(tmp_path, section) -> None:
     """A heading with nothing under it is not the section."""
     head = f"## {section}\n"

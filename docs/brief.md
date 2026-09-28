@@ -28,6 +28,7 @@ Every heading below is a `##` heading in the brief, spelt as here.
 | `Repository` | The absolute path and the branch | no absolute path |
 | `Sources read` | One bullet per file read before writing the brief — a repository path, or a core URL at a tag — each ending `(in full)` | empty, or a bullet without `(in full)`; the brief mentions core and no bullet names a core tag |
 | `Defect class` | The rule that is broken, stated for every input it applies to, not for the reported one | empty |
+| `Rules applied` | A table with columns `Rule`, `Applies`, `How the plan meets it` — below | a row missing, `Applies` other than `yes` or `no`, or `How` empty |
 | `Cases` | A table with columns `#`, `Kind`, `Situation`, `Expected`, `Proof` | fewer than three rows; no row of each kind |
 | `Single source` | A table with columns `Fact`, `Owner`, `Pointers`, one row per fact the change introduces or moves; or the line `No fact introduced or moved.` | neither |
 | `Files` | Every file the change is expected to touch | empty |
@@ -35,6 +36,19 @@ Every heading below is a `##` heading in the brief, spelt as here.
 | `Commits` | One planned subject per decision | empty |
 | `Checks` | The commands run after every commit, in a fenced block | no fenced block |
 | `Stop and report if` | The conditions under which the builder stops instead of improvising | empty |
+
+### The rules table
+
+The rules a review holds the work to are answered here, before anything is written. A
+finding a review would make from a rule it already has is a planning defect.
+
+| Row | Required when | `How the plan meets it` says |
+|---|---|---|
+| `Invariant <n>` | always, one per invariant under *Invariants every kind checks* in `docs/review.md`; the gate reads that list, so a new invariant binds every brief | for `yes`, what in the plan satisfies it — the owner, the source compared, the commit split; for `no`, why the change cannot touch it |
+| `Anti-patterns: <path>` | for every skill document under `Files` | which of that file's anti-pattern rows and rules the change meets, or that none bears on it |
+
+Further rows are welcome — a `docs/skill-schema.md` block type, a `reference/commits.md`
+step — and are held to the same two columns.
 
 ### Case kinds
 
@@ -57,7 +71,8 @@ owns which topic.
 ## The case review
 
 Before any builder is dispatched, a `reviewer` agent is given the brief and the files it
-lists under `Sources read`, and answers one question: is a case missing? It writes
+lists under `Sources read`, and answers two questions: is a case missing, and does any
+`Rules applied` row claim something the plan does not do? It writes
 `.tmp/briefs/<slug>.review` holding the brief's sha256 on the first line and
 `VERDICT: complete` or `VERDICT: missing` on the second, with the missing cases after it.
 
