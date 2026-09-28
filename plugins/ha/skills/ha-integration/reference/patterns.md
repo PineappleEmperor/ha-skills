@@ -113,7 +113,7 @@ before a PR is ready.
 
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
-| `# type: ignore` to silence a typing error | fix the type | under `strict-typing` a suppression is a violation, not a shortcut, and the `mypy.ini` enables `ignore-without-code`, so a codeless one fails the run outright | https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/strict-typing/ |
+| `# type: ignore` to silence a typing error | fix the type | under `strict-typing` a suppression is a violation, not a shortcut, and the `mypy.ini` enables `ignore-without-code`, so a codeless one fails the run outright | https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/strict-typing/, and `templates/mypy.ini` |
 | `# type: ignore[import-untyped]` on a stubless third-party import | nothing — import it plainly | the `mypy.ini` disables `import-untyped` and fails an unused ignore, so the leftover one is the error | `templates/mypy.ini` |
 | `hass.data[DOMAIN][entry.entry_id]`, which is untyped | `entry.runtime_data` on a typed `ConfigEntry` | the alias carries the runtime type, so no cast is needed | https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/runtime-data/, and *Typed `ConfigEntry` — Step 4* |
 
