@@ -3,14 +3,14 @@
 Read this when claiming a tier: the canonical rule set, and what a claim must have behind
 it.
 
-**A rule marked `done` has a test that exercises it — nothing in CI runs the integration.**
+**A runtime rule marked `done` has a test that exercises it — nothing in CI runs the integration.**
 
 ## Contents
 
 1. Claiming a tier
 2. Step 1: Scaffold `quality_scale.yaml` from the start
 3. Step 2: Set every rule in the canonical set
-4. Step 3: Prove every `done` with a test
+4. Step 3: Prove every `done`
 5. Step 4: Claim the tier in the manifest only once it is fully met
 6. Cases
 7. A local-push MQTT device integration — Step 2
@@ -55,7 +55,17 @@ The set is a snapshot; re-verify it per its row in `reference/freshness.md`.
 > **Note:** `PlatformNotReady` is for legacy `async_setup_platform` only — config-entry
 > integrations use `ConfigEntryNotReady` instead.
 
-### Step 3: Prove every `done` with a test
+### Step 3: Prove every `done`
+
+The test requirement covers the rules about what the integration does when it runs. The
+rest are proved by what they name:
+
+| Rule | Value |
+|---|---|
+| a rule about runtime behaviour — a flow, setup, unload, an entity, an action | a test that exercises it |
+| every `docs-*` rule | the documentation it asks for, read — no test can reach it |
+| `brands`, `common-modules`, `dependency-transparency`, `integration-owner` | the file or manifest key the rule names, read |
+| `strict-typing` | the mypy run — *Step 4: Type it, and suppress nothing* in `reference/patterns.md` |
 
 Each of these needs its own test, not just the code:
 
@@ -67,7 +77,7 @@ Each of these needs its own test, not just the code:
   scrapes the `translation_key`s used in code and asserts each exists in `strings.json`,
   which catches a typo'd key that hassfest passes
 
-A rule that is genuinely untestable is `exempt` with a comment, not an unproven `done`.
+A runtime rule no test can reach is `exempt` with a comment, not an unproven `done`.
 
 ### Step 4: Claim the tier in the manifest only once it is fully met
 
