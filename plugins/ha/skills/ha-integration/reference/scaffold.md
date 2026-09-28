@@ -171,10 +171,6 @@ from is the brand row of `reference/freshness.md`.
 **Ship `icon.png`.** It is the only file HACS gates on; the serving layer falls back for the
 rest.
 
-> **Note:** the released `check_brand_assets` is stricter than this spec — what it fails on
-> is the gate cell of the brand row in `reference/freshness.md`. Ship `icon.png`,
-> `icon@2x.png`, `logo.png` and `logo@2x.png` until the narrowing CI release is cut.
-
 | Rule | Value |
 |---|---|
 | served by | the Brands Proxy API, from HA 2026.3.0 |
@@ -188,7 +184,7 @@ rest.
 |---|---|---|
 | `icon.png` | exactly 256×256 | always |
 | `icon@2x.png` | exactly 512×512 | always |
-| `logo.png` | shortest side 128–256, 256 preferred | always until the narrowing CI release, per the note above; after it, only when the logo is a different image from the icon |
+| `logo.png` | shortest side 128–256, 256 preferred | the logo is a different image from the icon |
 | `logo@2x.png` | shortest side 256–512, 512 preferred | as `logo.png` |
 | `dark_icon.png`, `dark_icon@2x.png` | as the icons | the icon is unreadable on a dark ground |
 | `dark_logo.png`, `dark_logo@2x.png` | as the logos | the logo is unreadable on a dark ground |
@@ -212,7 +208,7 @@ rest.
 
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
-| duplicating the icon at `logo.png`, once the narrowing CI release is out | ship only the icons | `icon.png` already serves that slot | Step 5 |
+| duplicating the icon at `logo.png` | ship only the icons | `icon.png` already serves that slot | Step 5 |
 | padding a mark into a landscape canvas | trim, and ship it square | no rule requires a logo aspect ratio | Step 5 |
 | honouring a brand's clear-space guideline inside the PNG | trim, and let Home Assistant space it | that guideline governs placement in a UI, not the asset | Step 5 |
 | omitting `icon@2x.png` because the 1× is served | ship it | a HiDPI client renders 256px where it asked for 512 | Step 5 |
