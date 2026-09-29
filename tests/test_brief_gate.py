@@ -60,23 +60,24 @@ The sync script survives a flaky network and says plainly when a tag does not ex
 Every failure that could succeed on a second attempt is retried; every failure that cannot
 stops at once with a message that says why.
 
+## Facts
+
+| ID | Fact | Owner | Pointers |
+|---|---|---|---|
+| F1 | a 404 means the tag does not exist, so a retry cannot help | scripts/pylint_upstream.py › module docstring | README.md › The pylint rules |
+| F2 | a 5xx is transient, so a retry can help | scripts/pylint_upstream.py › module docstring | README.md › The pylint rules |
+
 ## Rules applied
 
 <<RULES>>
 
 ## Cases
 
-| # | Kind | Situation | Expected | Proof | Seen |
-|---|---|---|---|---|---|
-| 1 | reported | codeload answers 404 | stops at once, says the tag may not exist | test_404_stops | today: three attempts, then "try again" |
-| 2 | sibling | codeload answers 503 | retried | test_503_retried | today: not retried |
-| 3 | guard | a good download | one attempt, no wait | test_success_no_retry | today: one attempt |
-
-## Single source
-
-| Fact | Owner | Pointers |
-|---|---|---|
-| which failures are retried | scripts/pylint_upstream.py › module docstring | README.md › The pylint rules |
+| # | Kind | Situation | Facts | Expected | Proof | Seen |
+|---|---|---|---|---|---|---|
+| 1 | reported | codeload answers 404 | F1 | stops at once, says the tag may not exist | test_404_stops | today: three attempts, then "try again" |
+| 2 | sibling | codeload answers 503 | F2 | retried | test_503_retried | today: not retried |
+| 3 | guard | a good download | F2 | one attempt, no wait | test_success_no_retry | today: one attempt |
 
 ## Files
 
@@ -367,29 +368,87 @@ def test_an_unknown_case_kind_is_refused(tmp_path) -> None:
 def test_a_cases_table_with_other_columns_is_refused(tmp_path) -> None:
     """The columns are fixed so every case names its situation, result and proof."""
     text = VALID.replace(
-        "| # | Kind | Situation | Expected | Proof | Seen |", "| # | Kind | What |"
+        "| # | Kind | Situation | Facts | Expected | Proof | Seen |",
+        "| # | Kind | What |",
     )
     reason = bg.decide(_agent(_write(tmp_path, text)))
     assert reason is not None
     assert "Cases" in reason
 
 
-def test_single_source_accepts_the_no_fact_line(tmp_path) -> None:
-    """A change that moves no fact says so in one line."""
-    start = VALID.index("| Fact |")
-    end = VALID.index("\n## Files")
-    text = VALID[:start] + "No fact introduced or moved.\n" + VALID[end:]
-    assert bg.decide(_agent(_write(tmp_path, text))) is None
-
-
-def test_single_source_with_neither_form_is_refused(tmp_path) -> None:
-    """A vague owner is the restatement the table exists to prevent."""
-    start = VALID.index("| Fact |")
-    end = VALID.index("\n## Files")
-    text = VALID[:start] + "The docstring, I think.\n" + VALID[end:]
+def _refused_with(tmp_path, text: str, *needles: str) -> None:
     reason = bg.decide(_agent(_write(tmp_path, text)))
     assert reason is not None
-    assert "Single source" in reason
+    for needle in needles:
+        assert needle in reason
+
+
+def test_a_facts_table_with_other_columns_is_refused(tmp_path) -> None:
+    """Every fact carries its ID, its owner and its pointers, in that shape."""
+    text = VALID.replace("| ID | Fact | Owner | Pointers |", "| Fact | Owner |")
+    _refused_with(tmp_path, text, "Facts")
+
+
+def test_a_fact_id_used_twice_is_refused(tmp_path) -> None:
+    """Two rows under one ID are two facts a citation cannot tell apart."""
+    text = VALID.replace("| F2 | a 5xx", "| F1 | a 5xx")
+    _refused_with(tmp_path, text, "F1")
+
+
+def test_the_same_claim_twice_is_refused(tmp_path) -> None:
+    """One fact, one row: a second row saying the same thing is a restatement."""
+    text = VALID.replace(
+        "a 5xx is transient, so a retry can help",
+        "a 404 means the tag does not exist, so a retry cannot help",
+    )
+    _refused_with(tmp_path, text, "same claim")
+
+
+def test_a_fact_with_no_owner_is_refused(tmp_path) -> None:
+    """A fact nobody owns is the drift the owner column exists to stop."""
+    text = VALID.replace(
+        "| F2 | a 5xx is transient, so a retry can help | "
+        "scripts/pylint_upstream.py › module docstring |",
+        "| F2 | a 5xx is transient, so a retry can help |  |",
+    )
+    _refused_with(tmp_path, text, "F2", "owner")
+
+
+def test_a_case_citing_an_unknown_fact_is_refused(tmp_path) -> None:
+    """A citation must resolve, or the case rests on nothing written down."""
+    text = VALID.replace(
+        "| 2 | sibling | codeload answers 503 | F2 |",
+        "| 2 | sibling | codeload answers 503 | F9 |",
+    )
+    _refused_with(tmp_path, text, "F9")
+
+
+def test_a_case_citing_no_fact_is_refused(tmp_path) -> None:
+    """A case proves a fact; one that cites none has an expectation from nowhere."""
+    text = VALID.replace(
+        "| 2 | sibling | codeload answers 503 | F2 |",
+        "| 2 | sibling | codeload answers 503 |  |",
+    )
+    _refused_with(tmp_path, text, "case 2")
+
+
+def test_a_fact_no_case_proves_is_refused(tmp_path) -> None:
+    """A fact nothing proves is a claim the build will not check."""
+    text = VALID.replace(
+        "| F2 | a 5xx",
+        "| F3 | a success needs one attempt | scripts/pylint_upstream.py › main "
+        "| none |\n| F2 | a 5xx",
+    )
+    _refused_with(tmp_path, text, "F3")
+
+
+def test_an_undefined_fact_cited_anywhere_is_refused(tmp_path) -> None:
+    """A rules cell citing a fact the table lacks is as broken as a case doing so."""
+    text = VALID.replace(
+        "| Invariant 6 | no | nothing in this change touches it |",
+        "| Invariant 6 | yes | F7 is observed in its case |",
+    )
+    _refused_with(tmp_path, text, "F7")
 
 
 def test_checks_without_a_fenced_block_are_refused(tmp_path) -> None:

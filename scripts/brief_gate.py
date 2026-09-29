@@ -33,9 +33,9 @@ SECTIONS = (
     "Repository",
     "Sources read",
     "Defect class",
+    "Facts",
     "Rules applied",
     "Cases",
-    "Single source",
     "Files",
     "Out of scope",
     "Commits",
@@ -43,10 +43,9 @@ SECTIONS = (
     "Stop and report if",
 )
 KINDS = ("reported", "sibling", "guard")
-CASE_COLUMNS = ["#", "Kind", "Situation", "Expected", "Proof", "Seen"]
-SOURCE_COLUMNS = ["Fact", "Owner", "Pointers"]
+CASE_COLUMNS = ["#", "Kind", "Situation", "Facts", "Expected", "Proof", "Seen"]
+FACT_COLUMNS = ["ID", "Fact", "Owner", "Pointers"]
 RULE_COLUMNS = ["Rule", "Applies", "How the plan meets it"]
-NO_FACT = "No fact introduced or moved."
 REVIEW = ROOT / "docs" / "review.md"
 INVARIANTS_HEADING = "## Invariants every kind checks"
 READ_LOG = ROOT / ".tmp" / "reads.jsonl"
@@ -64,6 +63,8 @@ _CORE = re.compile(r"\bcore\b(?! rules?\b)", re.IGNORECASE)
 _TAG = re.compile(r"\b20\d\d\.\d{1,2}\.\d+\b")
 _INVARIANT = re.compile(r"^(\d+)\. \*\*")
 _DOC = re.compile(r"`([\w./-]+\.md)`")
+# One or two digits, so a fact ID never collides with a ruff code such as F401.
+_FACT_ID = re.compile(r"\bF\d{1,2}\b")
 
 
 def _invariant_texts() -> dict[int, str]:
@@ -142,7 +143,12 @@ def _check_cases(body: str) -> list[str]:
     problems += [
         f"Cases: case {row[0]} records nothing under Seen; run its Proof while planning"
         for row in rows
-        if len(row) < 6 or not row[5]
+        if len(row) < 7 or not row[6]
+    ]
+    problems += [
+        f"Cases: case {row[0]} cites no fact; every case proves a row of Facts"
+        for row in rows
+        if len(row) < 4 or not _FACT_ID.search(row[3])
     ]
     return problems
 
@@ -212,15 +218,47 @@ def _check_rules(body: str, files_body: str, sources_body: str) -> list[str]:
     return problems + _unread_sources(rows, sources_body)
 
 
-def _check_single_source(body: str) -> list[str]:
-    if body == NO_FACT:
-        return []
+def _check_facts(body: str, cases_body: str, text: str) -> list[str]:
+    """Each fact stated once, owned, proved by a case, and every citation resolving."""
     table = _table(body)
-    if table is not None and table[0] == SOURCE_COLUMNS and table[1]:
-        return []
-    return [
-        f"Single source: needs a {' | '.join(SOURCE_COLUMNS)} table or the line `{NO_FACT}`"
+    if table is None or table[0] != FACT_COLUMNS or not table[1]:
+        return [f"Facts: needs a table with columns {' | '.join(FACT_COLUMNS)}"]
+    rows = [row + [""] * (len(FACT_COLUMNS) - len(row)) for row in table[1]]
+    ids = [row[0] for row in rows]
+    problems = [
+        f"Facts: `{i}` is not an ID of the form F1 to F99"
+        for i in ids
+        if not _FACT_ID.fullmatch(i)
     ]
+    problems += [
+        f"Facts: {i} is used for more than one row"
+        for i in dict.fromkeys(ids)
+        if ids.count(i) > 1
+    ]
+    claims: dict[str, str] = {}
+    for fid, claim, owner, _ in rows:
+        key = " ".join(claim.lower().split())
+        if key in claims:
+            problems.append(f"Facts: {fid} makes the same claim as {claims[key]}")
+        claims.setdefault(key, fid)
+        if not owner:
+            problems.append(f"Facts: {fid} has no owner")
+    defined = set(ids)
+    cases = _table(cases_body)
+    cited = {
+        fid
+        for row in (cases[1] if cases else [])
+        if len(row) > 3
+        for fid in _FACT_ID.findall(row[3])
+    }
+    problems += [
+        f"Facts: {fid} is proved by no case" for fid in ids if fid not in cited
+    ]
+    problems += [
+        f"Facts: {fid} is cited but not defined"
+        for fid in sorted(set(_FACT_ID.findall(text)) - defined)
+    ]
+    return problems
 
 
 def _is_text(path: pathlib.Path) -> bool:
@@ -343,8 +381,8 @@ def validate(path: pathlib.Path, session: str | None = None) -> list[str]:
         problems += _unread_files(bodies["Files"], bodies.get("Sources read", ""))
     if bodies.get("Cases"):
         problems += _check_cases(bodies["Cases"])
-    if "Single source" in bodies:
-        problems += _check_single_source(bodies["Single source"])
+    if bodies.get("Facts"):
+        problems += _check_facts(bodies["Facts"], bodies.get("Cases", ""), text)
     if bodies.get("Checks") and "```" not in bodies["Checks"]:
         problems.append("Checks: the commands are not in a fenced block")
     return problems + _check_reads(bodies, session) + _check_review(path, text)
