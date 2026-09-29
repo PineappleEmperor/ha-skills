@@ -133,9 +133,10 @@ which looks nothing like a naming clash.
 
 ### The integration allows multiple devices — mocking Step 2
 
-Add a test that `add_to_hass`es two `MockConfigEntry`s and
-`await asyncio.gather(hass.config_entries.async_setup(e1.entry_id), …(e2.entry_id))`, then
-asserts **both** `state is ConfigEntryState.LOADED`.
+Add a test that `add_to_hass`es two `MockConfigEntry`s, calls
+`await hass.config_entries.async_setup(e1.entry_id)` once, and asserts **both**
+`state is ConfigEntryState.LOADED`: setting up the domain sets up all its entries at once
+(`_async_setup_component` in `homeassistant/setup.py`), and a second call races that.
 
 **Timing:** a single-entry `LOADED` test cannot catch integration-global registration done
 per-entry — static paths, websocket commands, the panel.
