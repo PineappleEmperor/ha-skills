@@ -13,6 +13,7 @@ import hashlib
 import json
 import pathlib
 import re
+import subprocess
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -275,9 +276,15 @@ def corpus() -> list[pathlib.Path]:
     Not a search: every shipped text file under the skill, the evals except their result
     records, the governing docs, and the CI READMEs the skill points into.
     """
+    tracked = subprocess.run(
+        ["git", "-C", str(ROOT), "ls-files", "-z", "--", str(SKILL)],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.split("\0")
     skill = [
         path
-        for path in sorted(SKILL.rglob("*"))
+        for path in sorted(ROOT / name for name in tracked if name)
         if path.is_file()
         and not any(
             part in path.relative_to(SKILL).as_posix() for part in SKILL_EXCLUDED

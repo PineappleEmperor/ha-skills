@@ -587,6 +587,7 @@ def test_the_corpus_is_the_whole_skill_and_what_governs_it() -> None:
     ):
         assert str(expected) in names
     assert not any(name.endswith(".png") for name in names)
+    assert not any("_cache/" in name for name in names), "untracked tool caches"
 
 
 def _workflow(script: str) -> dict:
