@@ -57,7 +57,7 @@ finding a review would make from a rule it already has is a planning defect.
 
 | Row | Required when | `How the plan meets it` says |
 |---|---|---|
-| `Invariant <n>` | always, one per invariant under *Invariants every kind checks* in `docs/review.md`; the gate reads that list, so a new invariant binds every brief | for `yes`, what in the plan satisfies it — the owner, the source compared, the commit split — and every document the invariant names in backticks is under `Sources read`; for `no`, why the change cannot touch it |
+| `Invariant <n>` | always, one per invariant under *Invariants every kind checks* in `docs/review.md`; the gate reads that list, so a new invariant binds every brief | for `yes`, what in the plan satisfies it — the owner, the source compared, the commit split — and every file the invariant names in backticks is under `Sources read`; for `no`, why the change cannot touch it |
 | `Anti-patterns: <path>` | for every skill document under `Files` | which of that file's anti-pattern rows and rules the change meets, or that none bears on it |
 
 Further rows are welcome — a `docs/skill-schema.md` block type, a `reference/commits.md`
