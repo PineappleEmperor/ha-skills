@@ -17,6 +17,14 @@ bg = importlib.util.module_from_spec(_SPEC)
 assert _SPEC.loader is not None
 _SPEC.loader.exec_module(bg)
 
+
+@pytest.fixture(autouse=True)
+def _no_reads_required(monkeypatch, tmp_path) -> None:
+    """Shape tests run without a read log; the read tests below install their own."""
+    monkeypatch.setattr(bg, "required_reads", lambda bodies: [])
+    monkeypatch.setattr(bg, "READ_LOG", tmp_path / "reads.jsonl")
+
+
 _RULES_HEAD = "| Rule | Applies | How the plan meets it |\n|---|---|---|\n"
 
 
@@ -425,6 +433,101 @@ def test_every_problem_is_reported_at_once(tmp_path) -> None:
     assert "(in full)" in reason
     assert "guard" in reason
     assert "case review" in reason
+
+
+_REAL_REQUIRED_READS = bg.required_reads
+
+
+def _log_read(path: pathlib.Path, session: str = "s1", full: bool = True) -> None:
+    """Append a read of path, at its current content, to the gate's read log."""
+    entry = {
+        "session": session,
+        "path": str(path.resolve()),
+        "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+        "full": full,
+    }
+    with bg.READ_LOG.open("a") as log:
+        log.write(json.dumps(entry) + "\n")
+
+
+def _needs(monkeypatch, tmp_path) -> tuple[pathlib.Path, dict]:
+    """A brief that requires one corpus file read, and the dispatch that sends it."""
+    corpus_file = tmp_path / "skill.md"
+    corpus_file.write_text("the rule\n")
+    monkeypatch.setattr(bg, "required_reads", lambda bodies: [corpus_file])
+    payload = _agent(_write(tmp_path, VALID))
+    payload["session_id"] = "s1"
+    return corpus_file, payload
+
+
+def test_a_file_never_read_is_refused(monkeypatch, tmp_path) -> None:
+    """Planning from memory of a file is what the read log exists to stop."""
+    corpus_file, payload = _needs(monkeypatch, tmp_path)
+    reason = bg.decide(payload)
+    assert reason is not None
+    assert str(corpus_file) in reason
+
+
+def test_a_whole_read_in_this_session_passes(monkeypatch, tmp_path) -> None:
+    """The one read that counts: the whole file, at its current content, this session."""
+    corpus_file, payload = _needs(monkeypatch, tmp_path)
+    _log_read(corpus_file)
+    assert bg.decide(payload) is None
+
+
+def test_a_read_in_another_session_is_refused(monkeypatch, tmp_path) -> None:
+    """A read from an earlier session is memory, not reading."""
+    corpus_file, payload = _needs(monkeypatch, tmp_path)
+    _log_read(corpus_file, session="old")
+    assert bg.decide(payload) is not None
+
+
+def test_a_partial_read_is_refused(monkeypatch, tmp_path) -> None:
+    """A slice of a file is a search result, not a read."""
+    corpus_file, payload = _needs(monkeypatch, tmp_path)
+    _log_read(corpus_file, full=False)
+    assert bg.decide(payload) is not None
+
+
+def test_a_file_changed_since_it_was_read_is_refused(monkeypatch, tmp_path) -> None:
+    """What was read is no longer what is there."""
+    corpus_file, payload = _needs(monkeypatch, tmp_path)
+    _log_read(corpus_file)
+    corpus_file.write_text("the rule, changed\n")
+    reason = bg.decide(payload)
+    assert reason is not None
+    assert str(corpus_file) in reason
+
+
+def test_required_reads_add_every_local_source_to_the_corpus(
+    monkeypatch, tmp_path
+) -> None:
+    """A source the brief cites is read too; a URL is not a local file."""
+    corpus_file = tmp_path / "skill.md"
+    corpus_file.write_text("x\n")
+    source = tmp_path / "script.py"
+    source.write_text("y\n")
+    monkeypatch.setattr(bg, "corpus", lambda: [corpus_file])
+    bodies = {
+        "Repository": f"{tmp_path} on main",
+        "Sources read": "- script.py (in full)\n- https://example.com/a.py (in full)",
+    }
+    assert _REAL_REQUIRED_READS(bodies) == [corpus_file, source]
+
+
+def test_the_corpus_is_the_whole_skill_and_what_governs_it() -> None:
+    """Every shipped text file, the governing docs and the CI READMEs; no search."""
+    names = {str(path) for path in bg.corpus()}
+    skill = bg.ROOT / "plugins/ha/skills/ha-integration"
+    for expected in (
+        skill / "SKILL.md",
+        skill / "reference/testing.md",
+        skill / "templates/pyproject.toml",
+        bg.ROOT / "docs/review.md",
+        bg.ROOT / "docs/skill-schema.md",
+    ):
+        assert str(expected) in names
+    assert not any(name.endswith(".png") for name in names)
 
 
 def _workflow(script: str) -> dict:

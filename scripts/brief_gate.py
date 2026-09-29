@@ -49,6 +49,14 @@ RULE_COLUMNS = ["Rule", "Applies", "How the plan meets it"]
 NO_FACT = "No fact introduced or moved."
 REVIEW = ROOT / "docs" / "review.md"
 INVARIANTS_HEADING = "## Invariants every kind checks"
+READ_LOG = ROOT / ".tmp" / "reads.jsonl"
+SKILL = ROOT / "plugins" / "ha" / "skills" / "ha-integration"
+SKILL_EXCLUDED = ("evals/results/", "__pycache__/")
+GOVERNING_DOCS = ("brief.md", "review.md", "skill-schema.md", "skill-file-hierarchy.md")
+CI_READMES = tuple(
+    ROOT.parent / repo / "README.md"
+    for repo in ("ha-integration-ci", "ha-panel-ci", "release-flow")
+)
 
 _BRIEF = re.compile(r"Brief:\s*(\S+?\.md)\b")
 # Home Assistant core, not docs/skill-schema.md's "core rule" (a file's bold line).
@@ -215,6 +223,78 @@ def _check_single_source(body: str) -> list[str]:
     ]
 
 
+def _is_text(path: pathlib.Path) -> bool:
+    try:
+        path.read_text()
+    except UnicodeDecodeError:
+        return False
+    return True
+
+
+def corpus() -> list[pathlib.Path]:
+    """Every file a brief's author reads first: the whole skill and what governs it.
+
+    Not a search: every shipped text file under the skill, the evals except their result
+    records, the governing docs, and the CI READMEs the skill points into.
+    """
+    skill = [
+        path
+        for path in sorted(SKILL.rglob("*"))
+        if path.is_file()
+        and not any(
+            part in path.relative_to(SKILL).as_posix() for part in SKILL_EXCLUDED
+        )
+        and _is_text(path)
+    ]
+    docs = [ROOT / "docs" / name for name in GOVERNING_DOCS]
+    return skill + docs + [readme for readme in CI_READMES if readme.is_file()]
+
+
+def required_reads(bodies: dict[str, str]) -> list[pathlib.Path]:
+    """The corpus, then every local file the brief cites under Sources read."""
+    repo_match = re.search(r"(?:^|\s)(/\S+)", bodies.get("Repository", ""))
+    repo = pathlib.Path(repo_match[1]) if repo_match else ROOT
+    cited = []
+    for line in bodies.get("Sources read", "").splitlines():
+        if not line.strip().startswith("- "):
+            continue
+        word = line.strip()[2:].split()[0].strip("`,")
+        if "://" in word:
+            continue
+        path = pathlib.Path(word)
+        path = path if path.is_absolute() else repo / path
+        if path.is_file():
+            cited.append(path)
+    required = corpus()
+    return required + [path for path in cited if path not in required]
+
+
+def _whole_reads(session: str | None) -> dict[str, set[str]]:
+    """Path to the hashes it was read whole at, in this session."""
+    reads: dict[str, set[str]] = {}
+    if not READ_LOG.is_file():
+        return reads
+    for line in READ_LOG.read_text().splitlines():
+        try:
+            entry = json.loads(line)
+        except ValueError:
+            continue
+        if entry.get("session") == session and entry.get("full"):
+            reads.setdefault(entry["path"], set()).add(entry["sha256"])
+    return reads
+
+
+def _check_reads(bodies: dict[str, str], session: str | None) -> list[str]:
+    """Every required file read whole, in this session, at its current content."""
+    reads = _whole_reads(session)
+    problems = []
+    for path in required_reads(bodies):
+        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        if digest not in reads.get(str(path.resolve()), set()):
+            problems.append(f"not read in full at its current content: {path}")
+    return problems
+
+
 def _check_review(path: pathlib.Path, text: str) -> list[str]:
     review = path.with_suffix(".review")
     if not review.is_file():
@@ -233,7 +313,7 @@ def _check_review(path: pathlib.Path, text: str) -> list[str]:
     return []
 
 
-def validate(path: pathlib.Path) -> list[str]:
+def validate(path: pathlib.Path, session: str | None = None) -> list[str]:
     """Every way the brief at path falls short of docs/brief.md."""
     if not path.is_file():
         return [f"{path} does not exist"]
@@ -267,7 +347,7 @@ def validate(path: pathlib.Path) -> list[str]:
         problems += _check_single_source(bodies["Single source"])
     if bodies.get("Checks") and "```" not in bodies["Checks"]:
         problems.append("Checks: the commands are not in a fenced block")
-    return problems + _check_review(path, text)
+    return problems + _check_reads(bodies, session) + _check_review(path, text)
 
 
 def _resolve(raw: str) -> pathlib.Path:
@@ -311,8 +391,11 @@ def decide(payload: dict) -> str | None:
             )
     else:
         return None
+    session = payload.get("session_id")
     problems = {
-        raw: found for raw in dict.fromkeys(paths) if (found := validate(_resolve(raw)))
+        raw: found
+        for raw in dict.fromkeys(paths)
+        if (found := validate(_resolve(raw), session))
     }
     return _refusal(problems) if problems else None
 

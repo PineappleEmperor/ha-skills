@@ -18,6 +18,19 @@ first, and the case review checks it before anything is built.
 `.tmp/briefs/<slug>.md` in this repository, whichever repository the work is in. The agent's
 prompt is the line `Brief: .tmp/briefs/<slug>.md` and nothing that contradicts it.
 
+## What is read before a brief is written
+
+Everything, not a search's hits. The corpus is every shipped text file of the skill, its
+evals apart from their result records, the four `docs/` files that govern briefs and
+reviews, and the three CI READMEs; `corpus()` in `scripts/brief_gate.py` is the list, and
+it is about 5,400 lines. Every local file under `Sources read` is added to it.
+
+`scripts/read_log.py` records each `Read` and governance `get_file` with the file's hash and
+whether the whole file was read. The gate passes a brief only when every file in the corpus
+was read whole, in the dispatching session, at the content it has now. A slice, a read from
+an earlier session, or a file changed since it was read counts as unread. `(in full)` under
+`Sources read` is the author's claim; the log is what the gate believes.
+
 ## The sections, in this order
 
 Every heading below is a `##` heading in the brief, spelt as here.
