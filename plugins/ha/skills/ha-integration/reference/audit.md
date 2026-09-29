@@ -84,7 +84,7 @@ Run the *Lint & quality check* commands in `SKILL.md` and the test suite against
 repository under audit, and read the result, before reporting the audit clean.
 
 ```bash
-python -m pytest tests/ -q
+pytest tests/ -q
 ```
 
 > **Note:** the command block in ha-integration-ci's README is that repository's own; a

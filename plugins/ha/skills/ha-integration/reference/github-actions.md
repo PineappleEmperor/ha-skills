@@ -45,7 +45,7 @@ Resolve it in this order:
 4. **Last resort:** `find ~/.claude ~/.agents . -type d -path '*ha-integration/templates' 2>/dev/null`
 
 It holds the copied files Step 2 names: the four plain workflows, `.github/dependabot.yml`,
-`conftest.py`, `pyproject.toml`, `mypy.ini`, `requirements.test.txt`, `ruleset.json`,
+`tests/`, `pyproject.toml`, `mypy.ini`, `requirements.test.txt`, `ruleset.json`,
 `.gitignore`, the four local-hook files, `scripts/bootstrap_repo.sh` and `hooks/` (optional
 per-turn reminders for your own `~/.claude`, installed per the header in each script).
 
@@ -63,7 +63,7 @@ verify a copy is *Step 1: Callers, not bodies; copies, not paraphrases* in
 | `.github/release-drafter.yml`, `.githooks/commit-msg` | release-flow's own files, per *Called versus copied* in its README |
 | `.github/workflows/dependency-review.yml`, `hacs-validate.yml`, `hassfest-validate.yml`, `issue_stale.yml` | this skill's `templates/.github/workflows/`; each is settings over a third-party action |
 | `.github/dependabot.yml` | this skill's `templates/`; what it must contain is `reference/dependabot.md` |
-| `ruleset.json`, `pyproject.toml`, `mypy.ini`, `conftest.py`, `requirements.test.txt`, `.gitignore`, `.pre-commit-config.yaml`, `.yamllint`, `.prettierrc.js`, `.prettierignore`, and the `CLAUDE.md` and `.githooks/pre-commit` snippets | this skill's `templates/` and `reference/scaffold.md` |
+| `ruleset.json`, `pyproject.toml`, `mypy.ini`, `tests/conftest.py`, `tests/__init__.py`, `requirements.test.txt`, `.gitignore`, `.pre-commit-config.yaml`, `.yamllint`, `.prettierrc.js`, `.prettierignore`, and the `CLAUDE.md` and `.githooks/pre-commit` snippets | this skill's `templates/` and `reference/scaffold.md` |
 | `frontend/package.json`, `frontend/tsconfig.json` (panel repos only) | ha-panel-ci's `frontend/` |
 | `scripts/bootstrap_repo.sh` | this skill's `templates/scripts/`; when to run it is `reference/github-setup.md` |
 
@@ -97,6 +97,7 @@ only list of them.
 | `pyproject.toml` | a `[project]` table carrying no version, and pytest options; never the `[tool.ruff]` tables, which are Home Assistant core's rule set |
 | `frontend/package.json` | the `<domain>` and `<name>` placeholders → this integration's values, as ha-panel-ci's README says |
 | `requirements.test.txt` | uncomment the `home-assistant-frontend` pin, panel repos only |
+| `tests/conftest.py` | the repo's own imports and fixtures added to the template's |
 | `ruleset.json` | drop a context the repo does not produce |
 | `.pre-commit-config.yaml` | a hook `rev` newer than the template's, and words added to codespell's `--ignore-words-list` |
 | `.prettierignore` | a path added for another file the repo copies or builds |

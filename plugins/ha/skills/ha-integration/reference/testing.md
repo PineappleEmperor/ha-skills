@@ -8,7 +8,7 @@ Read this when writing or fixing an integration's tests. The code patterns being
 ## Contents
 
 1. Testing — prerequisites before any of the rules below apply
-2. Step 1: Put a `conftest.py` at the repo root
+2. Step 1: Copy `templates/tests/`
 3. Step 2: Set `asyncio_mode = "auto"` in `pyproject.toml`
 4. Step 3: Ship a `config_flow.py` that imports
 5. Step 4: Keep the harness pin and the Python floor in lockstep
@@ -32,17 +32,13 @@ Read this when writing or fixing an integration's tests. The code patterns being
 > **Note:** re-derive against the pinned harness version in `reference/freshness.md` if
 > these stop matching what you see.
 
-### Step 1: Put a `conftest.py` at the repo root
+### Step 1: Copy `templates/tests/`
 
-Not in `tests/`. Copy `templates/conftest.py`. It claims the name `custom_components` for
-this repo, and pulls in `enable_custom_integrations` autouse (required >= 2021.6.0b0).
+Its `conftest.py` and `__init__.py`.
 
-**Symptom:** every setup test fails with `Setup failed for '<domain>': Integration not
-found` — which reads as a broken test, not as missing wiring.
+**Symptom:** without `tests/__init__.py`, `pytest` stops before any test runs with
+`ModuleNotFoundError: No module named 'custom_components'`.
 
-- A `custom_components/__init__.py` does not fix this; neither does `pythonpath`.
-- No `pythonpath` entry is needed: a root conftest already puts the repo root on
-  `sys.path`, so `pytest` works from any directory.
 - Fixtures that must initialise *before* `enable_custom_integrations` — `recorder_mock` is
   the known one — have to be requested ahead of it in the same signature.
 
