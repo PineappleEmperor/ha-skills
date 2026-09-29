@@ -29,9 +29,9 @@ Every heading below is a `##` heading in the brief, spelt as here.
 | `Sources read` | One bullet per file read before writing the brief — a repository path, or a core URL at a tag — each ending `(in full)` | empty, or a bullet without `(in full)`; the brief mentions core and no bullet names a core tag |
 | `Defect class` | The rule that is broken, stated for every input it applies to, not for the reported one | empty |
 | `Rules applied` | A table with columns `Rule`, `Applies`, `How the plan meets it` — below | a row missing, `Applies` other than `yes` or `no`, or `How` empty |
-| `Cases` | A table with columns `#`, `Kind`, `Situation`, `Expected`, `Proof` | fewer than three rows; no row of each kind |
+| `Cases` | A table with columns `#`, `Kind`, `Situation`, `Expected`, `Proof`, `Seen` | fewer than three rows; no row of each kind; a row with nothing under `Seen` |
 | `Single source` | A table with columns `Fact`, `Owner`, `Pointers`, one row per fact the change introduces or moves; or the line `No fact introduced or moved.` | neither |
-| `Files` | Every file the change is expected to touch | empty |
+| `Files` | Every file the change is expected to touch, a new one marked `(new)` | empty; a file not marked `(new)` that is not under `Sources read` |
 | `Out of scope` | What must not change, and why | empty |
 | `Commits` | One planned subject per decision | empty |
 | `Checks` | The commands run after every commit, in a fenced block | no fenced block |
@@ -60,6 +60,10 @@ step — and are held to the same two columns.
 
 `Proof` names the test that shows the case — a test function, or a command and its
 expected output. A documentation case is proved by the line that states it.
+
+`Seen` is what the author observed while writing the brief: the Proof run against today's
+code, or against a draft in a scratch sample, and what it returned. A case about a tool's
+behaviour is an observation, never a prediction written as fact.
 
 ### The single-source table
 

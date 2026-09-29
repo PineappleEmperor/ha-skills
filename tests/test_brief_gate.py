@@ -44,6 +44,7 @@ The sync script survives a flaky network and says plainly when a tag does not ex
 ## Sources read
 
 - scripts/pylint_upstream.py (in full)
+- tests/test_pylint_upstream.py (in full)
 - https://raw.githubusercontent.com/home-assistant/core/2026.9.0/pylint/plugins/hass_imports.py (in full)
 
 ## Defect class
@@ -57,11 +58,11 @@ stops at once with a message that says why.
 
 ## Cases
 
-| # | Kind | Situation | Expected | Proof |
-|---|---|---|---|---|
-| 1 | reported | codeload answers 404 | stops at once, says the tag may not exist | test_404_stops |
-| 2 | sibling | codeload answers 503 | retried | test_503_retried |
-| 3 | guard | a good download | one attempt, no wait | test_success_no_retry |
+| # | Kind | Situation | Expected | Proof | Seen |
+|---|---|---|---|---|---|
+| 1 | reported | codeload answers 404 | stops at once, says the tag may not exist | test_404_stops | today: three attempts, then "try again" |
+| 2 | sibling | codeload answers 503 | retried | test_503_retried | today: not retried |
+| 3 | guard | a good download | one attempt, no wait | test_success_no_retry | today: one attempt |
 
 ## Single source
 
@@ -244,12 +245,40 @@ def test_a_shipped_file_needs_its_anti_patterns_weighed(tmp_path) -> None:
     text = VALID.replace(
         "- tests/test_pylint_upstream.py\n",
         f"- tests/test_pylint_upstream.py\n- {shipped} (edited)\n",
+    ).replace(
+        "- tests/test_pylint_upstream.py (in full)\n",
+        f"- tests/test_pylint_upstream.py (in full)\n- {shipped} (in full)\n",
     )
     reason = bg.decide(_agent(_write(tmp_path, text)))
     assert reason is not None
     assert shipped in reason
     text = text.replace(_rules(), _rules((shipped,)))
     assert bg.decide(_agent(_write(tmp_path, text))) is None
+
+
+def test_every_file_changed_is_read_first(tmp_path) -> None:
+    """A brief written before reading what it changes is how round one missed things."""
+    text = VALID.replace("- tests/test_pylint_upstream.py (in full)\n", "")
+    reason = bg.decide(_agent(_write(tmp_path, text)))
+    assert reason is not None
+    assert "tests/test_pylint_upstream.py" in reason
+
+
+def test_a_new_file_needs_no_reading(tmp_path) -> None:
+    """A file the change creates has nothing to read yet."""
+    text = VALID.replace(
+        "- tests/test_pylint_upstream.py\n",
+        "- tests/test_pylint_upstream.py\n- scripts/new_helper.py (new)\n",
+    )
+    assert bg.decide(_agent(_write(tmp_path, text))) is None
+
+
+def test_every_case_records_what_was_seen(tmp_path) -> None:
+    """A case is an observation made while planning, not a prediction written as fact."""
+    text = VALID.replace("| today: not retried |", "|  |")
+    reason = bg.decide(_agent(_write(tmp_path, text)))
+    assert reason is not None
+    assert "Seen" in reason
 
 
 @pytest.mark.parametrize(
@@ -320,7 +349,7 @@ def test_an_unknown_case_kind_is_refused(tmp_path) -> None:
 def test_a_cases_table_with_other_columns_is_refused(tmp_path) -> None:
     """The columns are fixed so every case names its situation, result and proof."""
     text = VALID.replace(
-        "| # | Kind | Situation | Expected | Proof |", "| # | Kind | What |"
+        "| # | Kind | Situation | Expected | Proof | Seen |", "| # | Kind | What |"
     )
     reason = bg.decide(_agent(_write(tmp_path, text)))
     assert reason is not None

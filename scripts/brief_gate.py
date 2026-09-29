@@ -43,7 +43,7 @@ SECTIONS = (
     "Stop and report if",
 )
 KINDS = ("reported", "sibling", "guard")
-CASE_COLUMNS = ["#", "Kind", "Situation", "Expected", "Proof"]
+CASE_COLUMNS = ["#", "Kind", "Situation", "Expected", "Proof", "Seen"]
 SOURCE_COLUMNS = ["Fact", "Owner", "Pointers"]
 RULE_COLUMNS = ["Rule", "Applies", "How the plan meets it"]
 NO_FACT = "No fact introduced or moved."
@@ -130,17 +130,40 @@ def _check_cases(body: str) -> list[str]:
     kinds = [row[1] if len(row) > 1 else "" for row in rows]
     problems += [f"Cases: unknown kind `{k}`" for k in kinds if k not in KINDS]
     problems += [f"Cases: no `{k}` case" for k in KINDS if k not in kinds]
+    problems += [
+        f"Cases: case {row[0]} records nothing under Seen; run its Proof while planning"
+        for row in rows
+        if len(row) < 6 or not row[5]
+    ]
     return problems
+
+
+def _files(files_body: str) -> list[tuple[str, bool]]:
+    """Each path a brief's Files section names, and whether the change creates it."""
+    entries = [
+        line.strip()[2:].split()
+        for line in files_body.splitlines()
+        if line.strip().startswith("- ") and len(line.strip()) > 2
+    ]
+    return [(words[0], "(new)" in words[1:]) for words in entries]
 
 
 def _shipped(files_body: str) -> list[str]:
     """The skill documents a brief's Files section names, each of which carries rules."""
-    paths = [
-        line.strip()[2:].split()[0]
-        for line in files_body.splitlines()
-        if line.strip().startswith("- ") and len(line.strip()) > 2
+    return [
+        p
+        for p, _ in _files(files_body)
+        if p.startswith("plugins/") and p.endswith(".md")
     ]
-    return [p for p in paths if p.startswith("plugins/") and p.endswith(".md")]
+
+
+def _unread_files(files_body: str, sources_body: str) -> list[str]:
+    """A file the change edits that the brief's author never read."""
+    return [
+        f"Files: `{path}` is changed but not under Sources read"
+        for path, new in _files(files_body)
+        if not new and path not in sources_body
+    ]
 
 
 def _unread_sources(rows: dict[str, list[str]], sources_body: str) -> list[str]:
@@ -235,6 +258,8 @@ def validate(path: pathlib.Path) -> list[str]:
             bodies.get("Files", ""),
             bodies.get("Sources read", ""),
         )
+    if bodies.get("Files"):
+        problems += _unread_files(bodies["Files"], bodies.get("Sources read", ""))
     if bodies.get("Cases"):
         problems += _check_cases(bodies["Cases"])
     if "Single source" in bodies:
