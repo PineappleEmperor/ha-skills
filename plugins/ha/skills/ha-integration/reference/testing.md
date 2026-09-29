@@ -34,7 +34,7 @@ Read this when writing or fixing an integration's tests. The code patterns being
 
 ### Step 1: Copy `templates/tests/`
 
-Its `conftest.py` and `__init__.py`.
+Its `conftest.py`, `__init__.py` and `ruff.toml`.
 
 **Symptom:** without `tests/__init__.py`, `pytest` stops before any test runs with
 `ModuleNotFoundError: No module named 'custom_components'`.
@@ -195,9 +195,8 @@ no new timer, so teardown stays clean.
 
 ### Ruff flags a file under `tests/` or `scripts/` — mocking Step 4
 
-The shipped `pyproject.toml` exempts `tests/**` from `PTH` alone, as core does, so the rest
-of the rule set applies to tests: `tests/` and every sub-directory of it holding tests
-carries an `__init__.py` (`INP001`) with a module docstring (`D104`), and a test reaches
-the integration through its public surface, never `obj._private` member access (`SLF001`).
+Tests are linted under `tests/ruff.toml`, core's own, which extends `pyproject.toml` and
+relaxes what it lists. The rest applies: `tests/` and every sub-directory of it holding
+tests carries an `__init__.py` (`INP001`) with a module docstring (`D104`).
 
 `scripts/*` is exempted from `T20` and `INP001`, the rules a standalone tool cannot meet.

@@ -84,7 +84,7 @@ Under `custom_components/<domain>/`. What goes inside each file is `reference/pa
 | `pyproject.toml` | HA core's ruff rule set adapted for a custom integration — `google` docstrings, HA's Python floor, no `from __future__ import annotations` — and the `asyncio_mode = "auto"` without which no async test runs | `templates/pyproject.toml`, verbatim |
 | `mypy.ini` | the general section of HA core's mypy config — keep `python_version` in `[mypy]`, since it is what the audit's version comparison reads from this file — *What the audit checks now* in ha-integration-ci's README | `templates/mypy.ini`, verbatim |
 | `requirements.test.txt` | the pinned test harness — why the pin matters is `reference/testing.md` | `templates/requirements.test.txt` |
-| `tests/conftest.py`, `tests/__init__.py` | the harness setup — `reference/testing.md` | `templates/tests/` |
+| `tests/conftest.py`, `tests/__init__.py`, `tests/ruff.toml` | the harness setup and core's ruff rules for tests — `reference/testing.md` | `templates/tests/` |
 | `tests/` | one test file per module under test | `reference/testing.md` |
 | `README.md` | the project readme, carrying the AI-assistance note below | — |
 | `LICENSE` | the full text of the Step 1 licence | the licence's own text |

@@ -9,9 +9,9 @@
 #     (ha-integration-ci's README) can read it
 #   - custom_components is the first-party package; homeassistant is third-party here
 #   - voluptuous is imported as vol, which core enforces by convention rather than by rule
-#   - per-file-ignores keep core's own for an integration's files and its tests, with the
-#     paths renamed; a repo's own scripts/ is exempted from the rules a standalone tool
-#     cannot meet
+#   - per-file-ignores keep core's own, with the paths renamed; a repo's own scripts/ is
+#     exempted from the rules a standalone tool cannot meet
+#   - the rules for tests are tests/ruff.toml, core's own, which extends this file
 #   - core's ban on `from __future__ import annotations` kept: Python 3.14 defers annotation
 #     evaluation natively, so the import only switches that off
 # The [tool.pytest.ini_options] table keeps core's asyncio settings and its two `error`
@@ -229,6 +229,7 @@ split-on-trailing-comma = false
 "custom_components/**" = ["PTH"]
 "custom_components/*/*/*" = ["TID252"]
 "tests/**" = ["PTH"]
+"tests/*/*" = ["TID252"]
 "scripts/*" = ["T20", "INP001"]
 
 [tool.ruff.lint.mccabe]
