@@ -16,13 +16,17 @@ _SPEC = importlib.util.spec_from_file_location("brief_gate", _SCRIPTS / "brief_g
 bg = importlib.util.module_from_spec(_SPEC)
 assert _SPEC.loader is not None
 _SPEC.loader.exec_module(bg)
+_REAL_QUOTE_SOURCES = bg.quote_sources
 
 
 @pytest.fixture(autouse=True)
 def _no_reads_required(monkeypatch, tmp_path) -> None:
-    """Shape tests run without a read log; the read tests below install their own."""
+    """Shape tests get no read log and one stub source; later tests install their own."""
     monkeypatch.setattr(bg, "required_reads", lambda bodies: [])
     monkeypatch.setattr(bg, "READ_LOG", tmp_path / "reads.jsonl")
+    source = tmp_path / "source.py"
+    source.write_text('raise SystemExit(\n    "try\n    again")\n')
+    monkeypatch.setattr(bg, "quote_sources", lambda bodies: [source])
 
 
 _RULES_HEAD = "| Rule | Applies | How the plan meets it |\n|---|---|---|\n"
@@ -302,6 +306,48 @@ def test_every_case_records_what_was_seen(tmp_path) -> None:
     reason = bg.decide(_agent(_write(tmp_path, text)))
     assert reason is not None
     assert "Seen" in reason
+
+
+def test_a_quote_the_sources_do_not_hold_is_refused(tmp_path) -> None:
+    """A `today:` quote is copied from a file read, never paraphrased from memory."""
+    text = VALID.replace('"try again"', '"try later"')
+    _refused_with(tmp_path, text, "case 1", "try later")
+
+
+def test_a_quote_wrapped_across_lines_in_its_source_passes(tmp_path) -> None:
+    """Line breaks and indentation in the source are not part of what it says."""
+    assert bg.decide(_agent(_write(tmp_path, VALID))) is None
+
+
+def test_a_quote_may_hold_a_semicolon(monkeypatch, tmp_path) -> None:
+    """A semicolon inside the quotes is quoted text, not the end of the `today:` part."""
+    source = tmp_path / "semi.md"
+    source.write_text("does not fix this; neither\ndoes `pythonpath`.\n")
+    monkeypatch.setattr(bg, "quote_sources", lambda bodies: [source])
+    text = VALID.replace(
+        '"try again"', '"does not fix this; neither does `pythonpath`"'
+    )
+    assert bg.decide(_agent(_write(tmp_path, text))) is None
+
+
+def test_quotes_outside_the_today_part_are_not_checked(tmp_path) -> None:
+    """Tool output a case observed is quoted after the `today:` part, not from a file."""
+    text = VALID.replace(
+        '| today: three attempts, then "try again" |',
+        '| today: three attempts, then "try again"; the run: "All checks passed!" |',
+    )
+    assert bg.decide(_agent(_write(tmp_path, text))) is None
+
+
+def test_quote_sources_are_the_local_files_under_sources_read(tmp_path) -> None:
+    """The quotes are checked against what the brief says it read, and nothing else."""
+    source = tmp_path / "script.py"
+    source.write_text("y\n")
+    bodies = {
+        "Repository": f"{tmp_path} on main",
+        "Sources read": "- script.py (in full)\n- https://example.com/a.py (in full)",
+    }
+    assert _REAL_QUOTE_SOURCES(bodies) == [source]
 
 
 @pytest.mark.parametrize(

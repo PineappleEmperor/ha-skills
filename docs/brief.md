@@ -43,7 +43,7 @@ Every heading below is a `##` heading in the brief, spelt as here.
 | `Defect class` | The rule that is broken, stated for every input it applies to, not for the reported one | empty |
 | `Facts` | A table with columns `ID`, `Fact`, `Owner`, `Pointers` — below | an ID not of the form `F1` to `F99`, or used twice; two rows making the same claim; a row with no owner; a fact no case cites; an ID cited anywhere in the brief that no row defines |
 | `Rules applied` | A table with columns `Rule`, `Applies`, `How the plan meets it` — below | a row missing, `Applies` other than `yes` or `no`, or `How` empty |
-| `Cases` | A table with columns `#`, `Kind`, `Situation`, `Facts`, `Expected`, `Proof`, `Seen` | fewer than three rows; no row of each kind; a row citing no fact under `Facts`, or with nothing under `Seen` |
+| `Cases` | A table with columns `#`, `Kind`, `Situation`, `Facts`, `Expected`, `Proof`, `Seen` | fewer than three rows; no row of each kind; a row citing no fact under `Facts`, or with nothing under `Seen`; a `today:` quote no source contains |
 | `Files` | Every file the change is expected to touch, a new one marked `(new)` | empty; a file not marked `(new)` that is not under `Sources read` |
 | `Out of scope` | What must not change, and why | empty |
 | `Commits` | One planned subject per decision | empty |
@@ -77,6 +77,11 @@ expected output. A documentation case is proved by the line that states it.
 `Seen` is what the author observed while writing the brief: the Proof run against today's
 code, or against a draft in a scratch sample, and what it returned. A case about a tool's
 behaviour is an observation, never a prediction written as fact.
+
+What a file says now is written after `today:`, each piece of it in double quotes and
+copied from the file: the gate refuses a quote that no local file under `Sources read`
+contains, line breaks aside. The `today:` part ends at the first `;` outside quotes, so tool
+output observed for the case follows the `;` and is not held to a file.
 
 ### The facts table
 

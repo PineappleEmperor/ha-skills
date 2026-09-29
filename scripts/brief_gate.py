@@ -158,6 +158,41 @@ def _check_cases(body: str) -> list[str]:
     return problems
 
 
+def _today_quotes(seen: str) -> list[str]:
+    """The quoted strings of a Seen cell's `today:` part, which a `;` outside quotes ends."""
+    start = seen.find("today:")
+    if start == -1:
+        return []
+    quotes: list[str] = []
+    current: list[str] = []
+    inside = False
+    for ch in seen[start + len("today:") :]:
+        if ch == '"':
+            if inside:
+                quotes.append("".join(current))
+                current = []
+            inside = not inside
+        elif inside:
+            current.append(ch)
+        elif ch == ";":
+            break
+    return quotes
+
+
+def _check_quotes(cases_body: str, sources: list[pathlib.Path]) -> list[str]:
+    """Each `today:` quote is copied from a file read, whatever its line breaks there."""
+    texts = [" ".join(path.read_text().split()) for path in sources if _is_text(path)]
+    table = _table(cases_body)
+    return [
+        f'Cases: case {row[0]} quotes "{quote}" under Seen, and no file under '
+        "Sources read says it"
+        for row in (table[1] if table else [])
+        if len(row) > 6
+        for quote in _today_quotes(row[6])
+        if not any(" ".join(quote.split()) in text for text in texts)
+    ]
+
+
 def _files(files_body: str) -> list[tuple[str, bool]]:
     """Each path a brief's Files section names, and whether the change creates it."""
     entries = [
@@ -299,8 +334,8 @@ def corpus() -> list[pathlib.Path]:
     return skill + docs + [readme for readme in CI_READMES if readme.is_file()]
 
 
-def required_reads(bodies: dict[str, str]) -> list[pathlib.Path]:
-    """The corpus, then every local file the brief cites under Sources read."""
+def cited_sources(bodies: dict[str, str]) -> list[pathlib.Path]:
+    """Every local file the brief cites under Sources read."""
     repo_match = re.search(r"(?:^|\s)(/\S+)", bodies.get("Repository", ""))
     repo = pathlib.Path(repo_match[1]) if repo_match else ROOT
     cited = []
@@ -314,8 +349,18 @@ def required_reads(bodies: dict[str, str]) -> list[pathlib.Path]:
         path = path if path.is_absolute() else repo / path
         if path.is_file():
             cited.append(path)
+    return cited
+
+
+def quote_sources(bodies: dict[str, str]) -> list[pathlib.Path]:
+    """The files a `today:` quote must come from: those the brief says it read."""
+    return cited_sources(bodies)
+
+
+def required_reads(bodies: dict[str, str]) -> list[pathlib.Path]:
+    """The corpus, then every local file the brief cites under Sources read."""
     required = corpus()
-    return required + [path for path in cited if path not in required]
+    return required + [p for p in cited_sources(bodies) if p not in required]
 
 
 def _whole_reads(session: str | None) -> dict[str, set[str]]:
@@ -392,6 +437,7 @@ def validate(path: pathlib.Path, session: str | None = None) -> list[str]:
         problems += _unread_files(bodies["Files"], bodies.get("Sources read", ""))
     if bodies.get("Cases"):
         problems += _check_cases(bodies["Cases"])
+        problems += _check_quotes(bodies["Cases"], quote_sources(bodies))
     if bodies.get("Facts"):
         problems += _check_facts(bodies["Facts"], bodies.get("Cases", ""), text)
     if bodies.get("Checks") and "```" not in bodies["Checks"]:
