@@ -197,8 +197,9 @@ no new timer, so teardown stays clean.
 
 ### Ruff flags a file under `tests/` or `scripts/` — mocking Step 4
 
-Tests are linted under `tests/ruff.toml`, core's own, which extends `pyproject.toml` and
-relaxes what it lists. The rest applies: `tests/` and every sub-directory of it holding
+Tests are linted under `tests/ruff.toml`, core's own. It extends `pyproject.toml`, keeping
+that file's `PTH` exemption for `tests/**`, then ignores the rules it lists and sets its own
+banned APIs and isort sections. The rest applies: `tests/` and every sub-directory of it holding
 tests carries an `__init__.py` (`INP001`) with a module docstring (`D104`).
 
 `scripts/*` is exempted from `T20` and `INP001`, the rules a standalone tool cannot meet.
