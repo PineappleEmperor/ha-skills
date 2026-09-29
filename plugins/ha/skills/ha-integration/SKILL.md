@@ -53,6 +53,7 @@ Pick the mode from what is about to be done, then **read that mode's file before
 
 1. Run `ruff check .` and `ruff format --check .` under the shipped `pyproject.toml`, with ruff at the version the mypy and ruff row of `reference/freshness.md` names — fix all actionable issues; suppress intentional ones with `# noqa` and a reason
 2. Run `mypy --config-file mypy.ini custom_components/`, with mypy at the version the mypy and ruff row of `reference/freshness.md` names — fix all actionable issues
-3. Check `quality_scale.yaml` exists; if not, offer to create it
-4. Check `manifest.json` against *Step 6: Order `manifest.json`* in `reference/scaffold.md`
-5. Report: files changed · issues fixed · issues intentionally suppressed (with rationale) · remaining manual work
+3. What CI runs beyond these two — the hooks, core's pylint rules, the tests and the coverage gate — is the `python-validate.yml` row of *The three workflows* in ha-integration-ci's README
+4. Check `quality_scale.yaml` exists; if not, offer to create it
+5. Check `manifest.json` against *Step 6: Order `manifest.json`* in `reference/scaffold.md`
+6. Report: files changed · issues fixed · issues intentionally suppressed (with rationale) · remaining manual work
