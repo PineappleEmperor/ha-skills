@@ -63,7 +63,8 @@ _BRIEF = re.compile(r"Brief:\s*(\S+?\.md)\b")
 _CORE = re.compile(r"\bcore\b(?! rules?\b)", re.IGNORECASE)
 _TAG = re.compile(r"\b20\d\d\.\d{1,2}\.\d+\b")
 _INVARIANT = re.compile(r"^(\d+)\. \*\*")
-_DOC = re.compile(r"`([\w./-]+\.md)`")
+# Any backticked name with an extension; only those that are files here count.
+_DOC = re.compile(r"`([\w./-]+\.\w+)`")
 # One or two digits, so a fact ID never collides with a ruff code such as F401.
 _FACT_ID = re.compile(r"\bF\d{1,2}\b")
 
@@ -88,8 +89,11 @@ def invariants() -> list[int]:
 
 
 def invariant_sources() -> dict[int, list[str]]:
-    """The documents each invariant names; answering it `yes` means having read them."""
-    return {n: _DOC.findall(text) for n, text in _invariant_texts().items()}
+    """The files each invariant names; answering it `yes` means having read them."""
+    return {
+        n: [doc for doc in _DOC.findall(text) if (ROOT / doc).is_file()]
+        for n, text in _invariant_texts().items()
+    }
 
 
 def _sections(text: str) -> list[tuple[str, str]]:

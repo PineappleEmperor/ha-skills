@@ -193,6 +193,19 @@ def test_each_invariant_names_the_documents_it_checks_against() -> None:
     assert "docs/skill-schema.md" in named[10]
 
 
+def test_an_invariant_names_files_of_any_type() -> None:
+    """Invariants 7 and 10 name a settings file and a script, not only documents."""
+    named = bg.invariant_sources()
+    assert ".claude/settings.json" in named[7]
+    assert "scripts/skill_schema_audit.py" in named[10]
+
+
+def test_a_backticked_name_that_is_no_file_is_not_a_source() -> None:
+    """`breaks_in_ha_version` and a URL template are words, not files to read."""
+    named = [doc for docs in bg.invariant_sources().values() for doc in docs]
+    assert all((bg.ROOT / doc).is_file() for doc in named)
+
+
 def test_an_invariant_answered_yes_needs_its_documents_read(tmp_path) -> None:
     """Invariant 10 answered without reading docs/skill-schema.md was a real miss."""
     text = VALID.replace(
@@ -204,7 +217,8 @@ def test_an_invariant_answered_yes_needs_its_documents_read(tmp_path) -> None:
     assert "docs/skill-schema.md" in reason
     text = text.replace(
         "- scripts/pylint_upstream.py (in full)\n",
-        "- scripts/pylint_upstream.py (in full)\n- docs/skill-schema.md (in full)\n",
+        "- scripts/pylint_upstream.py (in full)\n- docs/skill-schema.md (in full)\n"
+        "- scripts/skill_schema_audit.py (in full)\n",
     )
     assert bg.decide(_agent(_write(tmp_path, text))) is None
 
