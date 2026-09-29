@@ -34,13 +34,14 @@ Read this when writing or fixing an integration's tests. The code patterns being
 
 ### Step 1: Copy `templates/tests/`
 
-Its `conftest.py`, `__init__.py` and `ruff.toml`.
-
 **Symptom:** without `tests/__init__.py`, `pytest` stops before any test runs with
-`ModuleNotFoundError: No module named 'custom_components'`.
+`ModuleNotFoundError: No module named 'custom_components'`; without the conftest, every
+setup test fails with `Setup failed for '<domain>': Integration not found`, which reads as
+a broken test rather than missing wiring.
 
-- Fixtures that must initialise *before* `enable_custom_integrations` — `recorder_mock` is
-  the known one — have to be requested ahead of it in the same signature.
+- The conftest pulls in `enable_custom_integrations` autouse. Fixtures that must initialise
+  *before* it — `recorder_mock` is the known one — have to be requested ahead of it in the
+  same signature.
 
 ### Step 2: Set `asyncio_mode = "auto"` in `pyproject.toml`
 

@@ -2,9 +2,9 @@
 
 Guards the pytest prerequisites. Newest failure surface: CI now runs `pytest`,
 so an agent that writes a test without `conftest.py` or `asyncio_mode` produces
-a suite that fails on its first PR — and the failure (`fixture
-'enable_custom_integrations' not found`, or async tests silently skipped) reads
-as a broken test rather than missing setup.
+a suite that fails on its first PR — and the failure (`Integration not found`,
+or async tests silently skipped) reads as a broken test rather than missing
+setup.
 
 ## Setup
 
@@ -47,9 +47,10 @@ integration) even if the prerequisites are right.
 
 ## Notes
 
-The ablation that confirmed each prerequisite load-bearing was run against HA
-2026.8.0 / p-h-c-c 0.13.354 (`results/03-post-split.md`); `testing.md` carries
-the prerequisites as they stand.
+The ablation in `results/03-post-split.md`, run against HA 2026.8.0 / p-h-c-c
+0.13.354, removed the root conftest and `asyncio_mode` and nothing else; it
+predates `tests/__init__.py` as a prerequisite. `testing.md` carries the
+prerequisites as they stand.
 
 Use a domain that doesn't exist in HA core — `testing.md` says what a clash
 looks like, and it will send the run down a false trail.
