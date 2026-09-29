@@ -328,6 +328,16 @@ def test_a_brief_that_never_mentions_core_needs_no_core_source(tmp_path) -> None
     assert bg.decide(_agent(_write(tmp_path, text))) is None
 
 
+def test_the_schemas_core_rule_is_not_home_assistant_core(tmp_path) -> None:
+    """`core rule` is docs/skill-schema.md's term for a file's bold line."""
+    text = VALID.replace(
+        "- https://raw.githubusercontent.com/home-assistant/core/2026.9.0/"
+        "pylint/plugins/hass_imports.py (in full)\n",
+        "",
+    ).replace("Every failure", "Per the file's core rule, every failure")
+    assert bg.decide(_agent(_write(tmp_path, text))) is None
+
+
 @pytest.mark.parametrize("kind", ["reported", "sibling", "guard"])
 def test_every_case_kind_is_required(tmp_path, kind) -> None:
     """A brief with no sibling case is the narrow patch; with no guard, the regression."""

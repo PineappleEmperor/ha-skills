@@ -51,7 +51,8 @@ REVIEW = ROOT / "docs" / "review.md"
 INVARIANTS_HEADING = "## Invariants every kind checks"
 
 _BRIEF = re.compile(r"Brief:\s*(\S+?\.md)\b")
-_CORE = re.compile(r"\bcore\b", re.IGNORECASE)
+# Home Assistant core, not docs/skill-schema.md's "core rule" (a file's bold line).
+_CORE = re.compile(r"\bcore\b(?! rules?\b)", re.IGNORECASE)
 _TAG = re.compile(r"\b20\d\d\.\d{1,2}\.\d+\b")
 _INVARIANT = re.compile(r"^(\d+)\. \*\*")
 _DOC = re.compile(r"`([\w./-]+\.md)`")
