@@ -176,6 +176,29 @@ def test_invariants_are_read_from_the_review_standard() -> None:
     assert len(found) >= 10
 
 
+def test_each_invariant_names_the_documents_it_checks_against() -> None:
+    """The documents come from docs/review.md's own wording, not a copy of it."""
+    named = bg.invariant_sources()
+    assert "docs/skill-file-hierarchy.md" in named[2]
+    assert "docs/skill-schema.md" in named[10]
+
+
+def test_an_invariant_answered_yes_needs_its_documents_read(tmp_path) -> None:
+    """Invariant 10 answered without reading docs/skill-schema.md was a real miss."""
+    text = VALID.replace(
+        "| Invariant 10 | no | nothing in this change touches it |",
+        "| Invariant 10 | yes | every table keeps its columns |",
+    )
+    reason = bg.decide(_agent(_write(tmp_path, text)))
+    assert reason is not None
+    assert "docs/skill-schema.md" in reason
+    text = text.replace(
+        "- scripts/pylint_upstream.py (in full)\n",
+        "- scripts/pylint_upstream.py (in full)\n- docs/skill-schema.md (in full)\n",
+    )
+    assert bg.decide(_agent(_write(tmp_path, text))) is None
+
+
 def test_every_invariant_needs_a_row(tmp_path) -> None:
     """A rule the plan never weighed is the finding a review would make later."""
     text = VALID.replace(

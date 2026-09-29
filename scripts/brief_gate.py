@@ -54,12 +54,31 @@ _BRIEF = re.compile(r"Brief:\s*(\S+?\.md)\b")
 _CORE = re.compile(r"\bcore\b", re.IGNORECASE)
 _TAG = re.compile(r"\b20\d\d\.\d{1,2}\.\d+\b")
 _INVARIANT = re.compile(r"^(\d+)\. \*\*")
+_DOC = re.compile(r"`([\w./-]+\.md)`")
+
+
+def _invariant_texts() -> dict[int, str]:
+    """Each invariant docs/review.md lists, with the text of its whole item."""
+    body = REVIEW.read_text().split(INVARIANTS_HEADING, 1)[1].split("\n## ", 1)[0]
+    items: dict[int, list[str]] = {}
+    current = None
+    for line in body.splitlines():
+        if m := _INVARIANT.match(line):
+            current = int(m[1])
+            items[current] = []
+        if current is not None:
+            items[current].append(line)
+    return {n: "\n".join(lines) for n, lines in items.items()}
 
 
 def invariants() -> list[int]:
     """The invariant numbers docs/review.md lists, which every brief answers in advance."""
-    body = REVIEW.read_text().split(INVARIANTS_HEADING, 1)[1].split("\n## ", 1)[0]
-    return [int(m[1]) for line in body.splitlines() if (m := _INVARIANT.match(line))]
+    return list(_invariant_texts())
+
+
+def invariant_sources() -> dict[int, list[str]]:
+    """The documents each invariant names; answering it `yes` means having read them."""
+    return {n: _DOC.findall(text) for n, text in _invariant_texts().items()}
 
 
 def _sections(text: str) -> list[tuple[str, str]]:
@@ -124,7 +143,18 @@ def _shipped(files_body: str) -> list[str]:
     return [p for p in paths if p.startswith("plugins/") and p.endswith(".md")]
 
 
-def _check_rules(body: str, files_body: str) -> list[str]:
+def _unread_sources(rows: dict[str, list[str]], sources_body: str) -> list[str]:
+    """An invariant answered `yes` whose named documents are not under Sources read."""
+    return [
+        f"Rules applied: `Invariant {n}` answered yes without reading `{doc}`"
+        for n, docs in invariant_sources().items()
+        if (row := rows.get(f"Invariant {n}")) and len(row) > 1 and row[1] == "yes"
+        for doc in docs
+        if doc not in sources_body
+    ]
+
+
+def _check_rules(body: str, files_body: str, sources_body: str) -> list[str]:
     table = _table(body)
     if table is None or table[0] != RULE_COLUMNS:
         return [f"Rules applied: needs a table with columns {' | '.join(RULE_COLUMNS)}"]
@@ -147,7 +177,7 @@ def _check_rules(body: str, files_body: str) -> list[str]:
         for rule in required
         if rule not in rows
     ]
-    return problems
+    return problems + _unread_sources(rows, sources_body)
 
 
 def _check_single_source(body: str) -> list[str]:
@@ -200,7 +230,11 @@ def validate(path: pathlib.Path) -> list[str]:
         outside = "\n".join(b for n, b in found if n != "Sources read")
         problems += _check_sources(bodies["Sources read"], outside)
     if bodies.get("Rules applied"):
-        problems += _check_rules(bodies["Rules applied"], bodies.get("Files", ""))
+        problems += _check_rules(
+            bodies["Rules applied"],
+            bodies.get("Files", ""),
+            bodies.get("Sources read", ""),
+        )
     if bodies.get("Cases"):
         problems += _check_cases(bodies["Cases"])
     if "Single source" in bodies:
