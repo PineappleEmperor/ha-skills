@@ -48,8 +48,8 @@ integration) even if the prerequisites are right.
 ## Notes
 
 The ablation in `results/03-post-split.md`, run against HA 2026.8.0 / p-h-c-c
-0.13.354, removed the root conftest and `asyncio_mode` in turn, and each removal
-failed the suite; it predates `tests/__init__.py` as a prerequisite. `testing.md` carries the
+0.13.354, removed the root conftest and `asyncio_mode` in turn and nothing else, and
+each removal failed the suite; it predates `tests/__init__.py` as a prerequisite. `testing.md` carries the
 prerequisites as they stand.
 
 Use a domain that doesn't exist in HA core — `testing.md` says what a clash
