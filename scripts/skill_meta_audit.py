@@ -566,7 +566,12 @@ def check_paragraph_length(repo: Repo) -> Result:
                     fenced = not fenced
                     flush()
                     continue
-                if fenced or not line.strip() or line.lstrip()[:1] in "-*>|#":
+                if (
+                    fenced
+                    or not line.strip()
+                    or line.lstrip()[:1] in "-*>|#"
+                    or re.match(r"^\s*\d+[.)] ", line)
+                ):
                     flush()
                     continue
                 run.append(line)

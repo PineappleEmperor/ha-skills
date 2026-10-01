@@ -557,6 +557,15 @@ def test_a_wall_of_prose_is_flagged_but_a_long_list_is_not(tmp_path) -> None:
     _, warns = audit.check_paragraph_length(audit.Repo(tmp_path))
     assert not any("prose run" in w for w in warns)
 
+    # A numbered contents list is a list too; `patterns.md`'s 29 entries read as prose.
+    (ref / "wall.md").write_text(
+        "# W\n\n"
+        + "\n".join(f"{i}. Item {i} with several words in it" for i in range(1, 61))
+        + "\n"
+    )
+    _, warns = audit.check_paragraph_length(audit.Repo(tmp_path))
+    assert not any("prose run" in w for w in warns)
+
     (ref / "wall.md").write_text(
         "# W\n\n```python\n" + "x = 1  # a comment with words\n" * 60 + "```\n"
     )
