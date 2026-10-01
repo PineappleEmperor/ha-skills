@@ -16,10 +16,11 @@ Nothing here is authored from memory.
 6. Step 5: Ship the brand assets
 7. Step 6: Order `manifest.json`
 8. Step 7: Pass HACS validation
-9. Cases
-10. Alignment a human chose meets `ruff format` — Step 2
-11. A repository adopting the stack carries ruff exclusions — Step 3
-12. Reference
+9. Step 8: Run the checks
+10. Cases
+11. Alignment a human chose meets `ruff format` — Step 2
+12. A repository adopting the stack carries ruff exclusions — Step 3
+13. Reference
 
 ## The scaffold
 
@@ -304,6 +305,11 @@ requires the action to pass with no errors **and no ignores**, so every row is r
 **Timing:** fix every row at scaffold time. `description`, `issues`, `topics` and `license`
 are GitHub settings rather than files, so they fail silently until the first
 `hacs-validate` run.
+
+### Step 8: Run the checks
+
+Run *Lint & quality check* in `SKILL.md`, and fix what it finds before the first commit. The
+scaffold is done when every check passes, not when every file exists.
 
 ## Cases
 
