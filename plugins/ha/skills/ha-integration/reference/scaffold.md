@@ -308,8 +308,7 @@ are GitHub settings rather than files, so they fail silently until the first
 
 ### Step 8: Run the checks
 
-Run *Lint & quality check* in `SKILL.md`, and fix what it finds before the first commit. The
-scaffold is done when every check passes, not when every file exists.
+Run *Lint & quality check* in `SKILL.md`, and fix what it finds before the first commit.
 
 ## Cases
 
