@@ -112,8 +112,24 @@ def _table(body: str) -> tuple[list[str], list[list[str]]] | None:
     rows = [line.strip() for line in body.splitlines() if line.strip().startswith("|")]
     if len(rows) < 2:
         return None
-    cells = [[c.strip() for c in r.strip("|").split("|")] for r in rows]
+    cells = []
+    for row in rows:
+        inner = row[1:]
+        if inner.endswith("|") and not inner.endswith("\\|"):
+            inner = inner[:-1]
+        cells.append(
+            [c.strip().replace("\\|", "|") for c in re.split(r"(?<!\\)\|", inner)]
+        )
     return cells[0], cells[2:]
+
+
+def _overwide(section: str, width: int, rows: list[list[str]]) -> list[str]:
+    """A row an unescaped pipe split into more cells than its header has."""
+    return [
+        f"{section} {row[0]} has {len(row)} cells, not {width}; escape a pipe in a cell as \\|"
+        for row in rows
+        if len(row) > width
+    ]
 
 
 def _check_sources(body: str, text_outside: str) -> list[str]:
@@ -139,7 +155,7 @@ def _check_cases(body: str) -> list[str]:
     if table is None or table[0] != CASE_COLUMNS:
         return [f"Cases: needs a table with columns {' | '.join(CASE_COLUMNS)}"]
     rows = table[1]
-    problems = []
+    problems = _overwide("Cases: case", len(CASE_COLUMNS), rows)
     if len(rows) < 3:
         problems.append("Cases: fewer than three rows")
     kinds = [row[1] if len(row) > 1 else "" for row in rows]
@@ -237,7 +253,7 @@ def _check_rules(body: str, files_body: str, sources_body: str) -> list[str]:
     if table is None or table[0] != RULE_COLUMNS:
         return [f"Rules applied: needs a table with columns {' | '.join(RULE_COLUMNS)}"]
     rows = {row[0]: row for row in table[1] if row}
-    problems = []
+    problems = _overwide("Rules applied:", len(RULE_COLUMNS), table[1])
     for rule, row in rows.items():
         applies = row[1] if len(row) > 1 else ""
         if applies not in ("yes", "no"):
@@ -263,9 +279,11 @@ def _check_facts(body: str, cases_body: str, text: str) -> list[str]:
     table = _table(body)
     if table is None or table[0] != FACT_COLUMNS or not table[1]:
         return [f"Facts: needs a table with columns {' | '.join(FACT_COLUMNS)}"]
-    rows = [row + [""] * (len(FACT_COLUMNS) - len(row)) for row in table[1]]
+    width = len(FACT_COLUMNS)
+    problems = _overwide("Facts:", width, table[1])
+    rows = [(row + [""] * (width - len(row)))[:width] for row in table[1]]
     ids = [row[0] for row in rows]
-    problems = [
+    problems += [
         f"Facts: `{i}` is not an ID of the form F1 to F99"
         for i in ids
         if not _FACT_ID.fullmatch(i)

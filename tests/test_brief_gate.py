@@ -511,6 +511,40 @@ def test_an_undefined_fact_cited_anywhere_is_refused(tmp_path) -> None:
     _refused_with(tmp_path, text, "F7")
 
 
+def test_an_escaped_pipe_stays_inside_its_cell(tmp_path) -> None:
+    """A Facts cell holding an escaped pipe crashed the gate with too many values to unpack."""
+    text = VALID.replace("so a retry can help |", "so a retry can help \\| twice |")
+    assert bg.decide(_agent(_write(tmp_path, text))) is None
+
+
+@pytest.mark.parametrize(
+    ("old", "new", "row", "cells"),
+    [
+        ("so a retry can help |", "so a retry can help | twice |", "F2", "5 cells"),
+        ("| retried |", "| retried | twice |", "case 2", "8 cells"),
+        (
+            "| Invariant 4 | no | nothing in this change touches it |",
+            "| Invariant 4 | no | nothing | in this change |",
+            "Invariant 4",
+            "4 cells",
+        ),
+    ],
+)
+def test_a_row_with_a_stray_pipe_is_refused_not_crashed(
+    tmp_path, old, new, row, cells
+) -> None:
+    """An unescaped pipe splits a cell, in any table; the gate says so rather than raising."""
+    _refused_with(tmp_path, VALID.replace(old, new), row, cells)
+
+
+def test_an_escaped_pipe_ending_the_last_cell_survives() -> None:
+    """Only the row's own closing pipe is stripped, not an escaped one just before it."""
+    assert bg._table("| a | b |\n|---|---|\n| F1 | ends \\||") == (
+        ["a", "b"],
+        [["F1", "ends |"]],
+    )
+
+
 def test_checks_without_a_fenced_block_are_refused(tmp_path) -> None:
     """The commands are copyable exactly as the builder will run them."""
     text = VALID.replace(
