@@ -81,8 +81,8 @@ cannot ask GitHub, is *What the audit checks now* in ha-integration-ci's README.
 gh api -X POST repos/<owner>/<repo>/rulesets --input ruleset.json
 ```
 
-> **Note:** that line sets the ruleset only; turning the dependency graph on is the fix of
-> *`Dependency review` is red on every PR — checks Step 3*.
+> **Note:** that command sets only the ruleset. Turn the dependency graph on as
+> *`Dependency review` is red on every PR — checks Step 3* says.
 
 `scripts/bootstrap_repo.sh` does the GitHub-side settings in one run, from the repo root
 after the first push: description, topics, issues, the dependency graph, `core.hooksPath`,

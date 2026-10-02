@@ -30,7 +30,7 @@ No fixture. The agent needs read access to `plugins/ha/skills/` — both skills.
 | A | `ha-triage` | `ha-integration/reference/patterns.md`, from the Unexpected reply row; naming its case *A reply the code does not expect — Step 1* as well is correct |
 | B | `ha-integration` | `reference/patterns.md` |
 | C | `ha-integration` | `reference/panel-design.md`, from the Panel design row, plus the Material 3 / HA theming sources it names |
-| D | `ha-integration` | `reference/scaffold.md`, from the Scaffold row's repository that has not released yet; that file's Steps 9 and 10 then name `reference/github-setup.md` and `reference/versioning.md` in order. An answer that reads the repository as already released and names `reference/versioning.md` from the Release row is also correct |
+| D | `ha-integration` | `reference/scaffold.md`, from the Scaffold row. Also correct: `reference/versioning.md` from the Release row, for an answer that reads the repository as already released |
 | E | `ha-integration` | `reference/testing.md` |
 
 Each answer must cite a sentence from the skill, not an inference. **An answer reached

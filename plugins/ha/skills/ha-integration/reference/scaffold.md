@@ -1,8 +1,9 @@
 # Scaffolding an integration
 
-Scope: starting a new integration repository, or finishing one that has not released yet from
-the first step it lacks, through its first release — what to ask, what to write, and in what
-order. The code that goes inside the generated files is `reference/patterns.md`.
+Scope: a new integration repository, or one that has not released yet, up to its first
+release — what to ask, what to write, and in what order. A repository that already exists
+starts at the first step it lacks. The code that goes inside the generated files is
+`reference/patterns.md`.
 
 **Core rule:** every file is generated from the Step 1 answers or copied from `templates/`.
 Nothing here is authored from memory.
@@ -316,7 +317,7 @@ Run *Lint & quality check* in `SKILL.md`, and fix what it finds before the first
 
 ### Step 9: Set the repository up on GitHub
 
-Every step of `reference/github-setup.md`, in its order; its cases only when one happens.
+The steps of `reference/github-setup.md`, in order.
 
 **Timing:** after the first push.
 
