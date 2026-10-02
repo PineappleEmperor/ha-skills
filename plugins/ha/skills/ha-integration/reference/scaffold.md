@@ -150,14 +150,16 @@ rest.
 | `dark_icon.png`, `dark_icon@2x.png` | as the icons | the icon is unreadable on a dark ground |
 | `dark_logo.png`, `dark_logo@2x.png` | as the logos | the logo is unreadable on a dark ground |
 
-**What an absent file serves instead**
+**What an absent file serves instead**, tried in order — `IMAGE_FALLBACKS` in core's `homeassistant/components/brands/const.py`, at the `.0` tag of the release row's value:
 
-- absent `logo.png` → `icon.png`
-- absent `icon@2x.png` → `icon.png`
-- absent `logo@2x.png` → `logo.png`, or `icon@2x.png` when `logo.png` is absent too
-- absent `dark_` file → its unprefixed match
-- absent `icon.png`, requested with `?placeholder=no` → 404
-- absent `icon.png`, requested without it → a generic placeholder
+- `logo.png` → `icon.png`
+- `icon@2x.png` → `icon.png`
+- `logo@2x.png` → `logo.png` → `icon.png`
+- `dark_icon.png` → `icon.png`
+- `dark_logo.png` → `dark_icon.png` → `logo.png` → `icon.png`
+- `dark_icon@2x.png` → `icon@2x.png` → `icon.png`
+- `dark_logo@2x.png` → `dark_icon@2x.png` → `logo@2x.png` → `logo.png` → `icon.png`
+- nothing in the chain → the brands CDN's copy; with none there, a 404 when requested with `?placeholder=no`, a generic placeholder otherwise
 
 **Rules every file must meet**
 
@@ -173,7 +175,7 @@ rest.
 | duplicating the icon at `logo.png` | ship only the icons | `icon.png` already serves that slot | *Using the same image for logo & icon* in the brands README |
 | padding a mark into a landscape canvas | trim, and ship it square | no rule requires a logo aspect ratio | *Image specification* and *Logo image requirements* in the brands README |
 | honouring a brand's clear-space guideline inside the PNG | trim, and let Home Assistant space it | that guideline governs placement in a UI, not the asset | *Image specification* in the brands README |
-| omitting `icon@2x.png` because the 1× is served | ship it | a HiDPI client renders 256px where it asked for 512 | *Missing image handling* in the brands README |
+| omitting `icon@2x.png` because the 1× is served | ship it | a HiDPI client renders 256px where it asked for 512 | `IMAGE_FALLBACKS` in core's `homeassistant/components/brands/const.py`, and *Icon image requirements* in the brands README |
 | dressing an integration up as an official one | your own mark | it is what the no-HA-branding rule protects against | *Image specification* in the brands README |
 | deriving a new mark from a brand's artwork | reproduce theirs, and meet any published usage terms | identification is the only permitted use | *Trademark Legal Notices* in the brands README |
 | PR-ing `home-assistant/brands` to fix a blank HACS tile | nothing — it is a HACS-side gap | `custom_integrations/*` PRs are auto-closed | the HACS dashboard row of `reference/freshness.md` |
