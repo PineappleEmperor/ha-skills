@@ -316,7 +316,7 @@ Run *Lint & quality check* in `SKILL.md`, and fix what it finds before the first
 
 ### Step 9: Set the repository up on GitHub
 
-Every item of `reference/github-setup.md`, in its order.
+Every step of `reference/github-setup.md`, in its order; its cases only when one happens.
 
 **Timing:** after the first push.
 
