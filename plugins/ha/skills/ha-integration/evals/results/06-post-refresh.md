@@ -1,14 +1,13 @@
 # 06 — Router selection, 2026-10-02
 
 - **Date:** 2026-10-02
-- **Skill version:** `feat/refresh-2026-9`, five runs, router as each row of the table says
+- **Skill version:** per run, in the table's Router column; runs 3 and 4 read uncommitted text
 - **Arm:** treatment only; three fresh read-only reps per run, told only where the skills live
-- **Verdict:** A, B, C and E pass in every rep of every run. D: every rep of every run gave
-  the answer the key then in force accepted, citing a router row. In runs 1, 3 and 4 the reps
-  were unsure which row applied, a routing failure by the scenario's criteria. In runs 2 and 5
-  they were unsure only whether "new" means never released, which the request does not say.
+- **Verdict:** PASS in all five runs, by the scenario's criteria. Every answer matched the key
+  then in force and cited a router row; no rep opened a reference file, named a disclaimed
+  skill or a missing file. The criteria do not grade the uncertainty about D the table records.
 
-No rep opened a reference file.
+Five runs share this file, where the evals README asks for one file per run.
 
 | Run | Router (`SKILL.md`) | D answered | Reps unsure of D | Unsure about |
 |---|---|---|---|---|
