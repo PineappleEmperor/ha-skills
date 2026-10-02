@@ -1,9 +1,6 @@
 # Scaffolding an integration
 
-Scope: a new integration repository, or one that has not released yet, up to its first
-release — what to ask, what to write, and in what order. A repository that already exists
-starts at the first step it lacks. The code that goes inside the generated files is
-`reference/patterns.md`.
+Scope: a new integration repository, from the first question to its GitHub settings, and `manifest.json`.
 
 **Core rule:** every file is generated from the Step 1 answers or copied from `templates/`.
 Nothing here is authored from memory.
@@ -11,47 +8,54 @@ Nothing here is authored from memory.
 ## Contents
 
 1. The scaffold
-2. Step 1: Gather the requirements
-3. Step 2: Generate the integration package
-4. Step 3: Generate the repo root
-5. Step 4: Copy the CI stack
-6. Step 5: Ship the brand assets
-7. Step 6: Order `manifest.json`
-8. Step 7: Pass HACS validation
-9. Step 8: Run the checks
-10. Step 9: Set the repository up on GitHub
-11. Step 10: Cut the first release
+2. Step 1: Ask the user the ten questions below
+3. Step 2: Put the folder under git and on GitHub
+4. Step 3: Write the integration package
+5. Step 4: Write `manifest.json`
+6. Step 5: Add the brand images to `brand/`
+7. Step 6: Copy the config and CI files
+8. Step 7: Write the files no template carries
+9. Step 8: Run the checks and fix the code
+10. Step 9: Commit and push `main`
+11. Step 10: Apply the GitHub settings
 12. Cases
-13. Alignment a human chose meets `ruff format` — Step 2
-14. A repository adopting the stack carries ruff exclusions — Step 3
-15. Reference
+13. Alignment a human chose meets `ruff format` — Step 3
+14. A repository adopting the stack carries ruff exclusions — Step 6
+15. `HACS validation` is red — Step 9
+16. Reference
 
 ## The scaffold
 
-### Step 1: Gather the requirements
+### Step 1: Ask the user the ten questions below
 
-Ask all nine at once.
+All at once, before anything is written.
 
 | # | Requirement | Answer | Default |
 |---|---|---|---|
 | 1 | domain | snake_case, e.g. `my_device` | — |
 | 2 | friendly name | e.g. `My Device` | — |
 | 3 | description | one sentence | — |
-| 4 | IoT class | one of the `iot_class` values in Step 6 | — |
+| 4 | IoT class | one of the `iot_class` values in Step 4 | — |
 | 5 | data model | polling, via `DataUpdateCoordinator` · push, via a subscription | — |
 | 6 | auth model | none · API key · OAuth · username and password | — |
 | 7 | platforms | any of button, sensor, binary_sensor, switch, light, number, select, text, notify, cover, climate, fan, lock, media_player, vacuum | — |
 | 8 | licence | the full text goes in `LICENSE` | MIT |
 | 9 | version | — | `0.1.0` |
+| 10 | repository | its name on GitHub; an existing folder is renamed to match | the existing folder's name |
 
 **Timing:** the domain is fixed once the repository exists — it is the folder name, the
 manifest key, the brand folder and every entity id. Settle it before Step 2.
 
-**Symptom:** a missing or paraphrased licence fails HACS validation with `The repository
-license could not be identified (SPDX: NOASSERTION)`; HACS asks for one GitHub can identify
-by SPDX, so only the licence's real text resolves it.
+### Step 2: Put the folder under git and on GitHub
 
-### Step 2: Generate the integration package
+| Scenario | Choice |
+|---|---|
+| the user already has a folder | work in it, renamed to the Step 1 repository name if the two differ; `git init` if it is not a repository yet |
+| no folder yet | `mkdir <repository>`, then `git init` inside it |
+| no GitHub repository yet | `gh repo create <repository> --public --source . --remote origin`, from inside the folder |
+| a GitHub repository already exists | `git remote add origin <its URL>` |
+
+### Step 3: Write the integration package
 
 Under `custom_components/<domain>/`. What goes inside each file is `reference/patterns.md`.
 
@@ -60,7 +64,7 @@ Under `custom_components/<domain>/`. What goes inside each file is `reference/pa
 | `__init__.py` | entry setup and unload | always |
 | `config_flow.py` | the config flow | always |
 | `const.py` | the domain and the constants | always |
-| `manifest.json` | the manifest — key order is Step 6 | always |
+| `manifest.json` | the manifest — Step 4 | always |
 | `strings.json` | the flow and entity strings | always |
 | `translations/en.json` | the English translation | always |
 | `quality_scale.yaml` | the tier ledger — `reference/quality-scale.md` | always |
@@ -80,95 +84,46 @@ Under `custom_components/<domain>/`. What goes inside each file is `reference/pa
 | inline comments | only where the WHY is genuinely non-obvious |
 | the bar | clean under the *Lint & quality check* commands in `SKILL.md` |
 
-### Step 3: Generate the repo root
-
-| File | Holds | Taken from |
-|---|---|---|
-| `CLAUDE.md` | the per-repo rule that a session invokes this skill before touching integration code | the snippet below |
-| `hacs.json` | the HACS manifest | the shape below |
-| `pyproject.toml` | HA core's ruff rule set adapted for a custom integration — `google` docstrings, HA's Python floor, no `from __future__ import annotations` — and the `asyncio_mode = "auto"` without which no async test runs | `templates/pyproject.toml`, verbatim |
-| `mypy.ini` | the general section of HA core's mypy config — keep `python_version` in `[mypy]`, since it is what the audit's version comparison reads from this file — *What the audit checks now* in ha-integration-ci's README | `templates/mypy.ini`, verbatim |
-| `requirements.test.txt` | the pinned test harness — why the pin matters is `reference/testing.md` | `templates/requirements.test.txt` |
-| `tests/conftest.py`, `tests/__init__.py`, `tests/ruff.toml` | the harness setup and core's ruff rules for tests — `reference/testing.md` | `templates/tests/` |
-| `tests/` | one test file per module under test | `reference/testing.md` |
-| `README.md` | the project readme, carrying the AI-assistance note below | — |
-| `LICENSE` | the full text of the Step 1 licence | the licence's own text |
-| `.gitignore` | the paths git must never track | `templates/.gitignore` |
-| `ruleset.json` | the branch ruleset — what it requires is `reference/github-setup.md` | `templates/ruleset.json` |
-| `.githooks/commit-msg` | the Conventional Commit check — `reference/commits.md` | release-flow's copy, `chmod +x` |
-| `.pre-commit-config.yaml` | the local hooks: ruff, codespell, `check-json`, a guard on `main`, yamllint and prettier | `templates/.pre-commit-config.yaml`, verbatim |
-| `.yamllint`, `.prettierrc.js`, `.prettierignore` | the configs yamllint and prettier read | the files of those names in `templates/`, verbatim |
-| `.githooks/pre-commit` | the wrapper that runs the local hooks on commit | the snippet below, `chmod +x` |
-
-| Rule | Value |
-|---|---|
-| a copy that relaxes `pyproject.toml`'s ruff or pytest tables | drift |
-| enabling the commit hook | `git config core.hooksPath .githooks`, once per clone, documented in `CLAUDE.md` |
-| enabling the local hooks | install `pre-commit`; the same `core.hooksPath` setting runs the wrapper, and `pre-commit install` refuses to run while that setting is in place |
-| what prettier leaves alone | Markdown, as core leaves it; and `.github/`, `ruleset.json` and a built panel bundle, so a copied or built file stays identical to its source |
-| omitting `.gitignore` | a local `pytest` plus a `git add -A` tracks `.pyc` files, which *What the audit checks now* in ha-integration-ci's README fails a repository for |
-| where the skill-invocation rule lives | the repository's own `CLAUDE.md`, never a user's global config |
-
-**`CLAUDE.md` — the AI-session rule**
-
-```markdown
-## AI sessions
-Before writing or modifying integration code (config flow, platforms, manifest,
-websocket, services…), invoke the `ha-integration` skill. Re-invoke it after any
-`/compact`, since compaction can drop the skill's guidance from context.
-```
-
-**`.githooks/pre-commit`**
-
-```sh
-#!/bin/sh
-if ! command -v pre-commit >/dev/null 2>&1; then
-  echo "pre-commit is not installed: pip install pre-commit" >&2
-  exit 1
-fi
-exec pre-commit run
-```
-
-**`README.md` — the AI-assistance note**, as a GitHub `> [!NOTE]` admonition, the skill name
-linked to its public repository:
-
-```markdown
-> [!NOTE]
-> **AI assistance:** I'm a programmer; this project is built with AI (Claude, via Claude Code) for implementation, code review, and QA — under human direction, guided by my [`ha-integration`](https://github.com/PineappleEmperor/ha-skills) skill. Architecture and final review are mine; every change is human-reviewed before it merges.
-```
-
-**`hacs.json`**
+### Step 4: Write `manifest.json`
 
 ```json
-{"name": "My Integration", "content_in_root": false, "zip_release": true, "filename": "<domain>.zip"}
+{
+  "domain": "my_device",
+  "name": "My Device",
+  "codeowners": ["@username"],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/username/repo",
+  "integration_type": "device",
+  "iot_class": "local_push",
+  "issue_tracker": "https://github.com/username/repo/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}
 ```
 
 | Rule | Value |
 |---|---|
-| `name` | the only key HACS strictly requires |
-| `homeassistant` | the oldest HA you actually test, never a floor copied from an example |
-| `zip_release` | makes HACS download a release **asset** rather than the tag's source archive, so it requires the `release.yml` caller |
-| `filename` | the name `release.yml` attaches — *The three workflows* in ha-integration-ci's README |
-| dropping `zip_release` and `filename` | only to have HACS pull the whole tagged repository archive instead |
+| where each rule below was read | https://developers.home-assistant.io/docs/creating_integration_manifest/; beyond the page, `script/hassfest/manifest.py` in core at the `.0` tag of the release row's value and `custom_components/hacs/utils/validate.py` in hacs/integration at the HACS validation row's revision, both rows in `reference/freshness.md` |
+| `domain`, `name` | required; the domain is the directory name and never changes |
+| `version` | required for a custom integration — hassfest and HACS both fail its absence; a version AwesomeVersion reads as CalVer, SemVer, SimpleVer, BuildVer or PEP 440, the five forms hassfest's `verify_version` accepts; what sets it at release is `reference/versioning.md` |
+| `documentation` | required; `https`, and not under `www.home-assistant.io/integrations/`, which hassfest reserves for core |
+| `codeowners` | required by hassfest and HACS — at least your own GitHub username |
+| `issue_tracker` | required by HACS's `integration_manifest` check |
+| `iot_class` | required — `assumed_state` · `calculated` · `cloud_polling` · `cloud_push` · `local_polling` · `local_push` |
+| `integration_type` | `device` · `hub` · `service` · `entity` · `hardware` · `helper` · `system`; absent means `hub`, so set it; `virtual` is core-only |
+| `config_flow` | `true`, and `config_flow.py` must exist |
+| `single_config_entry` | `true` when the integration supports one config entry only; otherwise omit it and meet the `unique-config-entry` rule, `reference/quality-scale.md` |
+| `requirements` | pip requirement strings, `aiohue==1.9.1`; only libraries core's own `requirements.txt` does not already carry |
+| `loggers` | the names the requirements pass to `getLogger` |
+| `dependencies` | integrations that must be set up before this one, built-in or custom — `mqtt` goes here when the integration needs the client |
+| `after_dependencies` | integrations set up first only when they are configured; their requirements are installed either way |
+| `quality_scale` | *Step 4: Claim the tier in the manifest only once it is fully met* in `reference/quality-scale.md` |
+| `zeroconf`, `ssdp`, `bluetooth`, `dhcp`, `usb` | a list of discovery matchers, whose shapes are on the manifest page under each key; the config flow gains the step of that name |
+| `homekit` | `{"models": [...]}`, the model-name prefixes to match; the flow gains a `homekit` step |
+| `mqtt` | the discovery topics to subscribe to; the flow gains an `mqtt` step |
 
-**Symptom:** a `zip_release` repository whose release carries no attached zip fails HACS
-install with `Could not download`.
-
-> **Note:** the tag is the version, not the committed manifest — `reference/versioning.md`.
-> What patches the manifest is `release.yml` under *Implementation notes* in
-> ha-integration-ci's README.
-
-### Step 4: Copy the CI stack
-
-| Rule | Value |
-|---|---|
-| authored or copied | copied, never authored — *Step 2: Take each file from its source* in `reference/github-actions.md` |
-| which files, and where each comes from | the table under *Step 2: Take each file from its source* in `reference/github-actions.md` |
-| a caller block | the CI repository's README block with its `{{sha}} # {{tag}}` tokens resolved |
-| `panel-bundle.yml` and `frontend/` | only an integration that serves a panel — `reference/panels.md` |
-| leaving it to last | not optional: every missing file is its own audit failure on the first run |
-
-### Step 5: Ship the brand assets
+### Step 5: Add the brand images to `brand/`
 
 Into `custom_components/<domain>/brand/`. Which revision of the spec these rules were read
 from is the brand row of `reference/freshness.md`.
@@ -245,89 +200,131 @@ consistent and nothing is upscaled.
 | the `logo`, which renders large — the integration page, HACS | a busy or detailed screen, which reads well at that size |
 | the `icon`, which renders small — ~48px in the integrations list | a simple, low-detail screen; fine detail turns to mush |
 
-### Step 6: Order `manifest.json`
+### Step 6: Copy the config and CI files
 
-`domain` first, `name` second, then every remaining key alphabetically — hassfest fails any
-other order.
+Every file in the table under *Step 2: Take each file from its source* in
+`reference/github-actions.md` — the workflows, `.github/dependabot.yml`,
+`scripts/bootstrap_repo.sh` and the root files below — with each caller's pin resolved as
+*Step 3: Resolve each caller's pin* in `reference/github-actions.md` says.
+
+| File | Holds | Taken from |
+|---|---|---|
+| `pyproject.toml` | HA core's ruff rule set adapted for a custom integration — `google` docstrings, HA's Python floor, no `from __future__ import annotations` — and the `asyncio_mode = "auto"` without which no async test runs | `templates/pyproject.toml`, verbatim |
+| `mypy.ini` | the general section of HA core's mypy config — keep `python_version` in `[mypy]`, since it is what the audit's version comparison reads from this file — *What the audit checks now* in ha-integration-ci's README | `templates/mypy.ini`, verbatim |
+| `requirements.test.txt` | the pinned test harness — why the pin matters is `reference/testing.md` | `templates/requirements.test.txt` |
+| `tests/conftest.py`, `tests/__init__.py`, `tests/ruff.toml` | the harness setup and core's ruff rules for tests — `reference/testing.md` | `templates/tests/` |
+| `.gitignore` | the paths git must never track | `templates/.gitignore` |
+| `ruleset.json` | the branch ruleset — what it requires is `reference/github-setup.md` | `templates/ruleset.json` |
+| `.githooks/commit-msg` | the Conventional Commit check — `reference/commits.md` | release-flow's copy, `chmod +x` |
+| `.pre-commit-config.yaml` | the local hooks: ruff, codespell, `check-json`, a guard on `main`, yamllint and prettier | `templates/.pre-commit-config.yaml`, verbatim |
+| `.yamllint`, `.prettierrc.js`, `.prettierignore` | the configs yamllint and prettier read | the files of those names in `templates/`, verbatim |
+| `.githooks/pre-commit` | the wrapper that runs the local hooks on commit | the snippet below, `chmod +x` |
+
+| Rule | Value |
+|---|---|
+| what a new repository changes in a copy | nothing, except the fixtures `tests/conftest.py` gains as the tests are written, and in a panel repository the `frontend/package.json` and `requirements.test.txt` rows of *Step 4: Apply only the sanctioned adaptations* in `reference/github-actions.md` |
+| `.github/dependabot.yml` | copied unchanged: it already carries the `chore` prefix and the cooldown `reference/dependabot.md` asks for, and GitHub needs nothing switched on for it |
+| a copy that relaxes `pyproject.toml`'s ruff or pytest tables | drift |
+| enabling the commit hook | `git config core.hooksPath .githooks`, once per clone, documented in `CLAUDE.md`; in this clone `bootstrap_repo.sh` sets it at Step 10, after the first commit, which the guard on `main` would otherwise refuse |
+| enabling the local hooks | install `pre-commit`; the same `core.hooksPath` setting runs the wrapper, and `pre-commit install` refuses to run while that setting is in place |
+| what prettier leaves alone | Markdown, as core leaves it; and `.github/`, `ruleset.json` and a built panel bundle, so a copied or built file stays identical to its source |
+| omitting `.gitignore` | a local `pytest` plus a `git add -A` tracks `.pyc` files, which *What the audit checks now* in ha-integration-ci's README fails a repository for |
+| `panel-bundle.yml` and `frontend/` | only an integration that serves a panel — `reference/panels.md` |
+| leaving it to last | not optional: every missing file is its own audit failure on the first run |
+
+**`.githooks/pre-commit`**
+
+```sh
+#!/bin/sh
+if ! command -v pre-commit >/dev/null 2>&1; then
+  echo "pre-commit is not installed: pip install pre-commit" >&2
+  exit 1
+fi
+exec pre-commit run
+```
+
+### Step 7: Write the files no template carries
+
+| File | Holds | Taken from |
+|---|---|---|
+| `CLAUDE.md` | the per-repo rule that a session invokes this skill before touching integration code | the snippet below |
+| `hacs.json` | the HACS manifest | the shape below |
+| `README.md` | the project readme, with at least one image, carrying the AI-assistance note below | — |
+| `LICENSE` | the full text of the Step 1 licence | the licence's own text |
+| `tests/` | one test file per module under test | `reference/testing.md` |
+
+| Rule | Value |
+|---|---|
+| where the skill-invocation rule lives | the repository's own `CLAUDE.md`, never a user's global config |
+
+**Symptom:** a missing or paraphrased licence fails HACS validation with `The repository
+license could not be identified (SPDX: NOASSERTION)`; HACS asks for one GitHub can identify
+by SPDX, so only the licence's real text resolves it.
+
+**`CLAUDE.md` — the AI-session rule**
+
+```markdown
+## AI sessions
+Before writing or modifying integration code (config flow, platforms, manifest,
+websocket, services…), invoke the `ha-integration` skill. Re-invoke it after any
+`/compact`, since compaction can drop the skill's guidance from context.
+```
+
+**`README.md` — the AI-assistance note**, as a GitHub `> [!NOTE]` admonition, the skill name
+linked to its public repository:
+
+```markdown
+> [!NOTE]
+> **AI assistance:** I'm a programmer; this project is built with AI (Claude, via Claude Code) for implementation, code review, and QA — under human direction, guided by my [`ha-integration`](https://github.com/PineappleEmperor/ha-skills) skill. Architecture and final review are mine; every change is human-reviewed before it merges.
+```
+
+**`hacs.json`**
 
 ```json
-{
-  "domain": "my_device",
-  "name": "My Device",
-  "codeowners": ["@username"],
-  "config_flow": true,
-  "dependencies": [],
-  "documentation": "https://github.com/username/repo",
-  "integration_type": "device",
-  "iot_class": "local_push",
-  "issue_tracker": "https://github.com/username/repo/issues",
-  "requirements": [],
-  "version": "0.1.0"
-}
+{"name": "My Integration", "content_in_root": false, "zip_release": true, "filename": "<domain>.zip"}
 ```
 
 | Rule | Value |
 |---|---|
-| where each rule below was read | https://developers.home-assistant.io/docs/creating_integration_manifest/; beyond the page, `script/hassfest/manifest.py` in core at the `.0` tag of the release row's value and `custom_components/hacs/utils/validate.py` in hacs/integration at the HACS validation row's revision, both rows in `reference/freshness.md` |
-| `domain`, `name` | required; the domain is the directory name and never changes |
-| `version` | required for a custom integration — hassfest and HACS both fail its absence; a version AwesomeVersion reads as CalVer, SemVer, SimpleVer, BuildVer or PEP 440, the five forms hassfest's `verify_version` accepts; what sets it at release is `reference/versioning.md` |
-| `documentation` | required; `https`, and not under `www.home-assistant.io/integrations/`, which hassfest reserves for core |
-| `codeowners` | required by hassfest and HACS — at least your own GitHub username |
-| `issue_tracker` | required by HACS's `integration_manifest` check |
-| `iot_class` | required — `assumed_state` · `calculated` · `cloud_polling` · `cloud_push` · `local_polling` · `local_push` |
-| `integration_type` | `device` · `hub` · `service` · `entity` · `hardware` · `helper` · `system`; absent means `hub`, so set it; `virtual` is core-only |
-| `config_flow` | `true`, and `config_flow.py` must exist |
-| `single_config_entry` | `true` when the integration supports one config entry only; otherwise omit it and meet the `unique-config-entry` rule, `reference/quality-scale.md` |
-| `requirements` | pip requirement strings, `aiohue==1.9.1`; only libraries core's own `requirements.txt` does not already carry |
-| `loggers` | the names the requirements pass to `getLogger` |
-| `dependencies` | integrations that must be set up before this one, built-in or custom — `mqtt` goes here when the integration needs the client |
-| `after_dependencies` | integrations set up first only when they are configured; their requirements are installed either way |
-| `quality_scale` | *Step 4: Claim the tier in the manifest only once it is fully met* in `reference/quality-scale.md` |
-| `zeroconf`, `ssdp`, `bluetooth`, `dhcp`, `usb` | a list of discovery matchers, whose shapes are on the manifest page under each key; the config flow gains the step of that name |
-| `homekit` | `{"models": [...]}`, the model-name prefixes to match; the flow gains a `homekit` step |
-| `mqtt` | the discovery topics to subscribe to; the flow gains an `mqtt` step |
+| `name` | the only key HACS strictly requires |
+| `homeassistant` | the oldest HA you actually test, never a floor copied from an example |
+| `zip_release` | makes HACS download a release **asset** rather than the tag's source archive, so it requires the `release.yml` caller |
+| `filename` | the name `release.yml` attaches — *The three workflows* in ha-integration-ci's README |
+| dropping `zip_release` and `filename` | only to have HACS pull the whole tagged repository archive instead |
 
-### Step 7: Pass HACS validation
+**Symptom:** a `zip_release` repository whose release carries no attached zip fails HACS
+install with `Could not download`.
 
-Each `hacs/action` check below is ignorable via its `ignore:` input; how the scaffold's
-workflow sets it is the `hacs-validate.yml` row under *Step 2: Take each file from its
-source* in `reference/github-actions.md`. Listing in `hacs/default`
-requires the action to pass with no errors **and no ignores**, so every row is required.
+> **Note:** the tag is the version, not the committed manifest — `reference/versioning.md`.
+> What patches the manifest is `release.yml` under *Implementation notes* in
+> ha-integration-ci's README.
 
-| Check | What's needed | Where to fix |
-|---|---|---|
-| `archived` | the repository is not archived | GitHub repo settings |
-| `brands` | `brand/icon.png` present, else the domain listed in `home-assistant/brands` | a file in the repo |
-| `description` | the repository has a description | GitHub repo settings → About |
-| `hacsjson` | `hacs.json` exists, carries `name`, and names a `filename` whenever `zip_release` is set | a file in the repo |
-| `images` | the README carries at least one image | add a screenshot to the README |
-| `information` | `README.md` exists | a file in the repo |
-| `integration_manifest` | `manifest.json` carrying `domain`, `name`, `version`, `documentation`, `issue_tracker` and `codeowners` — Step 6 | a file in the repo |
-| `issues` | the Issues tab is enabled | GitHub repo settings → Features |
-| `topics` | the repository has at least one topic | GitHub repo settings → About |
-| `license` | a `LICENSE`, per Step 1 | a file in the repo |
+### Step 8: Run the checks and fix the code
 
-**Timing:** fix every row at scaffold time. `description`, `issues`, `topics` and `license`
-are GitHub settings rather than files, so they fail silently until the first
-`hacs-validate` run.
+Run *Lint & quality check* in `SKILL.md`, before the first commit.
 
-### Step 8: Run the checks
+| Rule | Value |
+|---|---|
+| a finding | fixed in the code, to the rule `reference/patterns.md` gives for it, or `reference/testing.md` for a test |
+| relaxing a copied config to get past a finding | drift — Step 6 |
 
-Run *Lint & quality check* in `SKILL.md`, and fix what it finds before the first commit.
+### Step 9: Commit and push `main`
 
-### Step 9: Set the repository up on GitHub
+Commit everything, with a subject in the form *Step 2: Write the subject in the Conventional
+Commits form* in `reference/commits.md` gives, then `git push -u origin main`.
 
-The steps of `reference/github-setup.md`, in order.
+### Step 10: Apply the GitHub settings
 
-**Timing:** after the first push.
+1. Create the release token, as *Step 1: Generate a fine-grained PAT* in `reference/github-setup.md` says.
+2. From the repo root, run `bash scripts/bootstrap_repo.sh "<the Step 1 description>"`, and paste the token when it asks.
+3. Fix anything it reports as missing or not done, then run it again.
 
-### Step 10: Cut the first release
-
-*Cutting a release* in `reference/versioning.md`.
+**Timing:** after Step 9 — the ruleset requires eight checks on `main` even when a push
+creates the branch, so applied first it refuses that push.
 
 ## Cases
 
-### Alignment a human chose meets `ruff format` — Step 2
+### Alignment a human chose meets `ruff format` — Step 3
 
 `ruff format` reduces every run of spaces to one, which destroys a table someone aligned so
 it could be read as a table. Fence it rather than surrendering it or turning the formatter
@@ -363,7 +360,7 @@ CONF_REFRESH_TOKEN = "refresh_token"
 **Symptom:** an unfenced raster or bitmap table comes back one element per line, and the
 shape a reader could see in the source is gone.
 
-### A repository adopting the stack carries ruff exclusions — Step 3
+### A repository adopting the stack carries ruff exclusions — Step 6
 
 The stack lints and formats the whole tree — why is the `python-validate.yml` bullet under
 *Implementation notes* in ha-integration-ci's README — and `templates/pyproject.toml`
@@ -374,6 +371,26 @@ repository adopts that file.
 before the migration.
 
 **Timing:** before the migration, so its diff carries no reformatting.
+
+### `HACS validation` is red — Step 9
+
+Each `hacs/action` check below is ignorable via its `ignore:` input; how the scaffold's
+workflow sets it is the `hacs-validate.yml` row under *Step 2: Take each file from its
+source* in `reference/github-actions.md`. Listing in `hacs/default`
+requires the action to pass with no errors **and no ignores**, so every row is required.
+
+| Check | What's needed | Where to fix |
+|---|---|---|
+| `archived` | the repository is not archived | GitHub repo settings |
+| `brands` | `brand/icon.png` present, else the domain listed in `home-assistant/brands` | Step 5 |
+| `description` | the repository has a description | Step 10, or GitHub repo settings → About |
+| `hacsjson` | `hacs.json` exists, carries `name`, and names a `filename` whenever `zip_release` is set | Step 7 |
+| `images` | the README carries at least one image | Step 7 |
+| `information` | `README.md` exists | Step 7 |
+| `integration_manifest` | `manifest.json` carrying `domain`, `name`, `version`, `documentation`, `issue_tracker` and `codeowners` | Step 4 |
+| `issues` | the Issues tab is enabled | Step 10, or GitHub repo settings → Features |
+| `topics` | the repository has at least one topic | Step 10, or GitHub repo settings → About |
+| `license` | a `LICENSE`, per Step 1 | Step 7 |
 
 ## Reference
 

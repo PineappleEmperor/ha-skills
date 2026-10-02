@@ -31,7 +31,7 @@ Pick the mode from what is about to be done, then **read that mode's file before
 
 | Mode | When | Read first | Source |
 |---|---|---|---|
-| **Scaffold** | no `custom_components/`, a new integration or a new repository for one, or setting up a repository that has not released yet — through its first release: what to ask, what to generate, the brand assets, manifest key order, HACS validation, the GitHub setup and the first release, in order | `reference/scaffold.md` | Creating integrations: https://developers.home-assistant.io/docs/creating_integration_index/ · File structure: https://developers.home-assistant.io/docs/creating_integration_file_structure/ · Manifest: https://developers.home-assistant.io/docs/creating_integration_manifest/ |
+| **Scaffold** | no `custom_components/`, or a new integration or a new repository for one — from the first questions to the GitHub settings, in order | `reference/scaffold.md` | Creating integrations: https://developers.home-assistant.io/docs/creating_integration_index/ · File structure: https://developers.home-assistant.io/docs/creating_integration_file_structure/ · Manifest: https://developers.home-assistant.io/docs/creating_integration_manifest/ |
 | **Modify** | `custom_components/` exists and its package is being added to, changed or fixed — Python, `strings.json`, `services.yaml`, translations — including file structure and typing | `reference/patterns.md` | Config entries: https://developers.home-assistant.io/docs/config_entries_index/ · Config flows: https://developers.home-assistant.io/docs/config_entries_config_flow_handler/ · Data fetching + coordinator: https://developers.home-assistant.io/docs/integration_fetching_data/ · Setup failures: https://developers.home-assistant.io/docs/integration_setup_failures/ · Blocking operations: https://developers.home-assistant.io/docs/asyncio_blocking_operations/ · Real examples: https://github.com/home-assistant/core/tree/dev/homeassistant/components |
 | **Manifest** | adding or changing a `manifest.json` key | `reference/scaffold.md` | Manifest: https://developers.home-assistant.io/docs/creating_integration_manifest/ |
 | **Panel** | building or fixing an integration that serves a panel — how it is built and served; how it looks is the Panel design row | `reference/panels.md` | — |
@@ -55,5 +55,5 @@ Pick the mode from what is about to be done, then **read that mode's file before
 2. Run `mypy --config-file mypy.ini custom_components/`, with mypy at the version the mypy and ruff row of `reference/freshness.md` names — fix all actionable issues
 3. Run the rest of what CI runs: *The three workflows* in ha-integration-ci's README
 4. Check `quality_scale.yaml` exists; if not, offer to create it
-5. Check `manifest.json` against *Step 6: Order `manifest.json`* in `reference/scaffold.md`
+5. Check `manifest.json`'s keys run `domain`, `name`, then the rest alphabetically — hassfest fails any other order (`sort_manifest` in core's `script/hassfest/manifest.py`)
 6. Report: files changed · issues fixed · issues intentionally suppressed (with rationale) · remaining manual work

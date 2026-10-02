@@ -2,7 +2,7 @@
 
 Read this when writing or changing the package under `custom_components/` — its Python,
 `strings.json`, `services.yaml` and translations. Panel code is `reference/panels.md`, tests
-`reference/testing.md`, the manifest *Step 6: Order `manifest.json`* in `reference/scaffold.md`.
+`reference/testing.md`, the manifest *Step 4: Write `manifest.json`* in `reference/scaffold.md`.
 
 **Pick the shape Home Assistant already models, then write that shape the way core writes
 it.**
@@ -134,7 +134,7 @@ before a PR is ready.
 | Rule | Value |
 |---|---|
 | a `vol.Schema` in a flow | one entry per line, left to `ruff format` |
-| the `# fmt: off` fence | not earned here — a flow schema is a list of entries, not a table; *Alignment a human chose meets `ruff format` — Step 2* in `reference/scaffold.md` |
+| the `# fmt: off` fence | not earned here — a flow schema is a list of entries, not a table; *Alignment a human chose meets `ruff format` — Step 3* in `reference/scaffold.md` |
 
 ```python
 DATA_SCHEMA = vol.Schema(
