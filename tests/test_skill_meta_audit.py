@@ -572,6 +572,44 @@ def test_a_wall_of_prose_is_flagged_but_a_long_list_is_not(tmp_path) -> None:
     _, warns = audit.check_paragraph_length(audit.Repo(tmp_path))
     assert not any("prose run" in w for w in warns)
 
+    (ref / "wall.md").write_text(
+        "# W\n\n"
+        + "\n".join(f"+ item {i} with several words in it" for i in range(60))
+        + "\n"
+    )
+    _, warns = audit.check_paragraph_length(audit.Repo(tmp_path))
+    assert not any("prose run" in w for w in warns)
+
+
+@pytest.mark.parametrize(
+    "opening", ["2026. ", "--root ", "*Step 1* in ", "#5171 ", "| x | then "]
+)
+def test_a_wrapped_line_that_only_looks_like_a_marker_stays_in_the_wall(
+    tmp_path, opening
+) -> None:
+    """A wall split at a wrapped line opening with a year passed as two short runs."""
+    _skill(tmp_path, "ha-thing", "name: ha-thing\ndescription: Use when doing a thing")
+    ref = tmp_path / "plugins/ha/skills/ha-thing/reference"
+    ref.mkdir(exist_ok=True)
+    line = "the rule applies here and the reader must act on it now\n"
+    (ref / "wall.md").write_text("# W\n\n" + line * 15 + opening + line + line * 14)
+    _, warns = audit.check_paragraph_length(audit.Repo(tmp_path))
+    assert any("prose run" in w for w in warns)
+
+
+@pytest.mark.parametrize(
+    "marker", ["### Step 2: Do it", "> **Note:** a note", "**Fix:** a fix", "| a | b |"]
+)
+def test_a_real_marker_between_two_short_runs_splits_them(tmp_path, marker) -> None:
+    """Two 120-word halves are one 240-word wall unless the line between them is a marker."""
+    _skill(tmp_path, "ha-thing", "name: ha-thing\ndescription: Use when doing a thing")
+    ref = tmp_path / "plugins/ha/skills/ha-thing/reference"
+    ref.mkdir(exist_ok=True)
+    line = "the rule applies here and the reader must act on it now\n"
+    (ref / "wall.md").write_text("# W\n\n" + line * 10 + marker + "\n" + line * 10)
+    _, warns = audit.check_paragraph_length(audit.Repo(tmp_path))
+    assert not any("prose run" in w for w in warns)
+
 
 def _doc_with_example(tmp_path, code: str) -> None:
     """A skill whose one reference doc carries `code` as a fenced Python example."""

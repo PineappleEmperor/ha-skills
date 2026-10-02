@@ -561,17 +561,17 @@ def check_paragraph_length(repo: Repo) -> Result:
                     )
                 run.clear()
 
+            # A line breaks the run only when it is a whole marker: a wrapped prose line
+            # opening with a year, `--flag`, `*emphasis*` or `#123` is still prose. A
+            # wrapped line opening `3)` or `**` reads as a marker; telling those apart
+            # needs the lines around it.
+            marker = re.compile(r"\s*(#{1,6} |>|[-*+] |\*\*|\d{1,2}[.)] |\|.*\|\s*$)")
             for line in text.splitlines():
                 if line.lstrip().startswith("```"):
                     fenced = not fenced
                     flush()
                     continue
-                if (
-                    fenced
-                    or not line.strip()
-                    or line.lstrip()[:1] in "-*>|#"
-                    or re.match(r"^\s*\d+[.)] ", line)
-                ):
+                if fenced or not line.strip() or marker.match(line):
                     flush()
                     continue
                 run.append(line)
