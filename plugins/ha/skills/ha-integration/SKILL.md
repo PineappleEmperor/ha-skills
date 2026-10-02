@@ -44,8 +44,8 @@ Pick the mode from what is about to be done, then **read that mode's file before
 | **Merge** | a check is red, or a merge is about to happen | `reference/discipline.md` | — |
 | **Workflow** | writing or reviewing a workflow file, and what may differ from its source | `reference/github-actions.md` | — |
 | **Dependabot** | configuring or debugging Dependabot, including the callers' pins and what it cannot reach | `reference/dependabot.md` | — |
-| **Release** | cutting or gating a release, including an rc, or touching the version in `manifest.json` | `reference/versioning.md` | — |
-| **Repo setup** | first release, or configuring the repository on GitHub: token, required checks, dependency graph, supply chain | `reference/github-setup.md` | — |
+| **Release** | cutting or gating a release, including an rc, or touching the version in `manifest.json`, once the repository has released before; one that never has starts at Repo setup | `reference/versioning.md` | — |
+| **Repo setup** | a repository that has never released, or configuring the repository on GitHub: token, required checks, dependency graph, supply chain | `reference/github-setup.md` | — |
 | **Audit** | auditing a repository against this skill | `reference/audit.md` | — |
 | **Currency** | acting on a pin, SHA, count or Home Assistant release number, or asking whether a cached value is still true | `reference/freshness.md` | What a release changed or deprecated: https://developers.home-assistant.io/blog/ |
 
