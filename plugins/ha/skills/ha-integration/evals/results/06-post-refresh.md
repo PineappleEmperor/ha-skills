@@ -31,13 +31,18 @@ new repository, stopped before both, and `github-setup.md` never points on to th
 
 ## The fix
 
-`scaffold.md` now runs through the first release: Step 9 is every item of `github-setup.md`,
+`scaffold.md` now runs through the first release: Step 9 is every step of `github-setup.md`,
 after the first push, and Step 10 is *Cutting a release* in `versioning.md`. Its scope admits
 a repository that has not released yet, from the first step it lacks. The Scaffold row claims
 a new repository, or setting up one that has not released yet; the Release and Repo setup rows
 are back to their own work, with "first release" gone from Repo setup.
 
-## Run 5, on the final wording — PASS 15/15
+## Run 5, on `0ad281a`'s router — PASS 15/15
+
+The router the reps read is `SKILL.md` as `0ad281a` left it, which no later commit changes.
+`scaffold.md`'s own text changed after the run — Step 9 widened from two headings of
+`github-setup.md` to every step of it, Step 10 lost a precondition, and the scope gained the
+unreleased repository — but no rep opened a reference file, so none of that was read.
 
 | Request | Expected | Answered, all three reps | By |
 |---|---|---|---|
@@ -55,7 +60,9 @@ has a row, and the key accepts both.
 
 D's expected answer moved from `github-setup.md` to `scaffold.md` in the same change that made
 `scaffold.md` carry the sequence. That is the right key for the skill as it now stands, but a
-test whose answer moves with the change proves less than one that did not.
+test whose answer moves with the change proves less than one that did not. Its acceptance of
+`versioning.md` for an already-released reading was added after the run; no rep answered it,
+so it changed no verdict.
 
 ## Findings not planted by the scenario
 
