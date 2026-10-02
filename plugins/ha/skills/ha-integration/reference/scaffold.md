@@ -150,7 +150,7 @@ rest.
 | `dark_icon.png`, `dark_icon@2x.png` | as the icons | the icon is unreadable on a dark ground |
 | `dark_logo.png`, `dark_logo@2x.png` | as the logos | the logo is unreadable on a dark ground |
 
-**What an absent file serves instead**, tried in order — `IMAGE_FALLBACKS` in core's `homeassistant/components/brands/const.py`, at the `.0` tag of the release row's value:
+**What an absent file serves instead, tried in order — `IMAGE_FALLBACKS` in core's `homeassistant/components/brands/const.py`, at the `.0` tag of the release row's value:**
 
 - `logo.png` → `icon.png`
 - `icon@2x.png` → `icon.png`
@@ -159,7 +159,12 @@ rest.
 - `dark_logo.png` → `dark_icon.png` → `logo.png` → `icon.png`
 - `dark_icon@2x.png` → `icon@2x.png` → `icon.png`
 - `dark_logo@2x.png` → `dark_icon@2x.png` → `logo@2x.png` → `logo.png` → `icon.png`
-- nothing in the chain → the brands CDN's copy; with none there, a 404 when requested with `?placeholder=no`, a generic placeholder otherwise
+
+| Scenario | Choice |
+|---|---|
+| nothing in the chain | the brands CDN's copy |
+| nothing on the CDN either, requested with `?placeholder=no` | 404 |
+| nothing on the CDN either, requested without it | a generic placeholder |
 
 **Rules every file must meet**
 
