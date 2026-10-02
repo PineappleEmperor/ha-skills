@@ -1,7 +1,14 @@
 # 06 — Router selection, 2026-10-02
 
-Three fresh read-only reps per run, told only where the skills live. No rep opened a reference
-file. A, B, C and E matched the key in every rep of every run; D below.
+- **Date:** 2026-10-02
+- **Skill version:** `feat/refresh-2026-9`, five runs, router as each row of the table says
+- **Arm:** treatment only; three fresh read-only reps per run, told only where the skills live
+- **Verdict:** A, B, C and E pass in every rep of every run. D: every rep of every run gave
+  the answer the key then in force accepted, citing a router row. In runs 1, 3 and 4 the reps
+  were unsure which row applied, a routing failure by the scenario's criteria. In runs 2 and 5
+  they were unsure only whether "new" means never released, which the request does not say.
+
+No rep opened a reference file.
 
 | Run | Router (`SKILL.md`) | D answered | Reps unsure of D | Unsure about |
 |---|---|---|---|---|
@@ -11,7 +18,16 @@ file. A, B, C and E matched the key in every rep of every run; D below.
 | 4 | the Scaffold row without "not released yet", not committed | `versioning.md` ×3 | 3 | which row; each read the repository as existing |
 | 5 | `0ad281a`: Scaffold row adds "setting up a repository that has not released yet" | `scaffold.md` ×3 | 3 | whether "new" means never released |
 
-**Run 5:** 15 of 15 answers match the key, each citing a router row.
+**Key for D:** at `5a89cae`, `github-setup.md` or `versioning.md`. `0ad281a` changed it to
+`scaffold.md` alone, before run 5; `7482d31` added `versioning.md` back, after run 5.
 
-**Key:** D's answer moved from `github-setup.md` to `scaffold.md` before run 5, committed in
-`0ad281a`; `7482d31` added `versioning.md` for a repository read as released, after run 5.
+**Router since:** `b83b8bc` rewrote the Scaffold row run 5 read. No run has read the current
+router.
+
+## Findings not planted by the scenario
+
+- **A matches two triage rows.** Reps noted that "every entity went unavailable" also fits the
+  Connection row; every rep chose *Unexpected reply* on the quoted log line, and both rows
+  name `patterns.md`.
+- **C has a decoy that held.** Reps noted that `ha-triage`'s Panel row and `ha-integration`'s
+  Panel row both mention panels; every rep routed C to `panel-design.md`.
