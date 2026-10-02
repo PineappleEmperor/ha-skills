@@ -2,8 +2,8 @@
 
 Scope: a new integration repository, from the first question to its GitHub settings, and `manifest.json`.
 
-**Core rule:** every file is generated from the Step 1 answers or copied from `templates/`.
-Nothing here is authored from memory.
+**Core rule:** every file is copied from its source or written from the Step 1 answers — never
+from memory.
 
 ## Contents
 
@@ -38,13 +38,13 @@ All at once, before anything is written.
 | 4 | IoT class | one of the `iot_class` values in Step 4 | — |
 | 5 | data model | polling, via `DataUpdateCoordinator` · push, via a subscription | — |
 | 6 | auth model | none · API key · OAuth · username and password | — |
-| 7 | platforms | any of button, sensor, binary_sensor, switch, light, number, select, text, notify, cover, climate, fan, lock, media_player, vacuum | — |
+| 7 | platforms | the entity platforms it provides — sensor, switch, light, button, notify, … | — |
 | 8 | licence | the full text goes in `LICENSE` | MIT |
 | 9 | version | — | `0.1.0` |
 | 10 | repository | its name on GitHub; an existing folder is renamed to match | the existing folder's name |
 
-**Timing:** the domain is fixed once the repository exists — it is the folder name, the
-manifest key, the brand folder and every entity id. Settle it before Step 2.
+**Timing:** settle the domain before Step 2. It names the `custom_components/<domain>/`
+folder and the manifest's `domain` key, and every config entry is stored under it.
 
 ### Step 2: Put the folder under git and on GitHub
 
@@ -52,8 +52,9 @@ manifest key, the brand folder and every entity id. Settle it before Step 2.
 |---|---|
 | the user already has a folder | work in it, renamed to the Step 1 repository name if the two differ; `git init` if it is not a repository yet |
 | no folder yet | `mkdir <repository>`, then `git init` inside it |
-| no GitHub repository yet | `gh repo create <repository> --public --source . --remote origin`, from inside the folder |
-| a GitHub repository already exists | `git remote add origin <its URL>` |
+| no GitHub repository yet | `gh repo create <repository> --public --description "<the Step 1 description>" --source . --remote origin`, from inside the folder |
+| a GitHub repository already exists | `git remote add origin <its URL>`, then `git pull origin main` if it already has commits |
+| that repository already has a ruleset on `main` | Step 9 pushes a branch and merges it through a PR instead |
 
 ### Step 3: Write the integration package
 
@@ -68,23 +69,24 @@ Under `custom_components/<domain>/`. What goes inside each file is `reference/pa
 | `strings.json` | the flow and entity strings | always |
 | `translations/en.json` | the English translation | always |
 | `quality_scale.yaml` | the tier ledger — `reference/quality-scale.md` | always |
-| `diagnostics.py` | the `diagnostics` rule | always |
+| `diagnostics.py` | the diagnostics download — *Diagnostics platform — Step 1* in `reference/patterns.md` | always |
 | `<platform>.py` | one per platform chosen in Step 1 | always |
 | `brand/` | the brand images — Step 5 | always |
 | `icons.json` | action icons, `{"services": {"my_action": {"service": "mdi:icon"}}}` | the integration registers an action |
-| `services.yaml` | the action descriptions | a custom action is genuinely needed — prefer a standard one |
-| `api.py`, `coordinator.py`, `models.py`, `entity.py`, `helpers.py` | as `reference/patterns.md` splits them | the module earns its own file |
+| `services.yaml` | each action's fields — *`services.yaml` + `strings.json` (hassfest rules) — Step 1* in `reference/patterns.md` | the integration registers its own action, where no standard one fits |
+| `api.py`, `coordinator.py`, `models.py`, `entity.py`, `helpers.py` | what *Step 1: Lay out the files by responsibility* in `reference/patterns.md` gives each | as that step says |
 
 **Docstrings and comments in every generated module**
 
 | Rule | Value |
 |---|---|
-| module docstring | on every file, the only one that may run to several lines, and where a file-level constraint is explained rather than in a comment |
-| public function and class docstrings | short, single-line; what the audit checks and what it leaves to you is *What the audit checks now* in ha-integration-ci's README |
-| inline comments | only where the WHY is genuinely non-obvious |
-| the bar | clean under the *Lint & quality check* commands in `SKILL.md` |
+| module docstring | on every file; the only docstring that may run to several lines, and the place a file-level constraint is explained |
+| public function and class docstrings | one line; what the audit checks and what it leaves to you is *What the audit checks now* in ha-integration-ci's README |
+| inline comments | only where the code does not show why |
 
 ### Step 4: Write `manifest.json`
+
+The key order is item 5 of *Lint & quality check* in `SKILL.md`.
 
 ```json
 {
@@ -152,7 +154,8 @@ rest.
 **What an absent file serves instead**
 
 - absent `logo.png` → `icon.png`
-- absent `@2x` → its 1×
+- absent `icon@2x.png` → `icon.png`
+- absent `logo@2x.png` → `logo.png`, or `icon@2x.png` when `logo.png` is absent too
 - absent `dark_` file → its unprefixed match
 - absent `icon.png`, requested with `?placeholder=no` → 404
 - absent `icon.png`, requested without it → a generic placeholder
@@ -168,12 +171,12 @@ rest.
 
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
-| duplicating the icon at `logo.png` | ship only the icons | `icon.png` already serves that slot | Step 5 |
-| padding a mark into a landscape canvas | trim, and ship it square | no rule requires a logo aspect ratio | Step 5 |
-| honouring a brand's clear-space guideline inside the PNG | trim, and let Home Assistant space it | that guideline governs placement in a UI, not the asset | Step 5 |
-| omitting `icon@2x.png` because the 1× is served | ship it | a HiDPI client renders 256px where it asked for 512 | Step 5 |
-| dressing an integration up as an official one | your own mark | it is what the no-HA-branding rule protects against | Step 5 |
-| deriving a new mark from a brand's artwork | reproduce theirs, and meet any published usage terms | identification is the only permitted use | Step 5 |
+| duplicating the icon at `logo.png` | ship only the icons | `icon.png` already serves that slot | *Using the same image for logo & icon* in the brands README |
+| padding a mark into a landscape canvas | trim, and ship it square | no rule requires a logo aspect ratio | *Image specification* and *Logo image requirements* in the brands README |
+| honouring a brand's clear-space guideline inside the PNG | trim, and let Home Assistant space it | that guideline governs placement in a UI, not the asset | *Image specification* in the brands README |
+| omitting `icon@2x.png` because the 1× is served | ship it | a HiDPI client renders 256px where it asked for 512 | *Icon image requirements* in the brands README |
+| dressing an integration up as an official one | your own mark | it is what the no-HA-branding rule protects against | *Image specification* in the brands README |
+| deriving a new mark from a brand's artwork | reproduce theirs, and meet any published usage terms | identification is the only permitted use | *Trademark Legal Notices* in the brands README |
 | PR-ing `home-assistant/brands` to fix a blank HACS tile | nothing — it is a HACS-side gap | `custom_integrations/*` PRs are auto-closed | the HACS dashboard row of `reference/freshness.md` |
 
 > **Note:** the HACS store dashboard reads the legacy CDN, not the inline `brand/` folder, so
@@ -202,10 +205,10 @@ consistent and nothing is upscaled.
 
 ### Step 6: Copy the config and CI files
 
-Every file in the table under *Step 2: Take each file from its source* in
-`reference/github-actions.md` — the workflows, `.github/dependabot.yml`,
-`scripts/bootstrap_repo.sh` and the root files below — with each caller's pin resolved as
-*Step 3: Resolve each caller's pin* in `reference/github-actions.md` says.
+Copy every file in the table under *Step 2: Take each file from its source* in
+`reference/github-actions.md`, except `CLAUDE.md`, which is Step 7. Resolve each caller's pin
+as *Step 3: Resolve each caller's pin* in `reference/github-actions.md` says. The root files
+among them:
 
 | File | Holds | Taken from |
 |---|---|---|
@@ -223,14 +226,14 @@ Every file in the table under *Step 2: Take each file from its source* in
 | Rule | Value |
 |---|---|
 | what a new repository changes in a copy | nothing, except the fixtures `tests/conftest.py` gains as the tests are written, and in a panel repository the `frontend/package.json` and `requirements.test.txt` rows of *Step 4: Apply only the sanctioned adaptations* in `reference/github-actions.md` |
-| `.github/dependabot.yml` | copied unchanged: it already carries the `chore` prefix and the cooldown `reference/dependabot.md` asks for, and GitHub needs nothing switched on for it |
+| `.github/dependabot.yml` | copied unchanged; GitHub needs nothing switched on for it |
 | a copy that relaxes `pyproject.toml`'s ruff or pytest tables | drift |
-| enabling the commit hook | `git config core.hooksPath .githooks`, once per clone, documented in `CLAUDE.md`; in this clone `bootstrap_repo.sh` sets it at Step 10, after the first commit, which the guard on `main` would otherwise refuse |
+| enabling the commit hook | `git config core.hooksPath .githooks`, once per clone, as the `CLAUDE.md` snippet in Step 7 says; in this clone `bootstrap_repo.sh` sets it at Step 10, after the first commit, which the guard on `main` would otherwise refuse |
 | enabling the local hooks | install `pre-commit`; the same `core.hooksPath` setting runs the wrapper, and `pre-commit install` refuses to run while that setting is in place |
 | what prettier leaves alone | Markdown, as core leaves it; and `.github/`, `ruleset.json` and a built panel bundle, so a copied or built file stays identical to its source |
 | omitting `.gitignore` | a local `pytest` plus a `git add -A` tracks `.pyc` files, which *What the audit checks now* in ha-integration-ci's README fails a repository for |
 | `panel-bundle.yml` and `frontend/` | only an integration that serves a panel — `reference/panels.md` |
-| leaving it to last | not optional: every missing file is its own audit failure on the first run |
+| a file left out | its own audit failure on the first CI run |
 
 **`.githooks/pre-commit`**
 
@@ -247,7 +250,7 @@ exec pre-commit run
 
 | File | Holds | Taken from |
 |---|---|---|
-| `CLAUDE.md` | the per-repo rule that a session invokes this skill before touching integration code | the snippet below |
+| `CLAUDE.md` | the per-repo rule that a session invokes this skill before touching integration code, and the hooks setting | the snippet below |
 | `hacs.json` | the HACS manifest | the shape below |
 | `README.md` | the project readme, with at least one image, carrying the AI-assistance note below | — |
 | `LICENSE` | the full text of the Step 1 licence | the licence's own text |
@@ -261,13 +264,16 @@ exec pre-commit run
 license could not be identified (SPDX: NOASSERTION)`; HACS asks for one GitHub can identify
 by SPDX, so only the licence's real text resolves it.
 
-**`CLAUDE.md` — the AI-session rule**
+**`CLAUDE.md` — the AI-session rule and the hooks setting**
 
 ```markdown
 ## AI sessions
 Before writing or modifying integration code (config flow, platforms, manifest,
 websocket, services…), invoke the `ha-integration` skill. Re-invoke it after any
 `/compact`, since compaction can drop the skill's guidance from context.
+
+## Git hooks
+Run `git config core.hooksPath .githooks` once in every clone.
 ```
 
 **`README.md` — the AI-assistance note**, as a GitHub `> [!NOTE]` admonition, the skill name
@@ -286,7 +292,7 @@ linked to its public repository:
 
 | Rule | Value |
 |---|---|
-| `name` | the only key HACS strictly requires |
+| `name` | required in every `hacs.json` |
 | `homeassistant` | the oldest HA you actually test, never a floor copied from an example |
 | `zip_release` | makes HACS download a release **asset** rather than the tag's source archive, so it requires the `release.yml` caller |
 | `filename` | the name `release.yml` attaches — *The three workflows* in ha-integration-ci's README |
@@ -318,9 +324,10 @@ Commits form* in `reference/commits.md` gives, then `git push -u origin main`.
 1. Create the release token, as *Step 1: Generate a fine-grained PAT* in `reference/github-setup.md` says.
 2. From the repo root, run `bash scripts/bootstrap_repo.sh "<the Step 1 description>"`, and paste the token when it asks.
 3. Fix anything it reports as missing or not done, then run it again.
+4. Re-run the `HACS Validation` workflow from the Actions tab: the Step 9 push ran it before these settings existed.
 
-**Timing:** after Step 9 — the ruleset requires eight checks on `main` even when a push
-creates the branch, so applied first it refuses that push.
+**Timing:** after Step 9 — the ruleset's required checks apply even to the push that creates
+`main`, so applied first it refuses that push.
 
 ## Cases
 
@@ -362,10 +369,10 @@ shape a reader could see in the source is gone.
 
 ### A repository adopting the stack carries ruff exclusions — Step 6
 
-The stack lints and formats the whole tree — why is the `python-validate.yml` bullet under
-*Implementation notes* in ha-integration-ci's README — and `templates/pyproject.toml`
-excludes nothing, so anything kept out of ruff's sight becomes visible the moment the
-repository adopts that file.
+The stack lints and formats the whole tree, for the reason the `python-validate.yml` bullet
+under *Implementation notes* in ha-integration-ci's README gives, and
+`templates/pyproject.toml` excludes nothing. Anything kept out of ruff's sight is linted once
+the repository adopts that file.
 
 **Fix:** drop the exclusions and format what they were hiding as its own `style:` commit,
 before the migration.
