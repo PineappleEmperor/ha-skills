@@ -25,8 +25,8 @@ router.
 
 ## Findings not planted by the scenario
 
-- **A matches two triage rows.** Reps noted that "every entity went unavailable" also fits the
+- **A matches two triage rows.** Most reps noted that "every entity went unavailable" also fits the
   Connection row; every rep chose *Unexpected reply* on the quoted log line, and both rows
   name `patterns.md`.
-- **C has a decoy that held.** Reps noted that `ha-triage`'s Panel row and `ha-integration`'s
+- **C has a decoy that held.** Several reps noted that `ha-triage`'s Panel row and `ha-integration`'s
   Panel row both mention panels; every rep routed C to `panel-design.md`.
