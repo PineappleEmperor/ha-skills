@@ -229,7 +229,7 @@ among them:
 | what a new repository changes in a copy | nothing, except the fixtures `tests/conftest.py` gains as the tests are written, and in a panel repository the `frontend/package.json` and `requirements.test.txt` rows of *Step 4: Apply only the sanctioned adaptations* in `reference/github-actions.md` |
 | `.github/dependabot.yml` | copied unchanged; GitHub needs nothing switched on for it |
 | a copy that relaxes `pyproject.toml`'s ruff or pytest tables | drift |
-| enabling the commit hook | the `CLAUDE.md` snippet in Step 7; in this clone `bootstrap_repo.sh` sets it at Step 10, after the first commit, which the guard on `main` would otherwise refuse |
+| enabling the commit hook | the `core.hooksPath` setting the `CLAUDE.md` snippet in Step 7 gives; in this clone `bootstrap_repo.sh` sets it at Step 10, after the first commit, which the guard on `main` would otherwise refuse |
 | enabling the local hooks | install `pre-commit`; the same `core.hooksPath` setting runs the wrapper, and `pre-commit install` refuses to run while that setting is in place |
 | what prettier leaves alone | Markdown, as core leaves it; and `.github/`, `ruleset.json` and a built panel bundle, so a copied or built file stays identical to its source |
 | omitting `.gitignore` | a local `pytest` plus a `git add -A` tracks `.pyc` files, which *What the audit checks now* in ha-integration-ci's README fails a repository for |
