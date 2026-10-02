@@ -1,8 +1,8 @@
 # Scaffolding an integration
 
-Scope: starting a new integration repository, through its first release — what to ask, what to
-write, and in what order. The code that goes inside the generated files is
-`reference/patterns.md`.
+Scope: starting a new integration repository, or finishing one that has not released yet from
+the first step it lacks, through its first release — what to ask, what to write, and in what
+order. The code that goes inside the generated files is `reference/patterns.md`.
 
 **Core rule:** every file is generated from the Step 1 answers or copied from `templates/`.
 Nothing here is authored from memory.
@@ -316,13 +316,13 @@ Run *Lint & quality check* in `SKILL.md`, and fix what it finds before the first
 
 ### Step 9: Set the repository up on GitHub
 
-After the first push, *`RELEASE_TOKEN` — set this up before the first release* in
-`reference/github-setup.md`, then *Make the checks required — a workflow is not a gate until it
-can block a merge* in `reference/github-setup.md`.
+Every item of `reference/github-setup.md`, in its order.
+
+**Timing:** after the first push.
 
 ### Step 10: Cut the first release
 
-Once the required checks are green on `main`: *Cutting a release* in `reference/versioning.md`.
+*Cutting a release* in `reference/versioning.md`.
 
 ## Cases
 
