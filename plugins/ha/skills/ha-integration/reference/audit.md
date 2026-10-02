@@ -29,13 +29,14 @@ its source, and never runs the repo's tests.**
 
 ### Step 1: Callers, not bodies; copies, not paraphrases
 
-`reference/github-actions.md`, checked per file.
+*Step 2: Take each file from its source* in `reference/github-actions.md`, checked per
+file.
 
 | Rule | Value |
 |---|---|
 | a workflow the scaffold carries | either a caller matching its README block with the tokens resolved, or a copy matching this skill's `templates/` |
 | where `templates/` is | *Step 1: Locate `templates/`* in `reference/github-actions.md` |
-| every difference from the source | in that file's sanctioned-adaptations table, or it is a finding |
+| every difference from the source | in *Step 4: Apply only the sanctioned adaptations* in `reference/github-actions.md`, or it is a finding |
 | what the mechanical audit checks | *What the audit checks now* in ha-integration-ci's README |
 | `.github/` and `scripts/` | scan for extras the template does not have |
 

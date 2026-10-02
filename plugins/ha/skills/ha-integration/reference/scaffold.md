@@ -158,8 +158,8 @@ install with `Could not download`.
 
 | Rule | Value |
 |---|---|
-| authored or copied | copied, never authored — `reference/github-actions.md` |
-| which files, and where each comes from | the table in `reference/github-actions.md` |
+| authored or copied | copied, never authored — *Step 2: Take each file from its source* in `reference/github-actions.md` |
+| which files, and where each comes from | the table under *Step 2: Take each file from its source* in `reference/github-actions.md` |
 | a caller block | the CI repository's README block with its `{{sha}} # {{tag}}` tokens resolved |
 | `panel-bundle.yml` and `frontend/` | only an integration that serves a panel — `reference/panels.md` |
 | leaving it to last | not optional: every missing file is its own audit failure on the first run |
@@ -285,8 +285,9 @@ other order.
 
 ### Step 7: Pass HACS validation
 
-Each `hacs/action` check below is ignorable via its `ignore:` input; the scaffold never uses
-it, and `reference/github-actions.md` has the workflow contract. Listing in `hacs/default`
+Each `hacs/action` check below is ignorable via its `ignore:` input; how the scaffold's
+workflow sets it is the `hacs-validate.yml` row under *Step 2: Take each file from its
+source* in `reference/github-actions.md`. Listing in `hacs/default`
 requires the action to pass with no errors **and no ignores**, so every row is required.
 
 | Check | What's needed | Where to fix |

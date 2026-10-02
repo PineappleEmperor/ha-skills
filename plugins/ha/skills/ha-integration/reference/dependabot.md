@@ -71,5 +71,5 @@ why), and can drag the Python floor with it.
 The callers carry no stored pin anywhere but your repo, so there is nothing to regress. The
 four plain workflows have a template, so re-copying one can move its pin *backwards*.
 
-**Fix:** diff before overwriting and keep the newer pin, the listed adaptation in
-`reference/github-actions.md`.
+**Fix:** diff before overwriting, then apply the plain-workflows row of *Step 4: Apply only
+the sanctioned adaptations* in `reference/github-actions.md`.

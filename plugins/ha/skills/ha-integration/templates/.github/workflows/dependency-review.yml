@@ -1,6 +1,7 @@
 name: Dependency Review
 
-# Documented in the ha-integration skill's reference/github-actions.md.
+# Documented under *Step 2: Take each file from its source* in the ha-integration
+# skill's reference/github-actions.md.
 on:
   pull_request:
 
