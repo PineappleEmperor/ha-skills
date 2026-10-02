@@ -123,10 +123,9 @@ job itself; `Dependency review` is `dependency-review.yml`'s.
 
 | file | when to read |
 |---|---|
-| *Step 2: Take each file from its source* in `reference/github-actions.md` | placing `dependency-review.yml` and `issue_stale.yml`, which are two of the four plain workflows it describes |
+| *Step 2: Take each file from its source* in `reference/github-actions.md` | placing `dependency-review.yml` and `issue_stale.yml`, and which mutable refs `hacs-validate.yml` and `hassfest-validate.yml` keep |
 | *The version model* in ha-integration-ci's README | pinning a release of a CI repository |
 | *What the audit checks now* in ha-integration-ci's README | checking a `uses:` line, in a caller or a step, and the two refs the audit exempts |
-| `reference/freshness.md` | asking what those two mutable refs cost and how the cost is capped |
 | `reference/dependabot.md` | asking what keeps the pins moving |
 
 ## Cases

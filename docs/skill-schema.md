@@ -73,7 +73,7 @@ its own, so there is no single-file skill and no third section order.
 | 5 | cases | `## Cases`, then `### <case> — Step N` per case |
 
 **A section that is only pointers is a reference table**, not a procedure and not a case —
-`github-setup.md`'s *Supply chain* is five pointers and one fact, and `file | when to read`
+`github-setup.md`'s *Supply chain* is four pointers, and `file | when to read`
 is what that shape is for.
 
 **A case is a heading, not a bold label.** The reference implementation labels its deltas in

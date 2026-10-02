@@ -77,8 +77,8 @@ carry nothing of ours to version:
 | Rule | Value |
 |---|---|
 | `dependency-review.yml` | fails a PR adding a dependency with a high-severity advisory, and gates no lower severity, since Dependabot raises those on its own schedule; needs the dependency graph on, per *`Dependency review` is red on every PR — checks Step 3* in `reference/github-setup.md` |
-| `hacs-validate.yml` | runs HACS's ten checks with no `ignore:` input — *Step 7: Pass HACS validation* in `reference/scaffold.md` says what each demands |
-| `hassfest-validate.yml` | runs core's hassfest plugins over the integration; what it does with a custom integration's quality scale is *Step 4: Claim the tier in the manifest only once it is fully met* in `reference/quality-scale.md` |
+| `hacs-validate.yml` | runs HACS's ten checks with no `ignore:` input — *Step 7: Pass HACS validation* in `reference/scaffold.md` says what each demands; stays on `hacs/action@main`, the ref HACS documents, never a SHA, with `contents: read` and `persist-credentials: false` kept |
+| `hassfest-validate.yml` | runs core's hassfest plugins over the integration; what it does with a custom integration's quality scale is *Step 4: Claim the tier in the manifest only once it is fully met* in `reference/quality-scale.md`; stays on `hassfest@master`, the ref Home Assistant documents, never a SHA, with `contents: read` and `persist-credentials: false` kept |
 | `issue_stale.yml` | labels issues and PRs untouched for 60 days, and closes none |
 
 ### Step 3: Resolve each caller's pin

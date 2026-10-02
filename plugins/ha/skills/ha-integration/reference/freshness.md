@@ -23,6 +23,6 @@ in a consumer, and a rule written from a newer release than it names is not curr
 | Local hook pins | ruff at the mypy and ruff row's pin · codespell `v2.4.3` · pre-commit-hooks `v6.0.0` · yamllint `v1.38.0` · prettier `3.6.2` with prettier-plugin-sort-json `4.2.0`, as core's `.pre-commit-config.yaml` pins them at the `.0` tag of the release row's value | 2026-09-27 | core's `.pre-commit-config.yaml`, `.yamllint`, `.prettierrc.js` and `.prettierignore` at the new tag | `templates/.pre-commit-config.yaml`, `templates/.yamllint`, `templates/.prettierrc.js`, `templates/.prettierignore` · a consumer's copies | none |
 | Panel design sources | the frontend's `src/resources/theme/` (`color/color.globals.ts`, `typography.globals.ts`) · the *Supported theme variables* section of the `frontend` integration page · the two m3.material.io pages | 2026-09-12 for the HA sources; the Material pages were not fetched | `gh api repos/home-assistant/frontend/contents/src/resources/theme --jq '.[].name'` · the headings of `source/_integrations/frontend.markdown` in `home-assistant/home-assistant.io` | the source list under *Step 1: Fetch before deciding sizes or tokens* in `reference/panel-design.md` · the Panel design row of `SKILL.md` | none |
 
-> **Note:** `hacs/action@main` and `home-assistant/actions/hassfest@master` are on mutable
-> refs deliberately, and the audit exempts them — *What the audit checks now* in
-> ha-integration-ci's README.
+> **Note:** `hacs/action@main` and `home-assistant/actions/hassfest@master` are mutable by
+> design — *Step 2: Take each file from its source* in `reference/github-actions.md` — and
+> exempt from the audit — *What the audit checks now* in ha-integration-ci's README.
