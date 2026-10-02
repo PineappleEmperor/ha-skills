@@ -53,7 +53,7 @@ folder and the manifest's `domain` key, and every config entry is stored under i
 | the user already has a folder | work in it, renamed to the Step 1 repository name if the two differ; `git init` if it is not a repository yet |
 | no folder yet | `mkdir <repository>`, then `git init` inside it |
 | no GitHub repository yet | `gh repo create <repository> --public --description "<the Step 1 description>" --source . --remote origin`, from inside the folder |
-| an empty GitHub repository already exists | `git remote add origin <its URL>` |
+| an empty GitHub repository already exists, with no ruleset on `main` | `git remote add origin <its URL>` |
 
 ### Step 3: Write the integration package
 
