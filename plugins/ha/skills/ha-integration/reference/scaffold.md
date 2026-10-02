@@ -173,7 +173,7 @@ rest.
 | duplicating the icon at `logo.png` | ship only the icons | `icon.png` already serves that slot | *Using the same image for logo & icon* in the brands README |
 | padding a mark into a landscape canvas | trim, and ship it square | no rule requires a logo aspect ratio | *Image specification* and *Logo image requirements* in the brands README |
 | honouring a brand's clear-space guideline inside the PNG | trim, and let Home Assistant space it | that guideline governs placement in a UI, not the asset | *Image specification* in the brands README |
-| omitting `icon@2x.png` because the 1× is served | ship it | a HiDPI client renders 256px where it asked for 512 | *Icon image requirements* in the brands README |
+| omitting `icon@2x.png` because the 1× is served | ship it | a HiDPI client renders 256px where it asked for 512 | *Missing image handling* in the brands README |
 | dressing an integration up as an official one | your own mark | it is what the no-HA-branding rule protects against | *Image specification* in the brands README |
 | deriving a new mark from a brand's artwork | reproduce theirs, and meet any published usage terms | identification is the only permitted use | *Trademark Legal Notices* in the brands README |
 | PR-ing `home-assistant/brands` to fix a blank HACS tile | nothing — it is a HACS-side gap | `custom_integrations/*` PRs are auto-closed | the HACS dashboard row of `reference/freshness.md` |
@@ -227,7 +227,7 @@ among them:
 | what a new repository changes in a copy | nothing, except the fixtures `tests/conftest.py` gains as the tests are written, and in a panel repository the `frontend/package.json` and `requirements.test.txt` rows of *Step 4: Apply only the sanctioned adaptations* in `reference/github-actions.md` |
 | `.github/dependabot.yml` | copied unchanged; GitHub needs nothing switched on for it |
 | a copy that relaxes `pyproject.toml`'s ruff or pytest tables | drift |
-| enabling the commit hook | `git config core.hooksPath .githooks`, once per clone, as the `CLAUDE.md` snippet in Step 7 says; in this clone `bootstrap_repo.sh` sets it at Step 10, after the first commit, which the guard on `main` would otherwise refuse |
+| enabling the commit hook | the `CLAUDE.md` snippet in Step 7; in this clone `bootstrap_repo.sh` sets it at Step 10, after the first commit, which the guard on `main` would otherwise refuse |
 | enabling the local hooks | install `pre-commit`; the same `core.hooksPath` setting runs the wrapper, and `pre-commit install` refuses to run while that setting is in place |
 | what prettier leaves alone | Markdown, as core leaves it; and `.github/`, `ruleset.json` and a built panel bundle, so a copied or built file stays identical to its source |
 | omitting `.gitignore` | a local `pytest` plus a `git add -A` tracks `.pyc` files, which *What the audit checks now* in ha-integration-ci's README fails a repository for |
