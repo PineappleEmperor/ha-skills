@@ -31,7 +31,7 @@ Pick the mode from what is about to be done, then **read that mode's file before
 
 | Mode | When | Read first | Source |
 |---|---|---|---|
-| **Scaffold** | no `custom_components/`, or the user wants a new integration — what to ask, what to generate, the brand assets, manifest key order, HACS validation | `reference/scaffold.md` | Creating integrations: https://developers.home-assistant.io/docs/creating_integration_index/ · File structure: https://developers.home-assistant.io/docs/creating_integration_file_structure/ · Manifest: https://developers.home-assistant.io/docs/creating_integration_manifest/ |
+| **Scaffold** | no `custom_components/`, a new integration or a new repository for one, or setting up a repository that has not released yet — through its first release: what to ask, what to generate, the brand assets, manifest key order, HACS validation, the GitHub setup and the first release, in order | `reference/scaffold.md` | Creating integrations: https://developers.home-assistant.io/docs/creating_integration_index/ · File structure: https://developers.home-assistant.io/docs/creating_integration_file_structure/ · Manifest: https://developers.home-assistant.io/docs/creating_integration_manifest/ |
 | **Modify** | `custom_components/` exists and its package is being added to, changed or fixed — Python, `strings.json`, `services.yaml`, translations — including file structure and typing | `reference/patterns.md` | Config entries: https://developers.home-assistant.io/docs/config_entries_index/ · Config flows: https://developers.home-assistant.io/docs/config_entries_config_flow_handler/ · Data fetching + coordinator: https://developers.home-assistant.io/docs/integration_fetching_data/ · Setup failures: https://developers.home-assistant.io/docs/integration_setup_failures/ · Blocking operations: https://developers.home-assistant.io/docs/asyncio_blocking_operations/ · Real examples: https://github.com/home-assistant/core/tree/dev/homeassistant/components |
 | **Manifest** | adding or changing a `manifest.json` key | `reference/scaffold.md` | Manifest: https://developers.home-assistant.io/docs/creating_integration_manifest/ |
 | **Panel** | building or fixing an integration that serves a panel — how it is built and served; how it looks is the Panel design row | `reference/panels.md` | — |
@@ -44,8 +44,8 @@ Pick the mode from what is about to be done, then **read that mode's file before
 | **Merge** | a check is red, or a merge is about to happen | `reference/discipline.md` | — |
 | **Workflow** | writing or reviewing a workflow file, and what may differ from its source | `reference/github-actions.md` | — |
 | **Dependabot** | configuring or debugging Dependabot, including the callers' pins and what it cannot reach | `reference/dependabot.md` | — |
-| **Release** | cutting or gating a release, including an rc, or touching the version in `manifest.json`, once the repository has released before; one that never has starts at Repo setup | `reference/versioning.md` | — |
-| **Repo setup** | a repository that has never released, or configuring the repository on GitHub: token, required checks, dependency graph, supply chain | `reference/github-setup.md` | — |
+| **Release** | cutting or gating a release, including an rc, or touching the version in `manifest.json` | `reference/versioning.md` | — |
+| **Repo setup** | configuring the repository on GitHub: token, required checks, dependency graph, supply chain | `reference/github-setup.md` | — |
 | **Audit** | auditing a repository against this skill | `reference/audit.md` | — |
 | **Currency** | acting on a pin, SHA, count or Home Assistant release number, or asking whether a cached value is still true | `reference/freshness.md` | What a release changed or deprecated: https://developers.home-assistant.io/blog/ |
 

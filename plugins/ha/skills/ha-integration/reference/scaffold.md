@@ -1,7 +1,8 @@
 # Scaffolding an integration
 
-Scope: starting a new integration repository — what to ask, and what to write. The code that
-goes inside the generated files is `reference/patterns.md`.
+Scope: starting a new integration repository, through its first release — what to ask, what to
+write, and in what order. The code that goes inside the generated files is
+`reference/patterns.md`.
 
 **Core rule:** every file is generated from the Step 1 answers or copied from `templates/`.
 Nothing here is authored from memory.
@@ -17,10 +18,12 @@ Nothing here is authored from memory.
 7. Step 6: Order `manifest.json`
 8. Step 7: Pass HACS validation
 9. Step 8: Run the checks
-10. Cases
-11. Alignment a human chose meets `ruff format` — Step 2
-12. A repository adopting the stack carries ruff exclusions — Step 3
-13. Reference
+10. Step 9: Set the repository up on GitHub
+11. Step 10: Cut the first release
+12. Cases
+13. Alignment a human chose meets `ruff format` — Step 2
+14. A repository adopting the stack carries ruff exclusions — Step 3
+15. Reference
 
 ## The scaffold
 
@@ -310,6 +313,16 @@ are GitHub settings rather than files, so they fail silently until the first
 ### Step 8: Run the checks
 
 Run *Lint & quality check* in `SKILL.md`, and fix what it finds before the first commit.
+
+### Step 9: Set the repository up on GitHub
+
+After the first push, *`RELEASE_TOKEN` — set this up before the first release* in
+`reference/github-setup.md`, then *Make the checks required — a workflow is not a gate until it
+can block a merge* in `reference/github-setup.md`.
+
+### Step 10: Cut the first release
+
+Once the required checks are green on `main`: *Cutting a release* in `reference/versioning.md`.
 
 ## Cases
 
