@@ -437,6 +437,56 @@ def test_a_pointer_wrapped_inside_a_note_block_is_still_read(tmp_path) -> None:
     assert audit.check_named_sections(audit.Repo(tmp_path)) == ([], [])
 
 
+def test_a_template_comment_and_a_backticked_heading_are_read(tmp_path) -> None:
+    """A template's header comment and a heading opening with a backtick were both skipped."""
+    _skill(
+        tmp_path,
+        "ha-thing",
+        "name: ha-thing\ndescription: Use when doing a thing",
+        body="See *`Dependency review` is red — Step 3* in `reference/setup.md`.\n",
+    )
+    skill = tmp_path / "plugins/ha/skills/ha-thing"
+    (skill / "reference").mkdir(exist_ok=True)
+    wfs = skill / "templates/.github/workflows"
+    wfs.mkdir(parents=True)
+    (wfs / "hacs.yml").write_text(
+        "name: H\n\n# Documented under *Step 2: Take each file* in the ha-thing\n"
+        "# skill's reference/actions.md.\non: {}\n"
+    )
+    (skill / "templates/hook.sh").write_text(
+        "cat <<'MSG'\n  only what *Step 4: Apply only the\n     sanctioned list* in\n"
+        "     reference/actions.md lists\nMSG\n"
+    )
+    # Wrapped inside the name and after `in`, each continuation opening with `# `.
+    (wfs / "pin.yml").write_text(
+        "# Documented under *Step 5: Keep\n# the pin* in\n"
+        "# the ha-thing skill's reference/actions.md.\non: {}\n"
+    )
+    # Another skill pointing into this one resolves against this one.
+    _skill(
+        tmp_path,
+        "ha-other",
+        "name: ha-other\ndescription: Use when doing another thing",
+        body="Per *Step 2: Take each file* in the ha-thing skill's reference/actions.md.\n",
+    )
+    (skill / "reference/setup.md").write_text("# S\n\n## Something else\n")
+    (skill / "reference/actions.md").write_text("# A\n\n## Something else\n")
+    fails, _ = audit.check_named_sections(audit.Repo(tmp_path))
+    assert any("'`dependency review` is red — step 3'" in f for f in fails)
+    assert any("'step 2: take each file'" in f for f in fails)
+    assert any("'step 4: apply only the sanctioned list'" in f for f in fails)
+    assert any("'step 5: keep the pin'" in f for f in fails)
+
+    (skill / "reference/setup.md").write_text(
+        "# S\n\n### `Dependency review` is red — Step 3\n"
+    )
+    (skill / "reference/actions.md").write_text(
+        "# A\n\n### Step 2: Take each file\n\n### Step 4: Apply only the sanctioned list\n"
+        "\n### Step 5: Keep the pin\n"
+    )
+    assert audit.check_named_sections(audit.Repo(tmp_path)) == ([], [])
+
+
 def test_a_required_context_documented_nowhere_fails(tmp_path) -> None:
     """`Dependency review` was required by the ruleset and named in no reference file."""
     _skill(tmp_path, "ha-thing", "name: ha-thing\ndescription: Use when doing a thing")

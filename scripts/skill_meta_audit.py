@@ -290,20 +290,35 @@ def check_named_sections(repo: Repo) -> Result:
 
     It reads only the `*Name* in `file.md`` form. A citation that names its file first is
     not mechanically separable from ordinary emphasis following a file mention, so that
-    shape is a reading rather than a check.
+    shape is a reading rather than a check. Every file under `templates/` is read too: a
+    template's pointer sits in a comment or a heredoc, may wrap onto a `# ` or indented
+    line at any word, and names its file as "the <skill> skill's reference/<file>", which
+    resolves against that skill.
     """
     fails = []
     ref = re.compile(
-        r"\*([A-Z][^*]{3,80}?)\* in [`\[]+(?:reference/)?([A-Za-z0-9._-]+\.md)"
+        r"\*([A-Z`][^*]{3,80}?)\*[\s#]+in[\s#]+(?:the[\s#]+([\w-]+)[\s#]+skill's[\s#]+)?"
+        r"[`\[]*(?:reference/)?([A-Za-z0-9._-]+\.md)"
     )
     for manifest in sorted(repo.root.glob("plugins/*/skills/*/SKILL.md")):
         skill = manifest.parent
-        for doc in sorted(skill.rglob("*.md")):
-            if "evals" in doc.parts or "templates" in doc.parts:
+        docs = [
+            doc
+            for doc in sorted(skill.rglob("*.md"))
+            if "evals" not in doc.parts and "templates" not in doc.parts
+        ]
+        docs += sorted(p for p in (skill / "templates").rglob("*") if p.is_file())
+        for doc in docs:
+            try:
+                text = doc.read_text()
+            except UnicodeDecodeError:
                 continue
-            for section, target in ref.findall(doc.read_text()):
+            for section, named, target in ref.findall(text):
+                owner = skill.parent / named if named else skill
                 path = (
-                    skill / "reference" / target if target != "SKILL.md" else manifest
+                    owner / "reference" / target
+                    if target != "SKILL.md"
+                    else owner / "SKILL.md"
                 )
                 if not path.is_file():
                     fails.append(f"{doc.name} points at {target}, which does not exist")
@@ -313,9 +328,9 @@ def check_named_sections(repo: Repo) -> Result:
                     for line in path.read_text().splitlines()
                     if line.startswith("#")
                 }
-                # A name that wraps inside a `> **Note:**` carries the blockquote marker
-                # of its second line, which belongs to the block and not to the heading.
-                unwrapped = re.sub(r"\n\s*>\s*", "\n", section)
+                # A name that wraps inside a `> **Note:**` or a `# ` comment carries the
+                # marker of its second line, which belongs to the block, not the heading.
+                unwrapped = re.sub(r"\n\s*[>#]?\s*", "\n", section)
                 wanted = re.sub(r"\s+", " ", unwrapped).strip().lower()
                 if wanted not in headings:
                     fails.append(
