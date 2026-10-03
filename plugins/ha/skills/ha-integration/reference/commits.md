@@ -88,9 +88,9 @@ No job writes it, and the draft PR arrives empty.
 
 ### Step 2: Leave the release description to the workflow
 
-`release-drafter.yml` rewrites the release body from the commit subjects on every push to
-`main` and again when the release publishes, so text typed into a release description is
-lost. What a reader of the release should learn goes in the commit subjects.
+Text typed into a draft release is lost: `release-drafter.yml` rewrites the body, as the
+section above says. What a reader of the release should learn goes in the commit subjects.
+The body has one writer — *What the audit checks now* in ha-integration-ci's README.
 
 ### Step 3: Post no comment on the PR by default
 
