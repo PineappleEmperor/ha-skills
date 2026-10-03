@@ -63,18 +63,18 @@ grep -oE "(ERROR|WARNING|CRITICAL) \([^)]+\) \[[^]]+\]" LOG \
   | sed -E 's/ \([^)]+\)//' | sort | uniq -c | sort -rn
 # 2. tracebacks, which the first count gives to their header line alone
 grep -c "^Traceback" LOG
-# 3. which integrations are named, by path, by logger or in the text of a core line
-grep -oE "custom(_components[./]| integration '?)[a-z0-9_]+" LOG | sort | uniq -c | sort -rn
+# 3. which integrations are named, by path, by logger, in the text of a core line, or as a platform
+grep -oE "custom(_components[./]| integration '?)[a-z0-9_]+|Platform [a-z0-9_]+ does not|[a-z0-9_]+ raises exception" LOG | sort | uniq -c | sort -rn
 # 4. one integration, with the lines after each hit
-grep -n -A 25 -E "custom_components[./]<domain>|custom integration '?<domain>" LOG
+grep -n -A 25 -E "custom_components[./]<domain>|custom integration '?<domain>|Platform <domain> |<domain> raises exception" LOG
 ```
 
 | Rule | Value |
 |---|---|
 | where each quoted line was read | core at the `.0` tag of the release row in `ha-integration/reference/freshness.md`, in the file the Source column names |
-| `We found a custom integration <domain> which has not been tested by Home Assistant` | not a fault: logged at each start for every directory under `custom_components/` that holds a `manifest.json`, configured or not |
+| `We found a custom integration <domain> which has not been tested by Home Assistant` | not a fault: logged at each start for every directory under `custom_components/` whose `manifest.json` parses, configured or not; not logged in safe or recovery mode |
 | a line at INFO, such as `Config entry '<title>' for <domain> integration not ready yet … Retrying in <n> seconds` | absent from the log unless Home Assistant runs verbose or the `logger` integration lowers the level, since the root logger sits at WARNING; read the entry's state on the integrations page |
-| a line that names no custom integration — by `custom_components` in its logger or traceback, or by `custom integration '<domain>'` in its text | not this skill's — an automation, a core integration or an add-on |
+| a line that names no custom integration — by `custom_components` in its logger or traceback, by `custom integration '<domain>'` in its text, or by its domain as the platform, as the Raised too late and Entities duplicated lines do | not this skill's — an automation, a core integration or an add-on |
 | a traceback | classed by the core line above it, and located by its last `custom_components/<domain>/` frame |
 
 **Timing:** run the first command before reading any line, since a raw count is what
