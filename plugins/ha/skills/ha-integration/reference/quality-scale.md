@@ -76,9 +76,10 @@ Each of these needs its own test, not just the code:
 - `diagnostics` — asserts the payload shape **and** that secrets are `**REDACTED**`
 - `stale-devices` — `async_remove_config_entry_device` → `False` while the device is live,
   `True` once it's gone
-- `exception-translations` / `entity-translations` / `icon-translations` — a test that
-  scrapes the `translation_key`s used in code and asserts each exists in `strings.json`,
-  which catches a typo'd key that hassfest passes
+- `exception-translations` / `entity-translations` — a test that scrapes the
+  `translation_key`s used in code and asserts each exists in `strings.json`, which catches a
+  typo'd key that hassfest passes
+- `icon-translations` — the same test against `icons.json`, where icon translations live
 
 A runtime rule no test can reach is `exempt` with a comment, not an unproven `done`; a rule
 proved by reading is never `exempt` for want of a test.
@@ -106,6 +107,6 @@ proved by reading is never `exempt` for want of a test.
 |---|---|
 | `appropriate-polling` | exempt — the device pushes, so nothing polls |
 | `reauthentication-flow` | exempt — no integration-level auth to renew |
-| `inject-websession` | exempt — no cloud HTTP |
+| `inject-websession` | exempt — it makes no HTTP requests |
 | `dynamic-devices` | exempt — one device per entry |
-| `async-dependency` | `todo`, never exempt — the rule's page allows no exception, and a sync library run in the executor does not meet it |
+| `async-dependency` | `todo` while the library is sync — the rule's one exception is a dependency that does no I/O, and a sync library run in the executor does not meet the rule |
