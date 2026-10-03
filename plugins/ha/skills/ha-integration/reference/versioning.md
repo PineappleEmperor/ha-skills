@@ -2,8 +2,7 @@
 
 Read this when cutting or gating a release.
 
-**The release tag is the version: `release.yml` writes it into the manifest at publish, and
-the committed value is a placeholder no PR changes.**
+**The release tag is the version.**
 
 ## Contents
 
