@@ -1,8 +1,9 @@
 # Setting the repository up on GitHub
 
-Read this when configuring a repository on GitHub: the release token, the required checks and the dependency graph.
+Read this when configuring a repository on GitHub: the release token, the required checks, the dependency graph and the supply chain.
 
-**Each item here is a GitHub setting, which no file in the repository applies on its own.**
+**The token, the ruleset and the dependency graph are GitHub settings, which no file in the
+repository applies on its own.**
 
 ## Contents
 
