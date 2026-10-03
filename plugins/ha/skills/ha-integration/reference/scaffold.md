@@ -150,7 +150,7 @@ rest.
 | `dark_icon.png`, `dark_icon@2x.png` | as the icons | the icon is unreadable on a dark ground |
 | `dark_logo.png`, `dark_logo@2x.png` | as the logos | the logo is unreadable on a dark ground |
 
-**What an absent file serves instead, tried in order — `IMAGE_FALLBACKS` in core's `homeassistant/components/brands/const.py`, at the `.0` tag of the release row in `reference/freshness.md`:**
+**What an absent file serves instead, tried in order — `IMAGE_FALLBACKS` in core's `homeassistant/components/brands/const.py`, and past the chain `BrandsIntegrationView.get` in `__init__.py` beside it, at the `.0` tag of the release row in `reference/freshness.md`:**
 
 - `logo.png` → `icon.png`
 - `icon@2x.png` → `icon.png`
