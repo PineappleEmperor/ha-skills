@@ -1,7 +1,6 @@
 # Commit, PR and merge discipline
 
-Read this when a check is red, or before naming a root cause. Commit and PR-body format is
-`reference/commits.md`.
+Read this when a check is red, or before naming a root cause.
 
 **A failing check is the gate working. Merging past it is not a judgement call.**
 
@@ -75,5 +74,5 @@ next PR, where the fixed caller runs as `main`'s.
 
 ### An action hits more devices than it should — debugging Step 2
 
-**Fix:** suspect the fan-out first — the service-call shape that causes it is in
-`reference/patterns.md`.
+**Fix:** suspect the fan-out first — the "a call with no target" row of *Custom services —
+Step 1* in `reference/patterns.md`.
