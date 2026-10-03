@@ -1,10 +1,9 @@
 # Integrations that serve a custom panel
 
-Read this when building or fixing an integration that ships a Lit/TS panel. How the panel
-should *look* — type scale, colour, spacing, touch targets — is `reference/panel-design.md`.
+Read this when building or fixing an integration that ships a Lit/TS panel.
 
 **Register once per process, cache-bust the module URL, pin the frontend, and commit the
-built bundle — each of the four by hand, because no failure here raises.**
+built bundle.**
 
 ## Contents
 
@@ -21,10 +20,10 @@ built bundle — each of the four by hand, because no failure here raises.**
 
 ### Step 1: Build the bundle and commit it
 
-Run `npm run build` and commit the output into `custom_components/<domain>/panel/`: HACS
-ships the repository as-is, so the esbuild output has to be inside the package. The
-`frontend/` templates are *The frontend templates* in ha-panel-ci's README, and the
-`panel-bundle.yml` caller is *Calling the workflow* there.
+Run `npm run build` and commit the output into `custom_components/<domain>/panel/`; a
+checkout runs it, and the release zip rebuilds it — *The three workflows* in
+ha-integration-ci's README. The templates and the caller are *The frontend templates* and
+*Calling the workflow* in ha-panel-ci's README.
 
 **Timing:** rebuild and commit the bundle in the same PR as the source change; the built
 file is display-only and never hand-edited.
@@ -35,9 +34,6 @@ file is display-only and never hand-edited.
 **Symptom:** a stale committed bundle reads as "the fix I made isn't there" to whoever opens
 it; what the panel check does about one, and how to make that fail, is *Calling the workflow*
 in ha-panel-ci's README.
-
-> **Note:** the zip a user installs is built at publish, not taken from the commit —
-> *Implementation notes* in ha-integration-ci's README.
 
 ### Step 2: Pin `home-assistant-frontend` in `requirements.test.txt`
 
@@ -62,7 +58,7 @@ integration-global resources in `async_setup`, not `async_setup_entry` — Step 
 
 | Rule | Value |
 |---|---|
-| claim the registered flag in `hass.data` | before the `await`, or two entries setting up in parallel both register |
+| claim the registered flag in `hass.data` | before the `await`, or the second of two entries setting up in parallel fails with `ValueError: Overwriting panel <path> owned by <component>` — `async_register_built_in_panel` in core's `homeassistant/components/frontend/__init__.py`, at the `.0` tag of the release row in `reference/freshness.md` |
 | cache-bust the module URL with the integration version | otherwise a browser serves the previous panel after an update |
 
 Both traps are marked by their comments in the snippet:
@@ -113,7 +109,7 @@ Both traps are marked by their comments in the snippet:
 
 ### Step 4: Say whether the panel handles the safe area
 
-Custom panels and add-on iframes get safe-area padding by default, so content stays clear of
+Custom panels get safe-area padding by default, so content stays clear of
 notches, status bars and home indicators. Set the parameter either way rather than taking
 the default: a panel drawn edge-to-edge looks broken without the padding, and one that
 insets itself looks doubly inset with it.
@@ -123,7 +119,7 @@ insets itself looks doubly inset with it.
 | what it is | `handle_safe_area: bool = False`, a parameter of `panel_custom.async_register_panel`, which writes it into `config["_panel_custom"]` itself |
 | the YAML spelling | `handle_safe_area: true` under a `panel_custom:` entry — the same argument arriving through `async_setup` |
 | the compatibility floor | **2026.8.2** — absent from `homeassistant/components/panel_custom/__init__.py` at the `2026.8.0` and `2026.8.1` tags, present at `2026.8.2`, and read at `2026.9.0` for the behaviour described here |
-| an iframe-based panel | gets the resolved insets forwarded in as the `--safe-area-inset-top`/`-right`/`-bottom`/`-left` CSS variables instead |
+| an `embed_iframe` panel | padded by default; with `handle_safe_area` set, gets the insets injected into the iframe document instead — `ha-panel-custom.ts` in the frontend repository |
 
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
@@ -166,7 +162,7 @@ export function displayName(item: Pick<Set, "name">): string { ... }   // "{?}" 
 |---|---|
 | the runner | `vitest`, which ha-panel-ci's `frontend/package.json` ships with a `test` script — where the test files go is *The frontend templates* in its README |
 | what it costs users | nothing: `frontend/` is not in the release zip, per *The three workflows* in ha-integration-ci's README |
-| `callService` | takes `Record<string, unknown>`, so omitting a `vol.Required` field type-checks cleanly and fails at runtime in the browser |
+| `callService` | takes `Record<string, any>`, so omitting a `vol.Required` field type-checks cleanly and fails at runtime in the browser |
 
 ## Cases
 
