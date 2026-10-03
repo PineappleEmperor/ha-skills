@@ -205,18 +205,31 @@ def check_skill_frontmatter(repo: Repo) -> Result:
             fails.append(f"{skill.parent.name}/SKILL.md has no frontmatter block")
             continue
         fm = parts[1]
-        fields = dict(re.findall(r"^([a-z-]+):\s*(.*)$", fm, re.MULTILINE))
-        if "name" not in fields:
+        # The block is YAML, so it is judged as YAML: the schema's TRIGGER/SYMPTOMS form
+        # needs a `>-` block scalar, and a line regex read the indicator as the text.
+        try:
+            fields = yaml.safe_load(fm) or {}
+        except yaml.YAMLError as exc:
+            fails.append(f"{skill.parent.name}/SKILL.md frontmatter is not YAML: {exc}")
+            continue
+        if not isinstance(fields, dict):
+            fails.append(f"{skill.parent.name}/SKILL.md frontmatter is not a mapping")
+            continue
+        name = fields.get("name")
+        if name is None:
             fails.append(f"{skill.parent.name}/SKILL.md frontmatter has no name field")
-        elif fields["name"].strip() != skill.parent.name:
+        elif str(name).strip() != skill.parent.name:
             fails.append(
-                f"{skill.parent.name}/SKILL.md name field is {fields['name'].strip()!r}"
+                f"{skill.parent.name}/SKILL.md name field is {str(name).strip()!r}"
             )
-        if "description" not in fields:
+        description = fields.get("description")
+        if description is None:
             fails.append(
                 f"{skill.parent.name}/SKILL.md frontmatter has no description field"
             )
-        elif not fields["description"].lstrip().startswith("Use when"):
+        elif not isinstance(description, str):
+            fails.append(f"{skill.parent.name}/SKILL.md description is not a string")
+        elif not description.lstrip().startswith("Use when"):
             fails.append(
                 f"{skill.parent.name}/SKILL.md description must start with 'Use when' "
                 "and state triggers, not what the skill does"
@@ -266,34 +279,62 @@ def check_reference_links(repo: Repo) -> Result:
 def check_named_sections(repo: Repo) -> Result:
     """A pointer to a *section* by name is invisible to a link check.
 
-    Three of this skill's worst defects were cross-references of the form
-    "*Merge discipline* in `SKILL.md`" pointing at a heading that had moved. The link
-    check passed throughout, because the file existed — only the section did not.
+    A cross-reference of the form "*Merge discipline* in `SKILL.md`" passes a link check
+    whenever the file exists, however far the heading has moved.
+
+    The match is VERBATIM, which is what `docs/skill-schema.md` asks under *Pointers* and
+    what an anchor needs: a substring test passes a citation naming only the head of a
+    heading, which stops resolving the moment that heading gains a suffix. The name may
+    also wrap, since these files are wrapped at 100 columns, so the pattern has to cross a
+    newline to see one.
+
+    It reads only the `*Name* in `file.md`` form. A citation that names its file first is
+    not mechanically separable from ordinary emphasis following a file mention, so that
+    shape is a reading rather than a check. Every file under `templates/` is read too: a
+    template's pointer sits in a comment or a heredoc, may wrap onto a `# ` or indented
+    line at any word, and names its file as "the <skill> skill's reference/<file>", which
+    resolves against that skill.
     """
     fails = []
     ref = re.compile(
-        r"\*([A-Z][^*\n]{3,60}?)\* in [`\[]+(?:reference/)?([A-Za-z0-9._-]+\.md)"
+        r"\*([A-Z`][^*]{3,80}?)\*[\s#]+in[\s#]+(?:the[\s#]+([\w-]+)[\s#]+skill's[\s#]+)?"
+        r"[`\[]*(?:reference/)?([A-Za-z0-9._-]+\.md)"
     )
     for manifest in sorted(repo.root.glob("plugins/*/skills/*/SKILL.md")):
         skill = manifest.parent
-        for doc in sorted(skill.rglob("*.md")):
-            if "evals" in doc.parts or "templates" in doc.parts:
+        docs = [
+            doc
+            for doc in sorted(skill.rglob("*.md"))
+            if "evals" not in doc.parts and "templates" not in doc.parts
+        ]
+        docs += sorted(p for p in (skill / "templates").rglob("*") if p.is_file())
+        for doc in docs:
+            try:
+                text = doc.read_text()
+            except UnicodeDecodeError:
                 continue
-            for section, target in ref.findall(doc.read_text()):
+            for section, named, target in ref.findall(text):
+                owner = skill.parent / named if named else skill
                 path = (
-                    skill / "reference" / target if target != "SKILL.md" else manifest
+                    owner / "reference" / target
+                    if target != "SKILL.md"
+                    else owner / "SKILL.md"
                 )
                 if not path.is_file():
                     fails.append(f"{doc.name} points at {target}, which does not exist")
                     continue
-                headings = [
+                headings = {
                     line.lstrip("# ").strip().lower()
                     for line in path.read_text().splitlines()
                     if line.startswith("#")
-                ]
-                if not any(section.strip().lower() in h for h in headings):
+                }
+                # A name that wraps inside a `> **Note:**` or a `# ` comment carries the
+                # marker of its second line, which belongs to the block, not the heading.
+                unwrapped = re.sub(r"\n\s*[>#]?\s*", "\n", section)
+                wanted = re.sub(r"\s+", " ", unwrapped).strip().lower()
+                if wanted not in headings:
                     fails.append(
-                        f"{doc.name} points at '{section}' in {target}, "
+                        f"{doc.name} points at '{wanted}' in {target}, "
                         "which has no such heading"
                     )
     return fails, []
@@ -420,7 +461,13 @@ def check_document_integrity(repo: Repo) -> Result:
                 # a heading whose section has no body
                 if re.match(r"^#{2,3} ", line):
                     nxt = next((rest for rest in lines[i + 1 :] if rest.strip()), "")
-                    if nxt.startswith("#") or not nxt:
+                    # A `##` that introduces its own `###` subsections carries no body
+                    # of its own, and `docs/skill-schema.md` requires exactly that of
+                    # `## Cases` and of a procedure heading over its `### Step N:`. Any
+                    # other heading running straight into another, or ending the file,
+                    # is the debris this looks for.
+                    introduces = line.startswith("## ") and nxt.startswith("### ")
+                    if not nxt or (nxt.startswith("#") and not introduces):
                         fails.append(
                             f"{rel}:{i + 1} heading {line.strip('# ')!r} has no body"
                         )
@@ -436,11 +483,15 @@ def check_document_integrity(repo: Repo) -> Result:
                             f"{rel}:{i + 1} heading {line.strip('# ')!r} runs on "
                             f"into its body: …{nxt.lstrip()[:40]!r}"
                         )
-                # prose cut mid-sentence before a list or heading
+                # Prose cut mid-sentence before a list or heading. A numbered contents
+                # entry is a list item, not prose, and a wrapped bold line ends on its
+                # own `**` — both read as an unterminated sentence otherwise, and the
+                # schema's contents list made every converted file fail on one.
                 if (
                     line.strip()
                     and not line.startswith(("#", "-", "*", ">", "|", " "))
-                    and line.rstrip()[-1:] not in '.:;)`"'
+                    and not re.match(r"^\d+[.)] ", line)
+                    and line.rstrip()[-1:] not in '.:;)`"*'
                 ):
                     nxt = next((rest for rest in lines[i + 1 :] if rest.strip()), "")
                     if nxt.startswith(("- ", "#")):
@@ -525,12 +576,17 @@ def check_paragraph_length(repo: Repo) -> Result:
                     )
                 run.clear()
 
+            # A line breaks the run only when it is a whole marker: a wrapped prose line
+            # opening with a year, `--flag`, `*emphasis*` or `#123` is still prose. A
+            # wrapped line opening `3)` or `**` reads as a marker; telling those apart
+            # needs the lines around it.
+            marker = re.compile(r"\s*(#{1,6} |>|[-*+] |\*\*|\d{1,2}[.)] |\|.*\|\s*$)")
             for line in text.splitlines():
                 if line.lstrip().startswith("```"):
                     fenced = not fenced
                     flush()
                     continue
-                if fenced or not line.strip() or line.lstrip()[:1] in "-*>|#":
+                if fenced or not line.strip() or marker.match(line):
                     flush()
                     continue
                 run.append(line)

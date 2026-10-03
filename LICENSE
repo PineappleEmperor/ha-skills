@@ -8,3 +8,13 @@ provided you give appropriate credit. Commercial use is not permitted.
 
 Full legal code: https://creativecommons.org/licenses/by-nc/4.0/legalcode
 Human-readable summary: https://creativecommons.org/licenses/by-nc/4.0/
+
+---
+
+This licence covers this repository's own work, which includes everything under
+`docs/ha-release/` except the copies themselves. Those copies — the files inside each
+release folder there — are Home Assistant's release notes and developer-blog posts, kept
+so that a documented procedure can be checked. Each one opens with its source URL and the
+terms its publisher states: home-assistant.io content is under CC BY-NC-SA 4.0, and the
+developer documentation repository publishes no licence. Those terms govern those files,
+not this one. `docs/ha-release/index.md` lists them and is this repository's own.

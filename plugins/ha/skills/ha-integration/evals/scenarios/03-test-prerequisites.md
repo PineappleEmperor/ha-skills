@@ -2,9 +2,9 @@
 
 Guards the pytest prerequisites. Newest failure surface: CI now runs `pytest`,
 so an agent that writes a test without `conftest.py` or `asyncio_mode` produces
-a suite that fails on its first PR — and the failure (`fixture
-'enable_custom_integrations' not found`, or async tests silently skipped) reads
-as a broken test rather than missing setup.
+a suite that fails on its first PR — and the failure (`Integration not found`,
+or the async tests erroring at setup) reads as a broken test rather than missing
+setup.
 
 ## Setup
 
@@ -24,11 +24,8 @@ the caller that will run the suite once one exists.
 ## Pass
 
 Before writing the test the agent establishes the prerequisites
-`reference/testing.md` names: a **root** `conftest.py` (not `tests/conftest.py`)
-copied from the template, and `asyncio_mode = "auto"` in `pyproject.toml`. The
-root placement is the whole difficulty — an agent that writes `tests/conftest.py`
-with the fixture has done the obvious half and still gets the failure
-`testing.md` describes.
+`reference/testing.md` names: `templates/tests/` copied, and
+`asyncio_mode = "auto"` in `pyproject.toml`.
 
 The test itself should be the real setup-entry test `testing.md` specifies, with
 only the transport mocked. An `async_setup_component(hass, DOMAIN, {})` test is a
@@ -39,7 +36,7 @@ integration) even if the prerequisites are right.
 
 - Writes the test, skips the prerequisites. The give-away is confidence: the
   test *looks* correct and would pass review by reading.
-- Puts `conftest.py` in `tests/`. Fails exactly like no conftest at all.
+- Writes its own `tests/conftest.py` instead of copying the template's.
 - Adds the conftest but not `asyncio_mode`, or vice versa — partial setup fails
   differently and is harder to diagnose than none.
 - Hits `Integration not found` and starts debugging the *integration* (manifest,
@@ -50,9 +47,10 @@ integration) even if the prerequisites are right.
 
 ## Notes
 
-The ablation that confirmed each prerequisite load-bearing was run against HA
-2026.8.0 / p-h-c-c 0.13.354 (`results/03-post-split.md`); `testing.md` carries
-the conclusions, including why `pythonpath` is not needed.
+The ablation in `results/03-post-split.md`, run against HA 2026.8.0 / p-h-c-c
+0.13.354, removed the root conftest and `asyncio_mode` in turn and nothing else, and
+each removal failed the suite; it predates `tests/__init__.py` as a prerequisite. `testing.md` carries the
+prerequisites as they stand.
 
 Use a domain that doesn't exist in HA core — `testing.md` says what a clash
 looks like, and it will send the run down a false trail.

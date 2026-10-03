@@ -1,17 +1,67 @@
 # Integrations that serve a custom panel
 
-Traps specific to shipping a Lit/TS panel from an integration. For how the panel should look, use the `ha-panel-design` skill.
+Read this when building or fixing an integration that ships a Lit/TS panel.
 
-- Register the static path and the panel in `async_setup`
-- The bundle must be committed
-- `home-assistant-frontend` must be pinned in `requirements.test.txt`
-- Registration has two traps
-- Testability is a design property, not a tooling one
+**Register once per process, cache-bust the module URL, pin the frontend, and commit the
+built bundle.**
 
-Five things are non-obvious here, and each fails silently.
+## Contents
 
-### Register the static path and the panel in `async_setup`
-Once per process, for the reason `reference/patterns.md` gives under *Register integration-global resources in `async_setup`, not `async_setup_entry`*; the snippet carries both traps the section below names.
+1. Shipping a panel from an integration
+2. Step 1: Build the bundle and commit it
+3. Step 2: Pin `home-assistant-frontend` in `requirements.test.txt`
+4. Step 3: Register the static path and the panel in `async_setup`
+5. Step 4: Say whether the panel handles the safe area
+6. Step 5: Export the presentation helpers so a test can reach them
+7. Cases
+8. A panel that reads devices reads them by config entry — Step 3
+
+## Shipping a panel from an integration
+
+### Step 1: Build the bundle and commit it
+
+Run `npm run build` and commit the output into `custom_components/<domain>/panel/`; a
+checkout runs it, and the release zip rebuilds it — *The three workflows* in
+ha-integration-ci's README. The templates and the caller are *The frontend templates* and
+*Calling the workflow* in ha-panel-ci's README.
+
+**Timing:** rebuild and commit the bundle in the same PR as the source change; the built
+file is display-only and never hand-edited.
+
+> **Note:** a Lovelace *card* repo attaches the built `.js` as a release asset instead. An
+> integration cannot: the asset is not in the zip HACS installs.
+
+**Symptom:** a stale committed bundle reads as "the fix I made isn't there" to whoever opens
+it; what the panel check does about one, and how to make that fail, is *Calling the workflow*
+in ha-panel-ci's README.
+
+### Step 2: Pin `home-assistant-frontend` in `requirements.test.txt`
+
+Take the pin from core's own manifest for your HA version, never from PyPI latest:
+
+```bash
+curl -s https://raw.githubusercontent.com/home-assistant/core/<ha-version>/homeassistant/components/frontend/manifest.json
+```
+
+A panel declares `frontend` (usually `panel_custom` too) in manifest `dependencies`, and the
+frontend *component* has its own pip requirement that `pip install homeassistant` does not
+pull in — component requirements are installed by HA at runtime. Gate-enforced, per *What
+the audit checks now* in ha-integration-ci's README.
+
+**Symptom:** every setup test fails in CI with `No module named 'hass_frontend'`, surfacing
+as `'MockConfigEntry' object has no attribute 'runtime_data'`.
+
+### Step 3: Register the static path and the panel in `async_setup`
+
+Once per process, for the reason `reference/patterns.md` gives under *Register
+integration-global resources in `async_setup`, not `async_setup_entry` — Step 3*.
+
+| Rule | Value |
+|---|---|
+| claim the registered flag in `hass.data` | before the `await`, or the second of two entries setting up in parallel fails with `ValueError: Overwriting panel <path> owned by <component>` — `async_register_built_in_panel` in core's `homeassistant/components/frontend/__init__.py`, at the `.0` tag of the release row in `reference/freshness.md` |
+| cache-bust the module URL with the integration version | otherwise a browser serves the previous panel after an update |
+
+Both traps are marked by their comments in the snippet:
 
   ```python
   from pathlib import Path
@@ -57,32 +107,41 @@ Once per process, for the reason `reference/patterns.md` gives under *Register i
   # last unload: frontend.async_remove_panel(hass, DOMAIN)
   ```
 
-### The bundle must be committed
+### Step 4: Say whether the panel handles the safe area
 
-HACS ships the repo as-is and runs no build step on the user's machine, so the esbuild output has to live inside `custom_components/<domain>/panel/` to reach the release zip. The `frontend/` templates and the `panel-bundle.yml` caller come from ha-panel-ci's README. **This differs from a Lovelace *card* repo**, which attaches the built `.js` as a release asset — an integration cannot, because the asset isn't in the zip HACS installs.
+Custom panels get safe-area padding by default, so content stays clear of
+notches, status bars and home indicators. Set the parameter either way rather than taking
+the default: a panel drawn edge-to-edge looks broken without the padding, and one that
+insets itself looks doubly inset with it.
 
-What users install is always a fresh build — `release.yml` under *Implementation notes* in ha-integration-ci's README says why — and a stale committed bundle draws a warning from the panel check, which ha-panel-ci's README says why it warns rather than fails. It is still worth avoiding: it makes the repo lie about what its source produces, and the symptom is "the fix I made isn't there" when someone reads the committed file. Run `npm run build` and commit the result.
+| Rule | Value |
+|---|---|
+| what it is | `handle_safe_area: bool = False`, a parameter of `panel_custom.async_register_panel`, which writes it into `config["_panel_custom"]` itself |
+| the YAML spelling | `handle_safe_area: true` under a `panel_custom:` entry — the same argument arriving through `async_setup` |
+| the compatibility floor | **2026.8.2** — absent from `homeassistant/components/panel_custom/__init__.py` at the `2026.8.0` and `2026.8.1` tags, present at `2026.8.2`, and read at `2026.9.0` for the behaviour described here |
+| an `embed_iframe` panel | padded by default; with `handle_safe_area` set, gets the insets injected into the iframe document instead — `ha-panel-custom.ts` in the frontend repository |
 
-### `home-assistant-frontend` must be pinned in `requirements.test.txt`
+| anti-pattern | use instead | why (one clause) | reference |
+|---|---|---|---|
+| `handle_safe_area` inside the `config` dict passed to `async_register_panel` | the keyword argument | the function overwrites `config["_panel_custom"]`, so the panel keeps the padding and nobody is told | Step 4 |
+| `handle_safe_area:` under a `panel_custom:` entry on 2026.8.0 or 2026.8.1 | upgrade first | the per-panel schema rejects an unknown key, so the entry fails config validation rather than being ignored | Step 4 |
 
-A panel declares `frontend` (usually `panel_custom` too) in manifest `dependencies`. The frontend *component* has its own pip requirement that `pip install homeassistant` does **not** pull in — component requirements are installed by HA at runtime. Without the pin every setup test fails in CI with `No module named 'hass_frontend'`, while typically **passing locally** because a dev machine already has the package. Worse, the failures read as `'MockConfigEntry' object has no attribute 'runtime_data'`, pointing at the integration rather than the missing dependency. Pin from **core's own manifest** for your HA version, not from PyPI latest:
-```bash
-curl -s https://raw.githubusercontent.com/home-assistant/core/<ha-version>/homeassistant/components/frontend/manifest.json
+```python
+async def _register(hass: HomeAssistant, module_url: str) -> None:
+    """Register the panel, taking responsibility for the safe-area insets."""
+    await panel_custom.async_register_panel(
+        hass,
+        frontend_url_path=DOMAIN,
+        webcomponent_name=f"{DOMAIN}-panel",
+        module_url=module_url,
+        handle_safe_area=True,  # this panel insets itself; skip HA's padding
+    )
 ```
-Gate-enforced, per *What the audit checks now* in ha-integration-ci's README.
 
-### Registration has two traps
-Both are in the snippet above, marked by their comments: claim the registered flag **before** the `await`, or two entries setting up in parallel both register; and cache-bust the module URL with the integration version, or a browser serves the previous panel after an update.
+### Step 5: Export the presentation helpers so a test can reach them
 
-### Testability is a design property, not a tooling one
-
-A panel transforms vendor data
-before drawing it, and that logic is reachable from nothing else in the stack: `tsc --noEmit`
-proves a helper returns a string, not that it returns the right one; the Python suite cannot
-see it; and the bundle-staleness check proves the JS matches its source, not that the source
-is correct. So **export the pure presentation helpers** rather than inlining them in
-`render()` — a panel that inlines everything has nothing to import, and no test runner fixes
-that.
+**Export the pure presentation helpers** rather than inlining them in `render()`; a panel
+that inlines everything has nothing for a test to import.
 
 ```ts
 // panel.ts — exported, so a test can reach them
@@ -90,18 +149,45 @@ export function isNamed(item: Pick<Set, "name">): boolean { ... }
 export function displayName(item: Pick<Set, "name">): string { ... }   // "{?}" -> "Name tbd"
 ```
 
-The cases worth testing are the ones where the vendor's data is not what you would draw:
-a placeholder standing in for an unannounced name, a missing price, a date that has already
-passed, a sort comparator, a unit formatter. ha-panel-ci's `frontend/package.json` ships
-`vitest` and a `test` script for this, and its README says where the tests go. The runner
-never reaches users: what the release zip holds is *The three workflows* in
-ha-integration-ci's README, and `frontend/` is not in it, so it is CI-time weight and
-nothing more.
+**What is worth testing** — the cases where the vendor's data is not what you would draw:
 
-The same reasoning applies to anything the panel sends. A service call built in TypeScript
-against a schema declared in Python has no shared definition and no compiler to link them —
-`callService` takes `Record<string, unknown>`, so omitting a `vol.Required` field type-checks
-cleanly and fails only at runtime, in the browser, where nobody is watching. A test that
-captures the outgoing call and asserts its shape is the only thing that catches it.
+- A placeholder standing in for an unannounced name.
+- A missing price.
+- A date that has already passed.
+- A sort comparator.
+- A unit formatter.
+- The outgoing service call, captured and asserted on its shape.
 
-> **Panel *styling* — sizing, type, colour, spacing — is the `ha-panel-design` skill, not this one.** This section covers only how the TypeScript reaches the user and how the integration registers it.
+| Rule | Value |
+|---|---|
+| the runner | `vitest`, which ha-panel-ci's `frontend/package.json` ships with a `test` script — where the test files go is *The frontend templates* in its README |
+| what it costs users | nothing: `frontend/` is not in the release zip, per *The three workflows* in ha-integration-ci's README |
+| `callService` | takes `Record<string, any>`, so omitting a `vol.Required` field type-checks cleanly and fails at runtime in the browser |
+
+## Cases
+
+### A panel that reads devices reads them by config entry — Step 3
+
+A panel is a client of the device registry WebSocket API, which changed under the same
+rewrite `reference/patterns.md` describes in *Devices belong to one config entry — Step 3*.
+Read at the `2026.9.0` tag, `homeassistant/helpers/device_registry.py` and
+`homeassistant/components/config/device_registry.py`.
+
+| anti-pattern | use instead | why (one clause) | reference |
+|---|---|---|---|
+| reading `config_entries` or `config_entries_subentries` off a device in `config/device_registry/list` | `config_entry_id` and `config_subentry_id` | both are derived from the single entry, and the comment beside `DeviceEntry.dict_repr` says they **can be removed in 2027.8** | Step 3 |
+| reading `primary_config_entry` | `config_entry_id` | it is that same value, and **core states no removal release for it** | Step 3 |
+| indexing a device's hardware fields without first checking what kind of entry it is | branch on `parent_device_id`, which is present and non-null only on a child device | a child device carries 12 of the 25 keys `DeviceEntry.dict_repr` has, and a table that indexes the rest blindly breaks | Step 3 |
+| `config/device_registry/remove_config_entry`, which needs both ids | `config/device_registry/remove`, with `device_id` alone | the old command logs a warning naming its own removal in **2027.9** | Step 3 |
+
+**The thirteen keys a child device omits:** `config_entries`, `config_entries_subentries`,
+`configuration_url`, `connections`, `entry_type`, `hw_version`, `manufacturer`, `model`,
+`model_id`, `primary_config_entry`, `serial_number`, `sw_version`, `via_device_id`.
+
+**Two commands for a panel that stored device ids of its own**, both registered at the
+`2026.9.0` tag with no removal release stated:
+
+- `config/device_registry/list_linked_devices` — the siblings sharing a connection or
+  identifier with a device, across config entries.
+- `config/device_registry/list_composite_splits` — every pre-migration composite device id,
+  mapped to the split devices that replaced it.

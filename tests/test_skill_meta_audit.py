@@ -208,6 +208,40 @@ def test_description_summarising_the_skill_fails(tmp_path) -> None:
     assert any("must start with 'Use when'" in f for f in fails)
 
 
+def test_a_folded_description_is_judged_on_its_text_not_its_indicator(tmp_path) -> None:
+    """`docs/skill-schema.md` wants TRIGGER and SYMPTOMS bullet lists, which need `>-`.
+
+    A bullet line ends in a colon and a plain scalar cannot carry one, so the schema's
+    form has to be a block scalar — and a line regex then sees `>-` where the text
+    begins. The field is YAML; judge what YAML makes of it.
+    """
+    _skill(
+        tmp_path,
+        "ha-thing",
+        "name: ha-thing\n"
+        "description: >-\n"
+        "  Use when doing a thing.\n"
+        "  TRIGGER WHEN:\n"
+        "  - a thing is asked for\n"
+        "  SYMPTOMS:\n"
+        "  - the thing is wrong",
+    )
+    fails, _ = audit.check_skill_frontmatter(audit.Repo(tmp_path))
+    assert fails == []
+
+    _skill(
+        tmp_path,
+        "ha-thing",
+        "name: ha-thing\ndescription: >-\n  Material 3 tokens.\n  TRIGGER WHEN:\n  - asked",
+    )
+    fails, _ = audit.check_skill_frontmatter(audit.Repo(tmp_path))
+    assert any("must start with 'Use when'" in f for f in fails)
+
+    _skill(tmp_path, "ha-thing", "name: ha-thing\ndescription: [not, a, string]")
+    fails, _ = audit.check_skill_frontmatter(audit.Repo(tmp_path))
+    assert any("description" in f for f in fails)
+
+
 def test_name_must_match_its_directory(tmp_path) -> None:
     """The name field is how a skill is invoked, so it must be the directory's name."""
     _skill(tmp_path, "ha-thing", "name: ha-other\ndescription: Use when doing a thing")
@@ -342,6 +376,117 @@ def test_a_pointer_to_a_moved_section_fails(tmp_path) -> None:
     assert audit.check_named_sections(audit.Repo(tmp_path)) == ([], [])
 
 
+def test_a_heading_that_only_starts_with_the_cited_name_fails(tmp_path) -> None:
+    """`docs/skill-schema.md` asks for the heading verbatim, and a substring is not that.
+
+    A citation naming only the head of a heading stops resolving the moment that heading
+    gains a `— Step N` suffix, so a substring test would pass a pointer that cannot anchor.
+    """
+    _skill(
+        tmp_path,
+        "ha-thing",
+        "name: ha-thing\ndescription: Use when doing a thing",
+        body="See *Merge discipline* in `reference/discipline.md`.\n",
+    )
+    ref = tmp_path / "plugins/ha/skills/ha-thing/reference"
+    ref.mkdir(exist_ok=True)
+    (ref / "discipline.md").write_text(
+        "# D\n\n## Merge discipline — never merge a red check\n\ntext\n"
+    )
+    fails, _ = audit.check_named_sections(audit.Repo(tmp_path))
+    assert any("no such heading" in f for f in fails)
+
+
+def test_a_pointer_wrapped_across_two_lines_is_still_read(tmp_path) -> None:
+    """A name broken by the 100-column wrap was invisible, so it was never checked."""
+    _skill(
+        tmp_path,
+        "ha-thing",
+        "name: ha-thing\ndescription: Use when doing a thing",
+        body="per *Sanctioned adaptations — the\ncomplete list* in `reference/discipline.md`.\n",
+    )
+    ref = tmp_path / "plugins/ha/skills/ha-thing/reference"
+    ref.mkdir(exist_ok=True)
+    (ref / "discipline.md").write_text("# D\n\n## Something else\n\ntext\n")
+    fails, _ = audit.check_named_sections(audit.Repo(tmp_path))
+    assert any("no such heading" in f for f in fails)
+
+    (ref / "discipline.md").write_text(
+        "# D\n\n## Sanctioned adaptations — the complete list\n\ntext\n"
+    )
+    assert audit.check_named_sections(audit.Repo(tmp_path)) == ([], [])
+
+
+def test_a_pointer_wrapped_inside_a_note_block_is_still_read(tmp_path) -> None:
+    """A `> **Note:**` wraps with a `> ` on the second line, which is not part of the name."""
+    _skill(
+        tmp_path,
+        "ha-thing",
+        "name: ha-thing\ndescription: Use when doing a thing",
+        body="> **Note:** see *Sanctioned adaptations — the\n> complete list* in `reference/discipline.md`.\n",
+    )
+    ref = tmp_path / "plugins/ha/skills/ha-thing/reference"
+    ref.mkdir(exist_ok=True)
+    (ref / "discipline.md").write_text("# D\n\n## Something else\n\ntext\n")
+    fails, _ = audit.check_named_sections(audit.Repo(tmp_path))
+    assert any("no such heading" in f for f in fails)
+
+    (ref / "discipline.md").write_text(
+        "# D\n\n## Sanctioned adaptations — the complete list\n\ntext\n"
+    )
+    assert audit.check_named_sections(audit.Repo(tmp_path)) == ([], [])
+
+
+def test_a_template_comment_and_a_backticked_heading_are_read(tmp_path) -> None:
+    """A template's header comment and a heading opening with a backtick were both skipped."""
+    _skill(
+        tmp_path,
+        "ha-thing",
+        "name: ha-thing\ndescription: Use when doing a thing",
+        body="See *`Dependency review` is red — Step 3* in `reference/setup.md`.\n",
+    )
+    skill = tmp_path / "plugins/ha/skills/ha-thing"
+    (skill / "reference").mkdir(exist_ok=True)
+    wfs = skill / "templates/.github/workflows"
+    wfs.mkdir(parents=True)
+    (wfs / "hacs.yml").write_text(
+        "name: H\n\n# Documented under *Step 2: Take each file* in the ha-thing\n"
+        "# skill's reference/actions.md.\non: {}\n"
+    )
+    (skill / "templates/hook.sh").write_text(
+        "cat <<'MSG'\n  only what *Step 4: Apply only the\n     sanctioned list* in\n"
+        "     reference/actions.md lists\nMSG\n"
+    )
+    # Wrapped inside the name and after `in`, each continuation opening with `# `.
+    (wfs / "pin.yml").write_text(
+        "# Documented under *Step 5: Keep\n# the pin* in\n"
+        "# the ha-thing skill's reference/actions.md.\non: {}\n"
+    )
+    # Another skill pointing into this one resolves against this one.
+    _skill(
+        tmp_path,
+        "ha-other",
+        "name: ha-other\ndescription: Use when doing another thing",
+        body="Per *Step 2: Take each file* in the ha-thing skill's reference/actions.md.\n",
+    )
+    (skill / "reference/setup.md").write_text("# S\n\n## Something else\n")
+    (skill / "reference/actions.md").write_text("# A\n\n## Something else\n")
+    fails, _ = audit.check_named_sections(audit.Repo(tmp_path))
+    assert any("'`dependency review` is red — step 3'" in f for f in fails)
+    assert any("'step 2: take each file'" in f for f in fails)
+    assert any("'step 4: apply only the sanctioned list'" in f for f in fails)
+    assert any("'step 5: keep the pin'" in f for f in fails)
+
+    (skill / "reference/setup.md").write_text(
+        "# S\n\n### `Dependency review` is red — Step 3\n"
+    )
+    (skill / "reference/actions.md").write_text(
+        "# A\n\n### Step 2: Take each file\n\n### Step 4: Apply only the sanctioned list\n"
+        "\n### Step 5: Keep the pin\n"
+    )
+    assert audit.check_named_sections(audit.Repo(tmp_path)) == ([], [])
+
+
 def test_a_required_context_documented_nowhere_fails(tmp_path) -> None:
     """`Dependency review` was required by the ruleset and named in no reference file."""
     _skill(tmp_path, "ha-thing", "name: ha-thing\ndescription: Use when doing a thing")
@@ -462,9 +607,56 @@ def test_a_wall_of_prose_is_flagged_but_a_long_list_is_not(tmp_path) -> None:
     _, warns = audit.check_paragraph_length(audit.Repo(tmp_path))
     assert not any("prose run" in w for w in warns)
 
+    # A numbered contents list is a list too; `patterns.md`'s 29 entries read as prose.
+    (ref / "wall.md").write_text(
+        "# W\n\n"
+        + "\n".join(f"{i}. Item {i} with several words in it" for i in range(1, 61))
+        + "\n"
+    )
+    _, warns = audit.check_paragraph_length(audit.Repo(tmp_path))
+    assert not any("prose run" in w for w in warns)
+
     (ref / "wall.md").write_text(
         "# W\n\n```python\n" + "x = 1  # a comment with words\n" * 60 + "```\n"
     )
+    _, warns = audit.check_paragraph_length(audit.Repo(tmp_path))
+    assert not any("prose run" in w for w in warns)
+
+    (ref / "wall.md").write_text(
+        "# W\n\n"
+        + "\n".join(f"+ item {i} with several words in it" for i in range(60))
+        + "\n"
+    )
+    _, warns = audit.check_paragraph_length(audit.Repo(tmp_path))
+    assert not any("prose run" in w for w in warns)
+
+
+@pytest.mark.parametrize(
+    "opening", ["2026. ", "--root ", "*Step 1* in ", "#5171 ", "| x | then "]
+)
+def test_a_wrapped_line_that_only_looks_like_a_marker_stays_in_the_wall(
+    tmp_path, opening
+) -> None:
+    """A wall split at a wrapped line opening with a year passed as two short runs."""
+    _skill(tmp_path, "ha-thing", "name: ha-thing\ndescription: Use when doing a thing")
+    ref = tmp_path / "plugins/ha/skills/ha-thing/reference"
+    ref.mkdir(exist_ok=True)
+    line = "the rule applies here and the reader must act on it now\n"
+    (ref / "wall.md").write_text("# W\n\n" + line * 15 + opening + line + line * 14)
+    _, warns = audit.check_paragraph_length(audit.Repo(tmp_path))
+    assert any("prose run" in w for w in warns)
+
+
+@pytest.mark.parametrize(
+    "marker", ["### Step 2: Do it", "> **Note:** a note", "**Fix:** a fix", "| a | b |"]
+)
+def test_a_real_marker_between_two_short_runs_splits_them(tmp_path, marker) -> None:
+    """Two 120-word halves are one 240-word wall unless the line between them is a marker."""
+    _skill(tmp_path, "ha-thing", "name: ha-thing\ndescription: Use when doing a thing")
+    ref = tmp_path / "plugins/ha/skills/ha-thing/reference"
+    ref.mkdir(exist_ok=True)
+    line = "the rule applies here and the reader must act on it now\n"
+    (ref / "wall.md").write_text("# W\n\n" + line * 10 + marker + "\n" + line * 10)
     _, warns = audit.check_paragraph_length(audit.Repo(tmp_path))
     assert not any("prose run" in w for w in warns)
 

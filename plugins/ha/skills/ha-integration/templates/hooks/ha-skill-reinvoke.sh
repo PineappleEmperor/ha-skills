@@ -13,10 +13,11 @@ if ls custom_components/*/manifest.json >/dev/null 2>&1; then
 
 Two traps the skill being "active" does not catch:
   1. CI files are never authored. Callers are copied from the CI repositories' READMEs,
-     the rest from where reference/github-actions.md's table says, and only its listed
-     adaptations are applied. A workflow that does what the prose describes is not a
-     copy. If you cannot reach a README or templates/, stop and say so - do not write
-     from memory.
+     the rest from where *Step 2: Take each file from its source* in
+     reference/github-actions.md says, and only the adaptations *Step 4: Apply only the
+     sanctioned adaptations* in reference/github-actions.md lists are applied. A
+     workflow that does what the prose describes is not a copy. If you cannot reach a
+     README or templates/, stop and say so - do not write from memory.
   2. Docstrings on public functions and classes are ONE line; only the module docstring
      may run longer. Single line means single line.
 MSG

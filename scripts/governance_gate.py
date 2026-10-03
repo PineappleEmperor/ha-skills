@@ -71,11 +71,27 @@ SKILL_TIERS: dict[str, tuple[str, ...]] = {
     "plugins/ha/skills/ha-integration/reference/": (
         "plugins/ha/skills/ha-integration/reference/discipline.md",
     ),
+    # The two halves of the format standard. `scripts/skill_schema_audit.py` reads its rules
+    # out of `docs/skill-schema.md`, so an unread edit there silently changes what the audit
+    # enforces on every shipped file, and `docs/skill-file-hierarchy.md` decides which file
+    # may hold a fact at all. Each is governed by the pair, so reaching for one hands over
+    # both halves, and editing either kills every outstanding key for both.
+    "docs/skill-schema.md": (
+        "docs/skill-file-hierarchy.md",
+        "docs/skill-schema.md",
+    ),
+    "docs/skill-file-hierarchy.md": (
+        "docs/skill-file-hierarchy.md",
+        "docs/skill-schema.md",
+    ),
     # The register and the phase files it sheds. Both, because a cleared row moves out of
     # the first into the second, and a tier naming only the register would drop the claim
     # check on every row the moment it moved — a guard lost to a reorganisation.
     "docs/backlog.md": ("plugins/ha/skills/ha-integration/reference/discipline.md",),
     "docs/backlog/": ("plugins/ha/skills/ha-integration/reference/discipline.md",),
+    # The release window's fetched sources. Governed by the doc that says what a pass must
+    # read and what a post is worth, so reaching for one hands over that procedure first.
+    "docs/ha-release/": ("docs/release-refresh.md",),
     ".github/workflows/": (
         "plugins/ha/skills/ha-integration/reference/github-actions.md",
     ),
@@ -111,10 +127,19 @@ CI_TIERS: dict[str, tuple[str, ...]] = {
 # the one place whose whole purpose is to assert things about the rest of the repository,
 # so it is the one place where naming a file is a claim rather than a mention.
 CLAIM_CHECKED = ("docs/backlog.md", "docs/backlog/")
+# The release window's fetched sources, and the tier whose release claims must come out of
+# them. scripts/fetch_ha_sources.py writes both the index and the files it names.
+SOURCE_DIR = "docs/ha-release/"
+SOURCE_INDEX = "docs/ha-release/index.md"
+REFERENCE_TIER = "plugins/ha/skills/ha-integration/reference/"
 # Repo-relative path -> the rotation window in which the gate last served it whole.
 _SERVED: dict[str, int] = {}
 # A path inside a backtick, which is how every row names a file.
 _NAMED = re.compile(r"`([A-Za-z0-9_./-]+\.[A-Za-z0-9]+)`")
+# A Home Assistant release, as every claim about one names it: 2026.9, `2026.10.2`, v2026.9.
+# Four digits and a dot, so a dependency pin (0.13.365) and a Python floor (3.14) are not
+# one; the optional `v` because a tag is written that way and a claim about a tag is a claim.
+_RELEASE = re.compile(r"\bv?(\d{4})\.(\d{1,2})(?:\.\d+)?\b")
 
 
 class GateError(Exception):
@@ -309,6 +334,78 @@ def unread_claims(text: str, now: float | None = None) -> list[str]:
         and (REPO / rel).exists()
         and _SERVED.get(rel, -2) < bucket - 1
     ]
+
+
+def fetched_sources() -> dict[tuple[int, int], list[str]]:
+    """Every fetched source on disk, grouped by the release whose folder holds it.
+
+    Read from the DIRECTORY, never from the index. The index is a governed file like any
+    other, so a demand list derived from it is disarmed by one patch that deletes rows —
+    demonstrated on review, with the whole suite still green. The directory is what the
+    fetch wrote, and removing a file from it removes it from the repository, where a diff
+    shows it. The index keeps its other job: saying where each file came from.
+
+    Empty when nothing has been fetched, which fails this check OPEN exactly as an
+    unreadable governing doc does — a clone that has never run `fetch_ha_sources.py` has to
+    stay editable. What notices that is CI rather than the gate:
+    `tests/test_fetch_ha_sources.py` fails unless the release `freshness.md` names has a
+    folder here, and unless the index and the folders describe the same set of files.
+    """
+    found: dict[tuple[int, int], list[str]] = {}
+    root = REPO / SOURCE_DIR
+    if not root.is_dir():
+        return found
+    for folder in sorted(p for p in root.iterdir() if p.is_dir()):
+        year, _, minor = folder.name.partition(".")
+        if not (year.isdigit() and minor.isdigit()):
+            continue
+        files = sorted(
+            str(f.relative_to(REPO)) for f in folder.iterdir() if f.is_file()
+        )
+        if files:
+            found[(int(year), int(minor))] = files
+    return found
+
+
+def unread_sources(rel: str, text: str, now: float | None = None) -> list[str]:
+    """Fetched sources the gate has not served, when a patch claims something about a release.
+
+    Row 220. *Step 2: Read both sources* in `docs/release-refresh.md` says to open every
+    source before writing a row from it, and nothing checked that anything was opened: the 2026.9
+    pass wrote rows from memory and got eight facts wrong, breaking its own rule. An edit key
+    proves the file being written was read. This proves the sources it is written FROM were.
+
+    The demand is PER RELEASE: naming 2026.7 demands 2026.7's sources and nothing else. A
+    demand for the whole directory grew with every monthly fetch and charged an edit about
+    one release for the reading of four, which is how a guard stops being read; and it made
+    a window that moved on un-gate every row written about the window before it.
+
+    A release with no folder here is not demanded, whether it predates the fetch (`2026.3`),
+    falls in a gap inside the span, or is still to ship (`2027.8`). An earlier version made
+    one exception — the minor immediately after the newest fetched, on the theory that a pass
+    writing about it had skipped its fetch — and that was wrong in a way worth recording:
+    `patterns.md` already names 2026.10 six times, because a deprecation post says when the
+    removal lands, and the refusal made the file unpatchable while naming a fetch command that
+    cannot succeed until the release ships. What CI catches instead is narrower and is worth
+    knowing exactly: `tests/test_fetch_ha_sources.py` reads the release row in `freshness.md`
+    and fails unless that minor has a folder here with release notes in it, so the row cannot
+    move to a release whose sources were never pulled. Prose about an unfetched release that
+    leaves the row alone — which `patterns.md` carries today — is caught by nothing.
+
+    What the check asserts is therefore narrow, and worth stating plainly: the sources that
+    exist for the release this text names have been read. It is not a proof that the text is
+    true, and a claim written beside a release number rather than with one carries no number
+    for it to match.
+    """
+    if not rel.startswith(REFERENCE_TIER):
+        return []
+    fetched = fetched_sources()
+    named = {(int(year), int(minor)) for year, minor in _RELEASE.findall(text)}
+    bucket = int((time.time() if now is None else now) // ROTATION_SECONDS)
+    unread: list[str] = []
+    for release in sorted(named & set(fetched)):
+        unread += [src for src in fetched[release] if _SERVED.get(src, -2) < bucket - 1]
+    return unread
 
 
 def safe_relpath(path: str) -> str:
@@ -613,6 +710,16 @@ def patch_file(
         raise GateError(
             f"{rel} is not governed; edit it with the ordinary tools rather than through this gate"
         )
+    if rel.startswith(SOURCE_DIR):
+        # Read through the gate, written only by the fetch. The demand list survives a patch
+        # because it comes from the directory, but the SUBSTANCE did not: `old_string` set to
+        # a whole file and `new_string` empty left five sources present, listed, zero bytes
+        # and trivially "read", with the suite green. Nothing here is hand-authored, so the
+        # honest rule is that nothing here is hand-edited.
+        raise GateError(
+            f"{rel} is generated by scripts/fetch_ha_sources.py and is never patched; re-run "
+            f"the fetch to change it. Reading it through this gate is what the tier is for."
+        )
     try:
         before = (REPO / rel).read_text(encoding="utf-8")
     except OSError:
@@ -661,6 +768,19 @@ def patch_file(
                 f"the one before. Read each with get_file, then write the row."
             )
 
+    # Both sides of the patch, so that editing a row which already names a release demands
+    # that release's sources. Checking only the new text let the row be rewritten around the
+    # number instead of with it, which is the same edit made from the same memory.
+    both = f"{old_string}\n{new_string}"
+    unread = unread_sources(rel, both)
+    if unread:
+        raise GateError(
+            f"this patch to {rel} states something about a Home Assistant release, and that "
+            f"release's own sources have not been read: {', '.join(unread)}. Read each with "
+            f"get_file, then write the row. Why a pass that skipped them got eight facts "
+            f"wrong, and why core at the tag settles what a post cannot, are in "
+            f"`{SOURCE_INDEX}` and the section it points at."
+        )
     after = _apply(before, old_string, new_string, rel)
     if scope is not None and not _inside(
         before, old_string, _closure(before, scope, rel)

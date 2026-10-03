@@ -1,15 +1,21 @@
 # Ruff and pytest configuration for a Home Assistant custom integration. Copy verbatim.
 #
+# The core tag the [tool.ruff] and [tool.pytest.ini_options] tables were taken from is the
+# mypy and ruff row of the ha-integration skill's reference/freshness.md.
+#
 # The [tool.ruff] tables are Home Assistant core's own (home-assistant/core, pyproject.toml),
 # adapted for a repo that is one integration rather than core itself:
 #   - target-version instead of requires-python, so the audit's version comparison
 #     (ha-integration-ci's README) can read it
 #   - custom_components is the first-party package; homeassistant is third-party here
 #   - voluptuous is imported as vol, which core enforces by convention rather than by rule
-#   - core-only paths dropped from per-file-ignores; a repo's own scripts/ and tests/ are
-#     exempted from the rules a standalone tool and a test tree cannot meet
+#   - per-file-ignores keep core's own, with the paths renamed; a repo's own scripts/ is
+#     exempted from the rules a standalone tool cannot meet
+#   - the rules for tests are tests/ruff.toml, core's own, which extends this file
 #   - core's ban on `from __future__ import annotations` kept: Python 3.14 defers annotation
 #     evaluation natively, so the import only switches that off
+# The [tool.pytest.ini_options] table keeps core's asyncio settings and its two `error`
+# warning filters; core's `ignore` filters silence its own dependencies and are left out.
 # Do not relax these tables in a copy; that is drift. A [project] table is not needed,
 # and if one is added it carries no version: the release tag is the version.
 
@@ -221,7 +227,9 @@ split-on-trailing-comma = false
 
 [tool.ruff.lint.per-file-ignores]
 "custom_components/**" = ["PTH"]
-"tests/**" = ["PTH", "SLF001", "INP001"]
+"custom_components/*/*/*" = ["TID252"]
+"tests/**" = ["PTH"]
+"tests/*/*" = ["TID252"]
 "scripts/*" = ["T20", "INP001"]
 
 [tool.ruff.lint.mccabe]
@@ -232,5 +240,11 @@ convention = "google"
 property-decorators = ["propcache.api.cached_property"]
 
 [tool.pytest.ini_options]
+asyncio_debug = true
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+filterwarnings = [
+  "error::sqlalchemy.exc.SAWarning",
+  "error:usefixtures\\(\\) in .* without arguments has no effect:UserWarning",
+]
 testpaths = ["tests"]

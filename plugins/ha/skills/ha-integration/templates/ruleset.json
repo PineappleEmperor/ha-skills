@@ -39,7 +39,7 @@
             "context": "HACS validation"
           },
           {
-            "context": "validate / Ruff, Pyright and Pytest"
+            "context": "validate / Python validation"
           },
           {
             "context": "audit / ha-integration conformance check"

@@ -1,7 +1,7 @@
 """Keep pytest out of templates/ when it runs in the skill repo.
 
-`templates/conftest.py` is an artefact shipped to consuming integrations, where
-its first statement — `import custom_components` — is correct and load-bearing.
+`templates/tests/conftest.py` is an artefact shipped to consuming integrations,
+where its `import custom_components` is correct and load-bearing.
 In *this* repo there is no such package, so letting pytest descend into
 templates/ loads that file as a real conftest and aborts collection with
 `ModuleNotFoundError: No module named 'custom_components'`.

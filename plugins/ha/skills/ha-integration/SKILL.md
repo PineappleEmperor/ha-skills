@@ -1,126 +1,59 @@
 ---
 name: ha-integration
-description: Use when developing or troubleshooting a Home Assistant custom integration — Python code under `custom_components/`. Covers config/options/reauth/reconfigure flows, the data coordinator and entity platforms (sensor, switch, notify, fan, etc.), manifest, services, diagnostics, and quality_scale. Reach for it on symptom-style reports too: an entity going unavailable after restart, a notify/custom service breaking after an HA update, a `device_class`/`state_class` mismatch HA complains about, a reconfigure flow request, or CI/Dependabot/HACS/hassfest issues on an integration repo. NOT for Lovelace cards, panel/display UI styling (`ha-panel-design`), triaging a `home-assistant.log` (`ha-triage`), or generic non-HA Python. Invoke before editing integration code; re-invoke after /compact.
+description: >-
+  Use when developing or troubleshooting a Home Assistant custom integration — the package
+  under `custom_components/`, or the panel it serves.
+  TRIGGER WHEN:
+  - scaffolding an integration, or adding a platform, flow, coordinator, service, diagnostics
+  or manifest key to one
+  - fixing a bug or a test in one, or claiming a quality-scale tier
+  - restyling its panel: sizing, type, colour, spacing or layout
+  - cutting a release, or setting up CI, Dependabot, HACS or hassfest on its repository
+  SYMPTOMS:
+  - an entity unavailable after restart
+  - a notify or custom service broken by an HA update
+  - a device_class/state_class mismatch warning
+  - a red check on an integration repository
+  - a panel foreign beside HA's pages: unscaled text, hardcoded colours broken in dark
+  mode, tap targets too small
+  NOT for Lovelace cards, YAML dashboards, fault triage (ha-triage), or non-HA Python. Invoke
+  before editing integration code or panel CSS; re-invoke after /compact.
 ---
 
 # Home Assistant Integration Assistant
 
-Help create, modify, and lint Home Assistant custom integrations targeting **platinum quality scale**.
+**Target platinum quality scale, and fetch the mode's source before writing the code that
+meets it.**
 
-**Always fetch before coding** — these are the authoritative sources:
-- Creating integrations: https://developers.home-assistant.io/docs/creating_integration_index/
-- Config entries: https://developers.home-assistant.io/docs/config_entries_index/
-- Config flows: https://developers.home-assistant.io/docs/config_entries_config_flow_handler/
-- Data fetching + coordinator: https://developers.home-assistant.io/docs/integration_fetching_data/
-- Setup failures: https://developers.home-assistant.io/docs/integration_setup_failures/
-- Quality scale: https://developers.home-assistant.io/docs/integration_quality_scale_index/
-- Real examples: https://github.com/home-assistant/core/tree/dev/homeassistant/components
+## Detect the mode
 
-## When to use this skill
+Pick the mode from what is about to be done, then **read that mode's file before acting**.
 
-Use it when the task touches any of: a `custom_components/<domain>/` package, a `manifest.json` with a `domain`, a config/options/reauth/reconfigure flow, a `DataUpdateCoordinator` or entity platform (`sensor.py`, `notify.py`, …), `services.yaml`/`quality_scale.yaml`, the integration's GitHub CI (the `pr-checks`/release-drafter/hassfest/HACS stack). Symptoms that should pull you here: "add a sensor/platform", "config flow won't validate", "hassfest/HACS check failing", "what `state_class` for this `device_class`", "Dependabot keeps bumping actions", "this PR's release version looks wrong".
-
----
-
-## Step 1 — Detect mode
-
-Check the working directory, pick a mode, then **read that mode's reference file before acting**.
-
-| Mode | When | Read first |
-|---|---|---|
-| **Scaffold** | no `custom_components/`, or the user wants a new integration | `reference/scaffold.md`, then `reference/patterns.md` |
-| **Modify** | `custom_components/` exists and something is being added or changed | `reference/patterns.md`. Adding a platform also touches `strings.json`/`translations/` and the tier claim — see `reference/quality-scale.md` |
-| **Test** | writing or fixing tests for an integration | `reference/testing.md` — the root `conftest.py` and `asyncio_mode` prerequisites decide whether the suite runs at all |
-| **Lint** | hygiene pass over existing code | this file, *Lint & quality check* below |
-| **Audit** | verify the skill was actually followed | the audit — ha-integration-ci's `skill_audit.py`, run by the `quality-audit` caller on every PR, and by hand from a checkout of that repository with `--root <repo>`; `--list` prints every check — then `reference/audit.md` |
-| **Release / repo setup** | first release, tokens, required checks | `reference/github-setup.md` — token, ruleset, dependency graph, required contexts. Then `reference/versioning.md` for how the version is decided, `reference/commits.md` for commit subjects and titles, `reference/github-actions.md` for what the scaffold carries |
-
-Reading a Home Assistant log is a different skill — `ha-triage`. How a panel **looks**
-(type scale, colour, spacing, touch targets) is `ha-panel-design`. How a panel is **built and
-served** — the committed bundle, its staleness check, registration and cache-busting, the
-`home-assistant-frontend` pin — stays here, in `reference/panels.md`.
-
-## Invariants — true in every mode
-
-- **The release tag sets the version.** No PR carries a manifest bump; `release.yml` patches
-  `manifest.json` at publish. Details in `reference/versioning.md`.
-- **The commit subjects are the changelog**, so each is one tight imperative with a mapped
-  Conventional Commit type. The PR body is for reviewers and is never generated.
-- **Never merge a red check**, and never merge by disabling one. Why, and the exceptions that
-  are not exceptions, in `reference/discipline.md`.
-- **Callers, not bodies; copies, not paraphrases.** The scaffold calls the CI repositories'
-  reusable workflows and copies a few configs; every deviation must be a listed adaptation —
-  see `reference/audit.md`.
-- **Cached facts go stale silently.** Anything captured more than ~3 months ago gets re-derived
-  before it is trusted — the table and its re-derivation commands are in `reference/freshness.md`.
-
-## Reference map
-
-| File | Holds |
-|---|---|
-| `reference/scaffold.md` | what to ask, what to generate, manifest key order, code style |
-| `reference/patterns.md` | the code patterns every mode applies, plus file structure and typing |
-| `reference/testing.md` | harness prerequisites, and mocking the boundary rather than your own code |
-| `reference/commits.md` | commit subjects and titles, why the PR body stays empty |
-| `reference/github-setup.md` | RELEASE_TOKEN, required checks, dependency graph, supply chain |
-| `reference/github-actions.md` | what the scaffold carries and where each piece comes from, what may be changed in a copy |
-| `reference/versioning.md` | where the version comes from, publishing an rc and a final |
-| `reference/dependabot.md` | what it bumps, including the callers' pins, and what it cannot reach |
-| `reference/quality-scale.md` | the canonical rule set and what each tier demands |
-| `reference/panels.md` | integrations that serve a custom panel |
-| `reference/discipline.md` | commit, PR, merge and debugging discipline |
-| `reference/audit.md` | the audit items a grep cannot decide |
-| `reference/freshness.md` | cached facts, when captured, how to re-derive |
-
----
-
-## Scaffold
-
-Read `reference/scaffold.md`, then `reference/github-setup.md` when the repo needs its GitHub side configured. Ask the requirement questions in one go; do not generate files before they are answered.
-
----
-
-## Modify existing integration
-
-Identify the integration domain from `custom_components/`. Then ask what to add or change:
-
-- Add new platform
-- Add/update translations
-- Add options flow
-- Add or fix tests (start from `reference/testing.md`)
-- Add reconfigure flow (`async_step_reconfigure`)
-- Add reauth flow (`async_step_reauth`)
-- Add or update `quality_scale.yaml`
-- Add GitHub workflows
-- Cut a release (publish the rc draft, then the full one)
-- Other
-
-Apply the same patterns and code style as a scaffold.
-
----
+| Mode | When | Read first | Source |
+|---|---|---|---|
+| **Scaffold** | no `custom_components/`, or a new integration or a new repository for one, including setting up its CI and release process — from the first questions to the GitHub settings, in order | `reference/scaffold.md` | Creating integrations: https://developers.home-assistant.io/docs/creating_integration_index/ · File structure: https://developers.home-assistant.io/docs/creating_integration_file_structure/ · Manifest: https://developers.home-assistant.io/docs/creating_integration_manifest/ |
+| **Modify** | `custom_components/` exists and its package is being added to, changed or fixed — Python, `strings.json`, `services.yaml`, translations — including file structure and typing | `reference/patterns.md` | Config entries: https://developers.home-assistant.io/docs/config_entries_index/ · Config flows: https://developers.home-assistant.io/docs/config_entries_config_flow_handler/ · Data fetching + coordinator: https://developers.home-assistant.io/docs/integration_fetching_data/ · Setup failures: https://developers.home-assistant.io/docs/integration_setup_failures/ · Blocking operations: https://developers.home-assistant.io/docs/asyncio_blocking_operations/ · Real examples: https://github.com/home-assistant/core/tree/dev/homeassistant/components |
+| **Manifest** | adding or changing a `manifest.json` key | `reference/scaffold.md` | Manifest: https://developers.home-assistant.io/docs/creating_integration_manifest/ |
+| **Panel** | building or fixing an integration that serves a panel — how it is built and served; how it looks is the Panel design row | `reference/panels.md` | — |
+| **Panel design** | changing how a panel looks — the CSS or markup of a Lit/TS panel web component: sizing, typography, colour, spacing, layout | `reference/panel-design.md` | Material 3 type scale: https://m3.material.io/styles/typography/type-scale-tokens · Material 3 states and touch targets: https://m3.material.io/foundations/interaction/states/overview · HA theme properties: https://github.com/home-assistant/frontend/tree/dev/src/resources/theme · Theme variables a user may override: https://www.home-assistant.io/integrations/frontend/#supported-theme-variables |
+| **Test** | writing or fixing tests, mocking at the boundary, or a suite that fails before any test runs | `reference/testing.md` | — |
+| **Lint** | hygiene pass over existing code | *Lint & quality check* below | — |
+| **Tier** | claiming a quality-scale tier, and the canonical rule set behind it | `reference/quality-scale.md` | Quality scale: https://developers.home-assistant.io/docs/integration_quality_scale_index/ |
+| **Debug** | a root cause is about to be named | `reference/discipline.md` | — |
+| **Commit / PR** | writing a commit subject, a PR title or a PR body | `reference/commits.md` | — |
+| **Merge** | a check is red, or a merge is about to happen | `reference/discipline.md` | — |
+| **Workflow** | writing or reviewing a CI file, and what a copy may change | `reference/github-actions.md` | — |
+| **Dependabot** | configuring or debugging Dependabot, including the callers' pins and what it cannot reach | `reference/dependabot.md` | — |
+| **Release** | cutting or gating a release once the release process is set up, including an rc, or touching the version in `manifest.json` | `reference/versioning.md` | — |
+| **Repo setup** | configuring the repository on GitHub: token, required checks, dependency graph, supply chain | `reference/github-setup.md` | — |
+| **Audit** | auditing a repository against this skill | `reference/audit.md` | — |
+| **Currency** | acting on a pin, SHA, count or Home Assistant release number, or asking whether a cached value is still true | `reference/freshness.md` | What a release changed or deprecated: https://developers.home-assistant.io/blog/ |
 
 ## Lint & quality check
 
-1. Run `ruff check .` and `ruff format --check .` under the shipped `pyproject.toml` — fix all actionable issues; suppress intentional ones with `# noqa` and a reason
-2. Run `python -m pyright custom_components/` — fix all actionable issues
-3. Check `quality_scale.yaml` exists; if not, offer to create it
-4. Check `manifest.json` — correct `documentation` URL pointing to the repo, keys in the order `reference/scaffold.md` gives
-5. Report: files changed · issues fixed · issues intentionally suppressed (with rationale) · remaining manual work
-
----
-
-## Audit — skill conformance
-
-Lint answers *is the code hygienic*. This answers *was the skill followed* — canonical
-workflows present and correct, documented patterns applied, antipatterns gone,
-`quality_scale.yaml` honest. Run it before claiming a tier and before merge.
-
-Two layers:
-
-1. **Mechanical gate** — the audit, as the mode table above says.
-2. **Judgement checklist** — `reference/audit.md`. The items a grep can't decide.
-
-⚠️ A green gate does not prove the copied files match; the first item of the judgement
-checklist says why, and what to do about it.
-
----
+1. Run `ruff check .` and `ruff format --check .` under the shipped `pyproject.toml`, with ruff at the version the mypy and ruff row of `reference/freshness.md` names — fix all actionable issues; suppress intentional ones with `# noqa` and a reason
+2. Run `mypy --config-file mypy.ini custom_components/`, with mypy at the version the mypy and ruff row of `reference/freshness.md` names — fix all actionable issues
+3. Run the rest of what CI runs: *The three workflows* in ha-integration-ci's README
+4. Check `quality_scale.yaml` exists; if not, offer to create it
+5. Check `manifest.json`'s keys run `domain`, `name`, then the rest alphabetically — hassfest fails any other order (`sort_manifest` in core's `script/hassfest/manifest.py`)
+6. Report: files changed · issues fixed · issues intentionally suppressed (with rationale) · remaining manual work
