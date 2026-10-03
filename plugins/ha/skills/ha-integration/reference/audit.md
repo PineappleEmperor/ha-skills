@@ -1,7 +1,6 @@
 # Audit — the judgement checklist
 
-Read this when auditing a repo against the skill: the items a grep cannot decide. The
-mechanical ones are ha-integration-ci's `skill_audit.py --list`.
+Read this when auditing a repo against the skill: the items the mechanical audit cannot decide.
 
 **A green gate is not a green suite — the mechanical audit compares no copied file against
 its source, and never runs the repo's tests.**
@@ -74,10 +73,8 @@ Subjects and titles judged against `reference/commits.md`, the version model aga
 
 ### Step 6: Cached facts still true
 
-Re-derive any row in the cached-facts table (`reference/freshness.md`) captured more than
-~3 months ago, using the command in its *Re-derive with* column. Report each as
-still-current or stale-with-the-new-value, and update every consumer listed on that row in
-one pass.
+Apply the core rule of `reference/freshness.md` to every row, and report each as still
+current or stale with its new value.
 
 ### Step 7: Run what CI runs
 
