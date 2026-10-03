@@ -1,7 +1,6 @@
 # Testing an integration
 
-Read this when writing or fixing an integration's tests. The code patterns being tested are
-`reference/patterns.md`.
+Read this when writing or fixing an integration's tests.
 
 **Each prerequisite below fails the *whole* suite rather than one test.**
 
