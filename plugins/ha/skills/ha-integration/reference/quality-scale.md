@@ -79,7 +79,8 @@ Each of these needs its own test, not just the code:
 - `exception-translations` / `entity-translations` — a test that scrapes the
   `translation_key`s used in code and asserts each exists in `strings.json`, which catches a
   typo'd key that hassfest passes
-- `icon-translations` — the same test against `icons.json`, where icon translations live
+- `icon-translations` — the same test against `icons.json`, for each `translation_key` whose
+  entity has a custom icon; an entity that takes its icon from its device class needs none
 
 A runtime rule no test can reach is `exempt` with a comment, not an unproven `done`; a rule
 proved by reading is never `exempt` for want of a test.
@@ -100,8 +101,8 @@ proved by reading is never `exempt` for want of a test.
 
 ### A local-push MQTT device integration — Step 2
 
-**Fix:** mark the four rules below `exempt`, each with the comment its row gives, and leave
-`async-dependency` at `todo` while a library is sync.
+**Fix:** mark the four rules below `exempt`, each with the comment its row gives, and set
+`async-dependency` as its row says.
 
 | Rule | Value |
 |---|---|
@@ -109,4 +110,4 @@ proved by reading is never `exempt` for want of a test.
 | `reauthentication-flow` | exempt — no integration-level auth to renew |
 | `inject-websession` | exempt — it makes no HTTP requests |
 | `dynamic-devices` | exempt — one device per entry |
-| `async-dependency` | `todo` while the library is sync — the rule's one exception is a dependency that does no I/O, and a sync library run in the executor does not meet the rule |
+| `async-dependency` | exempt when the integration has no external dependency, or its dependencies do no I/O — the rule's two exceptions; `todo` while a dependency that does I/O is sync, since running it in the executor does not meet the rule |
