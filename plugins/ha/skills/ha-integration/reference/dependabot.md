@@ -1,10 +1,9 @@
 # Dependabot for a HA custom integration
 
-Read this when configuring or debugging Dependabot on an integration repo. Set up alongside
-`reference/github-setup.md`.
+Read this when configuring or debugging Dependabot on an integration repo.
 
-**Dependabot maintains the `uses:` pins and the pinned test dependencies; nothing else in a
-HA integration is in its reach.**
+**The scaffold's Dependabot moves the `uses:` pins and the pinned test dependencies, and
+nothing else.**
 
 ## Contents
 
@@ -32,8 +31,8 @@ HA integration is in its reach.**
 ### Step 2: Enable `github-actions`
 
 Bumps every `uses:` pin under `.github/workflows/`: the action pins in the four plain
-workflows, and the callers' pins, which is how a release of a CI repository reaches you (the
-version model in ha-integration-ci's README).
+workflows, and the callers' pins, which is how a release of a CI repository reaches you —
+*The version model* in ha-integration-ci's README.
 
 ### Step 3: Enable `pip`
 
