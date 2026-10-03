@@ -1,10 +1,9 @@
 # Versioning and releasing
 
-Read this when cutting or gating a release. Commit and PR-title conventions are
-`reference/commits.md`; the GitHub-side settings are `reference/github-setup.md`;
-Dependabot's setup is `reference/dependabot.md`.
+Read this when cutting or gating a release.
 
-**The release tag is the version — no PR, branch or committed manifest ever carries one.**
+**The release tag is the version: `release.yml` writes it into the manifest at publish, and
+the committed value is a placeholder no PR changes.**
 
 ## Contents
 
@@ -22,7 +21,7 @@ Dependabot's setup is `reference/dependabot.md`.
 
 | Rule | Value |
 |---|---|
-| what `release.yml` writes at publish, and why no PR carries a bump | ha-integration-ci's README — its table and version model |
+| what `release.yml` writes at publish, and why no PR carries a bump | *The three workflows* and *Implementation notes* in ha-integration-ci's README |
 | what decides the next version | the merged PRs' labels, as release-flow's README says under `release-drafter.yml` |
 | where to read what those labels so far imply | `CC label validation`'s step summary |
 
@@ -33,8 +32,8 @@ release-flow's `pr-checks.yml` own the label, and its README says how. If the ga
 label is wrong, fix the title or the commits. What each title type maps to is the drafter
 config, as release-flow's README says under *Called versus copied*.
 
-The `pull_request_target` deadlock and its narrow exception are *Merge discipline — never
-merge a red check* in `reference/discipline.md`.
+The `pull_request_target` deadlock and its narrow exception are *One exception, and it is
+narrow — merge Step 2* in `reference/discipline.md`.
 
 ### Step 3: Publish the draft
 
