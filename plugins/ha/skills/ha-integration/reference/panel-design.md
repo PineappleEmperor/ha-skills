@@ -1,7 +1,6 @@
 # How a custom panel looks
 
-Read this when changing a panel's CSS or markup — sizing, typography, colour, spacing or
-layout. How the panel is built and served is `reference/panels.md`.
+Read this when changing a panel's CSS or markup — sizing, typography, colour, spacing or layout.
 
 **Every size, colour and space comes from HA's theme properties or the Material 3 scale,
 never from a value chosen by eye.**
@@ -29,19 +28,20 @@ row of `reference/freshness.md`.
 - Material 3 type scale: https://m3.material.io/styles/typography/type-scale-tokens
 - Material 3 states/touch targets: https://m3.material.io/foundations/interaction/states/overview
 - HA theme CSS custom properties, as the frontend defines them: https://github.com/home-assistant/frontend/tree/dev/src/resources/theme — `color/color.globals.ts` holds the colour variables (`--primary-text-color`, `--primary-color`, `--divider-color`, …), `typography.globals.ts` the type ones
-- The variables a user's theme may override: https://www.home-assistant.io/integrations/frontend/#supported-theme-variables
+- The variables a user's theme is supported to override — only `primary-color`, `accent-color` and the `state-*` colours; every other variable is unsupported and may change between releases: https://www.home-assistant.io/integrations/frontend/#supported-theme-variables
 
 ### Step 2: Take every colour from a theme property
 
 So the panel follows the user's theme and its dark mode. With sane fallbacks:
 
 ```css
-color: var(--primary-text-color, #1c1b1f);
-color: var(--secondary-text-color, #49454f);      /* captions, hints, inactive */
+color: var(--primary-text-color, #141414);
+color: var(--secondary-text-color, #5e5e5e);      /* captions, hints, inactive */
 background: var(--card-background-color, #fff);
 background: var(--primary-background-color);
 border-color: var(--divider-color);
-accent:  var(--primary-color);                     /* HA accent */
+background: var(--primary-color);                 /* HA primary */
+color: var(--accent-color);                       /* HA accent */
 border-radius: var(--ha-card-border-radius, 12px);
 ```
 
@@ -67,7 +67,7 @@ Pick by role.
 |---|---|
 | a section header, including a collapsible group's | title-large at 22, never 13–16px |
 | line-height against stock M3 | tighten it, since HA renders denser |
-| the header-to-body ratio | ≥ 1.4×, whatever the line-height |
+| the header-to-body ratio | title large over body large, 22 to 16, whatever the line-height |
 | spacing | a consistent step — 4/8/12/16/20/24 |
 
 ### Step 4: Size targets, icons and thumbnails
