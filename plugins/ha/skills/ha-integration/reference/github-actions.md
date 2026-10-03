@@ -1,11 +1,8 @@
 # GitHub CI stack — what a scaffold carries
 
-Read this when writing or reviewing an integration's workflow files: what the scaffold
-carries, where each piece comes from, and what may differ from its source. GitHub-side
-settings (token, ruleset, required checks) are `reference/github-setup.md`.
+Read this when writing or reviewing an integration's CI files: where each comes from, and what a copy may change.
 
-**A scaffold carries one caller workflow per reusable workflow plus a few copied configs —
-no workflow body and no script.**
+**Each CI file is copied from the source Step 2 names for it, and never written from memory.**
 
 ## Contents
 
@@ -22,7 +19,7 @@ no workflow body and no script.**
 
 ## Assembling the scaffold's CI files
 
-An integration's CI is three repositories of reusable workflows. What each workflow does,
+An integration calls reusable workflows from three repositories. What each workflow does,
 and why, is the README of the repository that owns it:
 
 | file | when to read |
@@ -51,8 +48,7 @@ per-turn reminders for your own `~/.claude`, installed per the header in each sc
 
 ### Step 2: Take each file from its source
 
-Write each file as its README block or its template gives it, never from memory; how to
-verify a copy is *Step 1: Callers, not bodies; copies, not paraphrases* in
+How to verify a copy is *Step 1: Callers, not bodies; copies, not paraphrases* in
 `reference/audit.md`.
 
 | Artefact | Taken from |
@@ -65,7 +61,7 @@ verify a copy is *Step 1: Callers, not bodies; copies, not paraphrases* in
 | `.github/dependabot.yml` | this skill's `templates/`; what it must contain is `reference/dependabot.md` |
 | `ruleset.json`, `pyproject.toml`, `mypy.ini`, `tests/conftest.py`, `tests/__init__.py`, `tests/ruff.toml`, `requirements.test.txt`, `.gitignore`, `.pre-commit-config.yaml`, `.yamllint`, `.prettierrc.js`, `.prettierignore`, and the `CLAUDE.md` and `.githooks/pre-commit` snippets | this skill's `templates/` and `reference/scaffold.md` |
 | `frontend/package.json`, `frontend/tsconfig.json` (panel repos only) | ha-panel-ci's `frontend/` |
-| `scripts/bootstrap_repo.sh` | this skill's `templates/scripts/`; when to run it is `reference/github-setup.md` |
+| `scripts/bootstrap_repo.sh` | this skill's `templates/scripts/`; when to run it is *Step 10: Apply the GitHub settings* in `reference/scaffold.md` |
 
 The audit does not compare a caller with its README block — what it does check is *What the
 audit checks now* in ha-integration-ci's README — so a caller written from memory can pass
@@ -83,8 +79,8 @@ carry nothing of ours to version:
 
 ### Step 3: Resolve each caller's pin
 
-Every caller block ends in `@{{sha}} # {{tag}}`. Resolve both with the two commands printed
-under the block before writing the file; from then on the pin moves as *The version model*
+Every caller block ends in `@{{sha}} # {{tag}}`. Resolve both with the two commands the same
+README prints after its blocks, before writing the file; from then on the pin moves as *The version model*
 in ha-integration-ci's README says.
 
 ### Step 4: Apply only the sanctioned adaptations
@@ -96,7 +92,7 @@ only list of them.
 |---|---|
 | `pyproject.toml` | a `[project]` table carrying no version, and pytest options; never the `[tool.ruff]` tables, which are Home Assistant core's rule set |
 | `frontend/package.json` | the `<domain>` and `<name>` placeholders → this integration's values, as ha-panel-ci's README says |
-| `requirements.test.txt` | uncomment the `home-assistant-frontend` pin, panel repos only |
+| `requirements.test.txt` | uncomment the `home-assistant-frontend` pin and give it its version, panel repos only — how is `reference/panels.md` |
 | `tests/conftest.py` | the repo's own imports and fixtures added to the template's |
 | `ruleset.json` | drop a context the repo does not produce |
 | `.pre-commit-config.yaml` | a hook `rev` newer than the template's, and words added to codespell's `--ignore-words-list` |
