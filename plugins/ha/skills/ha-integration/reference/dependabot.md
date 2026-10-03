@@ -26,6 +26,8 @@ HA integration is in its reach.**
 |---|---|
 | `commit-message.prefix: "chore"` | on each ecosystem, so titles read `chore: bump …` and the autolabeler files them; the mapping is release-flow's drafter config |
 | `cooldown: {exclude: ["PineappleEmperor/*"]}` | on the `github-actions` ecosystem alone — what it exempts, what keeps the hold, and why it is spelled that way, is the cooldown bullet of *The version model* in ha-integration-ci's README |
+| what turns it on | the file on the default branch; GitHub needs no setting switched on for version updates |
+| the scaffold's copy | `templates/.github/dependabot.yml` carries both rows above |
 
 ### Step 2: Enable `github-actions`
 
