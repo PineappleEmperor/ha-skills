@@ -42,9 +42,9 @@ Pick the mode from what is about to be done, then **read that mode's file before
 | **Debug** | a root cause is about to be named | `reference/discipline.md` | — |
 | **Commit / PR** | writing a commit subject, a PR title or a PR body | `reference/commits.md` | — |
 | **Merge** | a check is red, or a merge is about to happen | `reference/discipline.md` | — |
-| **Workflow** | writing or reviewing a workflow file, and what may differ from its source | `reference/github-actions.md` | — |
+| **Workflow** | writing or reviewing a CI file, and what a copy may change | `reference/github-actions.md` | — |
 | **Dependabot** | configuring or debugging Dependabot, including the callers' pins and what it cannot reach | `reference/dependabot.md` | — |
-| **Release** | cutting or gating a release, including an rc, or touching the version in `manifest.json` | `reference/versioning.md` | — |
+| **Release** | cutting or gating a release once the release process is set up, including an rc, or touching the version in `manifest.json` | `reference/versioning.md` | — |
 | **Repo setup** | configuring the repository on GitHub: token, required checks, dependency graph, supply chain | `reference/github-setup.md` | — |
 | **Audit** | auditing a repository against this skill | `reference/audit.md` | — |
 | **Currency** | acting on a pin, SHA, count or Home Assistant release number, or asking whether a cached value is still true | `reference/freshness.md` | What a release changed or deprecated: https://developers.home-assistant.io/blog/ |
