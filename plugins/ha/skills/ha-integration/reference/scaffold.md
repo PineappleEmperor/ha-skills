@@ -50,8 +50,8 @@ folder and the manifest's `domain` key, and every config entry is stored under i
 
 | Scenario | Choice |
 |---|---|
-| the user already has a folder | work in it, renamed to the Step 1 repository name if the two differ; `git init` if it is not a repository yet |
-| no folder yet | `mkdir <repository>`, then `git init` inside it |
+| the user already has a folder | work in it, renamed to the Step 1 repository name if the two differ; `git init -b main` if it is not a repository yet |
+| no folder yet | `mkdir <repository>`, then `git init -b main` inside it |
 | no GitHub repository yet | `gh repo create <repository> --public --description "<the Step 1 description>" --source . --remote origin`, from inside the folder |
 | an empty GitHub repository already exists, with no ruleset on `main` | `git remote add origin <its URL>` |
 
