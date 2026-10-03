@@ -27,7 +27,9 @@ Eight runs share this file, where the evals README asks for one file per run.
 | 8 | `6d7c3a9`: Release row adds "once the release process is set up" | `scaffold.md` ×3 | 0 | — |
 
 **Key for D:** at `5a89cae`, `github-setup.md` or `versioning.md`. `0ad281a` changed it to
-`scaffold.md` alone, before run 5; `7482d31` added `versioning.md` back, after run 5.
+`scaffold.md` alone, before run 5; `7482d31` added `versioning.md` back, after run 5. After
+run 8 it is `scaffold.md` alone again, since the Release row at `6d7c3a9` excludes setting
+the process up.
 
 **Router since:** run 8 read the router as it stands at `6d7c3a9`.
 
