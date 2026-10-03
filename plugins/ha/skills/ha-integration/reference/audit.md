@@ -52,7 +52,7 @@ Judged section by section, citing the section beside each finding:
 
 - the `__init__.py` wiring list of *Step 3: Wire the entry setup and unload* in `reference/patterns.md`
 - *Entity platform files — Step 1* in `reference/patterns.md`
-- *Notify platform (modern pattern — HA 2023.8+) — Step 1* in `reference/patterns.md`
+- *Notify platform — Step 1* in `reference/patterns.md`
 - *Typed `ConfigEntry` — Step 4* in `reference/patterns.md`
 
 ### Step 3: `quality_scale.yaml` honest

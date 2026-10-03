@@ -72,7 +72,7 @@ Under `custom_components/<domain>/`. What goes inside each file is `reference/pa
 | `<platform>.py` | one per platform chosen in Step 1 | always |
 | `brand/` | the brand images — Step 5 | always |
 | `icons.json` | action icons, `{"services": {"my_action": {"service": "mdi:icon"}}}` | the integration registers an action |
-| `services.yaml` | each action's fields — *`services.yaml` + `strings.json` (hassfest rules) — Step 1* in `reference/patterns.md` | the integration registers its own action, where no standard one fits |
+| `services.yaml` | each action's fields — *`services.yaml` + `strings.json` — Step 1* in `reference/patterns.md` | the integration registers its own action, where no standard one fits |
 | `api.py`, `coordinator.py`, `models.py`, `entity.py`, `helpers.py` | what *Step 1: Lay out the files by responsibility* in `reference/patterns.md` gives each | as that step says |
 
 **Docstrings and comments in every generated module**

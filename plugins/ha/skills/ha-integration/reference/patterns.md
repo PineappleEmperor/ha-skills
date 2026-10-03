@@ -16,7 +16,7 @@ it.**
 5. Step 4: Type it, and suppress nothing
 6. Cases
 7. `config_flow.py` — Step 1
-8. Notify platform (modern pattern — HA 2023.8+) — Step 1
+8. Notify platform — Step 1
 9. Entity platform files — Step 1
 10. `EntityDescription` pattern — Step 1
 11. `UpdateEntity` (firmware/OTA install) — Step 1
@@ -28,7 +28,7 @@ it.**
 17. `ConfigEntry` mutation — Step 3
 18. Logging — Step 1
 19. Custom services — Step 1
-20. `services.yaml` + `strings.json` (hassfest rules) — Step 1
+20. `services.yaml` + `strings.json` — Step 1
 21. Register integration-global resources in `async_setup`, not `async_setup_entry` — Step 3
 22. Diagnostics platform — Step 1
 23. Devices belong to one config entry — Step 3
@@ -147,12 +147,12 @@ DATA_SCHEMA = vol.Schema(
 
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
-| `OptionsFlowHandler` | `OptionsFlow` | the old name is deprecated | Step 1 |
+| `OptionsFlowWithConfigEntry` as the options flow's base class | `OptionsFlow`, reading `self.config_entry` | core is phasing it out and keeps it for custom integrations only | `OptionsFlowWithConfigEntry` in `homeassistant/config_entries.py`, at the `.0` tag of the release row in `reference/freshness.md` |
 | a config-entry update listener alongside a reloading method | drop the listener, or call `async_update_and_abort()` in place of `async_update_reload_and_abort()` and pass `reload_on_update=False` to `_abort_if_unique_id_configured()` | the integration reloads twice or races; an error from **2026.12** | Step 1 |
 | `FlowHandler.show_advanced_options`, or the `show_advanced_options` key in `FlowHandler.context` | group the extra fields in a schema `section` | the property returns `True` unconditionally and the context key is already gone; removed **2027.6** | Step 1 |
 | a hand-written `SelectSelector` of device-class values | `DeviceClassSelector` | it carries HA's own values, so the hand-written translations for them go too | Step 1 |
 
-### Notify platform (modern pattern — HA 2023.8+) — Step 1
+### Notify platform — Step 1
 
 The entity itself is https://developers.home-assistant.io/docs/core/entity/notify/; these are
 the rows a custom integration gets wrong against it.
@@ -167,7 +167,7 @@ the rows a custom integration gets wrong against it.
 
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
-| `discovery.async_load_platform` with a `BaseNotificationService` | `NotifyEntity` | the legacy pair is deprecated and fails silently rather than erroring | Step 1 |
+| `discovery.async_load_platform` with a `BaseNotificationService` | `NotifyEntity` | the legacy pair registers a `notify.<name>` service, not an entity, and core is moving its own integrations off it | https://developers.home-assistant.io/blog/2024/04/10/new-notify-entity-platform |
 | a custom payload passed through `NotifyEntity` | a service registered directly, below | `data` is not in its service schema, which carries `message` and `title` only | https://developers.home-assistant.io/docs/core/entity/notify/ |
 
 **A custom payload — animations, sounds, colours — registered as its own service:**
@@ -217,7 +217,7 @@ def device_info(self) -> DeviceInfo:
 |---|---|
 | where the legal pairs are declared | `DEVICE_CLASS_STATE_CLASSES` in core's `homeassistant/components/sensor/const.py`, which moves between releases |
 | `SensorDeviceClass.MONETARY` | `SensorStateClass.TOTAL` only, so a fluctuating balance is `MONETARY` + `TOTAL` |
-| a disallowed pair | logs *"is using state class X which is impossible considering device class Y"* and drops long-term statistics |
+| a disallowed pair | logs *"is using state class X which is impossible considering device class Y"*, once per entity; the statistics still compile |
 | the pair once chosen | locked by an attribute test |
 
 | anti-pattern | use instead | why (one clause) | reference |
@@ -265,10 +265,12 @@ async def async_setup_entry(
 
 | Rule | Value |
 |---|---|
-| what `_attr_in_progress` does | greys out the dashboard install button, and nothing else |
-| what it does not do | stop a second entry from a service call, an automation or two quick clicks |
-| the actual lock | a boolean plus a monotonic timestamp, set at the top of `async_install` after the can't-install checks |
-| the window on that lock | so a crashed or timed-out install cannot wedge the entity |
+| what `_attr_in_progress` does | `update.install` refuses a call while it is `True` — `homeassistant/components/update/__init__.py`, at the `.0` tag of the release row in `reference/freshness.md` |
+| who sets it | the entity, at the top of `async_install`; core never sets it `True` |
+| who clears it | core, when `async_install` returns or raises |
+| what it does not cover | a device still flashing after `async_install` has returned |
+| the lock for that | a boolean plus a monotonic timestamp, set at the top of `async_install` after the can't-install checks |
+| the window on that lock | so a device that never reports back cannot wedge the entity |
 
   ```python
   @override
@@ -288,7 +290,7 @@ async def async_setup_entry(
 version lands, or when the window elapses.
 
 ### `DataUpdateCoordinator` (polling) — Step 1
-- `update_interval` minimum 5 s
+- `update_interval` no shorter than the time the source's data takes to change — the `appropriate-polling` rule, https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/appropriate-polling/; core sets no minimum
 - Set `always_update=False` when API responses support `__eq__` — avoids unnecessary state machine writes
 - Raise `ConfigEntryAuthFailed` on auth errors inside `_async_update_data`
 - Raise `UpdateFailed` on other errors; use `UpdateFailed(retry_after=60)` for rate-limited APIs — it sets the wait before the next poll once, and is ignored during the first refresh
@@ -422,8 +424,8 @@ Covers the rule `log-when-unavailable` (`reference/quality-scale.md`) and HA's l
 
 | Rule | Value |
 |---|---|
-| what the coordinator logs for you | on a poll, the first `UpdateFailed` at ERROR, each consecutive one at DEBUG, and the recovery — which is `log-when-unavailable` met; what it leaves to you on a push connection is *A connection that drops — Step 1* |
-| what HA logs for you | the reason behind `ConfigEntryNotReady` and `ConfigEntryAuthFailed`, once |
+| what the coordinator logs for you | on a poll, the first `UpdateFailed`, timeout or request error at ERROR, nothing for the ones after it, and the recovery at INFO — which is `log-when-unavailable` met; an unexpected exception at ERROR with its traceback, every time; what it leaves to you on a push connection is *A connection that drops — Step 1* |
+| what HA logs for you | the reason behind `ConfigEntryAuthFailed` at WARNING, and behind `ConfigEntryNotReady` at INFO on each retry — `ConfigEntry.async_setup`, through `__async_setup_with_context`, in `homeassistant/config_entries.py`, at the `.0` tag of the release row in `reference/freshness.md` |
 | which exception to raise | transient → `UpdateFailed` or `ConfigEntryNotReady`; auth → `ConfigEntryAuthFailed`; an action's own failure → `HomeAssistantError` or `ServiceValidationError`, per `action-exceptions` |
 | `INFO` | almost never: the one line saying a device or service is gone, and the one saying it is back, where `log-when-unavailable` asks for that level; setup, unload and teardown are `DEBUG` |
 | `WARNING` | a recoverable thing the user should know |
@@ -435,7 +437,7 @@ Covers the rule `log-when-unavailable` (`reference/quality-scale.md`) and HA's l
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
 | wrapping the fetch in your own `try`/log | raise `UpdateFailed` and let the coordinator log | the manual log double-logs and fails `log-when-unavailable` | https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/log-when-unavailable/ |
-| `_LOGGER.exception(...)` beside a raise in `async_setup_entry` | raise alone | HA logs the reason once already | Step 1 |
+| `_LOGGER.exception(...)` beside a raise in `async_setup_entry` | raise alone | HA logs the reason already | `ConfigEntry.async_setup`, through `__async_setup_with_context`, in `homeassistant/config_entries.py`, at the `.0` tag of the release row in `reference/freshness.md` |
 | an f-string in a log call | a lazy `%` arg | the f-string evaluates even when the level is disabled | Step 1 |
 | logging a credential, API key, token or raw auth response | log the fact, never the secret | a log is read by whoever is handed it | Step 1 |
 | a module-level `_LOGGER` left behind after the calls go | delete it | ruff does not flag an unused module global | Step 1 |
@@ -469,10 +471,12 @@ device, entry = async_get_device_and_config_entry_for_domain(
 | a composite device id no split matches | the restored composite device, and `None` |
 | whether that config entry is loaded | not checked — keep your own `ConfigEntryState.LOADED` test |
 
-### `services.yaml` + `strings.json` (hassfest rules) — Step 1
+### `services.yaml` + `strings.json` — Step 1
 
 | Rule | Value |
 |---|---|
+| what hassfest checks of a custom integration's actions | not their `name` or `description`, which it accepts in `services.yaml` too — `script/hassfest/services.py`, at the `.0` tag of the release row in `reference/freshness.md` |
+| what this stack checks of them | the translation check under *Implementation notes* in ha-integration-ci's README |
 | what `services.yaml` carries | field **structure** only — selectors, `required`, `default`, collapsible `sections` |
 | what `strings.json` carries | every name and description, under a top-level `services` key: `services.{svc}.name/description`, `.fields.{key}.name/description`, `.sections.{key}.name` |
 | a field key nested in a `sections` block in `services.yaml` | flat in `strings.json` all the same |
@@ -537,7 +541,7 @@ A device has exactly one config entry and at most one subentry: read `config_ent
 | where each release below comes from | the `breaks_in_ha_version` of the call site that reports that usage, read at the `2026.9.0` tag in `homeassistant/helpers/device_registry.py` and `homeassistant/helpers/device.py` |
 | a row naming no release | one core attaches none to |
 | the WebSocket keys of the same names | `reference/panels.md` |
-| a core caller | raises `RuntimeError` today wherever the call site sets `core_behavior=ReportBehavior.ERROR`, while a custom integration gets a logged warning until the row's release |
+| how a custom integration is told | a logged warning, from `report_usage` in `homeassistant/helpers/frame.py` or `deprecated_function` in `homeassistant/helpers/deprecation.py`, at the `.0` tag of the release row in `reference/freshness.md` — unless the row says it raises already |
 
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
@@ -546,7 +550,7 @@ A device has exactly one config entry and at most one subentry: read `config_ent
 | `DeviceEntry.primary_config_entry` | `config_entry_id` | a compatibility property returning `config_entry_id` itself, with **no removal release stated by core** | Step 3 |
 | a loop over a device's config entries to find your own | `async_get_device_and_config_entry_for_domain(hass, device_id, domain=DOMAIN)` | the loop gets a pre-migration composite device id wrong, which the helper resolves | *Custom services — Step 1* |
 | `DeviceInfo["via_device"]`, `async_get_or_create(via_device=…)` | `via_device_id`, looked up with `async_get_device_id_by_identifier(hass, identifier, config_entry_id=…)` | an identifier is unique only within a config entry; stops working in **2027.8.0** | Step 3 |
-| a `via_device` or `via_device_id` naming the device itself | drop the self-reference | ignored and logged now; raises from **2027.8.0** | Step 3 |
+| a `via_device` or `via_device_id` naming the device itself | drop the self-reference | `via_device_id` raises `HomeAssistantError` already; `via_device` is ignored and logged, and raises from **2027.8.0** | `async_get_or_create` and `async_update_device` in `homeassistant/helpers/device_registry.py`, at the `.0` tag of the release row in `reference/freshness.md` |
 | a composite device id passed as `via_device_id` | the id of one real device | resolved and logged now; stops working in **2027.8** | Step 3 |
 | `DeviceRegistry.async_get_device()` | `async_get_device_by_identifier()`, `async_get_device_by_connection()` or `async_get_devices()`, each with the config entry id | the lookup is ambiguous once identifiers repeat across entries; stops working in **2027.8.0** | Step 3 |
 | `async_update_device(add_config_entry_id=…, add_config_subentry_id=…, remove_config_entry_id=…, remove_config_subentry_id=…)` | `new_config_entry_id`, `new_config_subentry_id`, or `async_remove_device` | a move is no longer an add plus a remove; stops working in **2027.8.0** | Step 3 |
@@ -555,7 +559,7 @@ A device has exactly one config entry and at most one subentry: read `config_ent
 | `async_update_device(merge_connections=…, merge_identifiers=…)` | `new_connections`, `new_identifiers`, with the full set computed yourself | merging only ever adds; stops working in **2027.9.0** | Step 3 |
 | `async_get_or_create(default_manufacturer=…, default_model=…, default_name=…)` | `manufacturer`, `model`, `name` | there is no primary integration left to defer to; stops working in **2027.9.0** | Step 3 |
 | `async_get_or_create(created_at=…, modified_at=…)` | drop the arguments | the registry owns both and always ignored them; stops working in **2027.9.0** | Step 3 |
-| `suggested_area` on `DeviceEntry`, `async_get_or_create` or `async_update_device` | drop it | it is ignored; **2026.9** on the property and **2026.9.0** on the `async_update_device` call site | Step 3 |
+| `suggested_area` read off `DeviceEntry`, or passed to `async_update_device` | drop it; `DeviceInfo` and `async_get_or_create` still take it, and set a new device's area from it | ignored, and deprecated — **2026.9** on the property and **2026.9.0** on the `async_update_device` call site | `DeviceEntry.suggested_area` and `async_update_device` in `homeassistant/helpers/device_registry.py`, at the `.0` tag of the release row in `reference/freshness.md` |
 | a non-`str` value in a device-registry string field (`model`, `sw_version`, …) | pass a `str` | coerced with a warning now; stops working in **2026.12.0** | Step 3 |
 | `DeviceRegistry.devices` as a mapping — `.get()`, `.values()`, `.keys()`, `registry.devices[id]`, `device_id in registry.devices` | iterate it for the entries, `async_get(device_id)` for a lookup | it is a read-only collection now; the mapping shim stops working in **2027.9.0** | Step 3 |
 | `DeviceRegistry.child_devices` as a mapping | iterate it | there is no compatibility shim at all: no `.get()`, no `.values()`, no lookup by id | Step 3 |
@@ -618,10 +622,10 @@ The deprecations a custom integration can meet that have no section of their own
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
 | `mqtt.publish()` or `async_publish()` with `qos=None` or `retain=None` | the defaults, or typed values — the parameters are `qos: int = 0` and `retain: bool = False` | the `None` fallbacks stop working in **2027.6** | Step 1 |
-| using a condition object as a callable | `async_condition_from_config()`, then `async_check()`, then `async_unload()`; a script is `async_run()` then `await script.async_unload()` | the callable form ends in **2027.1** | Step 1 |
+| using a condition object as a callable | `async_from_config()` from `homeassistant.helpers.condition`, then `async_check()`, then `async_unload()`; a script is `async_run()` then `await script.async_unload()` | the post gives **2027.1** for the end of the callable form; core at the `.0` tag of the release row in `reference/freshness.md` attaches no warning to it | https://developers.home-assistant.io/blog/2026/05/13/condition-script-api-changes |
 | `BrowseMediaSource(domain=None)` | your own domain; the node listing every media source is `RootBrowseMediaSource` | `domain` is a required `str` now — a hard change with no deprecation period | Step 1 |
 | `battery_level` on a `device_tracker` entity | a dedicated `SensorDeviceClass.BATTERY` sensor | stops working in **2027.7** | Step 1 |
-| `TrackerEntity.location_name` | `in_zones` — zone entity ids, smallest zone first | stops working in **2027.7** | Step 1 |
+| `TrackerEntity.location_name` | `in_zones` — zone entity ids, in any order, since the base class sorts them | stops working in **2027.7** | `TrackerEntity.in_zones` in `homeassistant/components/device_tracker/entity.py`, at the `.0` tag of the release row in `reference/freshness.md` |
 | `battery_level` on `StateVacuumEntity` | a dedicated battery sensor | already removed, in 2026.9 | Step 1 |
 | `async_initialize_triggers(home_assistant_start=…)` | stop passing it; `hass.async_add_startup_job` for work at startup | it already has no effect; removed in **2027.8** | Step 1 |
 | a `TrackerEntity` for a device tracked by connection rather than position | `BaseScannerEntity` | it derives the state from the associated zone and sets the `tracking_type` capability attribute | Step 1 |
