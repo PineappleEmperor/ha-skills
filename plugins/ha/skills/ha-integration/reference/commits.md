@@ -1,7 +1,6 @@
 # Commit conventions
 
-Read this when writing a commit subject, a PR title or a PR body. Labels, gates and the
-release model are `reference/versioning.md`.
+Read this when writing a commit subject, a PR title or a PR body.
 
 **The commit subject is the changelog entry: one tight imperative in the Conventional
 Commits form, subject-only by default.**
@@ -15,7 +14,7 @@ Commits form, subject-only by default.**
 5. Step 4: Carry no AI-attribution trailer
 6. The PR body — for reviewers, and nothing users read
 7. Step 1: Leave the body empty
-8. Step 2: Put the narrative in the release description
+8. Step 2: Leave the release description to the workflow
 9. Step 3: Post no comment on the PR by default
 10. Cases
 11. `gh pr edit` fails on the Projects-classic deprecation — PR body Step 1
@@ -87,12 +86,11 @@ No job writes it, and the draft PR arrives empty.
 | a description longer than its diff is interesting | fix the commit subjects, or put it in a file in the repo |
 | explaining *why* anywhere the commit subjects should have said it | fix the commit subjects, or put it in a file in the repo |
 
-### Step 2: Put the narrative in the release description
+### Step 2: Leave the release description to the workflow
 
-The human-readable "what changed and why it matters" belongs in the **release notes**,
-written once, in the release description. GitHub's own `generate_release_notes` is not the
-mechanism here; the one-writer rule the audit enforces is *What the audit checks now* in
-ha-integration-ci's README.
+`release-drafter.yml` rewrites the release body from the commit subjects on every push to
+`main` and again when the release publishes, so text typed into a release description is
+lost. What a reader of the release should learn goes in the commit subjects.
 
 ### Step 3: Post no comment on the PR by default
 
