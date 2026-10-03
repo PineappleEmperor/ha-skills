@@ -1,15 +1,12 @@
 # Setting the repository up on GitHub
 
-Read this when configuring a repo on GitHub: the release token, the required checks, the
-dependency graph and the supply-chain guards. What the scaffold carries, and what may be
-changed in a copy, is `reference/github-actions.md`.
+Read this when configuring a repository on GitHub: the release token, the required checks and the dependency graph.
 
-**Every item here is a setting no file in the repo can carry, and each one fails quietly
-until the first CI run.**
+**Each item here is a GitHub setting, which no file in the repository applies on its own.**
 
 ## Contents
 
-1. `RELEASE_TOKEN` — set this up before the first release
+1. `RELEASE_TOKEN` — set this up before the first push to a branch other than `main`
 2. Step 1: Generate a fine-grained PAT
 3. Step 2: Store it as the `RELEASE_TOKEN` repository secret
 4. Step 3: Rotate by pasting a new value into the same secret
@@ -24,12 +21,12 @@ until the first CI run.**
 13. A ruleset must be overruled — checks Step 1
 14. An AI session runs with your `gh` credentials — checks Step 1
 
-## `RELEASE_TOKEN` — set this up before the first release
+## `RELEASE_TOKEN` — set this up before the first push to a branch other than `main`
 
 One secret, once per repo, passed by the `auto-draft-pr.yml` caller to release-flow's
 draft-PR opener. Why the opener needs a token of its own, and what happens without one, is
-*The one secret* in release-flow's README. The audit checks the secret is set
-(ha-integration-ci's README, *What the audit checks now*).
+*The one secret* in release-flow's README. That the audit checks it is set is *What the
+audit checks now* in ha-integration-ci's README.
 
 - The release path needs no token.
 - A GitHub App cannot stand in for it; *The one secret* in release-flow's README says why.
@@ -53,8 +50,6 @@ draft-PR opener. Why the opener needs a token of its own, and what happens witho
   GitHub does not separate those.
 - Neither permission can edit rulesets or branch protection, change repository settings, or
   reach any repo outside its scope, so a required-checks ruleset still holds.
-- The token exists to trigger workflows, so anything it can do a workflow it starts can do
-  too.
 
 ### Step 2: Store it as the `RELEASE_TOKEN` repository secret
 
@@ -84,7 +79,7 @@ gh api -X POST repos/<owner>/<repo>/rulesets --input ruleset.json
 > **Note:** that command sets only the ruleset. Turn the dependency graph on as
 > *`Dependency review` is red on every PR — checks Step 3* says.
 
-`scripts/bootstrap_repo.sh` does the GitHub-side settings in one run, from the repo root
+`scripts/bootstrap_repo.sh` does the GitHub-side settings and the local hooks path in one run, from the repo root
 after the first push: description, topics, issues, the dependency graph, `core.hooksPath`,
 the ruleset (only if `ruleset.json` is at the repo root — it skips otherwise), and the
 `RELEASE_TOKEN` secret, prompted rather than passed as an argument.
@@ -152,11 +147,12 @@ enables it and reports when it cannot.
 ### A ruleset must be overruled — checks Step 1
 
 A ruleset granting admins `bypass_mode: always` does not constrain anyone holding admin; the
-push reports `Bypassed rule violations` and proceeds, so the list stays empty.
+push reports `Bypassed rule violations` and proceeds, so `ruleset.json` leaves `bypass_actors`
+empty.
 
 **Fix:** disable the ruleset, merge, re-enable it, which is deliberate, reversible and
-leaves an audit-log entry. The one sanctioned reason to merge red is *Merge discipline — never merge a red
-check* in `reference/discipline.md`.
+leaves an audit-log entry. The one sanctioned reason to merge red is *One exception, and it
+is narrow — merge Step 2* in `reference/discipline.md`.
 
 ### An AI session runs with your `gh` credentials — checks Step 1
 
