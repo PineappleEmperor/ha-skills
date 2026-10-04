@@ -1,6 +1,6 @@
-# 06 — Router selection, 2026-10-02 to 2026-10-03
+# 06 — Router selection, 2026-10-02 to 2026-10-04
 
-- **Date:** runs 1 to 5 on 2026-10-02, runs 6 to 8 on 2026-10-03
+- **Date:** runs 1 to 5 on 2026-10-02, runs 6 to 8 on 2026-10-03, run 9 on 2026-10-04
 - **Skill version:** `feat/refresh-2026-9`, the router per run in the table; runs 3 and 4 read
   uncommitted text on it
 - **Arm:** treatment only; three fresh read-only reps per run, told only where the skills live
@@ -11,9 +11,9 @@
   In run 7 every rep answered `scaffold.md` from the Scaffold row's wording; one decided it
   outright and two still called it a guess against Release, so D fails for those two. No rep
   opened a reference file. D passes run 8: each rep cited the Scaffold row and ruled the
-  Release row out on its own wording.
+  Release row out on its own wording. Run 9 matched the key 15 of 15, no rep unsure of D.
 
-Eight runs share this file, where the evals README asks for one file per run.
+Nine runs share this file, where the evals README asks for one file per run.
 
 | Run | Router (`SKILL.md`) | D answered | Reps unsure of D | Unsure about |
 |---|---|---|---|---|
@@ -25,17 +25,18 @@ Eight runs share this file, where the evals README asks for one file per run.
 | 6 | `b066266`: Scaffold row rewritten by `b83b8bc`, no release clause | `versioning.md` ×3 | 3 | Release, Scaffold, Repo setup or Workflow row |
 | 7 | `57c1033`: Scaffold row adds "including setting up its CI and release process" | `scaffold.md` ×3 | 2 | Release, for a repository that already exists |
 | 8 | `6d7c3a9`: Release row adds "once the release process is set up" | `scaffold.md` ×3 | 0 | — |
+| 9 | `0ea297b`: `ha-triage` rows widened by `ad1466a`; `ha-integration`'s router as at `6d7c3a9` | `scaffold.md` ×3 | 0 | — |
 
 **Key for D:** at `5a89cae`, `github-setup.md` or `versioning.md`. `0ad281a` changed it to
 `scaffold.md` alone, before run 5; `7482d31` added `versioning.md` back, after run 5. After
 run 8 it is `scaffold.md` alone again, since the Release row at `6d7c3a9` excludes setting
 the process up.
 
-**Router since:** run 8 read the router as it stands at `6d7c3a9`.
+**Router since:** run 9 read both routers as they stand at `0ea297b`.
 
 ## Findings not planted by the scenario
 
-- **A matches two triage rows.** Most reps noted that "every entity went unavailable" also fits the
+- **A matches two triage rows.** Most reps, and all three in run 9, noted that "every entity went unavailable" also fits the
   Connection row; every rep chose *Unexpected reply* on the quoted log line, and both rows
   name `patterns.md`.
 - **C has a decoy that held.** Several reps noted that `ha-triage`'s Panel row and `ha-integration`'s
