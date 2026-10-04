@@ -148,9 +148,9 @@ DATA_SCHEMA = vol.Schema(
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
 | `OptionsFlowWithConfigEntry` as the options flow's base class | `OptionsFlow`, reading `self.config_entry` | core is phasing it out and keeps it for custom integrations only | `OptionsFlowWithConfigEntry` in `homeassistant/config_entries.py`, at the `.0` tag of the release row in `reference/freshness.md` |
-| a config-entry update listener alongside a reloading method | drop the listener, or call `async_update_and_abort()` in place of `async_update_reload_and_abort()` and pass `reload_on_update=False` to `_abort_if_unique_id_configured()` | the integration reloads twice or races; an error from **2026.12** | Step 1 |
-| `FlowHandler.show_advanced_options`, or the `show_advanced_options` key in `FlowHandler.context` | group the extra fields in a schema `section` | the property returns `True` unconditionally and the context key is already gone; removed **2027.6** | Step 1 |
-| a hand-written `SelectSelector` of device-class values | `DeviceClassSelector` | it carries HA's own values, so the hand-written translations for them go too | Step 1 |
+| a config-entry update listener alongside a reloading method | drop the listener, or call `async_update_and_abort()` in place of `async_update_reload_and_abort()` and pass `reload_on_update=False` to `_abort_if_unique_id_configured()` | the integration reloads twice or races; an error from **2026.12** | `async_update_reload_and_abort` and `_abort_if_unique_id_configured` in `homeassistant/config_entries.py` |
+| `FlowHandler.show_advanced_options`, or the `show_advanced_options` key in `FlowHandler.context` | group the extra fields in a schema `section` | the property returns `True` unconditionally and the context key is already gone; removed **2027.6** | `FlowHandler.show_advanced_options` in `homeassistant/data_entry_flow.py` |
+| a hand-written `SelectSelector` of device-class values | `DeviceClassSelector` | it carries HA's own values, so the hand-written translations for them go too | https://developers.home-assistant.io/blog/2026/09/04/device-and-state-class-selectors |
 
 ### Notify platform — Step 1
 
@@ -222,8 +222,8 @@ def device_info(self) -> DeviceInfo:
 
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
-| `update_before_add=True` on `async_add_entities` | compute `native_value` as a property off `self.coordinator.data`, or call `self._handle_coordinator_update()` at the end of `async_added_to_hass`, after `await super().async_added_to_hass()` | it schedules a debouncer timer that outlives the test and the frozen clock | Step 1 |
-| a collection sensor whose state is the raw list or a timestamp | the `len()` count, the items in an attribute, `_attr_state_class = MEASUREMENT` | `last_updated` and `last_changed` are state attributes already, and a count graphs | Step 1 |
+| `update_before_add=True` on `async_add_entities` | compute `native_value` as a property off `self.coordinator.data`, or call `self._handle_coordinator_update()` at the end of `async_added_to_hass`, after `await super().async_added_to_hass()` | it schedules a debouncer timer that outlives the test and the frozen clock | `CoordinatorEntity.async_update` in `homeassistant/helpers/update_coordinator.py` |
+| a collection sensor whose state is the raw list or a timestamp | the `len()` count, the items in an attribute, `_attr_state_class = MEASUREMENT` | `last_updated` and `last_changed` are state attributes already, and a count graphs | — |
 | deleting `state_class` to silence an impossible-pair warning | the `state_class` that device class permits | deleting it drops long-term statistics altogether | `DEVICE_CLASS_STATE_CLASSES` in `homeassistant/components/sensor/const.py` |
 
 **Symptom:** `CoordinatorEntity` does not push initial state on add, so an entity that sets
@@ -438,9 +438,9 @@ Covers the rule `log-when-unavailable` (`reference/quality-scale.md`) and HA's l
 |---|---|---|---|
 | wrapping the fetch in your own `try`/log | raise `UpdateFailed` and let the coordinator log | the manual log double-logs and fails `log-when-unavailable` | https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/log-when-unavailable/ |
 | `_LOGGER.exception(...)` beside a raise in `async_setup_entry` | raise alone | HA logs the reason already | `ConfigEntry.async_setup`, through `__async_setup_with_context`, in `homeassistant/config_entries.py`, at the `.0` tag of the release row in `reference/freshness.md` |
-| an f-string in a log call | a lazy `%` arg | the f-string evaluates even when the level is disabled | Step 1 |
-| logging a credential, API key, token or raw auth response | log the fact, never the secret | a log is read by whoever is handed it | Step 1 |
-| a module-level `_LOGGER` left behind after the calls go | delete it | ruff does not flag an unused module global | Step 1 |
+| an f-string in a log call | a lazy `%` arg | the f-string evaluates even when the level is disabled | https://developers.home-assistant.io/docs/development_guidelines/ |
+| logging a credential, API key, token or raw auth response | log the fact, never the secret | a log is read by whoever is handed it | https://developers.home-assistant.io/docs/development_guidelines/ |
+| a module-level `_LOGGER` left behind after the calls go | delete it | ruff does not flag an unused module global | — |
 
 ### Custom services — Step 1
 
@@ -545,29 +545,29 @@ A device has exactly one config entry and at most one subentry: read `config_ent
 
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
-| `DeviceEntry.config_entries` | `config_entry_id` | a compatibility property returning `{config_entry_id}`, carrying no `report_usage` and **no removal release stated by core** | Step 3 |
-| `DeviceEntry.config_entries_subentries` | `config_entry_id` and `config_subentry_id` | a compatibility property returning `{config_entry_id: {config_subentry_id}}`, with **no removal release stated by core** | Step 3 |
-| `DeviceEntry.primary_config_entry` | `config_entry_id` | a compatibility property returning `config_entry_id` itself, with **no removal release stated by core** | Step 3 |
-| a loop over a device's config entries to find your own | `async_get_device_and_config_entry_for_domain(hass, device_id, domain=DOMAIN)` | the loop gets a pre-migration composite device id wrong, which the helper resolves | *Custom services — Step 1* |
-| `DeviceInfo["via_device"]`, `async_get_or_create(via_device=…)` | `via_device_id`, looked up with `async_get_device_id_by_identifier(hass, identifier, config_entry_id=…)` | an identifier is unique only within a config entry; stops working in **2027.8.0** | Step 3 |
+| `DeviceEntry.config_entries` | `config_entry_id` | a compatibility property returning `{config_entry_id}`, carrying no `report_usage` and **no removal release stated by core** | `DeviceEntry.config_entries` in `homeassistant/helpers/device_registry.py` |
+| `DeviceEntry.config_entries_subentries` | `config_entry_id` and `config_subentry_id` | a compatibility property returning `{config_entry_id: {config_subentry_id}}`, with **no removal release stated by core** | `DeviceEntry.config_entries_subentries` in `homeassistant/helpers/device_registry.py` |
+| `DeviceEntry.primary_config_entry` | `config_entry_id` | a compatibility property returning `config_entry_id` itself, with **no removal release stated by core** | `BaseDeviceEntry.primary_config_entry` in `homeassistant/helpers/device_registry.py` |
+| a loop over a device's config entries to find your own | `async_get_device_and_config_entry_for_domain(hass, device_id, domain=DOMAIN)` | the loop gets a pre-migration composite device id wrong, which the helper resolves | `async_get_device_and_config_entry_for_domain` in `homeassistant/helpers/device_registry.py` |
+| `DeviceInfo["via_device"]`, `async_get_or_create(via_device=…)` | `via_device_id`, looked up with `async_get_device_id_by_identifier(hass, identifier, config_entry_id=…)` | an identifier is unique only within a config entry; stops working in **2027.8.0** | `DeviceRegistry.async_get_or_create` in `homeassistant/helpers/device_registry.py` |
 | a `via_device` or `via_device_id` naming the device itself | drop the self-reference | `via_device_id` raises `HomeAssistantError` already; `via_device` is ignored and logged, and raises from **2027.8.0** | `async_get_or_create` and `async_update_device` in `homeassistant/helpers/device_registry.py`, at the `.0` tag of the release row in `reference/freshness.md` |
-| a composite device id passed as `via_device_id` | the id of one real device | resolved and logged now; stops working in **2027.8** | Step 3 |
-| `DeviceRegistry.async_get_device()` | `async_get_device_by_identifier()`, `async_get_device_by_connection()` or `async_get_devices()`, each with the config entry id | the lookup is ambiguous once identifiers repeat across entries; stops working in **2027.8.0** | Step 3 |
-| `async_update_device(add_config_entry_id=…, add_config_subentry_id=…, remove_config_entry_id=…, remove_config_subentry_id=…)` | `new_config_entry_id`, `new_config_subentry_id`, or `async_remove_device` | a move is no longer an add plus a remove; stops working in **2027.8.0** | Step 3 |
-| `async_get_or_create` re-registering an existing device under a different subentry | `async_update_device(new_config_subentry_id=…)` | it silently moves the device; raises from **2027.8.0** | Step 3 |
-| a `disabled_by` that contradicts the owning config entry or the parent device | leave it `UNDEFINED` and let the registry derive it | the value is dropped and logged now; raises from **2027.8** | Step 3 |
-| `async_update_device(merge_connections=…, merge_identifiers=…)` | `new_connections`, `new_identifiers`, with the full set computed yourself | merging only ever adds; stops working in **2027.9.0** | Step 3 |
-| `async_get_or_create(default_manufacturer=…, default_model=…, default_name=…)` | `manufacturer`, `model`, `name` | there is no primary integration left to defer to; stops working in **2027.9.0** | Step 3 |
-| `async_get_or_create(created_at=…, modified_at=…)` | drop the arguments | the registry owns both and always ignored them; stops working in **2027.9.0** | Step 3 |
+| a composite device id passed as `via_device_id` | the id of one real device | resolved and logged now; stops working in **2027.8** | `DeviceRegistry._resolve_via_device_id` in `homeassistant/helpers/device_registry.py` |
+| `DeviceRegistry.async_get_device()` | `async_get_device_by_identifier()`, `async_get_device_by_connection()` or `async_get_devices()`, each with the config entry id | the lookup is ambiguous once identifiers repeat across entries; stops working in **2027.8.0** | `DeviceRegistry.async_get_device` in `homeassistant/helpers/device_registry.py` |
+| `async_update_device(add_config_entry_id=…, add_config_subentry_id=…, remove_config_entry_id=…, remove_config_subentry_id=…)` | `new_config_entry_id`, `new_config_subentry_id`, or `async_remove_device` | a move is no longer an add plus a remove; stops working in **2027.8.0** | `DeviceRegistry.async_update_device` in `homeassistant/helpers/device_registry.py` |
+| `async_get_or_create` re-registering an existing device under a different subentry | `async_update_device(new_config_subentry_id=…)` | it silently moves the device; raises from **2027.8.0** | `DeviceRegistry.async_get_or_create` in `homeassistant/helpers/device_registry.py` |
+| a `disabled_by` that contradicts the owning config entry or the parent device | leave it `UNDEFINED` and let the registry derive it | the value is dropped and logged now; raises from **2027.8** | `DeviceRegistry._async_update_device` and `_async_update_child_device` in `homeassistant/helpers/device_registry.py` |
+| `async_update_device(merge_connections=…, merge_identifiers=…)` | `new_connections`, `new_identifiers`, with the full set computed yourself | merging only ever adds; stops working in **2027.9.0** | `DeviceRegistry.async_update_device` in `homeassistant/helpers/device_registry.py` |
+| `async_get_or_create(default_manufacturer=…, default_model=…, default_name=…)` | `manufacturer`, `model`, `name` | there is no primary integration left to defer to; stops working in **2027.9.0** | `DeviceRegistry.async_get_or_create` in `homeassistant/helpers/device_registry.py` |
+| `async_get_or_create(created_at=…, modified_at=…)` | drop the arguments | the registry owns both and always ignored them; stops working in **2027.9.0** | `DeviceRegistry.async_get_or_create` in `homeassistant/helpers/device_registry.py` |
 | `suggested_area` read off `DeviceEntry`, or passed to `async_update_device` | drop it; `DeviceInfo` and `async_get_or_create` still take it, and set a new device's area from it | ignored, and deprecated — **2026.9** on the property and **2026.9.0** on the `async_update_device` call site | `DeviceEntry.suggested_area` and `async_update_device` in `homeassistant/helpers/device_registry.py`, at the `.0` tag of the release row in `reference/freshness.md` |
-| a non-`str` value in a device-registry string field (`model`, `sw_version`, …) | pass a `str` | coerced with a warning now; stops working in **2026.12.0** | Step 3 |
-| `DeviceRegistry.devices` as a mapping — `.get()`, `.values()`, `.keys()`, `registry.devices[id]`, `device_id in registry.devices` | iterate it for the entries, `async_get(device_id)` for a lookup | it is a read-only collection now; the mapping shim stops working in **2027.9.0** | Step 3 |
-| `DeviceRegistry.child_devices` as a mapping | iterate it | there is no compatibility shim at all: no `.get()`, no `.values()`, no lookup by id | Step 3 |
-| `DeviceRegistry.deleted_devices` | nothing — it is an internal detail of the registry | stops working in **2027.9.0** | Step 3 |
-| `DeviceRegistry.async_is_composite_device_id()` | `async_get(device_id, include_composite_devices=False)` returning `None` | the parameter makes the same test; stops working in **2027.9.0** | Step 3 |
-| a `DeviceEntry`-only attribute read off a child device — `connections`, `manufacturer`, `model`, `model_id`, `hw_version`, `sw_version`, `serial_number`, `configuration_url`, `entry_type`, `via_device_id` | branch on `parent_device_id`, then read the parent device | the shim hands back the `DeviceEntry` default, not the parent's value; stops working in **2027.9.0** | Step 3 |
-| `async_device_info_to_link_from_entity()`, `async_device_info_to_link_from_device_id()` | `entity.device_entry = async_entity_id_to_device(hass, source_entity_id)` | both already return `None`; removed in **2027.8.0** | Step 3 |
-| `async_remove_stale_devices_links_keep_entity_device()`, `async_remove_stale_devices_links_keep_current_device()` | `helper_integration.async_remove_helper_devices(…, remove_all_devices=True)` | both already do nothing; removed in **2027.8.0** | Step 3 |
+| a non-`str` value in a device-registry string field (`model`, `sw_version`, …) | pass a `str` | coerced with a warning now; stops working in **2026.12.0** | `_validate_str` in `homeassistant/helpers/device_registry.py` |
+| `DeviceRegistry.devices` as a mapping — `.get()`, `.values()`, `.keys()`, `registry.devices[id]`, `device_id in registry.devices` | iterate it for the entries, `async_get(device_id)` for a lookup | it is a read-only collection now; the mapping shim stops working in **2027.9.0** | `_DeprecatedDeviceRegistryItemsView` in `homeassistant/helpers/device_registry.py` |
+| `DeviceRegistry.child_devices` as a mapping | iterate it | there is no compatibility shim at all: no `.get()`, no `.values()`, no lookup by id | `DeviceRegistry._async_load` in `homeassistant/helpers/device_registry.py` |
+| `DeviceRegistry.deleted_devices` | nothing — it is an internal detail of the registry | stops working in **2027.9.0** | `DeviceRegistry.deleted_devices` in `homeassistant/helpers/device_registry.py` |
+| `DeviceRegistry.async_is_composite_device_id()` | `async_get(device_id, include_composite_devices=False)` returning `None` | the parameter makes the same test; stops working in **2027.9.0** | `DeviceRegistry.async_is_composite_device_id` in `homeassistant/helpers/device_registry.py` |
+| a `DeviceEntry`-only attribute read off a child device — `connections`, `manufacturer`, `model`, `model_id`, `hw_version`, `sw_version`, `serial_number`, `configuration_url`, `entry_type`, `via_device_id` | branch on `parent_device_id`, then read the parent device | the shim hands back the `DeviceEntry` default, not the parent's value; stops working in **2027.9.0** | `ChildDeviceEntry.__getattr__` in `homeassistant/helpers/device_registry.py` |
+| `async_device_info_to_link_from_entity()`, `async_device_info_to_link_from_device_id()` | `entity.device_entry = async_entity_id_to_device(hass, source_entity_id)` | both already return `None`; removed in **2027.8.0** | `async_device_info_to_link_from_entity` and `async_device_info_to_link_from_device_id` in `homeassistant/helpers/device.py` |
+| `async_remove_stale_devices_links_keep_entity_device()`, `async_remove_stale_devices_links_keep_current_device()` | `helper_integration.async_remove_helper_devices(…, remove_all_devices=True)` | both already do nothing; removed in **2027.8.0** | `async_remove_stale_devices_links_keep_entity_device` and `async_remove_stale_devices_links_keep_current_device` in `homeassistant/helpers/device.py` |
 
 > **Note:** the three compatibility properties are the supported way to read a *synthesized
 > composite* device — the read-only entry `async_get()` returns for a pre-migration composite
@@ -583,10 +583,10 @@ A device has exactly one config entry and at most one subentry: read `config_ent
 
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
-| `CONCENTRATION_GRAMS_PER_CUBIC_METER`, `CONCENTRATION_MILLIGRAMS_PER_CUBIC_METER`, `CONCENTRATION_MICROGRAMS_PER_CUBIC_METER`, `CONCENTRATION_MICROGRAMS_PER_CUBIC_FOOT` | the matching `UnitOfDensity` member | removed in **2027.8** | Step 1 |
-| `CONCENTRATION_PARTS_PER_MILLION`, `CONCENTRATION_PARTS_PER_BILLION` | the matching `UnitOfRatio` member | removed in **2027.8** | Step 1 |
-| `CONCENTRATION_PARTS_PER_CUBIC_METER` | nothing — core names no replacement unit | removed in **2027.8** | Step 1 |
-| `PERCENTAGE` as a unit of measurement, on a humidity or battery sensor | `UnitOfRatio.PERCENTAGE` | the constant itself is not deprecated and is now defined from the enum (`PERCENTAGE: Final = UnitOfRatio.PERCENTAGE.value`), but using it as a unit is | Step 1 |
+| `CONCENTRATION_GRAMS_PER_CUBIC_METER`, `CONCENTRATION_MILLIGRAMS_PER_CUBIC_METER`, `CONCENTRATION_MICROGRAMS_PER_CUBIC_METER`, `CONCENTRATION_MICROGRAMS_PER_CUBIC_FOOT` | the matching `UnitOfDensity` member | removed in **2027.8** | the `DeprecatedConstantEnum` beside each in `homeassistant/const.py` |
+| `CONCENTRATION_PARTS_PER_MILLION`, `CONCENTRATION_PARTS_PER_BILLION` | the matching `UnitOfRatio` member | removed in **2027.8** | the `DeprecatedConstantEnum` beside each in `homeassistant/const.py` |
+| `CONCENTRATION_PARTS_PER_CUBIC_METER` | nothing — core names no replacement unit | removed in **2027.8** | the `DeprecatedConstant` beside it in `homeassistant/const.py` |
+| `PERCENTAGE` as a unit of measurement, on a humidity or battery sensor | `UnitOfRatio.PERCENTAGE` | the constant itself is not deprecated and is now defined from the enum (`PERCENTAGE: Final = UnitOfRatio.PERCENTAGE.value`), but using it as a unit is | https://developers.home-assistant.io/blog/2026/06/30/new-unit-enumerators |
 
 ### Config entry migration — Step 3
 
@@ -621,14 +621,14 @@ The deprecations a custom integration can meet that have no section of their own
 
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
-| `mqtt.publish()` or `async_publish()` with `qos=None` or `retain=None` | the defaults, or typed values — the parameters are `qos: int = 0` and `retain: bool = False` | the `None` fallbacks stop working in **2027.6** | Step 1 |
+| `mqtt.publish()` or `async_publish()` with `qos=None` or `retain=None` | the defaults, or typed values — the parameters are `qos: int = 0` and `retain: bool = False` | the `None` fallbacks stop working in **2027.6** | `async_publish` in `homeassistant/components/mqtt/client.py` |
 | using a condition object as a callable | `async_from_config()` from `homeassistant.helpers.condition`, then `async_check()`, then `async_unload()`; a script is `async_run()` then `await script.async_unload()` | the post gives **2027.1** for the end of the callable form; core at the `.0` tag of the release row in `reference/freshness.md` attaches no warning to it | https://developers.home-assistant.io/blog/2026/05/13/condition-script-api-changes |
-| `BrowseMediaSource(domain=None)` | your own domain; the node listing every media source is `RootBrowseMediaSource` | `domain` is a required `str` now — a hard change with no deprecation period | Step 1 |
-| `battery_level` on a `device_tracker` entity | a dedicated `SensorDeviceClass.BATTERY` sensor | stops working in **2027.7** | Step 1 |
+| `BrowseMediaSource(domain=None)` | your own domain; the node listing every media source is `RootBrowseMediaSource` | `domain` is a required `str` now — a hard change with no deprecation period | `BrowseMediaSource` and `RootBrowseMediaSource` in `homeassistant/components/media_source/models.py` |
+| `battery_level` on a `device_tracker` entity | a dedicated `SensorDeviceClass.BATTERY` sensor | stops working in **2027.7** | `BaseTrackerEntity.__init_subclass__` in `homeassistant/components/device_tracker/entity.py` |
 | `TrackerEntity.location_name` | `in_zones` — zone entity ids, in any order, since the base class sorts them | stops working in **2027.7** | `TrackerEntity.in_zones` in `homeassistant/components/device_tracker/entity.py`, at the `.0` tag of the release row in `reference/freshness.md` |
-| `battery_level` on `StateVacuumEntity` | a dedicated battery sensor | already removed, in 2026.9 | Step 1 |
-| `async_initialize_triggers(home_assistant_start=…)` | stop passing it; `hass.async_add_startup_job` for work at startup | it already has no effect; removed in **2027.8** | Step 1 |
-| a `TrackerEntity` for a device tracked by connection rather than position | `BaseScannerEntity` | it derives the state from the associated zone and sets the `tracking_type` capability attribute | Step 1 |
+| `battery_level` on `StateVacuumEntity` | a dedicated battery sensor | already removed, in 2026.9 | the Vacuum entry under *Backward-incompatible changes* at https://www.home-assistant.io/blog/2026/09/02/release-20269/ |
+| `async_initialize_triggers(home_assistant_start=…)` | stop passing it; `hass.async_add_startup_job` for work at startup | it already has no effect; removed in **2027.8** | `async_initialize_triggers` in `homeassistant/helpers/trigger.py` |
+| a `TrackerEntity` for a device tracked by connection rather than position | `BaseScannerEntity` | it derives the state from the associated zone and sets the `tracking_type` capability attribute | https://developers.home-assistant.io/blog/2026/06/15/device-tracker-changes |
 
 > **Note:** a condition platform may implement `_async_setup()` and `_async_unload()` when it
 > needs async initialisation or teardown; it is optional and nothing else changes for it.

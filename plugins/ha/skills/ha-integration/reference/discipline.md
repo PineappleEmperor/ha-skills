@@ -29,13 +29,13 @@ before merging.
 
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
-| merging on "I understand why it's red" | fix it | understanding a failure is a reason to fix it, not to merge it | Step 2 |
-| merging on "the content is correct, only the check is wrong" | fix the check | a wrong check is a defect, not an exemption | Step 2 |
-| merging on "it's the `pull_request_target` self-validation case" | prove it with the diff, on that job, on that PR | if you did not check, it is not that case | *One exception, and it is narrow — merge Step 2* |
-| merging on "I merged past a red check earlier for a good reason" | carry this merge's own proof | the earlier exception was proved on its own diff, which says nothing about this one | *One exception, and it is narrow — merge Step 2* |
-| merging on "the version/label/content is right anyway" | say in writing why the gate is wrong, before merging | the gate is reporting what it can see | Step 2 |
-| merging on "it's only advisory, GitHub let me" | read the log | advisory means GitHub will not stop you, not that the check is wrong | `reference/github-setup.md` |
-| merging on "re-running it would waste minutes" | re-run it | a flake and a real failure look identical until the second run | Step 1 |
+| merging on "I understand why it's red" | fix it | understanding a failure is a reason to fix it, not to merge it | — |
+| merging on "the content is correct, only the check is wrong" | fix the check | a wrong check is a defect, not an exemption | — |
+| merging on "it's the `pull_request_target` self-validation case" | prove it with the diff, on that job, on that PR | if you did not check, it is not that case | `pr-checks.yml` under *The five workflows* in release-flow's README |
+| merging on "I merged past a red check earlier for a good reason" | carry this merge's own proof | the earlier exception was proved on its own diff, which says nothing about this one | — |
+| merging on "the version/label/content is right anyway" | say in writing why the gate is wrong, before merging | the gate is reporting what it can see | — |
+| merging on "it's only advisory, GitHub let me" | read the log | advisory means GitHub will not stop you, not that the check is wrong | — |
+| merging on "re-running it would waste minutes" | re-run it | a flake and a real failure look identical until the second run | — |
 
 | scenario | choice |
 |---|---|

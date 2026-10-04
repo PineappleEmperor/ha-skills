@@ -73,11 +73,11 @@ No job writes it, and the draft PR arrives empty.
 
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
-| "this change is complex, it needs explaining" | split it, or write better commit subjects | the subjects are the changelog | commit Step 2 |
-| "reviewers need the reasoning" | put it in the README or another file in the repo | a file is versioned with the code, and a PR page is not | PR body Step 3 |
-| "the verification belongs with the change" | leave it to the checks | a green check is the evidence | PR body Step 3 |
-| "I wrapped it in `<details>` so it's stripped" | leave the fold to Dependabot's own output | a folded body is still published under the repo owner's byline | PR body Step 1 |
-| "it's only a few paragraphs" | leave the body empty | whatever its length it is published under the repo owner's byline | PR body Step 1 |
+| "this change is complex, it needs explaining" | split it, or write better commit subjects | the subjects are the changelog | `release-drafter.yml` under *The five workflows* in release-flow's README |
+| "reviewers need the reasoning" | put it in the README or another file in the repo | a file is versioned with the code, and a PR page is not | — |
+| "the verification belongs with the change" | leave it to the checks | a green check is the evidence | — |
+| "I wrapped it in `<details>` so it's stripped" | leave the fold to Dependabot's own output | a folded body is still published under the repo owner's byline | — |
+| "it's only a few paragraphs" | leave the body empty | whatever its length it is published under the repo owner's byline | — |
 
 | scenario | choice |
 |---|---|

@@ -112,11 +112,12 @@ as written, so the cell is the rule's origin, not a place to go and verify it.
 | the rule follows an external spec | the spec and the revision `reference/freshness.md` names for it — the brands README, the harness release |
 | the rule is a CI behaviour | the heading in the CI repository's README that owns it |
 | the rule was discovered in use | the public repository and the issue or pull request where it happened — never `docs/backlog.md`, which no consumer has |
+| the rule is the skill's own policy, with no source outside it | `—`; the `why` cell is the whole case, so the row stands on its own |
 
 A cell never names a step of the file it sits in, `this file`, or a tool that enforces the
 rule. None of those is where the rule came from, and a reader who wants the reasoning is
-sent to the origin, not back to the row. Anti-patterns are not invented; each one was read
-somewhere or happened somewhere, and the cell says which.
+sent to the origin, not back to the row. `scripts/skill_schema_audit.py` fails a cell that
+names a step.
 
 ## Canonical tables
 

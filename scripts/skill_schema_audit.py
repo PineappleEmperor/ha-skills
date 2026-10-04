@@ -5,8 +5,9 @@
 requires, a router whose links resolve, docs that match the templates that ship. This asks
 the narrower question the schema asks: is every block a labelled field or a table row, does
 every table use a column set the schema names, does the contents list match the headings
-underneath it, and do the steps of a procedure run in order. `--list` prints the registry,
-which is the list of record.
+underneath it, do the steps of a procedure run in order, and does an anti-pattern's
+`reference` cell name where the rule came from rather than a step of its own file. `--list`
+prints the registry, which is the list of record.
 
 It does NOT yet check either `SKILL.md` section order or a task file's, so a router with no
 mode table and no anti-pattern table passes it, and only a reading catches that — invariant
@@ -298,12 +299,42 @@ def check_step_numbering(root: pathlib.Path) -> Result:
     return failures, []
 
 
+_ANTI_PATTERN = ("anti-pattern", "use instead", "why (one clause)", "reference")
+# A step of the same file, bare or as an italic case heading with no file after it.
+_OWN_STEP = re.compile(r"^(?:[a-z ]*\bstep \d+|\*[^*]+\*)$", re.IGNORECASE)
+
+
+def check_reference_cells(root: pathlib.Path) -> Result:
+    """An anti-pattern's `reference` cell names an origin, never a step of its own file."""
+    failures = []
+    for path in shipped(root):
+        in_table = False
+        for number, kind, line in classify(path.read_text(encoding="utf-8")):
+            if kind != "table":
+                in_table = False
+                continue
+            cells = [c.strip() for c in re.split(r"(?<!\\)\|", line.strip()[1:-1])]
+            if tuple(normalise(c) for c in cells) == _ANTI_PATTERN:
+                in_table = True
+                continue
+            if not in_table or _SEPARATOR.match(line):
+                continue
+            if _OWN_STEP.match(cells[-1]):
+                failures.append(
+                    f"{path.relative_to(root)}:{number} reference `{cells[-1]}` names a "
+                    f"step of this file, not where the rule came from ({SCHEMA}, "
+                    "Anti-patterns, and where they live)"
+                )
+    return failures, []
+
+
 CHECKS = (
     check_table_columns,
     check_no_prose_blocks,
     check_labelled_block_length,
     check_contents_matches_headings,
     check_step_numbering,
+    check_reference_cells,
 )
 
 

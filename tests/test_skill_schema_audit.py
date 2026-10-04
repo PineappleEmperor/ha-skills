@@ -216,6 +216,34 @@ def test_a_block_ends_at_the_next_block_rather_than_swallowing_it(tmp_path) -> N
     assert audit.check_labelled_block_length(_repo(tmp_path, body)) == ([], [])
 
 
+_ANTI = "# T\n\n| anti-pattern | use instead | why (one clause) | reference |\n|---|---|---|---|\n"
+
+
+def test_a_reference_cell_naming_a_step_of_its_own_file_fails(tmp_path) -> None:
+    """The cell is where the rule came from; a step of the same file is not that."""
+    for cell in ("Step 2", "PR body Step 1", "*One exception — merge Step 2*"):
+        body = _ANTI + f"| a | b | c | {cell} |\n"
+        fails, _ = audit.check_reference_cells(_repo(tmp_path, body))
+        assert len(fails) == 1 and cell in fails[0], cell
+
+
+def test_a_reference_cell_naming_an_origin_or_none_passes(tmp_path) -> None:
+    """A source, another file's heading, or `—` for the skill's own policy."""
+    body = _ANTI + (
+        "| a | b | c | `async_get_device` in `homeassistant/helpers/device_registry.py` |\n"
+        "| a | b | c | *Step 1: Locate `templates/`* in `reference/github-actions.md` |\n"
+        "| a \\| x | b | c | https://developers.home-assistant.io/docs/x/ |\n"
+        "| a | b | c | — |\n"
+    )
+    assert audit.check_reference_cells(_repo(tmp_path, body)) == ([], [])
+
+
+def test_only_the_anti_pattern_shape_has_a_reference_cell(tmp_path) -> None:
+    """A check table's *Where to fix* names a step, which is what that column is for."""
+    body = "# T\n\n| rule | value |\n|---|---|\n| a | Step 7 |\n"
+    assert audit.check_reference_cells(_repo(tmp_path, body)) == ([], [])
+
+
 # ------------------------------------------------------ the committed artefact
 
 

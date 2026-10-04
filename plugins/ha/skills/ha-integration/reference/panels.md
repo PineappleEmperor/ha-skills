@@ -123,8 +123,8 @@ insets itself looks doubly inset with it.
 
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
-| `handle_safe_area` inside the `config` dict passed to `async_register_panel` | the keyword argument | the function overwrites `config["_panel_custom"]`, so the panel keeps the padding and nobody is told | Step 4 |
-| `handle_safe_area:` under a `panel_custom:` entry on 2026.8.0 or 2026.8.1 | upgrade first | the per-panel schema rejects an unknown key, so the entry fails config validation rather than being ignored | Step 4 |
+| `handle_safe_area` inside the `config` dict passed to `async_register_panel` | the keyword argument | the function overwrites `config["_panel_custom"]`, so the panel keeps the padding and nobody is told | `async_register_panel` in `homeassistant/components/panel_custom/__init__.py` |
+| `handle_safe_area:` under a `panel_custom:` entry on 2026.8.0 or 2026.8.1 | upgrade first | the per-panel schema rejects an unknown key, so the entry fails config validation rather than being ignored | `CONFIG_SCHEMA` in `homeassistant/components/panel_custom/__init__.py` at the `2026.8.1` tag |
 
 ```python
 async def _register(hass: HomeAssistant, module_url: str) -> None:
@@ -175,10 +175,10 @@ Read at the `2026.9.0` tag, `homeassistant/helpers/device_registry.py` and
 
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
-| reading `config_entries` or `config_entries_subentries` off a device in `config/device_registry/list` | `config_entry_id` and `config_subentry_id` | both are derived from the single entry, and the comment beside `DeviceEntry.dict_repr` says they **can be removed in 2027.8** | Step 3 |
-| reading `primary_config_entry` | `config_entry_id` | it is that same value, and **core states no removal release for it** | Step 3 |
-| indexing a device's hardware fields without first checking what kind of entry it is | branch on `parent_device_id`, which is present and non-null only on a child device | a child device carries 12 of the 25 keys `DeviceEntry.dict_repr` has, and a table that indexes the rest blindly breaks | Step 3 |
-| `config/device_registry/remove_config_entry`, which needs both ids | `config/device_registry/remove`, with `device_id` alone | the old command logs a warning naming its own removal in **2027.9** | Step 3 |
+| reading `config_entries` or `config_entries_subentries` off a device in `config/device_registry/list` | `config_entry_id` and `config_subentry_id` | both are derived from the single entry, and the comment beside `DeviceEntry.dict_repr` says they **can be removed in 2027.8** | `DeviceEntry.dict_repr` in `homeassistant/helpers/device_registry.py` |
+| reading `primary_config_entry` | `config_entry_id` | it is that same value, and **core states no removal release for it** | `DeviceEntry.dict_repr` in `homeassistant/helpers/device_registry.py` |
+| indexing a device's hardware fields without first checking what kind of entry it is | branch on `parent_device_id`, which is present and non-null only on a child device | a child device carries 12 of the 25 keys `DeviceEntry.dict_repr` has, and a table that indexes the rest blindly breaks | `DeviceEntry.dict_repr` and `ChildDeviceEntry.dict_repr` in `homeassistant/helpers/device_registry.py` |
+| `config/device_registry/remove_config_entry`, which needs both ids | `config/device_registry/remove`, with `device_id` alone | the old command logs a warning naming its own removal in **2027.9** | `websocket_remove_config_entry_from_device` in `homeassistant/components/config/device_registry.py` |
 
 **The thirteen keys a child device omits:** `config_entries`, `config_entries_subentries`,
 `configuration_url`, `connections`, `entry_type`, `hw_version`, `manufacturer`, `model`,
