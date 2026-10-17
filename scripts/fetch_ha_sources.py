@@ -7,10 +7,9 @@ refuse a patch to the skill's `reference/` that names a release until every one 
 been served whole.
 
 WHAT IT FETCHES. Neither source contains the other, so both:
-  * every developer-blog post published in the window that the feed still carries, each
-    post's own page fetched because the feed carries only an excerpt. The feed holds a fixed
-    number of entries, so a backfill reaching further back than it does collects what is
-    left rather than what was published, and the run says so when a window comes up empty;
+  * every developer-blog post published in the window, from the feed on
+    contributors.home-assistant.io, each post's own page fetched because the feed carries
+    only a description, and the run says so when a window comes up empty;
   * the *Backward-incompatible changes* section of the release-notes post for each release
     in the window, taken from the post's own markdown in `home-assistant/home-assistant.io`
     rather than from the rendered page. That section is the part which can break a custom
@@ -45,7 +44,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from scripts.check_ha_release import captured_minor
 
-DEV_FEED = "https://developers.home-assistant.io/blog/rss.xml"
+DEV_FEED = "https://contributors.home-assistant.io/blog/rss.xml"
+# The developer docs and blog moved here on 2026-10-16 and the old host redirects, but
+# release notes still link posts on the old one, so a link on either names the same post.
+DEV_HOST = "https://contributors.home-assistant.io/"
+OLD_DEV_HOST = "https://developers.home-assistant.io/"
 RELEASE_FEED = "https://www.home-assistant.io/atom.xml"
 FRESHNESS = "plugins/ha/skills/ha-integration/reference/freshness.md"
 OUT_DIR = "docs/ha-release"
@@ -102,9 +105,15 @@ _HA_IO = (
 LICENCES = {
     "https://www.home-assistant.io/": _HA_IO,
     "https://raw.githubusercontent.com/home-assistant/home-assistant.io/": _HA_IO,
-    "https://developers.home-assistant.io/": (
-        "Copyright (c) Home Assistant contributors. The developer documentation repository "
-        "publishes no licence; this copy is kept for reference and attribution only."
+    OLD_DEV_HOST: (
+        "Copyright (c) Home Assistant contributors. Licensed CC BY-NC-SA 4.0 "
+        "(https://creativecommons.org/licenses/by-nc-sa/4.0/), per LICENSE.md of "
+        "home-assistant/developers.home-assistant."
+    ),
+    DEV_HOST: (
+        "Copyright (c) Home Assistant contributors. "
+        "home-assistant/contributors.home-assistant.io publishes no licence; this copy is "
+        "kept for reference and attribution only."
     ),
 }
 _MODIFIED_HTML = (
@@ -183,9 +192,10 @@ class _Links(HTMLParser):
 def dev_links(html: str) -> list[tuple[str, str]]:
     """Developer-blog posts a release-notes body links to, as (url, link text).
 
-    The feed holds a fixed number of entries, so a backfill reaching past it collects what is
-    left rather than what was published. A release's notes link the posts that shipped with
-    it, whatever the feed has since dropped, so they are the other half of the net.
+    The old host's feed held a fixed number of entries, so a backfill reaching past it
+    collected what was left rather than what was published; the new host's carries every
+    post. A release's notes link the posts that shipped with it, whatever a feed has dropped,
+    so they stay the other half of the net.
 
     They are not a free pass: a release's notes also link posts from earlier windows, which
     would file a second copy of another release's source here. The caller therefore holds a
@@ -197,10 +207,22 @@ def dev_links(html: str) -> list[tuple[str, str]]:
     parser.feed(html)
     seen: dict[str, str] = {}
     for href, text in parser.found:
-        url = href.split("#")[0].split("?")[0].rstrip("/")
-        if url.startswith("https://developers.home-assistant.io/blog/"):
+        url = canonical(href)
+        if url.startswith(f"{DEV_HOST}blog/"):
             seen.setdefault(url, text)
     return sorted(seen.items())
+
+
+def canonical(url: str) -> str:
+    """A post URL with no fragment, query or trailing slash, on the host that serves it.
+
+    The feed links the new host and the release notes the old one, so the two halves of the
+    net are compared in this form; compared as written, a post both named was filed twice.
+    """
+    url = url.split("#", maxsplit=1)[0].split("?", maxsplit=1)[0].rstrip("/")
+    if url.startswith(OLD_DEV_HOST):
+        url = DEV_HOST + url[len(OLD_DEV_HOST) :]
+    return url
 
 
 def post_from_url(url: str, title: str) -> dict[str, str] | None:
@@ -543,10 +565,8 @@ def write_index(out: Path, today: str) -> str:
         "**The window is a net, not a claim.** Posts are gathered by publication date, between",
         "one release and the next, so a post published in the days before a release may well",
         "describe the release *after* it — the beta was cut a week earlier. Which release a",
-        "change is actually in is core's to answer at the tag, never the post's. The net has a",
-        "hole of its own at the far end: the developer blog's feed carries a fixed number of",
-        "entries, so a backfill reaching further back than the feed does collects only the",
-        "posts still in it.",
+        "change is actually in is core's to answer at the tag, never the post's. A release's",
+        "notes link the posts that shipped with it, so a post the feed omits is still caught.",
         "",
         "Each file opens with its own source URL and the terms the host publishes it under,",
         "and the `sha256` below is the first twelve characters of that file's hash — the",
@@ -602,7 +622,7 @@ def main(
         posts = dev_posts(dev, after, until)
         # The notes are the second half of the net: a post the feed has aged out is still
         # linked from the release it shipped in.
-        known = {post["url"].rstrip("/") for post in posts}
+        known = {canonical(post["url"]) for post in posts}
         linked = 0
         for url, text in dev_links(notes["html"]):
             if url in known:

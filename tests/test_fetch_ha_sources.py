@@ -58,22 +58,22 @@ DEV_FEED = """<?xml version="1.0" encoding="utf-8"?>
 <rss version="2.0"><channel>
   <item>
     <title>In the window</title>
-    <link>https://developers.home-assistant.io/blog/2026/08/24/device-registry</link>
+    <link>https://contributors.home-assistant.io/blog/2026/08/24/device-registry/</link>
     <pubDate>Mon, 24 Aug 2026 00:00:00 GMT</pubDate>
   </item>
   <item>
     <title>On the release day itself</title>
-    <link>https://developers.home-assistant.io/blog/2026/09/02/modbus</link>
+    <link>https://contributors.home-assistant.io/blog/2026/09/02/modbus/</link>
     <pubDate>Wed, 02 Sep 2026 00:00:00 GMT</pubDate>
   </item>
   <item>
     <title>On the previous release day, so the previous window's</title>
-    <link>https://developers.home-assistant.io/blog/2026/08/05/older</link>
+    <link>https://contributors.home-assistant.io/blog/2026/08/05/older/</link>
     <pubDate>Wed, 05 Aug 2026 00:00:00 GMT</pubDate>
   </item>
   <item>
     <title>After the window</title>
-    <link>https://developers.home-assistant.io/blog/2026/09/17/later</link>
+    <link>https://contributors.home-assistant.io/blog/2026/09/17/later/</link>
     <pubDate>Thu, 17 Sep 2026 00:00:00 GMT</pubDate>
   </item>
 </channel></rss>
@@ -298,7 +298,7 @@ def test_a_failed_post_fetch_leaves_the_previous_folder_intact(tmp_path) -> None
         # A post PAGE, not the feed: failing on the feed kills the run before it reaches
         # the folder at all, which is how the first version of this test passed against the
         # very shape it was written to forbid.
-        if url.startswith("https://developers.home-assistant.io/blog/2"):
+        if url.startswith("https://contributors.home-assistant.io/blog/2"):
             raise OSError("403")
         return _get(url)
 
@@ -369,9 +369,51 @@ def test_every_file_carries_its_source_and_the_terms_it_came_under(tmp_path) -> 
     post = (tmp_path / "docs/ha-release/2026.9/blog-2026-09-02-modbus.md").read_text(
         encoding="utf-8"
     )
-    assert "publishes no licence" in post
+    assert "home-assistant/contributors.home-assistant.io publishes no licence" in post
     assert "converted from HTML to plain text" in post
-    assert "Fetched from https://developers.home-assistant.io/" in post
+    assert "Fetched from https://contributors.home-assistant.io/" in post
+
+
+def test_the_old_docs_host_is_stamped_with_its_own_licence() -> None:
+    """The archived repository has carried CC BY-NC-SA 4.0 in `LICENSE.md` since 2018.
+
+    The stamp once said it published no licence, from a check of a repository name that does
+    not exist; a copy fetched from that host still carries the terms it was published under.
+    """
+    stamp = fhs.provenance("https://developers.home-assistant.io/blog/2026/09/02/x")
+    assert "creativecommons.org/licenses/by-nc-sa/4.0/" in stamp
+    assert "home-assistant/developers.home-assistant" in stamp
+
+
+def test_a_post_named_on_both_hosts_is_filed_once(tmp_path, capsys) -> None:
+    """The feed now links the new host while the release notes still link the old one.
+
+    Compared as written, the two never matched, so a post both named was fetched twice into
+    the same filename and counted twice.
+    """
+    notes = RELEASE_FEED.replace(
+        "&lt;p&gt;Notes body&lt;/p&gt;",
+        "&lt;p&gt;Notes body &lt;a "
+        'href="https://developers.home-assistant.io/blog/2026/08/24/device-registry"&gt;'
+        "The same post on the old host&lt;/a&gt;&lt;/p&gt;",
+    )
+
+    def get(url: str) -> str:
+        return notes if url == fhs.RELEASE_FEED else _get(url)
+
+    fhs.main(["--release", "2026.9"], get=get, root=tmp_path)
+    assert "2026.9: release notes and 2 post(s)\n" in capsys.readouterr().out
+
+
+def test_the_notes_links_read_both_hosts_as_one() -> None:
+    """A post linked on either host is the same post, named on the host that serves it."""
+    html = (
+        '<a href="https://developers.home-assistant.io/blog/2026/09/02/modbus">a</a>'
+        '<a href="https://contributors.home-assistant.io/blog/2026/09/02/modbus/">b</a>'
+    )
+    assert [url for url, _ in fhs.dev_links(html)] == [
+        "https://contributors.home-assistant.io/blog/2026/09/02/modbus"
+    ]
 
 
 def test_the_index_records_a_hash_that_moves_with_the_file(tmp_path) -> None:
