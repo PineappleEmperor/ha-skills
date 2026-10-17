@@ -60,7 +60,7 @@ names, and say in the row that you did.
 | what changed, and why | the developer-blog post |
 | the API's spelling, and the module it lives in | core at the tag |
 | the release it landed in | core at the tag, never a post's publication date |
-| the release it is removed in | core at the tag — the `breaks_in_ha_version` of the call site, or the version argument of the `DeprecatedConstantEnum` beside the constant |
+| the release it is removed in | core at the tag — the `breaks_in_ha_version` of the call site, or the version argument of the `DeprecatedConstantEnum` or `DeprecatedConstant` beside the constant |
 | a version neither states | nothing; the row says so rather than guessing one |
 
 **Symptom:** a post is written before the change ships, so stopping at one yields a removal

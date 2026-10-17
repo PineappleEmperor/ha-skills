@@ -222,8 +222,8 @@ def device_info(self) -> DeviceInfo:
 
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
-| `update_before_add=True` on `async_add_entities` | compute `native_value` as a property off `self.coordinator.data`, or call `self._handle_coordinator_update()` at the end of `async_added_to_hass`, after `await super().async_added_to_hass()` | it schedules a debouncer timer that outlives the test and the frozen clock | `CoordinatorEntity.async_update` in `homeassistant/helpers/update_coordinator.py` |
-| a collection sensor whose state is the raw list or a timestamp | the `len()` count, the items in an attribute, `_attr_state_class = MEASUREMENT` | `last_updated` and `last_changed` are state attributes already, and a count graphs | — |
+| `update_before_add=True` on `async_add_entities` for a `CoordinatorEntity` | compute `native_value` as a property off `self.coordinator.data`, or call `self._handle_coordinator_update()` at the end of `async_added_to_hass`, after `await super().async_added_to_hass()` | it schedules a debouncer timer that outlives the test and the frozen clock | `CoordinatorEntity.async_update` in `homeassistant/helpers/update_coordinator.py` |
+| a collection sensor whose state is the raw list or a timestamp | the `len()` count with `_attr_state_class = MEASUREMENT`, and a sensor of its own for any other value worth a history | `last_updated` and `last_changed` are state attributes already, and a count graphs | https://developers.home-assistant.io/docs/core/entity/sensor/ |
 | deleting `state_class` to silence an impossible-pair warning | the `state_class` that device class permits | deleting it drops long-term statistics altogether | `DEVICE_CLASS_STATE_CLASSES` in `homeassistant/components/sensor/const.py` |
 
 **Symptom:** `CoordinatorEntity` does not push initial state on add, so an entity that sets
@@ -555,7 +555,7 @@ A device has exactly one config entry and at most one subentry: read `config_ent
 | `DeviceRegistry.async_get_device()` | `async_get_device_by_identifier()`, `async_get_device_by_connection()` or `async_get_devices()`, each with the config entry id | the lookup is ambiguous once identifiers repeat across entries; stops working in **2027.8.0** | `DeviceRegistry.async_get_device` in `homeassistant/helpers/device_registry.py` |
 | `async_update_device(add_config_entry_id=…, add_config_subentry_id=…, remove_config_entry_id=…, remove_config_subentry_id=…)` | `new_config_entry_id`, `new_config_subentry_id`, or `async_remove_device` | a move is no longer an add plus a remove; stops working in **2027.8.0** | `DeviceRegistry.async_update_device` in `homeassistant/helpers/device_registry.py` |
 | `async_get_or_create` re-registering an existing device under a different subentry | `async_update_device(new_config_subentry_id=…)` | it silently moves the device; raises from **2027.8.0** | `DeviceRegistry.async_get_or_create` in `homeassistant/helpers/device_registry.py` |
-| a `disabled_by` that contradicts the owning config entry or the parent device | leave it `UNDEFINED` and let the registry derive it | the value is dropped and logged now; raises from **2027.8** | `DeviceRegistry._async_update_device` and `_async_update_child_device` in `homeassistant/helpers/device_registry.py` |
+| a `disabled_by` that contradicts the owning config entry or the parent device | leave it `UNDEFINED` and let the registry derive it | the value is dropped and logged now, and a child enabled under a disabled parent is logged and kept disabled; raises from **2027.8** | `DeviceRegistry._async_update_device` and `_async_update_child_device` in `homeassistant/helpers/device_registry.py` |
 | `async_update_device(merge_connections=…, merge_identifiers=…)` | `new_connections`, `new_identifiers`, with the full set computed yourself | merging only ever adds; stops working in **2027.9.0** | `DeviceRegistry.async_update_device` in `homeassistant/helpers/device_registry.py` |
 | `async_get_or_create(default_manufacturer=…, default_model=…, default_name=…)` | `manufacturer`, `model`, `name` | there is no primary integration left to defer to; stops working in **2027.9.0** | `DeviceRegistry.async_get_or_create` in `homeassistant/helpers/device_registry.py` |
 | `async_get_or_create(created_at=…, modified_at=…)` | drop the arguments | the registry owns both and always ignored them; stops working in **2027.9.0** | `DeviceRegistry.async_get_or_create` in `homeassistant/helpers/device_registry.py` |
@@ -579,7 +579,7 @@ A device has exactly one config entry and at most one subentry: read `config_ent
 |---|---|
 | `UnitOfDensity` | mass over volume — `GRAMS_PER_CUBIC_METER`, `MILLIGRAMS_PER_CUBIC_METER`, `MICROGRAMS_PER_CUBIC_METER`, `MICROGRAMS_PER_CUBIC_FOOT` |
 | `UnitOfRatio` | ratios — `PARTS_PER_MILLION`, `PARTS_PER_BILLION`, `PERCENTAGE` |
-| where each release below comes from | the version argument of the `DeprecatedConstantEnum` beside the constant in `homeassistant/const.py`, read at the `2026.9.0` tag |
+| where each release below comes from | the version argument of the `DeprecatedConstantEnum` or `DeprecatedConstant` beside the constant in `homeassistant/const.py`, read at the `2026.9.0` tag |
 
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
