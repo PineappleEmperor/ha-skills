@@ -39,7 +39,7 @@ Neither contains the other.
 
 | Rule | Value |
 |---|---|
-| developers.home-assistant.io/blog, paged back to the last captured release | the only place most API changes are explained; a release's notes link a few of its window's posts and the rest are reachable only from the blog index |
+| contributors.home-assistant.io/blog, paged back to the last captured release | the only place most API changes are explained; a release's notes link a few of its window's posts and the rest are reachable only from the blog index |
 | the release-notes post's *Backward-incompatible changes* section | user-facing removals, most of which never get a developer-blog post |
 
 **Timing:** open every source before writing a row from it.
@@ -85,4 +85,4 @@ it, and the copies it governs live only here.
 
 | Fact | Value | Captured | Re-derive with | Consumers | Gate |
 |---|---|---|---|---|---|
-| Terms the two source sites publish under | home-assistant.io content is CC BY-NC-SA 4.0; `developers.home-assistant.io` ships no licence file at all | 2026-09-19 | `curl -s https://raw.githubusercontent.com/home-assistant/home-assistant.io/master/LICENSE.md \| head -5`, and check `LICENSE`, `LICENSE.md` and `LICENSE.txt` on both branches of `home-assistant/developers.home-assistant.io` | `LICENCES` in `scripts/fetch_ha_sources.py`, which stamps the notice into every file the fetch writes · the carve-out in this repository's own `LICENSE` | none — a change here is applied by refetching |
+| Terms the source sites publish under | home-assistant.io content is CC BY-NC-SA 4.0, as was the developer docs repository `home-assistant/developers.home-assistant`, archived on 2026-10-16; its successor `home-assistant/contributors.home-assistant.io` ships no licence file | 2026-10-17 | `curl -s https://raw.githubusercontent.com/home-assistant/home-assistant.io/master/LICENSE.md \| head -5`, the same for `home-assistant/developers.home-assistant/master/LICENSE.md`, and `gh api repos/home-assistant/contributors.home-assistant.io --jq .license` | `LICENCES` in `scripts/fetch_ha_sources.py`, which stamps the notice into every file the fetch writes · the carve-out in this repository's own `LICENSE` | none — a change here is applied by refetching |
