@@ -1,14 +1,16 @@
 # Introducing the Open Home Foundation AI Policy
 
-Fetched from https://developers.home-assistant.io/blog/2026/07/20/ai-policy
-Copyright (c) Home Assistant contributors. The developer documentation repository publishes no licence; this copy is kept for reference and attribution only.
+Fetched from https://contributors.home-assistant.io/blog/2026/07/20/ai-policy/
+Copyright (c) Home Assistant contributors. home-assistant/contributors.home-assistant.io publishes no licence; this copy is kept for reference and attribution only.
 Modified: converted from HTML to plain text by `scripts/fetch_ha_sources.py`. It keeps the article body and loses everything the markup carried — navigation and chrome, link targets, image alt text, table and list structure, and code formatting. No wording has been changed, added or reordered.
+
+Blog
 
 Introducing the Open Home Foundation AI Policy
 
-July 20, 2026 · 2 min read
+Franck NijhofJuly 20, 2026·1 min read
 
-Franck Nijhof
+Core and integrations
 
 AI-assisted development has become part of daily reality for many contributors, and for us as maintainers too. That can be a good thing: AI tools help people write code, improve their English, and find their way in an unfamiliar codebase. It also has a downside: unreviewed AI output submitted as a contribution costs maintainers real time, and maintainer time is the scarcest resource an open source project has.
 

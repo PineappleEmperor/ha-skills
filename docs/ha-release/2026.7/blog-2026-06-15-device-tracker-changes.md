@@ -1,16 +1,18 @@
 # Changes to device tracker entity models
 
-Fetched from https://developers.home-assistant.io/blog/2026/06/15/device-tracker-changes
-Copyright (c) Home Assistant contributors. The developer documentation repository publishes no licence; this copy is kept for reference and attribution only.
+Fetched from https://contributors.home-assistant.io/blog/2026/06/15/device-tracker-changes/
+Copyright (c) Home Assistant contributors. home-assistant/contributors.home-assistant.io publishes no licence; this copy is kept for reference and attribution only.
 Modified: converted from HTML to plain text by `scripts/fetch_ha_sources.py`. It keeps the article body and loses everything the markup carried — navigation and chrome, link targets, image alt text, table and list structure, and code formatting. No wording has been changed, added or reordered.
+
+Blog
 
 Changes to device tracker entity models
 
-June 15, 2026 · 3 min read
+Erik MontnémeryJune 15, 2026·2 min read
 
-Erik Montnemery
+Core and integrations
 
-Summary​
+Summary
 
 There have been multiple recent changes to the device tracker entity model:
 
@@ -30,15 +32,15 @@ A new capability attribute tracking_type has been introduced
 
 Zones are now calculated by size, then distance to center when calculating the state of TrackerEntity
 
-Details​
+Details
 
-Deprecation of battery_level​
+Deprecation of battery_level
 
 The battery_level property has been deprecated in all device tracker base classes, and will stop working in Home Assistant Core 2027.7. Integrations should communicate battery level via a battery sensor instead.
 
 More details can be found in  architecture proposal #627
 
-Deprecation of location_name​
+Deprecation of location_name
 
 The location_name property of TrackerEntity has been deprecated, and will stop working in Home Assistant Core 2027.7.
 
@@ -47,22 +49,22 @@ Device trackers which use location_name to give extra context can instead do tha
 
 More details can be found in  architecture proposal #1387
 
-Introduction of the BaseScannerEntity base class​
+Introduction of the BaseScannerEntity base class
 
 The BaseScannerEntity class should be used by integrations which have scanners which do not track connection to a WLAN or other local network, for example scanners which track connection to a BLE beacon.
 
-Users can associate BaseScannerEntity and ScannerEntity with any zone​
+Users can associate BaseScannerEntity and ScannerEntity with any zone
 
 BaseScannerEntity and ScannerEntity store the associated zone as an entity registry option. The base class will set the state of the entity to the name of the associated zone when connected, and the in_zones state attribute to all zones which contain the associated zone.
 
 More details can be found in  architecture proposal #1389
 
-Introduction of the in_zones state attribute​
+Introduction of the in_zones state attribute
 
 A new state attribute in_zones is present in the state of device tracker entities. The state attribute is automatically calculated by BaseScannerEntity and ScannerEntity. TrackerEntity will derive the in_zones state attribute from the in_zones property if not None, if it is None it will be calculated from the reported location.
 
 The in_zones state attribute is a list of zone entity IDs sorted by size, with the smallest zone first, then by distance to center.
 
-Introduction of the tracking_type capability attribute​
+Introduction of the tracking_type capability attribute
 
 A new capability attribute tracking_type is present in the state of device tracker entities. The state attribute is set to connection by BaseScannerEntity and ScannerEntity and to location by TrackerEntity. Integrations should not override this behavior.

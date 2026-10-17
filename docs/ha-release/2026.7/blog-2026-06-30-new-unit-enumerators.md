@@ -1,14 +1,16 @@
 # Introducing new unit enumerators
 
-Fetched from https://developers.home-assistant.io/blog/2026/06/30/new-unit-enumerators
-Copyright (c) Home Assistant contributors. The developer documentation repository publishes no licence; this copy is kept for reference and attribution only.
+Fetched from https://contributors.home-assistant.io/blog/2026/06/30/new-unit-enumerators/
+Copyright (c) Home Assistant contributors. home-assistant/contributors.home-assistant.io publishes no licence; this copy is kept for reference and attribution only.
 Modified: converted from HTML to plain text by `scripts/fetch_ha_sources.py`. It keeps the article body and loses everything the markup carried — navigation and chrome, link targets, image alt text, table and list structure, and code formatting. No wording has been changed, added or reordered.
+
+Blog
 
 Introducing new unit enumerators
 
-June 30, 2026 · One min read
+epenetJune 30, 2026·1 min read
 
-epenet
+Core and integrations
 
 As of Home Assistant Core 2026.7, the following unit constants are deprecated and replaced
 by a corresponding enum:
