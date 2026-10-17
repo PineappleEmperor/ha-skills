@@ -43,7 +43,7 @@ it.**
 
 ### Step 1: Lay out the files by responsibility
 
-The developer docs' set — https://developers.home-assistant.io/docs/creating_integration_file_structure/
+The developer docs' set — https://contributors.home-assistant.io/core/integrations/file-structure/
 — plus the splits the quality scale asks for and the ones this skill adds. If `__init__.py`
 exceeds ~100 lines of logic, extract. `api.py` is the split that matters most: it decouples
 device logic from the HA lifecycle, so it is unit-testable without a running HA instance.
@@ -52,7 +52,7 @@ device logic from the HA lifecycle, so it is unit-testable without a running HA 
 |---|---|---|
 | `__init__.py` | `async_setup_entry`, `async_unload_entry`, `async_migrate_entry` only — no business logic | the file-structure page names it; the no-business-logic constraint is this skill's |
 | `<platform>.py` | one per HA platform — `sensor.py`, `switch.py`, `light.py`, `button.py`, … | the file-structure page |
-| `coordinator.py` | `DataUpdateCoordinator` subclass | the `common-modules` rule, https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/common-modules/ |
+| `coordinator.py` | `DataUpdateCoordinator` subclass | the `common-modules` rule, https://contributors.home-assistant.io/core/quality-scale/common-modules/ |
 | `entity.py` | shared base entity class when several platforms extend the same base | the `common-modules` rule |
 | `config_flow.py` | config and options flows | the `config-flow` rule in `reference/quality-scale.md` |
 | `diagnostics.py` | `async_get_config_entry_diagnostics` | the `diagnostics` rule in `reference/quality-scale.md` |
@@ -115,9 +115,9 @@ before a PR is ready.
 
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
-| `# type: ignore` to silence a typing error | fix the type | under `strict-typing` a suppression is a violation, not a shortcut, and the `mypy.ini` enables `ignore-without-code`, so a codeless one fails the run outright | https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/strict-typing/, and `templates/mypy.ini` |
+| `# type: ignore` to silence a typing error | fix the type | under `strict-typing` a suppression is a violation, not a shortcut, and the `mypy.ini` enables `ignore-without-code`, so a codeless one fails the run outright | https://contributors.home-assistant.io/core/quality-scale/strict-typing/, and `templates/mypy.ini` |
 | `# type: ignore[import-untyped]` on a stubless third-party import | nothing — import it plainly | the `mypy.ini` disables `import-untyped` and fails an unused ignore, so the leftover one is the error | `templates/mypy.ini` |
-| `hass.data[DOMAIN][entry.entry_id]`, which is untyped | `entry.runtime_data` on a typed `ConfigEntry` | the alias carries the runtime type, so no cast is needed | https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/runtime-data/, and *Typed `ConfigEntry` — Step 4* |
+| `hass.data[DOMAIN][entry.entry_id]`, which is untyped | `entry.runtime_data` on a typed `ConfigEntry` | the alias carries the runtime type, so no cast is needed | https://contributors.home-assistant.io/core/quality-scale/runtime-data/, and *Typed `ConfigEntry` — Step 4* |
 
 ## Cases
 
@@ -150,11 +150,11 @@ DATA_SCHEMA = vol.Schema(
 | `OptionsFlowWithConfigEntry` as the options flow's base class | `OptionsFlow`, reading `self.config_entry` | core is phasing it out and keeps it for custom integrations only | `OptionsFlowWithConfigEntry` in `homeassistant/config_entries.py`, at the `.0` tag of the release row in `reference/freshness.md` |
 | a config-entry update listener alongside a reloading method | drop the listener, or call `async_update_and_abort()` in place of `async_update_reload_and_abort()` and pass `reload_on_update=False` to `_abort_if_unique_id_configured()` | the integration reloads twice or races; an error from **2026.12** | `async_update_reload_and_abort` and `_abort_if_unique_id_configured` in `homeassistant/config_entries.py` |
 | `FlowHandler.show_advanced_options`, or the `show_advanced_options` key in `FlowHandler.context` | group the extra fields in a schema `section` | the property returns `True` unconditionally and the context key is already gone; removed **2027.6** | `FlowHandler.show_advanced_options` in `homeassistant/data_entry_flow.py` |
-| a hand-written `SelectSelector` of device-class values | `DeviceClassSelector` | it carries HA's own values, so the hand-written translations for them go too | https://developers.home-assistant.io/blog/2026/09/04/device-and-state-class-selectors |
+| a hand-written `SelectSelector` of device-class values | `DeviceClassSelector` | it carries HA's own values, so the hand-written translations for them go too | https://contributors.home-assistant.io/blog/2026/09/04/device-and-state-class-selectors/ |
 
 ### Notify platform — Step 1
 
-The entity itself is https://developers.home-assistant.io/docs/core/entity/notify/; these are
+The entity itself is https://contributors.home-assistant.io/core/entities/notify/; these are
 the rows a custom integration gets wrong against it.
 
 | Rule | Value |
@@ -167,8 +167,8 @@ the rows a custom integration gets wrong against it.
 
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
-| `discovery.async_load_platform` with a `BaseNotificationService` | `NotifyEntity` | the legacy pair registers a `notify.<name>` service, not an entity, and core is moving its own integrations off it | https://developers.home-assistant.io/blog/2024/04/10/new-notify-entity-platform |
-| a custom payload passed through `NotifyEntity` | a service registered directly, below | `data` is not in its service schema, which carries `message` and `title` only | https://developers.home-assistant.io/docs/core/entity/notify/ |
+| `discovery.async_load_platform` with a `BaseNotificationService` | `NotifyEntity` | the legacy pair registers a `notify.<name>` service, not an entity, and core is moving its own integrations off it | https://contributors.home-assistant.io/blog/2024/04/10/new-notify-entity-platform/ |
+| a custom payload passed through `NotifyEntity` | a service registered directly, below | `data` is not in its service schema, which carries `message` and `title` only | https://contributors.home-assistant.io/core/entities/notify/ |
 
 **A custom payload — animations, sounds, colours — registered as its own service:**
 
@@ -193,7 +193,7 @@ the rows a custom integration gets wrong against it.
 | `_attr_translation_key = "my_key"` | translated entity names and states; pairs with the `entity` section of `strings.json` |
 | `_attr_entity_category` | on a non-primary entity: `EntityCategory.DIAGNOSTIC` for read-only info such as RSSI, `EntityCategory.CONFIG` for a setting that changes device behaviour |
 | a value set at init or on update | an `_attr_*` class or instance attribute, assigned in `__init__` or in `_handle_coordinator_update`, never a property method |
-| a value derived on read, from `self.coordinator.data` say | a property — https://developers.home-assistant.io/docs/core/entity/ |
+| a value derived on read, from `self.coordinator.data` say | a property — https://contributors.home-assistant.io/core/entities/entity-class/ |
 | availability on a push `Entity` | `_attr_available`, reflecting device reachability — set `False` when the device disconnects and `True` when it is back |
 | availability on a `CoordinatorEntity` | override `available` and call `super()`, as the device-missing row of *A reply the code does not expect — Step 1* does — `CoordinatorEntity.available` already returns `last_update_success`, so an `_attr_available` beside it is never read |
 | the state source | `self.coordinator.data` only — never I/O in a property |
@@ -223,7 +223,7 @@ def device_info(self) -> DeviceInfo:
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
 | `update_before_add=True` on `async_add_entities` for a `CoordinatorEntity` | compute `native_value` as a property off `self.coordinator.data`, or call `self._handle_coordinator_update()` at the end of `async_added_to_hass`, after `await super().async_added_to_hass()` | it schedules a debouncer timer that outlives the test and the frozen clock | `CoordinatorEntity.async_update` in `homeassistant/helpers/update_coordinator.py` |
-| a collection sensor whose state is the raw list or a timestamp | the `len()` count with `_attr_state_class = MEASUREMENT`, and a sensor of its own for any other value worth a history | `last_updated` and `last_changed` are state attributes already, and a count graphs | https://developers.home-assistant.io/docs/core/entity/sensor/ |
+| a collection sensor whose state is the raw list or a timestamp | the `len()` count with `_attr_state_class = MEASUREMENT`, and a sensor of its own for any other value worth a history | `last_updated` and `last_changed` are state attributes already, and a count graphs | https://contributors.home-assistant.io/core/entities/sensor/ |
 | deleting `state_class` to silence an impossible-pair warning | the `state_class` that device class permits | deleting it drops long-term statistics altogether | `DEVICE_CLASS_STATE_CLASSES` in `homeassistant/components/sensor/const.py` |
 
 **Symptom:** `CoordinatorEntity` does not push initial state on add, so an entity that sets
@@ -290,7 +290,7 @@ async def async_setup_entry(
 version lands, or when the window elapses.
 
 ### `DataUpdateCoordinator` (polling) — Step 1
-- `update_interval` no shorter than the time the source's data takes to change — the `appropriate-polling` rule, https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/appropriate-polling/; core sets no minimum
+- `update_interval` no shorter than the time the source's data takes to change — the `appropriate-polling` rule, https://contributors.home-assistant.io/core/quality-scale/appropriate-polling/; core sets no minimum
 - Set `always_update=False` when API responses support `__eq__` — avoids unnecessary state machine writes
 - Raise `ConfigEntryAuthFailed` on auth errors inside `_async_update_data`
 - Raise `UpdateFailed` on other errors; use `UpdateFailed(retry_after=60)` for rate-limited APIs — it sets the wait before the next poll once, and is ignored during the first refresh
@@ -310,7 +310,7 @@ is back.
 
 | Rule | Value |
 |---|---|
-| where each row was read | https://developers.home-assistant.io/docs/integration_setup_failures/, https://developers.home-assistant.io/docs/integration_fetching_data/ and the `entity-unavailable` and `log-when-unavailable` rules; `homeassistant/config_entries.py`, `homeassistant/helpers/update_coordinator.py` and `homeassistant/components/mqtt/client.py` at the `2026.9.0` tag |
+| where each row was read | https://contributors.home-assistant.io/core/integrations/setup-failures/, https://contributors.home-assistant.io/core/integrations/fetching-data/ and the `entity-unavailable` and `log-when-unavailable` rules; `homeassistant/config_entries.py`, `homeassistant/helpers/update_coordinator.py` and `homeassistant/components/mqtt/client.py` at the `2026.9.0` tag |
 | how Home Assistant retries a setup that raised `ConfigEntryNotReady` | after 5 seconds, doubling on each failure up to `SETUP_RETRY_MAX_WAIT`, 600 seconds; and, where the integration supports discovery, as soon as the device is discovered |
 | what a failed poll does | `last_update_success` goes false, `CoordinatorEntity.available` returns it, and the next interval tries again |
 | what the coordinator catches unaided | `TimeoutError`, `aiohttp.ClientError`, `requests.exceptions.RequestException` and `urllib.error.URLError`, each a failed update |
@@ -325,9 +325,9 @@ is back.
 
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
-| `ConfigEntryNotReady` raised from a platform's `async_setup_entry` | raise it from `__init__.py` | it is too late there to be caught by the config entry setup | https://developers.home-assistant.io/docs/integration_setup_failures/ |
+| `ConfigEntryNotReady` raised from a platform's `async_setup_entry` | raise it from `__init__.py` | it is too late there to be caught by the config entry setup | https://contributors.home-assistant.io/core/integrations/setup-failures/ |
 | `asyncio.create_task` or `hass.async_create_task` for the reconnect loop | `entry.async_create_background_task` | unload cancels the entry's background tasks and no others, so the loop outlives a reload | `_async_process_on_unload` in `homeassistant/config_entries.py`, at the `2026.9.0` tag |
-| the last value left showing while the connection is down | mark the entity unavailable | unavailable is the better state than the last known one | https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/entity-unavailable/ |
+| the last value left showing while the connection is down | mark the entity unavailable | unavailable is the better state than the last known one | https://contributors.home-assistant.io/core/quality-scale/entity-unavailable/ |
 
 ### A reply the code does not expect — Step 1
 
@@ -373,8 +373,8 @@ def parse_reading(raw: dict[str, Any]) -> Reading:
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
 | `raw["field"]` in `_async_update_data` | `.get()` into a field that may be `None` | the `KeyError` is an unexpected error, which takes every entity down for one field | `_async_refresh` in `homeassistant/helpers/update_coordinator.py`, at the `2026.9.0` tag |
-| `except Exception: return self.data`, to ride out a bad reply | raise `UpdateFailed` | the entities go on showing the last value as though it were current | https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/entity-unavailable/ |
-| an entity made unavailable for one missing field | `None`, which reads `unknown` | unavailable is for a fetch that failed, unknown for a piece that is missing | https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/entity-unavailable/ |
+| `except Exception: return self.data`, to ride out a bad reply | raise `UpdateFailed` | the entities go on showing the last value as though it were current | https://contributors.home-assistant.io/core/quality-scale/entity-unavailable/ |
+| an entity made unavailable for one missing field | `None`, which reads `unknown` | unavailable is for a fetch that failed, unknown for a piece that is missing | https://contributors.home-assistant.io/core/quality-scale/entity-unavailable/ |
 
 ### A blocking call inside the event loop — Step 1
 
@@ -395,7 +395,7 @@ async def async_read_state(hass: HomeAssistant, path: Path) -> str:
 
 | Rule | Value |
 |---|---|
-| where each row was read | https://developers.home-assistant.io/docs/asyncio_blocking_operations/, https://developers.home-assistant.io/docs/asyncio_imports/ and the `inject-websession` rule; `_BLOCKING_CALLS` in `homeassistant/block_async_io.py`, `raise_for_blocking_call` in `homeassistant/util/loop.py` and `async_add_executor_job` in `homeassistant/core.py`, at the `2026.9.0` tag |
+| where each row was read | https://contributors.home-assistant.io/core/internals/blocking-operations/ and the `inject-websession` rule; `_BLOCKING_CALLS` in `homeassistant/block_async_io.py`, `raise_for_blocking_call` in `homeassistant/util/loop.py` and `async_add_executor_job` in `homeassistant/core.py`, at the `2026.9.0` tag |
 | what core detects | `open` and `Path.open`, `read_text`, `read_bytes`, `write_text`, `write_bytes`; `glob.glob`, `glob.iglob`, `os.walk`, `os.listdir`, `os.scandir`; `time.sleep`; `HTTPConnection.putrequest`, which `urllib` goes through; `importlib.import_module`; and `SSLContext.load_default_certs`, `load_verify_locations`, `load_cert_chain` and `set_default_verify_paths` |
 | what it lets through all the same | a path under `/proc`, the import of a module already imported, and `load_verify_locations` handed `cadata` alone |
 | which of those raise as well as log | `time.sleep` and `HTTPConnection.putrequest` — a `RuntimeError` beginning `Caught blocking call to`, so the call never runs |
@@ -411,9 +411,9 @@ async def async_read_state(hass: HomeAssistant, path: Path) -> str:
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
 | `time.sleep` in a coroutine or a `@callback` | `await asyncio.sleep` | core raises as well as logging | `_BLOCKING_CALLS` in `homeassistant/block_async_io.py`, at the `2026.9.0` tag |
-| moving only the `open` to the executor | move the reads and writes with it | core sees the `open` and nothing after it, so what is left is never reported | https://developers.home-assistant.io/docs/asyncio_blocking_operations/ |
-| an `SSLContext` loaded with certificates on the loop | `async_get_clientsession`, `get_async_client`, or `homeassistant.util.ssl` for a context alone | loading the certificates is blocking disk I/O, which those three keep in the executor | https://developers.home-assistant.io/docs/asyncio_blocking_operations/ |
-| an `import` inside a function on the loop, of a module not yet imported | a module-level import | the import machinery reads the module from disk | https://developers.home-assistant.io/docs/asyncio_imports/ |
+| moving only the `open` to the executor | move the reads and writes with it | core sees the `open` and nothing after it, so what is left is never reported | https://contributors.home-assistant.io/core/internals/blocking-operations/ |
+| an `SSLContext` loaded with certificates on the loop | `async_get_clientsession`, `get_async_client`, or `homeassistant.util.ssl` for a context alone | loading the certificates is blocking disk I/O, which those three keep in the executor | https://contributors.home-assistant.io/core/internals/blocking-operations/ |
+| an `import` inside a function on the loop, of a module not yet imported | a module-level import | the import machinery reads the module from disk | https://contributors.home-assistant.io/core/internals/blocking-operations/ |
 
 ### `ConfigEntry` mutation — Step 3
 - Never mutate `ConfigEntry` directly — always use `hass.config_entries.async_update_entry(entry, data=..., options=...)`
@@ -436,10 +436,10 @@ Covers the rule `log-when-unavailable` (`reference/quality-scale.md`) and HA's l
 
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
-| wrapping the fetch in your own `try`/log | raise `UpdateFailed` and let the coordinator log | the manual log double-logs and fails `log-when-unavailable` | https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/log-when-unavailable/ |
+| wrapping the fetch in your own `try`/log | raise `UpdateFailed` and let the coordinator log | the manual log double-logs and fails `log-when-unavailable` | https://contributors.home-assistant.io/core/quality-scale/log-when-unavailable/ |
 | `_LOGGER.exception(...)` beside a raise in `async_setup_entry` | raise alone | HA logs the reason already | `ConfigEntry.async_setup`, through `__async_setup_with_context`, in `homeassistant/config_entries.py`, at the `.0` tag of the release row in `reference/freshness.md` |
-| an f-string in a log call | a lazy `%` arg | the f-string evaluates even when the level is disabled | https://developers.home-assistant.io/docs/development_guidelines/ |
-| logging a credential, API key, token or raw auth response | log the fact, never the secret | a log is read by whoever is handed it | https://developers.home-assistant.io/docs/development_guidelines/ |
+| an f-string in a log call | a lazy `%` arg | the f-string evaluates even when the level is disabled | https://contributors.home-assistant.io/core/development/style/ |
+| logging a credential, API key, token or raw auth response | log the fact, never the secret | a log is read by whoever is handed it | https://contributors.home-assistant.io/core/development/style/ |
 | a module-level `_LOGGER` left behind after the calls go | delete it | ruff does not flag an unused module global | — |
 
 ### Custom services — Step 1
@@ -586,7 +586,7 @@ A device has exactly one config entry and at most one subentry: read `config_ent
 | `CONCENTRATION_GRAMS_PER_CUBIC_METER`, `CONCENTRATION_MILLIGRAMS_PER_CUBIC_METER`, `CONCENTRATION_MICROGRAMS_PER_CUBIC_METER`, `CONCENTRATION_MICROGRAMS_PER_CUBIC_FOOT` | the matching `UnitOfDensity` member | removed in **2027.8** | the `DeprecatedConstantEnum` beside each in `homeassistant/const.py` |
 | `CONCENTRATION_PARTS_PER_MILLION`, `CONCENTRATION_PARTS_PER_BILLION` | the matching `UnitOfRatio` member | removed in **2027.8** | the `DeprecatedConstantEnum` beside each in `homeassistant/const.py` |
 | `CONCENTRATION_PARTS_PER_CUBIC_METER` | nothing — core names no replacement unit | removed in **2027.8** | the `DeprecatedConstant` beside it in `homeassistant/const.py` |
-| `PERCENTAGE` as a unit of measurement, on a humidity or battery sensor | `UnitOfRatio.PERCENTAGE` | the constant itself is not deprecated and is now defined from the enum (`PERCENTAGE: Final = UnitOfRatio.PERCENTAGE.value`), but using it as a unit is | https://developers.home-assistant.io/blog/2026/06/30/new-unit-enumerators |
+| `PERCENTAGE` as a unit of measurement, on a humidity or battery sensor | `UnitOfRatio.PERCENTAGE` | the constant itself is not deprecated and is now defined from the enum (`PERCENTAGE: Final = UnitOfRatio.PERCENTAGE.value`), but using it as a unit is | https://contributors.home-assistant.io/blog/2026/06/30/new-unit-enumerators/ |
 
 ### Config entry migration — Step 3
 
@@ -622,13 +622,13 @@ The deprecations a custom integration can meet that have no section of their own
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
 | `mqtt.publish()` or `async_publish()` with `qos=None` or `retain=None` | the defaults, or typed values — the parameters are `qos: int = 0` and `retain: bool = False` | the `None` fallbacks stop working in **2027.6** | `async_publish` in `homeassistant/components/mqtt/client.py` |
-| using a condition object as a callable | `async_from_config()` from `homeassistant.helpers.condition`, then `async_check()`, then `async_unload()`; a script is `async_run()` then `await script.async_unload()` | the post gives **2027.1** for the end of the callable form; core at the `.0` tag of the release row in `reference/freshness.md` attaches no warning to it | https://developers.home-assistant.io/blog/2026/05/13/condition-script-api-changes |
+| using a condition object as a callable | `async_from_config()` from `homeassistant.helpers.condition`, then `async_check()`, then `async_unload()`; a script is `async_run()` then `await script.async_unload()` | the post gives **2027.1** for the end of the callable form; core at the `.0` tag of the release row in `reference/freshness.md` attaches no warning to it | https://contributors.home-assistant.io/blog/2026/05/13/condition-script-api-changes/ |
 | `BrowseMediaSource(domain=None)` | your own domain; the node listing every media source is `RootBrowseMediaSource` | `domain` is a required `str` now — a hard change with no deprecation period | `BrowseMediaSource` and `RootBrowseMediaSource` in `homeassistant/components/media_source/models.py` |
 | `battery_level` on a `device_tracker` entity | a dedicated `SensorDeviceClass.BATTERY` sensor | stops working in **2027.7** | `BaseTrackerEntity.__init_subclass__` in `homeassistant/components/device_tracker/entity.py` |
 | `TrackerEntity.location_name` | `in_zones` — zone entity ids, in any order, since the base class sorts them | stops working in **2027.7** | `TrackerEntity.in_zones` in `homeassistant/components/device_tracker/entity.py`, at the `.0` tag of the release row in `reference/freshness.md` |
 | `battery_level` on `StateVacuumEntity` | a dedicated battery sensor | already removed, in 2026.9 | the Vacuum entry under *Backward-incompatible changes* at https://www.home-assistant.io/blog/2026/09/02/release-20269/ |
 | `async_initialize_triggers(home_assistant_start=…)` | stop passing it; `hass.async_add_startup_job` for work at startup | it already has no effect; removed in **2027.8** | `async_initialize_triggers` in `homeassistant/helpers/trigger.py` |
-| a `TrackerEntity` for a device tracked by connection rather than position | `BaseScannerEntity` | it derives the state from the associated zone and sets the `tracking_type` capability attribute | https://developers.home-assistant.io/blog/2026/06/15/device-tracker-changes |
+| a `TrackerEntity` for a device tracked by connection rather than position | `BaseScannerEntity` | it derives the state from the associated zone and sets the `tracking_type` capability attribute | https://contributors.home-assistant.io/blog/2026/06/15/device-tracker-changes/ |
 
 > **Note:** a condition platform may implement `_async_setup()` and `_async_unload()` when it
 > needs async initialisation or teardown; it is optional and nothing else changes for it.

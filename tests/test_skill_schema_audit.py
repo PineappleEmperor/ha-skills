@@ -232,7 +232,7 @@ def test_a_reference_cell_naming_an_origin_or_none_passes(tmp_path) -> None:
     body = _ANTI + (
         "| a | b | c | `async_get_device` in `homeassistant/helpers/device_registry.py` |\n"
         "| a | b | c | *Step 1: Locate `templates/`* in `reference/github-actions.md` |\n"
-        "| a \\| x | b | c | https://developers.home-assistant.io/docs/x/ |\n"
+        "| a \\| x | b | c | https://contributors.home-assistant.io/core/x/ |\n"
         "| a | b | c | — |\n"
     )
     assert audit.check_reference_cells(_repo(tmp_path, body)) == ([], [])

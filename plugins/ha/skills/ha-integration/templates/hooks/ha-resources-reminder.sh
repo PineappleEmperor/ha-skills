@@ -5,7 +5,7 @@
 
 # HA-integration repos: skill + quality anchors.
 if ls custom_components/*/manifest.json >/dev/null 2>&1; then
-  echo "[ha-integration] ha-integration skill active before integration edits · keep quality_scale.yaml honest · verify HA APIs at developers.home-assistant.io."
+  echo "[ha-integration] ha-integration skill active before integration edits · keep quality_scale.yaml honest · verify HA APIs at contributors.home-assistant.io."
 fi
 
 # Any repo on this workflow stack (the skill repo AND scaffolded integrations): the
