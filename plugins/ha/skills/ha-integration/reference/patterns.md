@@ -133,14 +133,15 @@ before a PR is ready.
 
 | Rule | Value |
 |---|---|
-| a `vol.Schema` in a flow | one entry per line, left to `ruff format` |
+| the schema library | `import probatio`, then `probatio.Schema`, `probatio.Required`, `probatio.Optional`, as core writes it; the shipped `pyproject.toml` bans `voluptuous` and `import probatio as vol`, as core's does, and `import probatio` sorts after the `homeassistant` imports, since `homeassistant` is third-party there |
+| a `probatio.Schema` in a flow | one entry per line, left to `ruff format` |
 | the `# fmt: off` fence | not earned here — a flow schema is a list of entries, not a table; *Alignment a human chose meets `ruff format` — Step 3* in `reference/scaffold.md` |
 
 ```python
-DATA_SCHEMA = vol.Schema(
+DATA_SCHEMA = probatio.Schema(
     {
-        vol.Required(CONF_HOST, default="192.168.1.1"): str,
-        vol.Required(CONF_PORT, default=8080): int,
+        probatio.Required(CONF_HOST, default="192.168.1.1"): str,
+        probatio.Required(CONF_PORT, default=8080): int,
     }
 )
 ```
@@ -174,7 +175,7 @@ the rows a custom integration gets wrong against it.
 
 | Rule | Value |
 |---|---|
-| the schema | `vol.Required(ATTR_MESSAGE): cv.string`, `vol.Optional(ATTR_TITLE): cv.string`, `vol.Optional(ATTR_DATA): dict` — the constants and `DOMAIN as NOTIFY_DOMAIN` from `homeassistant.components.notify.const` |
+| the schema | `probatio.Required(ATTR_MESSAGE): cv.string`, `probatio.Optional(ATTR_TITLE): cv.string`, `probatio.Optional(ATTR_DATA): dict` — the constants and `DOMAIN as NOTIFY_DOMAIN` from `homeassistant.components.notify.const` |
 | the handler | a closure bound to one device, reading `call.data.get(ATTR_DATA) or {}` beside `call.data[ATTR_MESSAGE]` |
 | registering | in `async_setup_entry`, since the service is per device: `hass.services.async_register(NOTIFY_DOMAIN, device_id, handler, schema=SERVICE_SCHEMA)`, under `if not hass.services.has_service(NOTIFY_DOMAIN, device_id)` |
 | removing | in `async_unload_entry`, `hass.services.async_remove(NOTIFY_DOMAIN, device_id)`, under the inverse guard, `if hass.services.has_service(NOTIFY_DOMAIN, device_id)` |
@@ -484,7 +485,7 @@ device, entry = async_get_device_and_config_entry_for_domain(
 | a literal URL in a `strings.json` description | forbidden by hassfest — `the string should not contain URLs`; use plain text, or a `{placeholder}` filled via `description_placeholders` in the flow step |
 | a markdown image `![x]({url})` with a placeholder | fine, since it leaves no literal `http` |
 | a collapsible service form | `fields: { appearance: { collapsed: true, fields: {...} } }` |
-| what a section changes in the call | nothing — sections are UI-only, the call data stays flat, so the voluptuous schema is unaffected |
+| what a section changes in the call | nothing — sections are UI-only, the call data stays flat, so the action's schema is unaffected |
 
 ### Register integration-global resources in `async_setup`, not `async_setup_entry` — Step 3
 The registration happens once per process; doing it per entry races when two entries set up in parallel. Claim the `hass.data` flag **before** the `await`, or both entries pass the check. The panel case, with the code, is `reference/panels.md`.

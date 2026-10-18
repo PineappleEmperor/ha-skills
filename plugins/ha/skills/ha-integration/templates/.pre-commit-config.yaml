@@ -8,7 +8,7 @@
 # own is dropped; codespell skips a built panel bundle; no-commit-to-branch guards main.
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.3
+    rev: v0.16.9
     hooks:
       - id: ruff-check
         args:

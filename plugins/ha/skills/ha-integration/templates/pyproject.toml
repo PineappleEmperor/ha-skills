@@ -8,7 +8,6 @@
 #   - target-version instead of requires-python, so the audit's version comparison
 #     (ha-integration-ci's README) can read it
 #   - custom_components is the first-party package; homeassistant is third-party here
-#   - voluptuous is imported as vol, which core enforces by convention rather than by rule
 #   - per-file-ignores keep core's own, with the paths renamed; a repo's own scripts/ is
 #     exempted from the rules a standalone tool cannot meet
 #   - the rules for tests are tests/ruff.toml, core's own, which extends this file
@@ -44,6 +43,7 @@ select = [
   "INP",
   "ISC",
   "ICN001",
+  "ICN002",
   "LOG",
   "N804",
   "N805",
@@ -207,7 +207,9 @@ ignore = [
 "homeassistant.util.ulid" = "ulid_util"
 "homeassistant.util.uuid" = "uuid_util"
 "homeassistant.util.yaml" = "yaml_util"
-"voluptuous" = "vol"
+
+[tool.ruff.lint.flake8-import-conventions.banned-aliases]
+"probatio" = ["vol"]
 
 [tool.ruff.lint.flake8-pytest-style]
 fixture-parentheses = false
@@ -217,6 +219,11 @@ mark-parentheses = false
 "async_timeout".msg = "use asyncio.timeout instead"
 "pytz".msg = "use zoneinfo instead"
 "tests".msg = "You should not import tests"
+"voluptuous".msg = "use probatio instead"
+"homeassistant.helpers.config_validation.ensure_list".msg = "use probatio.EnsureList() instead"
+"homeassistant.helpers.config_validation.port".msg = "use probatio.Port() instead"
+"homeassistant.helpers.config_validation.has_at_least_one_key".msg = "use probatio.AtLeastOne instead"
+"homeassistant.helpers.config_validation.has_at_most_one_key".msg = "use probatio.AtMostOne instead"
 "__future__.annotations".msg = "Not needed: Python 3.14 evaluates annotations lazily"
 
 [tool.ruff.lint.isort]

@@ -162,7 +162,7 @@ export function displayName(item: Pick<Set, "name">): string { ... }   // "{?}" 
 |---|---|
 | the runner | `vitest`, which ha-panel-ci's `frontend/package.json` ships with a `test` script — where the test files go is *The frontend templates* in its README |
 | what it costs users | nothing: `frontend/` is not in the release zip, per *The three workflows* in ha-integration-ci's README |
-| `callService` | takes `Record<string, any>`, so omitting a `vol.Required` field type-checks cleanly and fails at runtime in the browser |
+| `callService` | takes `Record<string, any>`, so omitting a `probatio.Required` field type-checks cleanly and fails at runtime in the browser |
 
 ## Cases
 
