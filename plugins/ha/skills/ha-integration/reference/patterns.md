@@ -649,7 +649,8 @@ The deprecations a custom integration can meet that have no section of their own
 
 ### Announced for a release after 2026.10 — Step 1
 
-Cleared when the release row in `reference/freshness.md` moves past the landing release.
+A scheduled-change row, here or beside the step it affects in another file, is cleared when
+the release row in `reference/freshness.md` reaches its landing release.
 
 | what | lands in | do now | do then |
 |---|---|---|---|
