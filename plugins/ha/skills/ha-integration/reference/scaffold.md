@@ -303,7 +303,7 @@ linked to its public repository:
 | Rule | Value |
 |---|---|
 | `name` | required in every `hacs.json` |
-| every key | one of the ten HACS's `hacsjson` check accepts — `content_in_root`, `country`, `filename`, `hacs`, `hide_default_branch`, `homeassistant`, `name`, `persistent_directory`, `render_readme`, `zip_release`; anything else fails it |
+| every key | one of the ten keys HACS's `hacsjson` check accepts — `content_in_root`, `country`, `filename`, `hacs`, `hide_default_branch`, `homeassistant`, `name`, `persistent_directory`, `render_readme`, `zip_release`; anything else fails it |
 | `homeassistant` | the oldest HA you actually test, never a floor copied from an example |
 | `zip_release` | makes HACS download a release **asset** rather than the tag's source archive, so it requires the `release.yml` caller |
 | `filename` | the name `release.yml` attaches — *The three workflows* in ha-integration-ci's README |
@@ -396,15 +396,15 @@ before the migration.
 
 ### `HACS validation` is red — Step 9
 
-Each `hacs/action` check below is ignorable via its `ignore:` input; how the scaffold's
-workflow sets it is the `hacs-validate.yml` row under *Step 2: Take each file from its
-source* in `reference/github-actions.md`. Listing in `hacs/default`
-requires the action to pass with no errors **and no ignores**, so every row is required.
+Each `hacs/action` check below is ignorable via its `ignore:` input; how the scaffold's workflow
+sets it is the `hacs-validate.yml` row under *Step 2: Take each file from its source* in
+`reference/github-actions.md`. Listing in `hacs/default` requires the action to pass with no
+errors **and no ignores**, so every check that runs on an integration must pass.
 
 | Check | What's needed | Where to fix |
 |---|---|---|
 | `archived` | the repository is not archived | GitHub repo settings |
-| `brands` | `brand/icon.png` present, else the domain listed under `custom_integrations/` in `home-assistant/brands`, which takes no new ones | Step 5 |
+| `brands` | `brand/icon.png` present, else the domain listed under `custom_integrations/` in `home-assistant/brands` | Step 5 |
 | `description` | the repository has a description | Step 10, or GitHub repo settings → About |
 | `hacsjson` | `hacs.json` exists, carries `name`, holds no key beyond the ten Step 7 lists, and names a `filename` whenever `zip_release` is set | Step 7 |
 | `images` | nothing on an integration — it runs on plugins and themes only | — |
