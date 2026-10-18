@@ -651,9 +651,6 @@ The deprecations a custom integration can meet that have no section of their own
 
 ### Announced for a release after 2026.10 — Step 1
 
-A scheduled-change row, here or beside the step it affects in another file, is cleared when
-the release row in `reference/freshness.md` reaches its landing release.
-
 | what | lands in | do now | do then |
 |---|---|---|---|
 | `RestoreStateData.last_states` is removed, as stored states are keyed by entity registry id | 2026.11 — https://contributors.home-assistant.io/blog/2026/10/06/restore-state-last-states-removal/ | restore through `RestoreEntity` and `async_get_last_state()` or `async_get_last_extra_data()`, which are unaffected | `restore_state.async_get(hass).async_get_stored_state(entity_id)` where you read stored states directly |

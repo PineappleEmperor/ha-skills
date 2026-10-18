@@ -73,7 +73,8 @@ usable that the release does not carry.
 | Rule | Value |
 |---|---|
 | a change a custom integration can meet | a row in the `reference/patterns.md` section that owns the topic |
-| a change announced for a release that has not landed | a scheduled-change row beside the step it affects, in the file that owns the topic — for `reference/patterns.md`, *Announced for a release after 2026.10 — Step 1*, whose lead-in says when every such row clears |
+| a change announced for a release that has not landed | a scheduled-change row beside the step it affects, in the file that owns the topic — for `reference/patterns.md`, *Announced for a release after 2026.10 — Step 1* |
+| a scheduled-change row, in any file | cleared in the pass that moves the release row to its landing release |
 | every other row in the cached-facts table | re-derived with its own *Re-derive with* command |
 | the release cell and its captured date | moved, last |
 | the whole pass | one PR |
