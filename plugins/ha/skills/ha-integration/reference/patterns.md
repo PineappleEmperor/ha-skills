@@ -620,7 +620,7 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 | Rule | Value |
 |---|---|
 | where each row was read | `__async_setup_with_context`, `__async_handle_config_entry_setup_error` and `ConfigEntries.async_retry_migration` in `homeassistant/config_entries.py`, at the `2026.10.0` tag; the compatibility floor, `ConfigEntry.async_migrate` there at the `2026.9.0` tag |
-| the compatibility floor | 2026.10.0; below it `ConfigEntry.async_migrate` catches every exception and returns `False`, so `ConfigEntryNotReady` ends in `migration_error` too, and `async_retry_migration` does not exist |
+| the compatibility floor | 2026.10.0; below it `ConfigEntry.async_migrate` catches any `Exception` and returns `False`, so `ConfigEntryNotReady` ends in `migration_error` too, and `async_retry_migration` does not exist |
 | a failure that may clear on its own — a timeout, a device offline | raise `ConfigEntryNotReady`; the migration is retried on the setup schedule |
 | any other failure | raise `ConfigEntryError` with a `translation_key`, which the entry shows as its reason, or return `False`; either way the entry stops in `migration_error`, as it does for any other exception, which is logged with its traceback and leaves no reason |
 | returning `False` | logs nothing and leaves the entry no reason, so log why before you return it |
