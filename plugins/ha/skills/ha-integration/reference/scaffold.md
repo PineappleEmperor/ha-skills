@@ -141,7 +141,7 @@ rest.
 
 | what | lands in | do now | do then |
 |---|---|---|---|
-| Marketplace, replacing HACS, shows an integration's images before install from `custom_components/<domain>/brand/` at its latest release; an entry for the domain in `home-assistant/brands` wins over them | 2026.11 — the Marketplace row of `reference/freshness.md` | ship `brand/icon.png` at that path in every release | nothing |
+| Marketplace, replacing HACS, shows an integration's `brand/` images before install, picked up from the latest release of every integration in the catalog; an entry for the domain in `home-assistant/brands` wins over them | 2026.11 — https://contributors.home-assistant.io/marketplace/guides/integrations/ | ship `brand/icon.png` in every release | nothing |
 
 **Which files to ship**
 
@@ -311,7 +311,7 @@ linked to its public repository:
 
 | what | lands in | do now | do then |
 |---|---|---|---|
-| Marketplace, replacing HACS, refuses a repository with no `hacs.json` at its root, and a tagged version without one | 2026.11 — the Marketplace row of `reference/freshness.md` | keep `hacs.json` at the root of every release | nothing |
+| Marketplace, replacing HACS, reads `hacs.json` from the repository root for every version it installs, and cannot install or update a repository without it | 2026.11 — https://contributors.home-assistant.io/marketplace/reference/hacs-json/ | keep `hacs.json` at the root of every release | nothing |
 
 **Symptom:** a `zip_release` repository whose release carries no attached zip fails HACS
 install with `Could not download`.

@@ -50,7 +50,7 @@ order below the final.
 
 | what | lands in | do now | do then |
 |---|---|---|---|
-| Marketplace, replacing HACS, installs the newest release that is not a prerelease, and an rc only for a user who shows betas and picks it; while every release is an rc it installs the default branch's newest commit | 2026.11 — the Marketplace row of `reference/freshness.md` | publish a final before telling users to install | nothing |
+| Marketplace, replacing HACS, gives users the tag of the latest release that is not a prerelease, and an rc only to a user who turns on the repository's Pre-release switch, while it is newer than that release; while every release is an rc, it gives the default branch's newest commit | 2026.11 — https://contributors.home-assistant.io/marketplace/guides/releases/ | publish a final before telling users to install | nothing |
 
 ### The branch's PR has already merged — Step 3
 
