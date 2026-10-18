@@ -258,7 +258,7 @@ exec pre-commit run
 |---|---|---|
 | `CLAUDE.md` | the per-repo rule that a session invokes this skill before touching integration code, and the hooks setting | the snippet below |
 | `hacs.json` | the HACS manifest | the shape below |
-| `README.md` | the project readme, with at least one image, carrying the AI-assistance note below | — |
+| `README.md` | the project readme, carrying the AI-assistance note below | — |
 | `LICENSE` | the full text of the Step 1 licence | the licence's own text |
 | `tests/` | one test file per module under test | `reference/testing.md` |
 
@@ -299,6 +299,7 @@ linked to its public repository:
 | Rule | Value |
 |---|---|
 | `name` | required in every `hacs.json` |
+| every key | one of the ten HACS's `hacsjson` check accepts — `content_in_root`, `country`, `filename`, `hacs`, `hide_default_branch`, `homeassistant`, `name`, `persistent_directory`, `render_readme`, `zip_release`; anything else fails it |
 | `homeassistant` | the oldest HA you actually test, never a floor copied from an example |
 | `zip_release` | makes HACS download a release **asset** rather than the tag's source archive, so it requires the `release.yml` caller |
 | `filename` | the name `release.yml` attaches — *The three workflows* in ha-integration-ci's README |
@@ -395,15 +396,19 @@ requires the action to pass with no errors **and no ignores**, so every row is r
 | Check | What's needed | Where to fix |
 |---|---|---|
 | `archived` | the repository is not archived | GitHub repo settings |
-| `brands` | `brand/icon.png` present, else the domain listed in `home-assistant/brands` | Step 5 |
+| `brands` | `brand/icon.png` present, else the domain listed under `custom_integrations/` in `home-assistant/brands`, which takes no new ones | Step 5 |
 | `description` | the repository has a description | Step 10, or GitHub repo settings → About |
-| `hacsjson` | `hacs.json` exists, carries `name`, and names a `filename` whenever `zip_release` is set | Step 7 |
-| `images` | the README carries at least one image | Step 7 |
+| `hacsjson` | `hacs.json` exists, carries `name`, holds no key beyond the ten Step 7 lists, and names a `filename` whenever `zip_release` is set | Step 7 |
+| `images` | nothing on an integration — it runs on plugins and themes only | — |
 | `information` | `README.md` exists | Step 7 |
 | `integration_manifest` | `manifest.json` carrying `domain`, `name`, `version`, `documentation`, `issue_tracker` and `codeowners` | Step 4 |
 | `issues` | the Issues tab is enabled | Step 10, or GitHub repo settings → Features |
 | `topics` | the repository has at least one topic | Step 10, or GitHub repo settings → About |
-| `license` | a `LICENSE`, per Step 1 | Step 7 |
+| `license` | a `LICENSE` GitHub identifies by SPDX as an OSI-approved licence, per Step 1 | Step 7 |
+
+> **Note:** on a pull request from a fork, `archived`, `description`, `issues`, `topics` and
+> `license` do not run, so only the other four checks do; the push to `main` and the nightly
+> run carry all nine.
 
 ## Reference
 
