@@ -35,7 +35,7 @@ it.**
 24. Units: prefer the enumerators — Step 1
 25. Config entry migration — Step 3
 26. Deprecated platform APIs — Step 1
-27. Announced for a release after 2026.9 — Step 1
+27. Announced for a release after 2026.10 — Step 1
 28. `TYPE_CHECKING` for expensive or circular imports — Step 4
 29. Typed `ConfigEntry` — Step 4
 
@@ -81,7 +81,7 @@ device logic from the HA lifecycle, so it is unit-testable without a running HA 
 3. `async_unload_entry` mirrors it with no `async_shutdown` call, returning
    `await hass.config_entries.async_unload_platforms(entry, PLATFORMS)`: a coordinator built with
    `config_entry=entry` registers its shutdown with `entry.async_on_unload` in its `__init__`, and
-   `ConfigEntry.async_unload` runs it once the unload succeeds — at the `2026.9.0` tag,
+   `ConfigEntry.async_unload` runs it once the unload succeeds — at the `2026.10.0` tag,
    `homeassistant/helpers/update_coordinator.py` and `homeassistant/config_entries.py`.
 4. If setup creates a device, add `async_remove_config_entry_device` so a user can remove it.
    Type its device parameter `AnyDeviceEntry` (`DeviceEntry | ChildDeviceEntry`), since from
@@ -266,7 +266,7 @@ async def async_setup_entry(
 
 | Rule | Value |
 |---|---|
-| what `_attr_in_progress` does | `update.install` refuses a call while it is `True` — `homeassistant/components/update/__init__.py`, at the `.0` tag of the release row in `reference/freshness.md` |
+| what `_attr_in_progress` does | `update.install` refuses a call while it is `True` — `_async_install` in `homeassistant/components/update/services.py`, at the `.0` tag of the release row in `reference/freshness.md` |
 | who sets it | the entity, at the top of `async_install`; core never sets it `True` |
 | who clears it | core, when `async_install` returns or raises |
 | what it does not cover | a device still flashing after `async_install` has returned |
@@ -311,7 +311,7 @@ is back.
 
 | Rule | Value |
 |---|---|
-| where each row was read | https://contributors.home-assistant.io/core/integrations/setup-failures/, https://contributors.home-assistant.io/core/integrations/fetching-data/ and the `entity-unavailable` and `log-when-unavailable` rules; `homeassistant/config_entries.py`, `homeassistant/helpers/update_coordinator.py` and `homeassistant/components/mqtt/client.py` at the `2026.9.0` tag |
+| where each row was read | https://contributors.home-assistant.io/core/integrations/setup-failures/, https://contributors.home-assistant.io/core/integrations/fetching-data/ and the `entity-unavailable` and `log-when-unavailable` rules; `homeassistant/config_entries.py`, `homeassistant/helpers/update_coordinator.py` and `homeassistant/components/mqtt/client.py` at the `2026.10.0` tag |
 | how Home Assistant retries a setup that raised `ConfigEntryNotReady` | after 5 seconds, doubling on each failure up to `SETUP_RETRY_MAX_WAIT`, 600 seconds; and, where the integration supports discovery, as soon as the device is discovered |
 | what a failed poll does | `last_update_success` goes false, `CoordinatorEntity.available` returns it, and the next interval tries again |
 | what the coordinator catches unaided | `TimeoutError`, `aiohttp.ClientError`, `requests.exceptions.RequestException` and `urllib.error.URLError`, each a failed update |
@@ -327,7 +327,7 @@ is back.
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
 | `ConfigEntryNotReady` raised from a platform's `async_setup_entry` | raise it from `__init__.py` | it is too late there to be caught by the config entry setup | https://contributors.home-assistant.io/core/integrations/setup-failures/ |
-| `asyncio.create_task` or `hass.async_create_task` for the reconnect loop | `entry.async_create_background_task` | unload cancels the entry's background tasks and no others, so the loop outlives a reload | `_async_process_on_unload` in `homeassistant/config_entries.py`, at the `2026.9.0` tag |
+| `asyncio.create_task` or `hass.async_create_task` for the reconnect loop | `entry.async_create_background_task` | unload cancels the entry's background tasks and no others, so the loop outlives a reload | `_async_process_on_unload` in `homeassistant/config_entries.py`, at the `2026.10.0` tag |
 | the last value left showing while the connection is down | mark the entity unavailable | unavailable is the better state than the last known one | https://contributors.home-assistant.io/core/quality-scale/entity-unavailable/ |
 
 ### A reply the code does not expect — Step 1
@@ -359,7 +359,7 @@ def parse_reading(raw: dict[str, Any]) -> Reading:
 
 | Rule | Value |
 |---|---|
-| where each row was read | the `entity-unavailable` and `dynamic-devices` rules; `_async_refresh` and `async_update_listeners` in `homeassistant/helpers/update_coordinator.py` and `SensorEntity.state` in `homeassistant/components/sensor/__init__.py`, at the `2026.9.0` tag |
+| where each row was read | the `entity-unavailable` and `dynamic-devices` rules; `_async_refresh` and `async_update_listeners` in `homeassistant/helpers/update_coordinator.py` and `SensorEntity.state` in `homeassistant/components/sensor/__init__.py`, at the `2026.10.0` tag |
 | a field missing from an otherwise good reply | `None` for that value: the entity reads `unknown` and the others update |
 | a device missing from an otherwise good reply | that entity alone unavailable — `return super().available and self._device_id in self.coordinator.data` |
 | an exception the coordinator has no branch for, a `KeyError` or a `TypeError` say, leaving `_async_update_data` | logged with its traceback, and `last_update_success` goes false — so one bad field takes every entity on the coordinator unavailable |
@@ -373,7 +373,7 @@ def parse_reading(raw: dict[str, Any]) -> Reading:
 
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
-| `raw["field"]` in `_async_update_data` | `.get()` into a field that may be `None` | the `KeyError` is an unexpected error, which takes every entity down for one field | `_async_refresh` in `homeassistant/helpers/update_coordinator.py`, at the `2026.9.0` tag |
+| `raw["field"]` in `_async_update_data` | `.get()` into a field that may be `None` | the `KeyError` is an unexpected error, which takes every entity down for one field | `_async_refresh` in `homeassistant/helpers/update_coordinator.py`, at the `2026.10.0` tag |
 | `except Exception: return self.data`, to ride out a bad reply | raise `UpdateFailed` | the entities go on showing the last value as though it were current | https://contributors.home-assistant.io/core/quality-scale/entity-unavailable/ |
 | an entity made unavailable for one missing field | `None`, which reads `unknown` | unavailable is for a fetch that failed, unknown for a piece that is missing | https://contributors.home-assistant.io/core/quality-scale/entity-unavailable/ |
 
@@ -396,7 +396,7 @@ async def async_read_state(hass: HomeAssistant, path: Path) -> str:
 
 | Rule | Value |
 |---|---|
-| where each row was read | https://contributors.home-assistant.io/core/internals/blocking-operations/ and the `inject-websession` rule; `_BLOCKING_CALLS` in `homeassistant/block_async_io.py`, `raise_for_blocking_call` in `homeassistant/util/loop.py` and `async_add_executor_job` in `homeassistant/core.py`, at the `2026.9.0` tag |
+| where each row was read | https://contributors.home-assistant.io/core/internals/blocking-operations/ and the `inject-websession` rule; `_BLOCKING_CALLS` in `homeassistant/block_async_io.py`, `raise_for_blocking_call` in `homeassistant/util/loop.py` and `async_add_executor_job` in `homeassistant/core.py`, at the `2026.10.0` tag |
 | what core detects | `open` and `Path.open`, `read_text`, `read_bytes`, `write_text`, `write_bytes`; `glob.glob`, `glob.iglob`, `os.walk`, `os.listdir`, `os.scandir`; `time.sleep`; `HTTPConnection.putrequest`, which `urllib` goes through; `importlib.import_module`; and `SSLContext.load_default_certs`, `load_verify_locations`, `load_cert_chain` and `set_default_verify_paths` |
 | what it lets through all the same | a path under `/proc`, the import of a module already imported, and `load_verify_locations` handed `cadata` alone |
 | which of those raise as well as log | `time.sleep` and `HTTPConnection.putrequest` — a `RuntimeError` beginning `Caught blocking call to`, so the call never runs |
@@ -411,7 +411,7 @@ async def async_read_state(hass: HomeAssistant, path: Path) -> str:
 
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
-| `time.sleep` in a coroutine or a `@callback` | `await asyncio.sleep` | core raises as well as logging | `_BLOCKING_CALLS` in `homeassistant/block_async_io.py`, at the `2026.9.0` tag |
+| `time.sleep` in a coroutine or a `@callback` | `await asyncio.sleep` | core raises as well as logging | `_BLOCKING_CALLS` in `homeassistant/block_async_io.py`, at the `2026.10.0` tag |
 | moving only the `open` to the executor | move the reads and writes with it | core sees the `open` and nothing after it, so what is left is never reported | https://contributors.home-assistant.io/core/internals/blocking-operations/ |
 | an `SSLContext` loaded with certificates on the loop | `async_get_clientsession`, `get_async_client`, or `homeassistant.util.ssl` for a context alone | loading the certificates is blocking disk I/O, which those three keep in the executor | https://contributors.home-assistant.io/core/internals/blocking-operations/ |
 | an `import` inside a function on the loop, of a module not yet imported | a module-level import | the import machinery reads the module from disk | https://contributors.home-assistant.io/core/internals/blocking-operations/ |
@@ -426,7 +426,7 @@ Covers the rule `log-when-unavailable` (`reference/quality-scale.md`) and HA's l
 | Rule | Value |
 |---|---|
 | what the coordinator logs for you | on a poll, the first `UpdateFailed`, timeout or request error at ERROR, nothing for the ones after it, and the recovery at INFO — which is `log-when-unavailable` met; an unexpected exception at ERROR with its traceback, every time; what it leaves to you on a push connection is *A connection that drops — Step 1* |
-| what HA logs for you | the reason behind `ConfigEntryAuthFailed` at WARNING, and behind `ConfigEntryNotReady` at INFO on each retry — `ConfigEntry.async_setup`, through `__async_setup_with_context`, in `homeassistant/config_entries.py`, at the `.0` tag of the release row in `reference/freshness.md` |
+| what HA logs for you | the reason behind `ConfigEntryAuthFailed` at WARNING, and behind `ConfigEntryNotReady` at INFO on each retry — `ConfigEntry.async_setup`, through `__async_handle_config_entry_setup_error`, in `homeassistant/config_entries.py`, at the `.0` tag of the release row in `reference/freshness.md` |
 | which exception to raise | transient → `UpdateFailed` or `ConfigEntryNotReady`; auth → `ConfigEntryAuthFailed`; an action's own failure → `HomeAssistantError` or `ServiceValidationError`, per `action-exceptions` |
 | `INFO` | almost never: the one line saying a device or service is gone, and the one saying it is back, where `log-when-unavailable` asks for that level; setup, unload and teardown are `DEBUG` |
 | `WARNING` | a recoverable thing the user should know |
@@ -438,7 +438,7 @@ Covers the rule `log-when-unavailable` (`reference/quality-scale.md`) and HA's l
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
 | wrapping the fetch in your own `try`/log | raise `UpdateFailed` and let the coordinator log | the manual log double-logs and fails `log-when-unavailable` | https://contributors.home-assistant.io/core/quality-scale/log-when-unavailable/ |
-| `_LOGGER.exception(...)` beside a raise in `async_setup_entry` | raise alone | HA logs the reason already | `ConfigEntry.async_setup`, through `__async_setup_with_context`, in `homeassistant/config_entries.py`, at the `.0` tag of the release row in `reference/freshness.md` |
+| `_LOGGER.exception(...)` beside a raise in `async_setup_entry` | raise alone | HA logs the reason already | `ConfigEntry.async_setup`, through `__async_handle_config_entry_setup_error`, in `homeassistant/config_entries.py`, at the `.0` tag of the release row in `reference/freshness.md` |
 | an f-string in a log call | a lazy `%` arg | the f-string evaluates even when the level is disabled | https://contributors.home-assistant.io/core/development/style/ |
 | logging a credential, API key, token or raw auth response | log the fact, never the secret | a log is read by whoever is handed it | https://contributors.home-assistant.io/core/development/style/ |
 | a module-level `_LOGGER` left behind after the calls go | delete it | ruff does not flag an unused module global | — |
@@ -464,9 +464,13 @@ device, entry = async_get_device_and_config_entry_for_domain(
 )
 ```
 
+**What it returns — `async_get_device_and_config_entry_for_domain` in `homeassistant/helpers/device_registry.py`, at the `2026.10.0` tag:**
+
 | Scenario | Choice |
 |---|---|
-| an unknown device id, or a child device | `(None, None)` |
+| an unknown device id | `(None, None)` |
+| a child device | the child, typed `AnyDeviceEntry`, and its config entry when your domain owns it; `include_child_devices=False` gives `(None, None)`, as 2026.9 did |
+| `include_main_devices=False` | `(None, None)` for a main or composite device id, so only a child resolves |
 | a main device no config entry of your domain owns | `(device, None)` |
 | a pre-migration composite device id | a matching split device and its config entry, which is the case a hand-written loop gets wrong |
 | a composite device id no split matches | the restored composite device, and `None` |
@@ -527,7 +531,7 @@ async def async_get_config_entry_diagnostics(
 
 | Rule | Value |
 |---|---|
-| where this was read | `async_redact_data` in `homeassistant/components/diagnostics/util.py`, and `homeassistant/components/nam/diagnostics.py`, at the `2026.9.0` tag |
+| where this was read | `async_redact_data` in `homeassistant/components/diagnostics/util.py`, and `homeassistant/components/nam/diagnostics.py`, at the `2026.10.0` tag |
 | what goes in | the fields a bug report needs, each chosen — never `entry.runtime_data` whole |
 | what `async_redact_data` walks | mappings and lists only, so an object inside the dict passes through unredacted; turn each device's dataclass into a dict with `asdict` first, keyed by device id as `coordinator.data` is |
 | registration | none — HA discovers it from the file name |
@@ -539,16 +543,16 @@ A device has exactly one config entry and at most one subentry: read `config_ent
 
 | Rule | Value |
 |---|---|
-| where each release below comes from | the `breaks_in_ha_version` of the call site that reports that usage, read at the `2026.9.0` tag in `homeassistant/helpers/device_registry.py` and `homeassistant/helpers/device.py` |
+| where each release below comes from | the `breaks_in_ha_version` of the call site that reports that usage, read at the `2026.10.0` tag in `homeassistant/helpers/device_registry.py` and `homeassistant/helpers/device.py` |
 | a row naming no release | one core attaches none to |
 | the WebSocket keys of the same names | `reference/panels.md` |
 | how a custom integration is told | a logged warning, from `report_usage` in `homeassistant/helpers/frame.py` or `deprecated_function` in `homeassistant/helpers/deprecation.py`, at the `.0` tag of the release row in `reference/freshness.md` — unless the row says it raises already |
 
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
-| `DeviceEntry.config_entries` | `config_entry_id` | a compatibility property returning `{config_entry_id}`, carrying no `report_usage` and **no removal release stated by core** | `DeviceEntry.config_entries` in `homeassistant/helpers/device_registry.py` |
-| `DeviceEntry.config_entries_subentries` | `config_entry_id` and `config_subentry_id` | a compatibility property returning `{config_entry_id: {config_subentry_id}}`, with **no removal release stated by core** | `DeviceEntry.config_entries_subentries` in `homeassistant/helpers/device_registry.py` |
-| `DeviceEntry.primary_config_entry` | `config_entry_id` | a compatibility property returning `config_entry_id` itself, with **no removal release stated by core** | `BaseDeviceEntry.primary_config_entry` in `homeassistant/helpers/device_registry.py` |
+| `DeviceEntry.config_entries`, on a main, child or deleted device | `config_entry_id`, which is `None` on a deleted device whose config entry is gone, where the property gave an empty set | a compatibility property returning `{config_entry_id}`, logged from 2026.10; stops working in **2027.10.0** | `_report_deprecated_config_entries_property` in `homeassistant/helpers/device_registry.py` |
+| `DeviceEntry.config_entries_subentries`, on a main, child or deleted device | `config_entry_id` and `config_subentry_id` | a compatibility property returning `{config_entry_id: {config_subentry_id}}`, logged from 2026.10; stops working in **2027.10.0** | `_report_deprecated_config_entries_property` in `homeassistant/helpers/device_registry.py` |
+| `DeviceEntry.primary_config_entry`, on a main or child device | `config_entry_id` | a compatibility property returning `config_entry_id` itself, logged from 2026.10; stops working in **2027.10.0** | `BaseDeviceEntry.primary_config_entry` in `homeassistant/helpers/device_registry.py` |
 | a loop over a device's config entries to find your own | `async_get_device_and_config_entry_for_domain(hass, device_id, domain=DOMAIN)` | the loop gets a pre-migration composite device id wrong, which the helper resolves | `async_get_device_and_config_entry_for_domain` in `homeassistant/helpers/device_registry.py` |
 | `DeviceInfo["via_device"]`, `async_get_or_create(via_device=…)` | `via_device_id`, looked up with `async_get_device_id_by_identifier(hass, identifier, config_entry_id=…)` | an identifier is unique only within a config entry; stops working in **2027.8.0** | `DeviceRegistry.async_get_or_create` in `homeassistant/helpers/device_registry.py` |
 | a `via_device` or `via_device_id` naming the device itself | drop the self-reference | `via_device_id` raises `HomeAssistantError` already; `via_device` is ignored and logged, and raises from **2027.8.0** | `async_get_or_create` and `async_update_device` in `homeassistant/helpers/device_registry.py`, at the `.0` tag of the release row in `reference/freshness.md` |
@@ -570,9 +574,9 @@ A device has exactly one config entry and at most one subentry: read `config_ent
 | `async_device_info_to_link_from_entity()`, `async_device_info_to_link_from_device_id()` | `entity.device_entry = async_entity_id_to_device(hass, source_entity_id)` | both already return `None`; removed in **2027.8.0** | `async_device_info_to_link_from_entity` and `async_device_info_to_link_from_device_id` in `homeassistant/helpers/device.py` |
 | `async_remove_stale_devices_links_keep_entity_device()`, `async_remove_stale_devices_links_keep_current_device()` | `helper_integration.async_remove_helper_devices(…, remove_all_devices=True)` | both already do nothing; removed in **2027.8.0** | `async_remove_stale_devices_links_keep_entity_device` and `async_remove_stale_devices_links_keep_current_device` in `homeassistant/helpers/device.py` |
 
-> **Note:** the three compatibility properties are the supported way to read a *synthesized
-> composite* device — the read-only entry `async_get()` returns for a pre-migration composite
-> device id — because it spans several entries that `config_entry_id` cannot express.
+> **Note:** on a *synthesized composite* device — the read-only entry `async_get()` returns
+> for a pre-migration composite device id — the three properties are the supported read and
+> log nothing, since it spans several entries; `is_composite_device` says which a device is.
 
 ### Units: prefer the enumerators — Step 1
 
@@ -580,7 +584,7 @@ A device has exactly one config entry and at most one subentry: read `config_ent
 |---|---|
 | `UnitOfDensity` | mass over volume — `GRAMS_PER_CUBIC_METER`, `MILLIGRAMS_PER_CUBIC_METER`, `MICROGRAMS_PER_CUBIC_METER`, `MICROGRAMS_PER_CUBIC_FOOT` |
 | `UnitOfRatio` | ratios — `PARTS_PER_MILLION`, `PARTS_PER_BILLION`, `PERCENTAGE` |
-| where each release below comes from | the version argument of the `DeprecatedConstantEnum` or `DeprecatedConstant` beside the constant in `homeassistant/const.py`, read at the `2026.9.0` tag |
+| where each release below comes from | the version argument of the `DeprecatedConstantEnum` or `DeprecatedConstant` beside the constant in `homeassistant/const.py`, read at the `2026.10.0` tag |
 
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
@@ -611,10 +615,16 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
     return True
 ```
-**Return `True` or `False`, and log the reason yourself:** `ConfigEntry.async_migrate`
-swallows every exception alike, and what replaces that is *Announced for a release after
-2026.9 — Step 1* below. A major version bump with no `async_migrate_entry` fails setup for
-every existing user, so ship the handler in the same change.
+
+| Rule | Value |
+|---|---|
+| where each row was read | `__async_setup_with_context`, `__async_handle_config_entry_setup_error` and `ConfigEntries.async_retry_migration` in `homeassistant/config_entries.py`, at the `2026.10.0` tag |
+| a failure that may clear on its own — a timeout, a device offline | raise `ConfigEntryNotReady`; the migration is retried on the setup schedule |
+| any other failure | raise `ConfigEntryError` with a `translation_key`, which the entry shows as its reason, or return `False`; either way the entry stops in `migration_error` |
+| returning `False` | logs nothing and leaves the entry no reason, so log why before you return it |
+| `ConfigEntryAuthFailed` during migration | logged at WARNING and the entry stops in `migration_error`; no reauth flow starts, since reauth expects a migrated entry |
+| the way out of `migration_error` | a repair issue whose fix flow calls `await hass.config_entries.async_retry_migration(entry_id)` — https://contributors.home-assistant.io/blog/2026/09/17/Use-config-entry-exc-in-migration/ |
+| a major version bump with no `async_migrate_entry` | setup fails for every existing user, so ship the handler in the same change |
 
 ### Deprecated platform APIs — Step 1
 
@@ -628,21 +638,22 @@ The deprecations a custom integration can meet that have no section of their own
 | `battery_level` on a `device_tracker` entity | a dedicated `SensorDeviceClass.BATTERY` sensor | stops working in **2027.7** | `BaseTrackerEntity.__init_subclass__` in `homeassistant/components/device_tracker/entity.py` |
 | `TrackerEntity.location_name` | `in_zones` — zone entity ids, in any order, since the base class sorts them | stops working in **2027.7** | `TrackerEntity.in_zones` in `homeassistant/components/device_tracker/entity.py`, at the `.0` tag of the release row in `reference/freshness.md` |
 | `battery_level` on `StateVacuumEntity` | a dedicated battery sensor | already removed, in 2026.9 | the Vacuum entry under *Backward-incompatible changes* at https://www.home-assistant.io/blog/2026/09/02/release-20269/ |
-| `async_initialize_triggers(home_assistant_start=…)` | stop passing it; `hass.async_add_startup_job` for work at startup | it already has no effect; removed in **2027.8** | `async_initialize_triggers` in `homeassistant/helpers/trigger.py` |
+| `async_initialize_triggers(home_assistant_start=…)` | stop passing it; `hass.async_add_startup_job` for work at startup | it already has no effect; removed in **2027.8** | `async_initialize_triggers` in `homeassistant/helpers/trigger/__init__.py`, at the `2026.10.0` tag |
 | a `TrackerEntity` for a device tracked by connection rather than position | `BaseScannerEntity` | it derives the state from the associated zone and sets the `tracking_type` capability attribute | https://contributors.home-assistant.io/blog/2026/06/15/device-tracker-changes/ |
+| `modbus.get_hub(hass, name)`, attaching to a hub the user configured in YAML | collect the connection details in your own config flow, then `async_get_unit(hass, entry, params, unit_id)` | logged from 2026.10; stops working in **2027.10** | `get_hub` in `homeassistant/components/modbus/__init__.py` and `async_get_unit` in `homeassistant/components/modbus/connection.py`, at the `2026.10.0` tag |
+| the `configurator` integration's `async_request_config` or `request_config` | a config flow and config entries | logged from 2026.10 on those two calls; the integration is removed in **2027.10** | `_report_deprecation` in `homeassistant/components/configurator/__init__.py`, at the `2026.10.0` tag |
+| `hass.bus.async_listen(…, run_immediately=…)` or `async_listen_once(…, run_immediately=…)` | drop the argument | passing `True` or `False` raises from 2026.10 | `EventBus.async_listen` and `EventBus.async_listen_once` in `homeassistant/core.py`, at the `2026.10.0` tag |
 
 > **Note:** a condition platform may implement `_async_setup()` and `_async_unload()` when it
 > needs async initialisation or teardown; it is optional and nothing else changes for it.
 
-### Announced for a release after 2026.9 — Step 1
+### Announced for a release after 2026.10 — Step 1
 
 Cleared when the release row in `reference/freshness.md` moves past the landing release.
 
 | what | lands in | do now | do then |
 |---|---|---|---|
-| `modbus.get_hub` is deprecated | 2026.10 | collect the connection details in your own config flow rather than a YAML hub | call `async_get_unit(hass, entry, connection_params, unit_id)`; `get_hub` is removed in 2027.10 |
-| the `configurator` integration is deprecated | not stated — `components/configurator/` carries no deprecation at the `2026.9.0` tag | use a config flow and config entries | nothing; it is removed in 2027.10 |
-| `async_migrate_entry` may raise a config-entry exception instead of returning `False` | not stated — neither the `ConfigEntryNotReady` path nor `ConfigEntries.async_retry_migration` exists at the `2026.9.0` tag | return `True`/`False` and log the reason yourself | raise `ConfigEntryNotReady` for something that may resolve itself; any other exception parks the entry in `migration_error` for a repair issue and a later `hass.config_entries.async_retry_migration(entry_id)` |
+| `RestoreStateData.last_states` is removed, as stored states are keyed by entity registry id | 2026.11 — https://contributors.home-assistant.io/blog/2026/10/06/restore-state-last-states-removal/ | restore through `RestoreEntity` and `async_get_last_state()` or `async_get_last_extra_data()`, which are unaffected | `restore_state.async_get(hass).async_get_stored_state(entity_id)` where you read stored states directly |
 
 ### `TYPE_CHECKING` for expensive or circular imports — Step 4
 ```python
