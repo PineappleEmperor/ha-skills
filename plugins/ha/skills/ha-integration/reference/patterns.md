@@ -487,7 +487,7 @@ device, entry = async_get_device_and_config_entry_for_domain(
 | what `strings.json` carries | every name and description, under a top-level `services` key: `services.{svc}.name/description`, `.fields.{key}.name/description`, `.sections.{key}.name` |
 | a field key nested in a `sections` block in `services.yaml` | flat in `strings.json` all the same |
 | `translations/en.json` | a copy of `strings.json` |
-| what Home Assistant reads | `translations/en.json` alone; a custom integration's `strings.json` is never read, since only core compiles it — *Custom integrations* at https://contributors.home-assistant.io/core/integrations/translations/ |
+| what Home Assistant reads | `translations/<language>.json`, with `en.json` loaded first as the fallback for every other language, and never `strings.json` — `_async_get_component_strings` in `homeassistant/helpers/translation.py`, at the `2026.10.0` tag |
 | a literal URL in a `strings.json` description | forbidden by hassfest — `the string should not contain URLs`; use plain text, or a `{placeholder}` filled via `description_placeholders` in the flow step |
 | a markdown image `![x]({url})` with a placeholder | fine, since it leaves no literal `http` |
 | a collapsible service form | `fields: { appearance: { collapsed: true, fields: {...} } }` |
