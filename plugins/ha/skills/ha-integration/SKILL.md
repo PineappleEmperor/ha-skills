@@ -23,7 +23,8 @@ description: >-
 # Home Assistant Integration Assistant
 
 **Target platinum quality scale, and fetch the mode's source before writing the code that
-meets it.**
+meets it — as Markdown, the page URL plus `index.md`; https://contributors.home-assistant.io/core/llms.txt
+lists every page.**
 
 ## Detect the mode
 
