@@ -139,6 +139,10 @@ rest.
 | a local `brand/` file | takes precedence over the same file in the brands repository |
 | contributing the integration to core | delete `brand/` and open a brands-repository PR instead |
 
+| what | lands in | do now | do then |
+|---|---|---|---|
+| Marketplace, replacing HACS, shows an integration's images before install from `custom_components/<domain>/brand/` at its latest release; an entry for the domain in `home-assistant/brands` wins over them | 2026.11 — the Marketplace row of `reference/freshness.md` | ship `brand/icon.png` at that path in every release | nothing |
+
 **Which files to ship**
 
 | File | Holds | When |
@@ -304,6 +308,10 @@ linked to its public repository:
 | `zip_release` | makes HACS download a release **asset** rather than the tag's source archive, so it requires the `release.yml` caller |
 | `filename` | the name `release.yml` attaches — *The three workflows* in ha-integration-ci's README |
 | dropping `zip_release` and `filename` | only to have HACS pull the whole tagged repository archive instead |
+
+| what | lands in | do now | do then |
+|---|---|---|---|
+| Marketplace, replacing HACS, refuses a repository with no `hacs.json` at its root, and a tagged version without one | 2026.11 — the Marketplace row of `reference/freshness.md` | keep `hacs.json` at the root of every release | nothing |
 
 **Symptom:** a `zip_release` repository whose release carries no attached zip fails HACS
 install with `Could not download`.

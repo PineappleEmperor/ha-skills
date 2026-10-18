@@ -48,6 +48,10 @@ An rc tag is `vX.Y.ZrcN`, marked as a prerelease. The manifest inside the zip th
 the matching PEP 440 prerelease (`2.0.0rc1`), which AwesomeVersion, hassfest and HACS all
 order below the final.
 
+| what | lands in | do now | do then |
+|---|---|---|---|
+| Marketplace, replacing HACS, installs the newest release that is not a prerelease, and an rc only for a user who shows betas and picks it; while every release is an rc it installs the default branch's newest commit | 2026.11 — the Marketplace row of `reference/freshness.md` | publish a final before telling users to install | nothing |
+
 ### The branch's PR has already merged — Step 3
 
 A PR merges to `main` as soon as it is approved or auto-merged, and any commit pushed to

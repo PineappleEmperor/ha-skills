@@ -8,7 +8,7 @@ description: >-
   or manifest key to one
   - fixing a bug or a test in one, or claiming a quality-scale tier
   - restyling its panel: sizing, type, colour, spacing or layout
-  - cutting a release, or setting up CI, Dependabot, HACS or hassfest on its repository
+  - cutting a release, or setting up its CI, Dependabot, HACS, Marketplace or hassfest
   SYMPTOMS:
   - an entity unavailable after restart
   - a notify or custom service broken by an HA update
