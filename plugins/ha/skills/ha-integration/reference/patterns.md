@@ -469,8 +469,9 @@ device, entry = async_get_device_and_config_entry_for_domain(
 | Scenario | Choice |
 |---|---|
 | an unknown device id | `(None, None)` |
-| a child device | the child, typed `AnyDeviceEntry`, and its config entry when your domain owns it; `include_child_devices=False` gives `(None, None)`, as 2026.9 did |
+| a child device | the child, typed `AnyDeviceEntry`, and its config entry when your domain owns it; `include_child_devices=False` gives `(None, None)` |
 | `include_main_devices=False` | `(None, None)` for a main or composite device id, so only a child resolves |
+| below 2026.10.0 | a child device id gives `(None, None)`, and passing `include_child_devices` or `include_main_devices` raises `TypeError` |
 | a main device no config entry of your domain owns | `(device, None)` |
 | a pre-migration composite device id | a matching split device and its config entry, which is the case a hand-written loop gets wrong |
 | a composite device id no split matches | the restored composite device, and `None` |
@@ -575,8 +576,8 @@ A device has exactly one config entry and at most one subentry: read `config_ent
 | `async_remove_stale_devices_links_keep_entity_device()`, `async_remove_stale_devices_links_keep_current_device()` | `helper_integration.async_remove_helper_devices(…, remove_all_devices=True)` | both already do nothing; removed in **2027.8.0** | `async_remove_stale_devices_links_keep_entity_device` and `async_remove_stale_devices_links_keep_current_device` in `homeassistant/helpers/device.py` |
 
 > **Note:** on a *synthesized composite* device — the read-only entry `async_get()` returns
-> for a pre-migration composite device id — the three properties are the supported read and
-> log nothing, since it spans several entries; `is_composite_device` says which a device is.
+> for a pre-migration composite device id — the three properties are the supported read and log
+> nothing, since it spans several entries; `is_composite_device`, from 2026.10.0, says which it is.
 
 ### Units: prefer the enumerators — Step 1
 
@@ -619,8 +620,9 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 | Rule | Value |
 |---|---|
 | where each row was read | `__async_setup_with_context`, `__async_handle_config_entry_setup_error` and `ConfigEntries.async_retry_migration` in `homeassistant/config_entries.py`, at the `2026.10.0` tag |
+| the compatibility floor | 2026.10.0; below it `ConfigEntry.async_migrate` catches every exception and returns `False`, so `ConfigEntryNotReady` ends in `migration_error` too, and `async_retry_migration` does not exist |
 | a failure that may clear on its own — a timeout, a device offline | raise `ConfigEntryNotReady`; the migration is retried on the setup schedule |
-| any other failure | raise `ConfigEntryError` with a `translation_key`, which the entry shows as its reason, or return `False`; either way the entry stops in `migration_error` |
+| any other failure | raise `ConfigEntryError` with a `translation_key`, which the entry shows as its reason, or return `False`; either way the entry stops in `migration_error`, as it does for any other exception, which is logged with its traceback and leaves no reason |
 | returning `False` | logs nothing and leaves the entry no reason, so log why before you return it |
 | `ConfigEntryAuthFailed` during migration | logged at WARNING and the entry stops in `migration_error`; no reauth flow starts, since reauth expects a migrated entry |
 | the way out of `migration_error` | a repair issue whose fix flow calls `await hass.config_entries.async_retry_migration(entry_id)` — https://contributors.home-assistant.io/blog/2026/09/17/Use-config-entry-exc-in-migration/ |
@@ -638,7 +640,7 @@ The deprecations a custom integration can meet that have no section of their own
 | `battery_level` on a `device_tracker` entity | a dedicated `SensorDeviceClass.BATTERY` sensor | stops working in **2027.7** | `BaseTrackerEntity.__init_subclass__` in `homeassistant/components/device_tracker/entity.py` |
 | `TrackerEntity.location_name` | `in_zones` — zone entity ids, in any order, since the base class sorts them | stops working in **2027.7** | `TrackerEntity.in_zones` in `homeassistant/components/device_tracker/entity.py`, at the `.0` tag of the release row in `reference/freshness.md` |
 | `battery_level` on `StateVacuumEntity` | a dedicated battery sensor | already removed, in 2026.9 | the Vacuum entry under *Backward-incompatible changes* at https://www.home-assistant.io/blog/2026/09/02/release-20269/ |
-| `async_initialize_triggers(home_assistant_start=…)` | stop passing it; `hass.async_add_startup_job` for work at startup | it already has no effect; removed in **2027.8** | `async_initialize_triggers` in `homeassistant/helpers/trigger/__init__.py`, at the `2026.10.0` tag |
+| `async_initialize_triggers(home_assistant_start=…)` | stop passing it; `hass.async_add_startup_job` for work at startup | it already has no effect; removed in **2027.8.0** | `async_initialize_triggers` in `homeassistant/helpers/trigger/__init__.py`, at the `2026.10.0` tag |
 | a `TrackerEntity` for a device tracked by connection rather than position | `BaseScannerEntity` | it derives the state from the associated zone and sets the `tracking_type` capability attribute | https://contributors.home-assistant.io/blog/2026/06/15/device-tracker-changes/ |
 | `modbus.get_hub(hass, name)`, attaching to a hub the user configured in YAML | collect the connection details in your own config flow, then `async_get_unit(hass, entry, params, unit_id)` | logged from 2026.10; stops working in **2027.10** | `get_hub` in `homeassistant/components/modbus/__init__.py` and `async_get_unit` in `homeassistant/components/modbus/connection.py`, at the `2026.10.0` tag |
 | the `configurator` integration's `async_request_config` or `request_config` | a config flow and config entries | logged from 2026.10 on those two calls; the integration is removed in **2027.10** | `_report_deprecation` in `homeassistant/components/configurator/__init__.py`, at the `2026.10.0` tag |
