@@ -97,10 +97,6 @@ proved by reading is never `exempt` for want of a test.
   nothing to prove; what a `done` must have behind it is *What the audit checks now* in
   ha-integration-ci's README.
 
-> **Note:** the quality scale has no tiers for custom integrations, only rules to follow —
-> https://contributors.home-assistant.io/marketplace/guides/integrations/ — so the claim is
-> the repository's own record, which the audit holds it to, and not a tier Home Assistant grants.
-
 ## Cases
 
 ### A local-push MQTT device integration — Step 2
