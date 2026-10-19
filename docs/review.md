@@ -60,8 +60,8 @@ Every brief answers these before any work starts, under *The rules table* in
     table a canonical column set, no anti-pattern table in a router and every anti-pattern
     in the file that owns its topic with a `reference` cell naming where the rule was read
     or observed, a mode row for every action that has a file and naming only its entry
-    file, and a pointer in the *Pointers* form. `scripts/skill_schema_audit.py` measures runs, columns and numbering; everything
-    else in that document is a reading.
+    file, and a pointer in the *Pointers* form. What `scripts/skill_schema_audit.py` checks
+    mechanically is its `--list`; everything else in that document is a reading.
 
 ## Protocol
 
