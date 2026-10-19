@@ -244,6 +244,76 @@ def test_only_the_anti_pattern_shape_has_a_reference_cell(tmp_path) -> None:
     assert audit.check_reference_cells(_repo(tmp_path, body)) == ([], [])
 
 
+_ROUTER = """---
+name: demo
+description: >-
+  Use when demoing.
+  TRIGGER WHEN:
+  - asked
+  SYMPTOMS:
+  - a demo
+---
+
+# Demo
+
+**Pick the mode, then read its file.**
+
+## Detect the mode
+
+Match the task to a row.
+
+| Mode | When | Read first | Source |
+|---|---|---|---|
+| **A** | always | `reference/a.md` | — |
+
+## Lint
+
+1. run it
+"""
+
+
+def _router(tmp_path: Path, text: str) -> Path:
+    """A repository holding the schema and one router."""
+    root = _repo(tmp_path, "# T\n")
+    (root / "plugins/ha/skills/demo/SKILL.md").write_text(text, encoding="utf-8")
+    return root
+
+
+def test_a_router_in_the_schema_s_order_passes(tmp_path) -> None:
+    """Frontmatter, one bold line, the mode table, then mode detail."""
+    assert audit.check_router_order(_router(tmp_path, _ROUTER)) == ([], [])
+
+
+def test_a_router_out_of_the_schema_s_order_fails(tmp_path) -> None:
+    """Row 224: each section of the fixed order, broken one at a time."""
+    broken = {
+        "no TRIGGER": _ROUTER.replace("TRIGGER WHEN:", "WHEN:"),
+        "no SYMPTOMS": _ROUTER.replace("SYMPTOMS:", "SIGNS:"),
+        "no frontmatter": _ROUTER[_ROUTER.index("# Demo") :],
+        "no core principle": _ROUTER.replace(
+            "**Pick the mode, then read its file.**", "Pick the mode."
+        ),
+        "two blocks before the router": _ROUTER.replace(
+            "read its file.**\n", "read its file.**\n\nAnd more.\n"
+        ),
+        "no mode table first": _ROUTER.replace("| Mode | When |", "| Rule | When |"),
+        "an anti-pattern table": _ROUTER
+        + "\n| anti-pattern | use instead | why (one clause) | reference |\n"
+        "|---|---|---|---|\n| a | b | c | — |\n",
+        "a second mode table": _ROUTER
+        + "\n| Mode | When | Read first |\n|---|---|---|\n| B | x | y |\n",
+    }
+    for name, text in broken.items():
+        fails, _ = audit.check_router_order(_router(tmp_path, text))
+        assert len(fails) == 1, (name, fails)
+        assert "SKILL.md" in fails[0], name
+
+
+def test_a_reference_file_is_not_held_to_the_router_order(tmp_path) -> None:
+    """A task file has its own order; only `SKILL.md` is a router."""
+    assert audit.check_router_order(_repo(tmp_path, "# T\n\nprose\n")) == ([], [])
+
+
 # ------------------------------------------------------ the committed artefact
 
 

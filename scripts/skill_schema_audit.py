@@ -5,14 +5,14 @@
 requires, a router whose links resolve, docs that match the templates that ship. This asks
 the narrower question the schema asks: is every block a labelled field or a table row, does
 every table use a column set the schema names, does the contents list match the headings
-underneath it, do the steps of a procedure run in order, and does an anti-pattern's
-`reference` cell name where the rule came from rather than a step of its own file. `--list`
-prints the registry, which is the list of record.
+underneath it, do the steps of a procedure run in order, does an anti-pattern's
+`reference` cell name where the rule came from rather than a step of its own file, and does
+each `SKILL.md` keep the router order. `--list` prints the registry, which is the list of
+record.
 
-It does NOT yet check either `SKILL.md` section order or a task file's, so a router with no
-mode table and no anti-pattern table passes it, and only a reading catches that — invariant
-10 of `docs/review.md` is that reading. The schema names no signpost, and a single-file
-skill's order is not yet stated there, which is what a section-order check waits on.
+It does NOT check a task file's section order, so a scope line or core rule out of place
+passes it, and only a reading catches that — invariant 10 of `docs/review.md` is that
+reading.
 
 THE CANONICAL COLUMN SETS ARE READ OUT OF THE SCHEMA, not copied here, so a shape is added
 by adding a row to *Canonical tables* and nowhere else. A checker carrying its own copy of a
@@ -328,6 +328,72 @@ def check_reference_cells(root: pathlib.Path) -> Result:
     return failures, []
 
 
+_MODE = ("mode", "when", "read first")
+
+
+def _router_break(lines: list[tuple[int, str, str]]) -> str | None:
+    """The first way a router departs from *`SKILL.md` — section order, fixed*, or None."""
+    front = " ".join(line for _, kind, line in lines if kind == "frontmatter")
+    if not front:
+        return "has no frontmatter"
+    if "TRIGGER" not in front or "SYMPTOMS" not in front:
+        return "frontmatter description carries no TRIGGER and SYMPTOMS lists"
+    body = [entry for entry in lines if entry[1] != "frontmatter"]
+    first_section = next(
+        (i for i, (_, kind, line) in enumerate(body) if line.startswith("## ")),
+        len(body),
+    )
+    opening = [
+        (kind, line)
+        for _, kind, line in body[:first_section]
+        if not line.startswith("# ")
+    ]
+    blocks = [
+        kind
+        for i, (kind, _) in enumerate(opening)
+        if kind != "blank" and (i == 0 or opening[i - 1][0] == "blank")
+    ]
+    if blocks != ["labelled"]:
+        return "does not open with one bold core-principle line"
+    second_section = next(
+        (
+            i
+            for i, (_, _, line) in enumerate(body)
+            if i > first_section and line.startswith("## ")
+        ),
+        len(body),
+    )
+    # (line index, column tuple) for every table header: a table line over a separator.
+    headers = [
+        (i, tuple(normalise(c) for c in re.split(r"(?<!\\)\|", line.strip()[1:-1])))
+        for i, (_, kind, line) in enumerate(body)
+        if kind == "table" and i + 1 < len(body) and _SEPARATOR.match(body[i + 1][2])
+    ]
+    in_router = [cols for i, cols in headers if first_section < i < second_section]
+    if not in_router or in_router[0][:3] != _MODE:
+        return "has no mode table opening its first section"
+    if any(cols == _ANTI_PATTERN for _, cols in headers):
+        return "carries an anti-pattern table, which the topic's own file holds"
+    if sum(1 for _, cols in headers if cols[:3] == _MODE) > 1:
+        return "carries a second mode table"
+    return None
+
+
+def check_router_order(root: pathlib.Path) -> Result:
+    """Each `SKILL.md` keeps the router order: frontmatter, bold line, mode table, detail."""
+    failures = []
+    for path in shipped(root):
+        if path.name != "SKILL.md":
+            continue
+        broken = _router_break(classify(path.read_text(encoding="utf-8")))
+        if broken:
+            failures.append(
+                f"{path.relative_to(root)} {broken} ({SCHEMA}, `SKILL.md` — section "
+                "order, fixed)"
+            )
+    return failures, []
+
+
 CHECKS = (
     check_table_columns,
     check_no_prose_blocks,
@@ -335,6 +401,7 @@ CHECKS = (
     check_contents_matches_headings,
     check_step_numbering,
     check_reference_cells,
+    check_router_order,
 )
 
 
