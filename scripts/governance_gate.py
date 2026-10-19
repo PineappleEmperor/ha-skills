@@ -92,6 +92,11 @@ SKILL_TIERS: dict[str, tuple[str, ...]] = {
     # The release window's fetched sources. Governed by the doc that says what a pass must
     # read and what a post is worth, so reaching for one hands over that procedure first.
     "docs/ha-release/": ("docs/release-refresh.md",),
+    # The procedure that governs those sources, and the brief every review runs on. Each
+    # governs itself, as the format standard does above: unread, an edit to the first
+    # opens the tier it governs, and an edit to the second changes what every review checks.
+    "docs/release-refresh.md": ("docs/release-refresh.md",),
+    "docs/review.md": ("docs/review.md",),
     ".github/workflows/": (
         "plugins/ha/skills/ha-integration/reference/github-actions.md",
     ),
