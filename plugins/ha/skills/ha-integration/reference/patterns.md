@@ -34,10 +34,11 @@ it.**
 23. Devices belong to one config entry — Step 3
 24. Units: prefer the enumerators — Step 1
 25. Config entry migration — Step 3
-26. Deprecated platform APIs — Step 1
-27. Announced for a release after 2026.10 — Step 1
-28. `TYPE_CHECKING` for expensive or circular imports — Step 4
-29. Typed `ConfigEntry` — Step 4
+26. OAuth2 errors at setup — Step 3
+27. Deprecated platform APIs — Step 1
+28. Announced for a release after 2026.10 — Step 1
+29. `TYPE_CHECKING` for expensive or circular imports — Step 4
+30. Typed `ConfigEntry` — Step 4
 
 ## Writing code in `custom_components/`
 
@@ -152,6 +153,7 @@ DATA_SCHEMA = probatio.Schema(
 | a config-entry update listener alongside a reloading method | drop the listener, or call `async_update_and_abort()` in place of `async_update_reload_and_abort()` and pass `reload_on_update=False` to `_abort_if_unique_id_configured()` | the integration reloads twice or races; an error from **2026.12** | `async_update_reload_and_abort` and `_abort_if_unique_id_configured` in `homeassistant/config_entries.py` |
 | `FlowHandler.show_advanced_options`, or the `show_advanced_options` key in `FlowHandler.context` | group the extra fields in a schema `section` | the property returns `True` unconditionally and the context key is already gone; removed **2027.6** | `FlowHandler.show_advanced_options` in `homeassistant/data_entry_flow.py` |
 | a hand-written `SelectSelector` of device-class values | `DeviceClassSelector` | it carries HA's own values, so the hand-written translations for them go too | https://contributors.home-assistant.io/blog/2026/09/04/device-and-state-class-selectors/ |
+| core's own text, copied word for word into an `abort` section of `translations/en.json`, `config_subentries` included, for an abort core translates itself — `reauth_successful` or `reconfigure_successful` from `async_update_reload_and_abort` or `async_update_and_abort` called without `reason`, `already_in_progress` from `async_set_unique_id`, an OAuth2 flow's shared reasons | delete it; to word one your own way, keep your text and pass `reason` to the helper, or `translation_domain=DOMAIN` to an OAuth2 flow's `async_abort` | from 2026.10.0 those aborts carry the `homeassistant` translation domain, so the copy is never read | `async_update_reload_and_abort`, `async_update_and_abort` and `async_set_unique_id` in `homeassistant/config_entries.py`, and `AbstractOAuth2FlowHandler.async_abort` with `_SHARED_ABORT_REASONS` in `homeassistant/helpers/config_entry_oauth2_flow.py`, at the `2026.10.0` tag |
 
 ### Notify platform — Step 1
 
@@ -226,6 +228,7 @@ def device_info(self) -> DeviceInfo:
 | `update_before_add=True` on `async_add_entities` for a `CoordinatorEntity` | compute `native_value` as a property off `self.coordinator.data`, or call `self._handle_coordinator_update()` at the end of `async_added_to_hass`, after `await super().async_added_to_hass()` | it schedules a debouncer timer that outlives the test and the frozen clock | `CoordinatorEntity.async_update` in `homeassistant/helpers/update_coordinator.py` |
 | a collection sensor whose state is the raw list or a timestamp | the `len()` count with `_attr_state_class = MEASUREMENT`, and a sensor of its own for any other value worth a history | `last_updated` and `last_changed` are state attributes already, and a count graphs | https://contributors.home-assistant.io/core/entities/sensor/ |
 | deleting `state_class` to silence an impossible-pair warning | the `state_class` that device class permits | deleting it drops long-term statistics altogether | `DEVICE_CLASS_STATE_CLASSES` in `homeassistant/components/sensor/const.py` |
+| a lawn mower stopped but neither docked nor paused, reported as `LawnMowerActivity.PAUSED` or `ERROR` | `LawnMowerActivity.IDLE`, from 2026.10.0; and for an action that cancels the task without docking, `LawnMowerEntityFeature.STOP` with `async_stop` | `PAUSED` says the task can be resumed, `ERROR` that the mower needs help | `LawnMowerActivity`, `LawnMowerEntityFeature` and `LawnMowerEntity.async_stop` in `homeassistant/components/lawn_mower/`, at the `2026.10.0` tag |
 
 **Symptom:** `CoordinatorEntity` does not push initial state on add, so an entity that sets
 `_attr_native_value` inside `_handle_coordinator_update` reads `unknown` until the next poll
@@ -629,6 +632,27 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 | the way out of `migration_error` | a repair issue whose fix flow calls `await hass.config_entries.async_retry_migration(entry_id)` — https://contributors.home-assistant.io/blog/2026/09/17/Use-config-entry-exc-in-migration/ |
 | a major version bump with no `async_migrate_entry` | setup fails for every existing user, so ship the handler in the same change |
 
+### OAuth2 errors at setup — Step 3
+
+**Fix:** let the OAuth2 helper's exceptions leave `async_setup_entry` unmapped; each is the
+config entry exception that says what happens next, with its message translated.
+
+| Rule | Value |
+|---|---|
+| where each row was read | `homeassistant/exceptions.py` at the `2026.10.0` tag; the compatibility floor, the same file at the `2026.9.0` tag |
+| the compatibility floor | 2026.10.0; below it the token-request errors are no config entry exception, so an integration that claims an older release keeps its own mapping |
+| `ImplementationUnavailableError`, `OAuth2TokenRequestError`, `OAuth2TokenRequestTransientError`, `OAuth2TokenRequestConnectionError` | each a `ConfigEntryNotReady`, so setup is retried |
+| `UnknownImplementationError`, `OAuth2TokenRequestReauthError` | each a `ConfigEntryAuthFailed`, so the reauth flow starts |
+| their messages | translated under the `homeassistant` domain, so `translations/en.json` carries none of them |
+| a different outcome — a status known to be permanent, context only the integration has, state to clean up first | catch the most specific of them, and let the rest propagate |
+
+| anti-pattern | use instead | why (one clause) | reference |
+|---|---|---|---|
+| `try`/`except ImplementationUnavailableError` round `async_get_config_entry_implementation`, raising `ConfigEntryNotReady` | the call alone | the helper's exception already is one | https://contributors.home-assistant.io/blog/2026/09/07/oauth2-central-error-handling/ |
+| `except ValueError` round that call | nothing | `UnknownImplementationError` is a `ValueError` too, so the handler turns a reauth into whatever it raises | `UnknownImplementationError` in `homeassistant/exceptions.py`, at the `2026.10.0` tag |
+| mapping `OAuth2TokenRequestReauthError` to `ConfigEntryAuthFailed`, or `OAuth2TokenRequestError` to `ConfigEntryNotReady`, round `async_get_access_token()` or `async_ensure_token_valid()` | the call alone | each already is the exception it is mapped to | https://contributors.home-assistant.io/blog/2026/09/07/oauth2-central-error-handling/ |
+| an `oauth2_implementation_unavailable` key in the `exceptions` section of `translations/en.json` | delete it | the exception's message comes from the `homeassistant` domain | https://contributors.home-assistant.io/blog/2026/09/07/oauth2-central-error-handling/ |
+
 ### Deprecated platform APIs — Step 1
 
 The deprecations a custom integration can meet that have no section of their own above.
@@ -646,9 +670,13 @@ The deprecations a custom integration can meet that have no section of their own
 | `modbus.get_hub(hass, name)`, attaching to a hub the user configured in YAML | collect the connection details in your own config flow, then `async_get_unit(hass, entry, params, unit_id)` | logged from 2026.10; stops working in **2027.10** | `get_hub` in `homeassistant/components/modbus/__init__.py` and `async_get_unit` in `homeassistant/components/modbus/connection.py`, at the `2026.10.0` tag |
 | the `configurator` integration's `async_request_config` or `request_config` | a config flow and config entries | logged from 2026.10 on those two calls; the integration is removed in **2027.10** | `_report_deprecation` in `homeassistant/components/configurator/__init__.py`, at the `2026.10.0` tag |
 | `hass.bus.async_listen(…, run_immediately=…)` or `async_listen_once(…, run_immediately=…)` | drop the argument | passing `True` or `False` raises from 2026.10 | `EventBus.async_listen` and `EventBus.async_listen_once` in `homeassistant/core.py`, at the `2026.10.0` tag |
+| an `llm.Tool` whose `async_call` returns a JSON object | `llm.ToolResult(data=…)`, with `error=True` when the call failed, from 2026.10.0 | logged now; stops working in **2027.11.0** | `APIInstance.async_call_tool` in `homeassistant/helpers/llm.py`, at the `2026.10.0` tag |
+| `ToolResultContent.tool_result` | `ToolResultContent.result`, the `llm.ToolResult` itself, from 2026.10.0 | logged now; stops working in **2027.11.0** | `ToolResultContent.tool_result` in `homeassistant/components/conversation/chat_log.py`, at the `2026.10.0` tag |
+| an `llm.Tool` with no `integration` | `integration = DOMAIN` on the tool class | logged now, and the domain filled in from the tool's module; stops working in **2027.10** | `report_untagged_tool` in `homeassistant/helpers/llm.py`, at the `2026.10.0` tag |
 
-> **Note:** a condition platform may implement `_async_setup()` and `_async_unload()` when it
-> needs async initialisation or teardown; it is optional and nothing else changes for it.
+> **Note:** a condition platform may implement `_async_setup()` and `_async_unload()` for async
+> set-up and teardown, and from 2026.10.0 `_async_track_changes(action)`, calling `action` when
+> its result may change, with `needs_polling` `False` once nothing else changes it; all optional.
 
 ### Announced for a release after 2026.10 — Step 1
 
