@@ -231,8 +231,8 @@ def test_the_format_standard_is_governed_by_both_its_halves() -> None:
 def test_the_refresh_procedure_and_the_review_brief_govern_themselves() -> None:
     """Row 231: each decides what a whole class of work checks, and each was writable.
 
-    `docs/release-refresh.md` governs the fetched sources, so an unread edit to it opens
-    that tier; `docs/review.md` is the whole brief every review runs on. Each governs
+    `docs/release-refresh.md` is the procedure every refresh follows and governs the
+    fetched sources; `docs/review.md` is the whole brief every review runs on. Each governs
     itself, so editing either kills every outstanding key read against it.
     """
     for rel in ("docs/release-refresh.md", "docs/review.md"):
