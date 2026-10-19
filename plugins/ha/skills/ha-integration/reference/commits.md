@@ -18,6 +18,7 @@ Commits form, subject-only by default.**
 9. Step 3: Post no comment on the PR by default
 10. Cases
 11. `gh pr edit` fails on the Projects-classic deprecation — PR body Step 1
+12. A pull request to a Home Assistant project — PR body Step 1
 
 ## Commit subjects
 
@@ -110,3 +111,20 @@ The body has one writer — *What the audit checks now* in ha-integration-ci's R
 ```bash
 gh api -X PATCH repos/{o}/{r}/pulls/{n} -f title=… -F body=@file
 ```
+
+### A pull request to a Home Assistant project — PR body Step 1
+
+The steps above govern the integration's own repository. A pull request or issue in core,
+the brands repository or another Open Home Foundation project follows that project's
+template and the foundation's AI policy.
+
+| Rule | Value |
+|---|---|
+| where each row was read | https://contributors.home-assistant.io/start/ai-policy/ |
+| what the policy covers | every contribution to Home Assistant and the foundation's other projects — code, documentation, issues, pull requests, comments and reviews |
+| an agent opening the pull request or issue itself | not allowed, and closed when found — draft it, and hand it to the person who will read it, understand it and open it |
+| the body | the project's template, filled in, with its questions about AI left in place and answered honestly; core's checklist asks that the submitter understands the code and that generated code was reviewed |
+| every change | one the submitter can explain in their own words, the description included |
+| a maintainer's question | answered by the submitter, not by AI; AI may improve the grammar or clarity of an answer only |
+| a passage from a conversation with an AI | in a `>` quote block, saying where it came from, with the submitter's own comment on why it matters |
+| a comment from the project's own AI review tool | a review comment like any other; say so when it is wrong |
