@@ -16,29 +16,34 @@ it.**
 5. Step 4: Type it, and suppress nothing
 6. Cases
 7. `config_flow.py` — Step 1
-8. Notify platform — Step 1
-9. Entity platform files — Step 1
-10. `EntityDescription` pattern — Step 1
-11. `UpdateEntity` (firmware/OTA install) — Step 1
-12. `DataUpdateCoordinator` (polling) — Step 1
-13. Entity push subscriptions — Step 1
-14. A connection that drops — Step 1
-15. A reply the code does not expect — Step 1
-16. A blocking call inside the event loop — Step 1
-17. `ConfigEntry` mutation — Step 3
-18. Logging — Step 1
-19. Custom services — Step 1
-20. `services.yaml` + `translations/en.json` — Step 1
-21. Register integration-global resources in `async_setup`, not `async_setup_entry` — Step 3
-22. Diagnostics platform — Step 1
-23. Devices belong to one config entry — Step 3
-24. Units: prefer the enumerators — Step 1
-25. Config entry migration — Step 3
-26. OAuth2 errors at setup — Step 3
-27. Deprecated platform APIs — Step 1
-28. Announced for a release after 2026.10 — Step 1
-29. `TYPE_CHECKING` for expensive or circular imports — Step 4
-30. Typed `ConfigEntry` — Step 4
+8. A config flow that will not open — Step 1
+9. Notify platform — Step 1
+10. Entity platform files — Step 1
+11. An entity that is never added — Step 1
+12. `EntityDescription` pattern — Step 1
+13. `UpdateEntity` (firmware/OTA install) — Step 1
+14. `DataUpdateCoordinator` (polling) — Step 1
+15. Entity push subscriptions — Step 1
+16. A connection that drops — Step 1
+17. A reply the code does not expect — Step 1
+18. A blocking call inside the event loop — Step 1
+19. `ConfigEntry` mutation — Step 3
+20. Logging — Step 1
+21. Custom services — Step 1
+22. An action that does nothing — Step 1
+23. `services.yaml` + `translations/en.json` — Step 1
+24. Register integration-global resources in `async_setup`, not `async_setup_entry` — Step 3
+25. Diagnostics platform — Step 1
+26. Devices belong to one config entry — Step 3
+27. Units: prefer the enumerators — Step 1
+28. Config entry migration — Step 3
+29. OAuth2 errors at setup — Step 3
+30. `Setup failed for custom integration` — Step 3
+31. A sign-in request that keeps coming back — Step 3
+32. Deprecated platform APIs — Step 1
+33. Announced for a release after 2026.10 — Step 1
+34. `TYPE_CHECKING` for expensive or circular imports — Step 4
+35. Typed `ConfigEntry` — Step 4
 
 ## Writing code in `custom_components/`
 
@@ -162,6 +167,20 @@ DATA_SCHEMA = probatio.Schema(
 | a hand-written `SelectSelector` of device-class values | `DeviceClassSelector` | it carries HA's own values, so the hand-written translations for them go too | https://contributors.home-assistant.io/blog/2026/09/04/device-and-state-class-selectors/ |
 | core's own text, copied word for word into an `abort` section of `translations/en.json`, `config_subentries` included, for an abort core translates itself — `reauth_successful` or `reconfigure_successful` from `async_update_reload_and_abort` or `async_update_and_abort` called without `reason`, `already_in_progress` from `async_set_unique_id`, an OAuth2 flow's shared reasons | delete it; to word one your own way, keep your text and pass `reason` to the helper, or `translation_domain=DOMAIN` to an OAuth2 flow's `async_abort` | from 2026.10.0 those aborts carry the `homeassistant` translation domain, so the copy is never read | `async_update_reload_and_abort`, `async_update_and_abort` and `async_set_unique_id` in `homeassistant/config_entries.py`, and `AbstractOAuth2FlowHandler.async_abort` with `_SHARED_ABORT_REASONS` in `homeassistant/helpers/config_entry_oauth2_flow.py`, at the `2026.10.0` tag |
 
+### A config flow that will not open — Step 1
+
+**Symptom:** adding the integration fails before the first form, or the flow ends at once.
+
+| Scenario | Choice |
+|---|---|
+| where each row was read | `_load_integration`, `_async_get_flow_handler`, `ConfigEntriesFlowManager.async_init`, `ConfigFlow.async_set_unique_id` and `ConfigFlow._abort_if_unique_id_configured` in `homeassistant/config_entries.py`, at the `2026.10.0` tag |
+| `Error occurred loading flow for integration <domain>: <error>`, under the integration's own logger | importing `config_flow.py` raised `ImportError` — a name a Home Assistant release moved or removed, or a library missing from `requirements` |
+| `config_flow.py` imports, and the flow is still refused as an unknown handler | no class in it registers the domain: the `domain=` on the class is not the manifest's `domain` |
+| `Cannot find integration <domain>` | Home Assistant could not load the integration itself — its folder or its `manifest.json` |
+| the flow ends at once on `single_instance_allowed` | `single_config_entry` is `true` and an entry exists; for a flow not started by the user, an ignored entry counts too |
+| the flow ends at once on `already_in_progress` | `async_set_unique_id` found another flow, not a reauth, open for the same unique ID |
+| the flow ends at once on a reason of its own | the step that returned `async_abort` — `_abort_if_unique_id_configured` gives `already_configured` |
+
 ### Notify platform — Step 1
 
 The entity itself is https://contributors.home-assistant.io/core/entities/notify/; these are
@@ -241,6 +260,23 @@ def device_info(self) -> DeviceInfo:
 **Symptom:** `CoordinatorEntity` does not push initial state on add, so an entity that sets
 `_attr_native_value` inside `_handle_coordinator_update` reads `unknown` until the next poll
 — `first_refresh` has already run, so the data is there to read.
+
+### An entity that is never added — Step 1
+
+**Symptom:** the entity is missing from the integration's page, and the log carries one of
+the lines below.
+
+| Scenario | Choice |
+|---|---|
+| where each line was read | `EntityPlatform._async_add_entity_impl`, `_async_add_entities` and `_async_add_and_update_entities` in `homeassistant/helpers/entity_platform.py`, at the `2026.10.0` tag |
+| `Entity id already exists - ignoring: <entity_id>` | an entity with no `unique_id` whose `entity_id` is taken — one that sets `entity_id` itself, or the same entity added twice; give it a `unique_id` and leave `entity_id` to Home Assistant |
+| `Platform <platform> does not generate unique IDs.` | two entities of the platform share a `unique_id`, or one is added twice — a listener for new devices adding a device it already added; build the id from what is unique to the device and the value, and keep a set of what was added |
+| `Error adding entity <entity_id> for domain <domain> with platform <platform>`, with a traceback | the entity raised while being added — in `async_added_to_hass`, or in a property read as it registers, `device_info` or `name` say; the last `custom_components/<domain>/` frame of the traceback is the fault |
+| `<platform>: Error on device update!`, with a traceback | `async_update` raised on the first update that `update_before_add=True` asks for |
+| `<platform>: Not adding entity, error adding device: <reason>` | the device registry refused `device_info` — *Devices belong to one config entry — Step 3* says what it refuses |
+| `<platform>: Not adding entity <name>, entity registry error: <reason>` | the entity registry refused the entity, for the reason the line gives |
+| `Timed out adding entities for domain <domain> with platform <platform> after <n>s` | the add ran past 15 seconds an entity, and 500 at the least — slow work in `async_added_to_hass` or in the first update |
+| `Reached the maximum of 10000 enabled entities for config entry <entry_id>; not adding more entities for integration <domain> …`, once at WARNING | no entity past the cap is added until one is removed or disabled; create the ones few users need disabled, with `_attr_entity_registry_enabled_default = False` |
 
 ### `EntityDescription` pattern — Step 1
 
@@ -490,6 +526,21 @@ device, entry = async_get_device_and_config_entry_for_domain(
 | a composite device id no split matches | the restored composite device, and `None` |
 | whether that config entry is loaded | not checked — keep your own `ConfigEntryState.LOADED` test |
 
+### An action that does nothing — Step 1
+
+**Symptom:** an action aimed at the integration's entities returns with no error and
+changes nothing.
+
+| Scenario | Choice |
+|---|---|
+| where each row was read | `_resolve_entity_service_call_entities` in `homeassistant/helpers/service.py`, and `async_extract_referenced_entity_ids` and `SelectedEntities.log_missing` in `homeassistant/helpers/target.py`, at the `2026.10.0` tag |
+| an entity that is unavailable | skipped; named only when targeted by its own id, in `Referenced entities <ids> are missing or not currently available` at WARNING |
+| an entity reached through a device, an area or a floor, or a device or area carrying a label | skipped when it carries an `entity_category` or is hidden, so a `CONFIG` or `DIAGNOSTIC` entity never receives an action aimed at its device |
+| an entity carrying the label itself | skipped when it is hidden |
+| an entity without the action's required features or device class | skipped when reached through a device, area, floor or label; targeted by its own id, the call raises `ServiceNotSupported` |
+| no entity left to call | the call returns having called nothing, unless it asked for a response, which raises `Service call requested response data but did not match any entities` |
+| an action that reaches more entities than it was aimed at | the "a call with no target" row of *Custom services — Step 1* |
+
 ### `services.yaml` + `translations/en.json` — Step 1
 
 | Rule | Value |
@@ -665,6 +716,39 @@ config entry exception that says what happens next, with its message translated.
 | `except ValueError` round that call | nothing | `UnknownImplementationError` is a `ValueError` too, so the handler turns a reauth into whatever it raises | `UnknownImplementationError` in `homeassistant/exceptions.py`, at the `2026.10.0` tag |
 | mapping `OAuth2TokenRequestReauthError` to `ConfigEntryAuthFailed`, or `OAuth2TokenRequestError` to `ConfigEntryNotReady`, round `async_get_access_token()` or `async_ensure_token_valid()` | the call alone | each already is the exception it is mapped to | https://contributors.home-assistant.io/blog/2026/09/07/oauth2-central-error-handling/ |
 | an `oauth2_implementation_unavailable` key in the `exceptions` section of `translations/en.json` | delete it | the exception's message comes from the `homeassistant` domain | https://contributors.home-assistant.io/blog/2026/09/07/oauth2-central-error-handling/ |
+
+### `Setup failed for custom integration` — Step 3
+
+**Symptom:** `Setup failed for custom integration '<domain>': <message>` at ERROR, before any
+config entry of the domain is set up, and a notification saying so.
+
+| Scenario | Choice |
+|---|---|
+| where each message was read | `_async_setup_component` and `_log_error_setup_error` in `homeassistant/setup.py`, and `RequirementsNotFound` in `homeassistant/requirements.py`, at the `2026.10.0` tag |
+| `Integration not found.`, on a line reading `Setup failed for '<domain>'` with no `custom integration` in it | no integration of that domain could be loaded — its folder, or its `manifest.json`; a repair issue follows where config entries of the domain exist |
+| `Unable to import component: <error>`, with a traceback | importing `__init__.py` raised `ImportError` — a name a Home Assistant release moved or removed, or a library missing from `requirements`; the traceback's last frame names the import |
+| `Requirements for <domain> not found: [<requirement>].` | pip could not install it, after three tries, under the `package_constraints.txt` the release carries; a pin those constraints contradict never installs |
+| `Could not setup dependencies: <domain>, …` | an integration in `dependencies` failed its own setup, and its own line, earlier, says why |
+| `Invalid config.` | the YAML under the domain's key failed `CONFIG_SCHEMA`; the lines before it say where |
+| `No setup or config entry setup function defined.` | `__init__.py` defines none of `async_setup`, `setup` and `async_setup_entry` |
+| `Integration failed to initialize.` | `async_setup` returned `False` |
+| `Integration '<domain>' did not return boolean if setup was successful. Disabling component.` | `async_setup` returned something other than `True` or `False` — `None`, from a missing `return` |
+| an exception out of `async_setup` | not this line: `Error during setup of component <domain>: <error>`, with the traceback |
+| a failure in `async_setup_entry` | not this line either; what Home Assistant logs for each exception is *Logging — Step 1* |
+
+### A sign-in request that keeps coming back — Step 3
+
+**Symptom:** the integration asks the user to sign in again after a sign-in that worked, or
+after every outage.
+
+| Scenario | Choice |
+|---|---|
+| where each row was read | `ConfigEntry.async_start_reauth`, `ConfigFlow.async_update_reload_and_abort` and `ConfigFlow.async_update_and_abort` in `homeassistant/config_entries.py`, at the `2026.10.0` tag |
+| two requests at once | not possible: no second reauth or reconfigure flow starts for an entry while one is open, so a request that returns was raised after the last one finished |
+| `ConfigEntryAuthFailed` raised for a timeout, a server error or a rate limit | every outage asks for a sign-in; raise it only when the service refused the credentials — which exception to raise is *Logging — Step 1* |
+| the new credentials kept anywhere but the entry | a reload sets up from `entry.data`, so pass them to `async_update_reload_and_abort` as `data_updates` |
+| `async_update_and_abort` in the reauth step | it writes the entry and does not reload it, so the running code keeps the old credentials and fails again; use `async_update_reload_and_abort` |
+| a client built once and kept past a reload — at module level, or in `async_setup` | it keeps the old credentials; build it in `async_setup_entry` and keep it on `entry.runtime_data` |
 
 ### Deprecated platform APIs — Step 1
 
