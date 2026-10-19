@@ -114,15 +114,14 @@ gh api -X PATCH repos/{o}/{r}/pulls/{n} -f title=… -F body=@file
 
 ### A pull request to a Home Assistant project — PR body Step 1
 
-The steps above govern the integration's own repository. A pull request or issue anywhere
-the Open Home Foundation's AI policy covers follows that project's template and the policy.
-
 | Rule | Value |
 |---|---|
 | where each row was read | https://contributors.home-assistant.io/start/ai-policy/, and https://contributors.home-assistant.io/blog/2026/07/20/ai-policy/ for where it applies |
+| the steps above | the integration's own repository; a pull request or issue the policy covers follows that project's template and the policy instead |
 | where it applies | every Open Home Foundation project, every repository of the `home-assistant` and `home-assistant-libs` organisations among them — core and the brands repository included |
 | what it covers | every contribution — code, documentation, issues, pull requests, comments and reviews |
-| an agent opening the pull request or issue itself | not allowed, and closed when found — draft it, and hand it to the person who will read it, understand it and open it |
+| an autonomous agent's pull request or issue | not allowed, and closed when found |
+| text an agent drafts | posted only once the person has reviewed it and can explain it; never posted on their behalf unreviewed |
 | the body | the project's template, filled in, with its questions about AI left in place and answered honestly; core's checklist asks that the submitter understands the code and that generated code was reviewed |
 | every change | one the submitter can explain in their own words, the description included |
 | a maintainer's question | answered by the submitter, not by AI; AI may improve the grammar or clarity of an answer only |

@@ -36,7 +36,7 @@ Match the line or the symptom to a row, then **read that row's file before namin
 | **Blocked at load** | `The custom integration '<domain>' does not have a version key in the manifest file and was blocked from loading`, or `does not have a valid version key (<version>) in the manifest file` | `ha-integration/reference/scaffold.md` | `homeassistant/loader.py` |
 | **Setup fails** | `Setup failed for custom integration '<domain>'`, `Error setting up entry <title> for <domain>`, or `Error while setting up <domain> platform for <platform>` | `ha-integration/reference/patterns.md` | `homeassistant/setup.py`, `homeassistant/config_entries.py`, `homeassistant/helpers/entity_platform.py` |
 | **Flow module** | `Error importing platform config_flow from integration <domain>` | `ha-integration/reference/testing.md` | `homeassistant/config_entries.py` |
-| **Flow will not open** | `Error occurred loading flow for integration <domain>`, or adding the integration fails before its first form or ends at once | `ha-integration/reference/patterns.md` | `homeassistant/config_entries.py` |
+| **Flow will not open** | `Error occurred loading flow for integration <domain>`, or adding the integration or opening its options fails before the first form or ends at once | `ha-integration/reference/patterns.md` | `homeassistant/config_entries.py` |
 | **Raised too late** | `<domain> raises exception <name> in forwarded platform <platform>; Instead raise <name> before calling async_forward_entry_setups` | `ha-integration/reference/patterns.md` | `homeassistant/helpers/entity_platform.py` |
 | **Sign-in** | `Config entry '<title>' for <domain> integration could not authenticate`, `Authentication failed while fetching <name> data`, or a request to sign in again that keeps coming back | `ha-integration/reference/patterns.md` | `homeassistant/config_entries.py`, `homeassistant/helpers/update_coordinator.py` |
 | **Connection** | `Timeout fetching <name> data`, `Error requesting <name> data`, `Error fetching <name> data`; or entities unavailable until the integration is reloaded | `ha-integration/reference/patterns.md` | `homeassistant/helpers/update_coordinator.py` |
@@ -67,9 +67,9 @@ grep -oE "(ERROR|WARNING|CRITICAL) \([^)]+\) \[[^]]+\]" LOG \
 # 2. tracebacks, which the first count gives to their header line alone
 grep -c "^Traceback" LOG
 # 3. which integrations are named, by path, by logger, in the text of a core line, or as a platform
-grep -oE "custom(_components[./]| integration '?)[a-z0-9_]+|Platform [a-z0-9_]+ does not|[a-z0-9_]+ raises exception" LOG | sort | uniq -c | sort -rn
+grep -oiE "custom(_components[./]| integration '?)[a-z0-9_]+|for integration [a-z0-9_]+|platform [a-z0-9_]+( does not|$| after)|[a-z0-9_]+: (not adding entity|error on device update)|[a-z0-9_]+ raises exception" LOG | sort | uniq -c | sort -rn
 # 4. one integration, with the lines after each hit
-grep -n -A 25 -E "custom_components[./]<domain>|custom integration '?<domain>|Platform <domain> |<domain> raises exception" LOG
+grep -n -i -A 25 -E "custom_components[./]<domain>|custom integration '?<domain>|for integration <domain>|platform <domain>( |$)|<domain>: |<domain> raises exception" LOG
 ```
 
 | Rule | Value |
@@ -77,7 +77,7 @@ grep -n -A 25 -E "custom_components[./]<domain>|custom integration '?<domain>|Pl
 | where each quoted line was read | core at the `.0` tag of the release row in `ha-integration/reference/freshness.md`, in the file the Source column names |
 | `We found a custom integration <domain> which has not been tested by Home Assistant` | not a fault: logged at each start for every directory under `custom_components/` whose `manifest.json` parses, configured or not; not logged in safe or recovery mode |
 | a line at INFO, such as `Config entry '<title>' for <domain> integration not ready yet … Retrying in <n> seconds` | absent from the log unless Home Assistant runs verbose or the `logger` integration lowers the level, since the root logger sits at WARNING; read the entry's state on the integrations page |
-| a line that names no custom integration — by `custom_components` in its logger or traceback, by `custom integration '<domain>'` in its text, or by its domain as the platform, as the Raised too late and Entities duplicated lines do | not this skill's — an automation, a core integration or an add-on |
+| a line that names no custom integration — by `custom_components` in its logger or traceback, by `custom integration '<domain>'` or `for integration <domain>` in its text, by its domain as the platform, as the Raised too late and Entities duplicated lines do, or by an entity id the integration created, as the `Entity id already exists` and `Referenced entities` lines do | not this skill's — an automation, a core integration or an add-on |
 | a traceback | classed by the core line above it, and located by its last `custom_components/<domain>/` frame |
 
 **Timing:** run the first command before reading any line, since a raw count is what

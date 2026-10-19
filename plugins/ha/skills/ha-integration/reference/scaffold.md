@@ -438,15 +438,14 @@ errors **and no ignores**, so every check that runs on an integration must pass.
 
 ### The integration goes into the default catalog — Step 10
 
-The catalog is the `hacs/default` repository, which HACS and the Marketplace both read; an
-integration outside it is still added by anyone from its `hacs_repository` My link, Step 7.
-
-**Timing:** after Step 10, once `HACS validation` and hassfest pass with no `ignore`, and a
-full GitHub release is published — a tag alone does not count.
+**Timing:** after Step 10, once every row of *`HACS validation` is red — Step 9* and hassfest
+pass, and a full GitHub release is published — a tag alone does not count.
 
 | Rule | Value |
 |---|---|
 | where each row was read | https://contributors.home-assistant.io/marketplace/guides/catalog/ |
+| the catalog | the `hacs/default` repository, which HACS and the Marketplace both read |
+| an integration outside it | still added by anyone from its `hacs_repository` My link, Step 7 |
 | refused outright | an integration that replaces a core one, or exists only to test a core integration's alpha or beta |
 | the pull request | from a fork of `hacs/default`, on a branch off `master`, opened from a personal account rather than an organisation so the HACS team can edit it |
 | the change | `owner/repository` in the `integration` file, a JSON list, in alphabetical order |
@@ -458,15 +457,9 @@ full GitHub release is published — a tag alone does not count.
 
 | Check | What's needed | Where to fix |
 |---|---|---|
-| Brands | what the `brands` row of *`HACS validation` is red — Step 9* needs | Step 5 |
-| Manifest | what the `integration_manifest` row of *`HACS validation` is red — Step 9* needs | Step 4 |
-| HACS validation | every row of *`HACS validation` is red — Step 9* | that case |
-| HACS manifest | `hacs.json` with a `name` | Step 7 |
-| Archived | the repository is not archived | GitHub repo settings |
+| Brands, Manifest, HACS validation, HACS manifest, Archived, Images, Repository | what the matching rows of *`HACS validation` is red — Step 9* need | that case |
 | Releases | at least one release | `reference/versioning.md` |
 | Owner | the submitter owns the repository, or is a major contributor | — |
-| Images | nothing on an integration — it runs on dashboard plugins and themes only | — |
-| Repository | a description, issues turned on, and topics | Step 10 |
 | Lint | the catalog file the pull request changed is valid JSON, and sorted | the pull request |
 
 ## Reference

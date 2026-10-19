@@ -1,7 +1,7 @@
 # Implementation patterns, file structure and typing
 
 Read this when writing or changing the package under `custom_components/` — its Python,
-`services.yaml` and `translations/en.json`. Panel code is `reference/panels.md`, tests
+`services.yaml` and `translations/`. Panel code is `reference/panels.md`, tests
 `reference/testing.md`, the manifest *Step 4: Write `manifest.json`* in `reference/scaffold.md`.
 
 **Pick the shape Home Assistant already models, then write that shape the way core writes
@@ -51,8 +51,8 @@ it.**
 
 The developer docs' set — https://contributors.home-assistant.io/core/integrations/file-structure/
 — plus the splits the quality scale asks for and the ones this skill adds. If `__init__.py`
-exceeds ~100 lines of logic, extract. `api.py` is the split that matters most: it decouples
-device logic from the HA lifecycle, so it is unit-testable without a running HA instance.
+exceeds ~100 lines of logic, extract. `api.py` is the split that matters most: it keeps the
+calls to the device or service apart from the HA lifecycle, so it is unit-testable without HA.
 
 | File | Holds | Taken from |
 |---|---|---|
@@ -62,7 +62,7 @@ device logic from the HA lifecycle, so it is unit-testable without a running HA 
 | `entity.py` | shared base entity class when several platforms extend the same base | the `common-modules` rule |
 | `config_flow.py` | config and options flows | the `config-flow` rule in `reference/quality-scale.md` |
 | `diagnostics.py` | `async_get_config_entry_diagnostics` | the `diagnostics` rule in `reference/quality-scale.md` |
-| `api.py` | all I/O to the device or service — no HA imports | this skill |
+| `api.py` | all I/O to the device or service, through the library that speaks its protocol — no HA imports | this skill |
 | `models.py` | dataclasses and type aliases for device data | this skill |
 | `const.py` | constants only — no imports from other local modules | this skill |
 | `services.py` | `async_setup_services(hass)` called from `async_setup` | this skill |
@@ -128,7 +128,7 @@ before a PR is ready.
 |---|---|---|---|
 | `# type: ignore` to silence a typing error | fix the type | under `strict-typing` a suppression is a violation, not a shortcut, and the `mypy.ini` enables `ignore-without-code`, so a codeless one fails the run outright | https://contributors.home-assistant.io/core/quality-scale/strict-typing/, and `templates/mypy.ini` |
 | `# type: ignore[import-untyped]` on a stubless third-party import | nothing — import it plainly | the `mypy.ini` disables `import-untyped` and fails an unused ignore, so the leftover one is the error | `templates/mypy.ini` |
-| `hass.data[DOMAIN][entry.entry_id]`, which is untyped | `entry.runtime_data` on a typed `ConfigEntry` | the alias carries the runtime type, so no cast is needed | https://contributors.home-assistant.io/core/quality-scale/runtime-data/, and *Typed `ConfigEntry` — Step 4* |
+| `hass.data[DOMAIN][entry.entry_id]`, which is untyped | `entry.runtime_data` on a typed `ConfigEntry` — *Typed `ConfigEntry` — Step 4* | the alias carries the runtime type, so no cast is needed | https://contributors.home-assistant.io/core/quality-scale/runtime-data/ |
 
 ## Cases
 
@@ -165,18 +165,20 @@ DATA_SCHEMA = probatio.Schema(
 | a `scan_interval`, `update_interval` or other polling-frequency field, in a config or options flow | an interval the integration sets itself — *`DataUpdateCoordinator` (polling) — Step 1* | a polling interval is not user-configurable | `.claude/skills/ha-integration-knowledge/SKILL.md` in core, at the `.0` tag of the release row in `reference/freshness.md` |
 | a field asking for the config entry's name | a title the flow sets, which the user can change later in the UI; a `helper` integration may ask | the name is generated, not asked for | `.claude/skills/ha-integration-knowledge/SKILL.md` in core, at the `.0` tag of the release row in `reference/freshness.md` |
 | a hand-written `SelectSelector` of device-class values | `DeviceClassSelector` | it carries HA's own values, so the hand-written translations for them go too | https://contributors.home-assistant.io/blog/2026/09/04/device-and-state-class-selectors/ |
-| core's own text, copied word for word into an `abort` section of `translations/en.json`, `config_subentries` included, for an abort core translates itself — `reauth_successful` or `reconfigure_successful` from `async_update_reload_and_abort` or `async_update_and_abort` called without `reason`, `already_in_progress` from `async_set_unique_id`, an OAuth2 flow's shared reasons | delete it; to word one your own way, keep your text and pass `reason` to the helper, or `translation_domain=DOMAIN` to an OAuth2 flow's `async_abort` | from 2026.10.0 those aborts carry the `homeassistant` translation domain, so the copy is never read | `async_update_reload_and_abort`, `async_update_and_abort` and `async_set_unique_id` in `homeassistant/config_entries.py`, and `AbstractOAuth2FlowHandler.async_abort` with `_SHARED_ABORT_REASONS` in `homeassistant/helpers/config_entry_oauth2_flow.py`, at the `.0` tag of the release row in `reference/freshness.md` |
+| core's own text, copied word for word into an `abort` section of `translations/en.json`, `config_subentries` included, for an abort core translates itself — `reauth_successful` or `reconfigure_successful` from `async_update_reload_and_abort` or `async_update_and_abort` called without `reason`, `already_in_progress` from `async_set_unique_id`, `single_instance_allowed`, `no_devices_found` and `cloud_not_connected` from `single_config_entry` and the discovery and webhook flow helpers, an OAuth2 flow's shared reasons | delete it; to word one your own way, keep your text and pass `reason` to the helper, or `translation_domain=DOMAIN` to an OAuth2 flow's `async_abort` | those aborts carry the `homeassistant` translation domain, so the copy is never read | `async_update_reload_and_abort`, `async_update_and_abort`, `async_set_unique_id` and `ConfigEntriesFlowManager.async_init` in `homeassistant/config_entries.py`, `DiscoveryFlowHandler` and `WebhookFlowHandler` in `homeassistant/helpers/config_entry_flow.py`, and `AbstractOAuth2FlowHandler.async_abort` with `_SHARED_ABORT_REASONS` in `homeassistant/helpers/config_entry_oauth2_flow.py`, at the `.0` tag of the release row in `reference/freshness.md` |
 
 ### A config flow that will not open — Step 1
 
-**Symptom:** adding the integration fails before the first form, or the flow ends at once.
+**Symptom:** adding the integration, or opening its options, fails before the first form,
+or the flow ends at once.
 
 | Scenario | Choice |
 |---|---|
-| where each row was read | `_load_integration`, `_async_get_flow_handler`, `ConfigEntriesFlowManager.async_init`, `ConfigFlow.async_set_unique_id` and `ConfigFlow._abort_if_unique_id_configured` in `homeassistant/config_entries.py`, at the `.0` tag of the release row in `reference/freshness.md` |
+| where each row was read | `_load_integration`, `_async_get_flow_handler`, `ConfigEntriesFlowManager.async_init`, `OptionsFlowManager.async_create_flow`, `ConfigFlow.async_get_options_flow`, `ConfigFlow.async_supports_options_flow`, `ConfigFlow.async_set_unique_id` and `ConfigFlow._abort_if_unique_id_configured` in `homeassistant/config_entries.py`, at the `.0` tag of the release row in `reference/freshness.md` |
 | `Error occurred loading flow for integration <domain>: <error>`, under the integration's own logger | importing `config_flow.py` raised `ImportError` — a name a Home Assistant release moved or removed, or a library missing from `requirements` |
 | `config_flow.py` imports, and the flow is still refused as an unknown handler | no class in it registers the domain: the `domain=` on the class is not the manifest's `domain` |
 | `Cannot find integration <domain>` | Home Assistant could not load the integration itself — its folder or its `manifest.json` |
+| the entry offers no options flow, or opening it is refused as an unknown handler | the config flow class does not override `async_get_options_flow`; core calls it on the class with the entry, so define it as the base class does, a `@staticmethod` under `@callback`, returning the `OptionsFlow` |
 | the flow ends at once on `single_instance_allowed` | `single_config_entry` is `true` and an entry exists; for a flow not started by the user, an ignored entry counts too |
 | the flow ends at once on `already_in_progress` | `async_set_unique_id` found another flow, not a reauth, open for the same unique ID |
 | the flow ends at once on a reason of its own | the step that returned `async_abort` — `_abort_if_unique_id_configured` gives `already_configured` |
@@ -270,13 +272,13 @@ the lines below.
 |---|---|
 | where each line was read | `EntityPlatform._async_add_entity_impl`, `_async_add_entities` and `_async_add_and_update_entities` in `homeassistant/helpers/entity_platform.py`, at the `.0` tag of the release row in `reference/freshness.md` |
 | `Entity id already exists - ignoring: <entity_id>` | an entity with no `unique_id` whose `entity_id` is taken — one that sets `entity_id` itself, or the same entity added twice; give it a `unique_id` and leave `entity_id` to Home Assistant |
-| `Platform <platform> does not generate unique IDs.` | two entities of the platform share a `unique_id`, or one is added twice — a listener for new devices adding a device it already added; build the id from what is unique to the device and the value, and keep a set of what was added |
-| `Error adding entity <entity_id> for domain <domain> with platform <platform>`, with a traceback | the entity raised while being added — in `async_added_to_hass`, or in a property read as it registers, `device_info` or `name` say; the last `custom_components/<domain>/` frame of the traceback is the fault |
-| `<platform>: Error on device update!`, with a traceback | `async_update` raised on the first update that `update_before_add=True` asks for |
-| `<platform>: Not adding entity, error adding device: <reason>` | the device registry refused `device_info` — *Devices belong to one config entry — Step 3* says what it refuses |
-| `<platform>: Not adding entity <name>, entity registry error: <reason>` | the entity registry refused the entity, for the reason the line gives |
-| `Timed out adding entities for domain <domain> with platform <platform> after <n>s` | the add ran past 15 seconds an entity, and 500 at the least — slow work in `async_added_to_hass` or in the first update |
-| `Reached the maximum of 10000 enabled entities for config entry <entry_id>; not adding more entities for integration <domain> …`, once at WARNING | no entity past the cap is added until one is removed or disabled; create the ones few users need disabled, with `_attr_entity_registry_enabled_default = False` |
+| `Platform <domain> does not generate unique IDs.` | two entities of the platform share a `unique_id`, or one is added twice — a listener for new devices adding a device it already added; build the id from what is unique to the device and the value, and keep a set of what was added |
+| `Error adding entity <entity_id> for domain <platform> with platform <domain>`, with a traceback | the entity raised while being added — in `async_added_to_hass`, or in a property read as it registers, `device_info` or `name` say; the last `custom_components/<domain>/` frame of the traceback is the fault |
+| `<domain>: Error on device update!`, with a traceback | `async_update` raised on the first update that `update_before_add=True` asks for |
+| `<domain>: Not adding entity, error adding device: <reason>` | the device registry refused `device_info` — *Devices belong to one config entry — Step 3* says what it refuses |
+| `<domain>: Not adding entity <name>, entity registry error: <reason>` | the entity registry refused the entity, for the reason the line gives |
+| `Timed out adding entities for domain <platform> with platform <domain> after <n>s` | the add ran past 15 seconds an entity, and 500 at the least — slow work in `async_added_to_hass` or in the first update |
+| `Reached the maximum of 10000 enabled entities for config entry <entry_id>; not adding more entities for integration <domain> …`, at WARNING, once per platform | no entity past the cap is added until one is removed or disabled; create the ones few users need disabled, with `_attr_entity_registry_enabled_default = False` |
 
 ### `EntityDescription` pattern — Step 1
 
@@ -501,7 +503,7 @@ Covers the rule `log-when-unavailable` (`reference/quality-scale.md`) and HA's l
 | resolving that device to your own config entry | `async_get_device_and_config_entry_for_domain`, in the handler — the helper core added in 2026.9 |
 | a call with no target | `hass.services.async_call(DOMAIN, svc, …)` reaches every config entry, so pass your own `entry_id`/`device_id` and filter on it unless the call is a deliberate bulk one |
 | a key the schema guarantees | `call.data[KEY]`, not `call.data.get(KEY)`, so a wrong assumption fails at once — `.claude/skills/ha-integration-knowledge/SKILL.md` in core, at the `.0` tag of the release row in `reference/freshness.md` |
-| a value the schema or the entity filter already enforces | no second check in the handler; guard only a value that bypasses validation or is transformed on the way — the same file |
+| a value the schema or the entity filter already enforces | no second check in the handler; guard only a value that bypasses validation or is transformed on the way — `.claude/skills/ha-integration-knowledge/SKILL.md` in core, at the `.0` tag of the release row in `reference/freshness.md` |
 
 ```python
 from homeassistant.helpers.device_registry import (
@@ -552,6 +554,7 @@ changes nothing.
 | a field key nested in a `sections` block in `services.yaml` | flat in `translations/en.json` all the same |
 | what Home Assistant reads | `translations/<language>.json`, with `en.json` loaded first as the fallback for every other language, and never `strings.json` — `_async_get_component_strings` in `homeassistant/helpers/translation.py`, at the `.0` tag of the release row in `reference/freshness.md` |
 | `strings.json` | none in a custom integration: core compiles it into `translations/` with a step that runs only in core, so a custom integration ships `translations/en.json` complete, and any other language beside it, under *Custom integrations* at https://contributors.home-assistant.io/core/integrations/translations/ |
+| a `[%key:…%]` reference in a `translations/` file | none: nothing resolves it there, so the user sees the raw text; write every string out in full, as *Custom integrations* at https://contributors.home-assistant.io/core/integrations/translations/ says; the audit fails one in `en.json`, per *What the audit checks now* in ha-integration-ci's README |
 | a literal URL in a description | forbidden by hassfest — `the string should not contain URLs`; use plain text, or a `{placeholder}` filled via `description_placeholders` in the flow step |
 | a markdown image `![x]({url})` with a placeholder | fine, since it leaves no literal `http` |
 | a collapsible service form | `fields: { appearance: { collapsed: true, fields: {...} } }` |
@@ -623,7 +626,7 @@ A device has exactly one config entry and at most one subentry: read `config_ent
 | `DeviceInfo["via_device"]`, `async_get_or_create(via_device=…)` | `via_device_id`, looked up with `async_get_device_id_by_identifier(hass, identifier, config_entry_id=…)` | an identifier is unique only within a config entry; stops working in **2027.8.0** | `DeviceRegistry.async_get_or_create` in `homeassistant/helpers/device_registry.py` |
 | `ATTR_VIA_DEVICE`, imported from `homeassistant.const` | the string `"via_device_id"` | logged on import; removed in **2027.8** | the `DeprecatedConstant` for `ATTR_VIA_DEVICE` in `homeassistant/const.py` |
 | `device_info` or `device_entry` on an entity with no `unique_id`, or on one added by a platform with no config entry | a `unique_id`, on an entity a config entry's platform adds | the device link is dropped and logged already, so the entity has no device; raises from **2027.8.0** | `EntityPlatform._check_device_attach` in `homeassistant/helpers/entity_platform.py` |
-| a `DeviceInfo` carrying a field beside its `default_` twin — `name` beside `default_name`, `model` beside `default_model` | the plain field alone | it raises `DeviceInfoError`, so the entity is not added and the log reads `<platform>: Not adding entity, error adding device: …` | `_validate_device_info` in `homeassistant/helpers/device_registry.py` and `EntityPlatform._async_add_entity_impl` in `homeassistant/helpers/entity_platform.py`, and https://contributors.home-assistant.io/blog/2026/08/24/device-registry-follow-up-changes/ |
+| a `DeviceInfo` carrying a field beside its `default_` twin — `name` beside `default_name`, `model` beside `default_model` | the plain field alone | it raises `DeviceInfoError`, so the entity is not added and the log reads `<domain>: Not adding entity, error adding device: …` | `_validate_device_info` in `homeassistant/helpers/device_registry.py` and `EntityPlatform._async_add_entity_impl` in `homeassistant/helpers/entity_platform.py`, and https://contributors.home-assistant.io/blog/2026/08/24/device-registry-follow-up-changes/ |
 | a `via_device` or `via_device_id` naming the device itself | drop the self-reference | `via_device_id` raises `HomeAssistantError` already; `via_device` is ignored and logged, and raises from **2027.8.0** | `async_get_or_create` and `async_update_device` in `homeassistant/helpers/device_registry.py`, at the `.0` tag of the release row in `reference/freshness.md` |
 | a composite device id passed as `via_device_id` | the id of one real device | resolved and logged now; stops working in **2027.8** | `DeviceRegistry._resolve_via_device_id` in `homeassistant/helpers/device_registry.py` |
 | `DeviceRegistry.async_get_device()` | `async_get_device_by_identifier()`, `async_get_device_by_connection()` or `async_get_devices()`, each with the config entry id | the lookup is ambiguous once identifiers repeat across entries; stops working in **2027.8.0** | `DeviceRegistry.async_get_device` in `homeassistant/helpers/device_registry.py` |
@@ -633,7 +636,7 @@ A device has exactly one config entry and at most one subentry: read `config_ent
 | `async_update_device(merge_connections=…, merge_identifiers=…)` | `new_connections`, `new_identifiers`, with the full set computed yourself | merging only ever adds; stops working in **2027.9.0** | `DeviceRegistry.async_update_device` in `homeassistant/helpers/device_registry.py` |
 | `async_get_or_create(default_manufacturer=…, default_model=…, default_name=…)` | `manufacturer`, `model`, `name` | there is no primary integration left to defer to; stops working in **2027.9.0** | `DeviceRegistry.async_get_or_create` in `homeassistant/helpers/device_registry.py` |
 | `async_get_or_create(created_at=…, modified_at=…)` | drop the arguments | the registry owns both and always ignored them; stops working in **2027.9.0** | `DeviceRegistry.async_get_or_create` in `homeassistant/helpers/device_registry.py` |
-| `suggested_area` read off `DeviceEntry`, or passed to `async_update_device` | drop it; `DeviceInfo` and `async_get_or_create` still take it, and set a new device's area from it | ignored already, and deprecated | `DeviceEntry.suggested_area` and `async_update_device` in `homeassistant/helpers/device_registry.py`, at the `.0` tag of the release row in `reference/freshness.md` |
+| `suggested_area` read off `DeviceEntry`, or passed to `async_update_device` | drop it; `DeviceInfo` and `async_get_or_create` still take it, and set a new device's area from it | ignored, and past the removal release core names for it — **2026.9** on the property, **2026.9.0** on the `async_update_device` argument | `DeviceEntry.suggested_area` and `async_update_device` in `homeassistant/helpers/device_registry.py`, at the `.0` tag of the release row in `reference/freshness.md` |
 | a non-`str` value in a device-registry string field (`model`, `sw_version`, …) | pass a `str` | coerced with a warning now; stops working in **2026.12.0** | `_validate_str` in `homeassistant/helpers/device_registry.py` |
 | `DeviceRegistry.devices` as a mapping — `.get()`, `.values()`, `.keys()`, `registry.devices[id]`, `device_id in registry.devices` | iterate it for the entries, `async_get(device_id)` for a lookup | it is a read-only collection now; the mapping shim stops working in **2027.9.0** | `_DeprecatedDeviceRegistryItemsView` in `homeassistant/helpers/device_registry.py` |
 | `DeviceRegistry.child_devices` as a mapping | iterate it | there is no compatibility shim at all: no `.get()`, no `.values()`, no lookup by id | `DeviceRegistry._async_load` in `homeassistant/helpers/device_registry.py` |
@@ -703,8 +706,8 @@ config entry exception that says what happens next, with its message translated.
 
 | Rule | Value |
 |---|---|
-| where each row was read | `homeassistant/exceptions.py` at the `.0` tag of the release row in `reference/freshness.md`; the compatibility floor, the same file at the `2026.9.0` tag |
-| the compatibility floor | 2026.10.0; below it the token-request errors are no config entry exception, so an integration that claims an older release keeps its own mapping |
+| where each row was read | `homeassistant/exceptions.py` at the `.0` tag of the release row in `reference/freshness.md`; the compatibility floor, that file and `homeassistant/helpers/config_entry_oauth2_flow.py` at the `2026.9.0` tag |
+| the compatibility floor | 2026.10.0; below it the token-request errors and `ImplementationUnavailableError` are no config entry exception, and a missing implementation raises a bare `ValueError`, so an integration that claims an older release keeps its own mapping and its `except ValueError` |
 | `ImplementationUnavailableError`, `OAuth2TokenRequestError`, `OAuth2TokenRequestTransientError`, `OAuth2TokenRequestConnectionError` | each a `ConfigEntryNotReady`, so setup is retried |
 | `UnknownImplementationError`, `OAuth2TokenRequestReauthError` | each a `ConfigEntryAuthFailed`, so the reauth flow starts |
 | their messages | translated under the `homeassistant` domain, so `translations/en.json` carries none of them |
@@ -724,7 +727,7 @@ config entry of the domain is set up, and a notification saying so.
 
 | Scenario | Choice |
 |---|---|
-| where each message was read | `_async_setup_component` and `_log_error_setup_error` in `homeassistant/setup.py`, and `RequirementsNotFound` in `homeassistant/requirements.py`, at the `.0` tag of the release row in `reference/freshness.md` |
+| where each message was read | `_async_setup_component` and `_log_error_setup_error` in `homeassistant/setup.py`, `RequirementsNotFound` in `homeassistant/requirements.py` and `DependencyError` in `homeassistant/exceptions.py`, at the `.0` tag of the release row in `reference/freshness.md` |
 | `Integration not found.`, on a line reading `Setup failed for '<domain>'` with no `custom integration` in it | no integration of that domain could be loaded — its folder, or its `manifest.json`; a repair issue follows where config entries of the domain exist |
 | `Unable to import component: <error>`, with a traceback | importing `__init__.py` raised `ImportError` — a name a Home Assistant release moved or removed, or a library missing from `requirements`; the traceback's last frame names the import |
 | `Requirements for <domain> not found: [<requirement>].` | pip could not install it, after three tries, under the `package_constraints.txt` the release carries; a pin those constraints contradict never installs |
