@@ -28,6 +28,7 @@ Exit 1 on any FAIL. Runs locally and in this repository's `ci.yml`.
 """
 
 import argparse
+import itertools
 import pathlib
 import re
 import sys
@@ -329,53 +330,76 @@ def check_reference_cells(root: pathlib.Path) -> Result:
 
 
 _MODE = ("mode", "when", "read first")
+_REFERENCE = ("file", "when to read")
+
+
+def _cells(line: str) -> list[str]:
+    """A table line's cells, an escaped pipe kept inside its cell."""
+    return [c.strip() for c in re.split(r"(?<!\\)\|", line.strip()[1:-1])]
+
+
+def _listed(front: list[str], label: str) -> bool:
+    """Whether a frontmatter line carrying `label` ends in a colon over a `- ` list."""
+    return any(
+        label in line and line.endswith(":") and below.startswith("- ")
+        for line, below in itertools.pairwise(front)
+    )
 
 
 def _router_break(lines: list[tuple[int, str, str]]) -> str | None:
     """The first way a router departs from *`SKILL.md` — section order, fixed*, or None."""
-    front = " ".join(line for _, kind, line in lines if kind == "frontmatter")
+    front = [line for _, kind, line in lines if kind == "frontmatter"]
     if not front:
         return "has no frontmatter"
-    if "TRIGGER" not in front or "SYMPTOMS" not in front:
+    if not any(line.startswith("name:") for line in front):
+        return "frontmatter has no name"
+    if not (_listed(front, "TRIGGER") and _listed(front, "SYMPTOMS")):
         return "frontmatter description carries no TRIGGER and SYMPTOMS lists"
     body = [entry for entry in lines if entry[1] != "frontmatter"]
-    first_section = next(
-        (i for i, (_, kind, line) in enumerate(body) if line.startswith("## ")),
-        len(body),
-    )
-    opening = [
-        (kind, line)
-        for _, kind, line in body[:first_section]
-        if not line.startswith("# ")
-    ]
-    blocks = [
-        kind
-        for i, (kind, _) in enumerate(opening)
-        if kind != "blank" and (i == 0 or opening[i - 1][0] == "blank")
-    ]
-    if blocks != ["labelled"]:
+    sections = [i for i, (_, _, line) in enumerate(body) if line.startswith("## ")]
+    if not sections:
+        return "has no mode table opening its first section"
+    # Section 2: one bold span, which may wrap, and nothing else before section 3.
+    blocks: list[list[str]] = [[]]
+    for _, kind, line in body[: sections[0]]:
+        if kind == "blank":
+            blocks.append([])
+        elif not line.startswith("# "):
+            blocks[-1].append(line)
+    opening = [" ".join(block) for block in blocks if block]
+    if not (
+        len(opening) == 1
+        and opening[0].startswith("**")
+        and opening[0].endswith("**")
+        and opening[0].count("**") == 2
+    ):
         return "does not open with one bold core-principle line"
-    second_section = next(
-        (
-            i
-            for i, (_, _, line) in enumerate(body)
-            if i > first_section and line.startswith("## ")
-        ),
-        len(body),
-    )
     # (line index, column tuple) for every table header: a table line over a separator.
     headers = [
-        (i, tuple(normalise(c) for c in re.split(r"(?<!\\)\|", line.strip()[1:-1])))
+        (i, tuple(normalise(c) for c in _cells(line)))
         for i, (_, kind, line) in enumerate(body)
         if kind == "table" and i + 1 < len(body) and _SEPARATOR.match(body[i + 1][2])
     ]
-    in_router = [cols for i, cols in headers if first_section < i < second_section]
-    if not in_router or in_router[0][:3] != _MODE:
+    end = sections[1] if len(sections) > 1 else len(body)
+    router = [(i, cols) for i, cols in headers if sections[0] < i < end]
+    if not router or router[0][1][:3] != _MODE:
         return "has no mode table opening its first section"
     if any(cols == _ANTI_PATTERN for _, cols in headers):
         return "carries an anti-pattern table, which the topic's own file holds"
+    if any(cols == _REFERENCE for _, cols in headers):
+        return "carries a file | when to read table, which the mode table already is"
     if sum(1 for _, cols in headers if cols[:3] == _MODE) > 1:
         return "carries a second mode table"
+    # Section 4: every later `##` is the detail a mode row sends its reader to.
+    read_first = []
+    for _, kind, line in body[router[0][0] + 2 :]:
+        if kind != "table":
+            break
+        read_first.append(_cells(line)[2])
+    for i in sections[1:]:
+        title = body[i][2][3:].strip()
+        if not any(f"*{title}*" in cell for cell in read_first):
+            return f"has a section, {title}, that no mode row reads first"
     return None
 
 

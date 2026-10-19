@@ -265,6 +265,7 @@ Match the task to a row.
 | Mode | When | Read first | Source |
 |---|---|---|---|
 | **A** | always | `reference/a.md` | — |
+| **Lint** | a hygiene pass | *Lint* below | — |
 
 ## Lint
 
@@ -302,6 +303,22 @@ def test_a_router_out_of_the_schema_s_order_fails(tmp_path) -> None:
         "|---|---|---|---|\n| a | b | c | — |\n",
         "a second mode table": _ROUTER
         + "\n| Mode | When | Read first |\n|---|---|---|\n| B | x | y |\n",
+        "no name key": _ROUTER.replace("name: demo\n", ""),
+        "TRIGGER in prose, not a list": _ROUTER.replace(
+            "TRIGGER WHEN:\n  - asked\n", "TRIGGER when asked.\n"
+        ),
+        "SYMPTOMS in prose, not a list": _ROUTER.replace(
+            "SYMPTOMS:\n  - a demo\n", "SYMPTOMS: a demo.\n"
+        ),
+        "a bold line with prose after it": _ROUTER.replace(
+            "read its file.**\n", "read its file.** Then more prose.\n"
+        ),
+        "a Note as the core principle": _ROUTER.replace(
+            "**Pick the mode, then read its file.**", "> **Note:** pick the mode."
+        ),
+        "a reference table": _ROUTER
+        + "\n| file | when to read |\n|---|---|\n| `reference/a.md` | always |\n",
+        "a section no mode names": _ROUTER + "\n## Extra\n\n1. more\n",
     }
     for name, text in broken.items():
         fails, _ = audit.check_router_order(_router(tmp_path, text))
