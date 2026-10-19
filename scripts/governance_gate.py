@@ -674,6 +674,16 @@ def _apply(before: str, old_string: str, new_string: str, rel: str) -> str:
     return before.replace(old_string, new_string)
 
 
+def _write(rel: str, text: str) -> None:
+    """Write a governed file, making its directory first.
+
+    Row 255: no other writer may create a directory under a governed path, so a write into
+    one that did not exist yet failed with a bare OSError and no refusal to explain it.
+    """
+    (REPO / rel).parent.mkdir(parents=True, exist_ok=True)
+    (REPO / rel).write_text(text, encoding="utf-8")
+
+
 def _report(before: str, after: str, rel: str) -> str:
     """The actual diff, so an unintended edit is visible the moment it lands.
 
@@ -731,7 +741,7 @@ def patch_file(
         # Fail open, as ha-mcp does when its skill content is missing: a broken governing doc
         # makes the key unobtainable, and bricking every edit is the worse failure.
         after = _apply(before, old_string, new_string, rel)
-        (REPO / rel).write_text(after, encoding="utf-8")
+        _write(rel, after)
         return (
             f"wrote {rel} (gate OPEN: a governing doc for '{tier}' is unreadable)\n"
             + _report(before, after, rel)
@@ -789,7 +799,7 @@ def patch_file(
             f"old_string lies outside the text get_function returned for {scope!r} in {rel}; "
             f"read the function that contains it, or the whole file with get_file"
         )
-    (REPO / rel).write_text(after, encoding="utf-8")
+    _write(rel, after)
     # The key rolls forward: the caller read the file (or the function's closure) and has
     # just seen this diff, so it has read that text as it now stands. Without this every
     # second patch cost a re-read of the whole file — eleven of thirteen reads of one file in

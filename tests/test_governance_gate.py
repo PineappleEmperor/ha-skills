@@ -626,6 +626,18 @@ def test_a_new_file_can_be_created_through_the_gate(repo) -> None:
     assert (repo / "scripts/new.py").read_text() == "fresh = 1\n"
 
 
+def test_a_new_file_in_a_new_directory_can_be_created(repo) -> None:
+    """Row 255: the gate is the only writer here, so it makes the parents it writes into.
+
+    It served an empty `templates/.githooks/pre-commit` with a key, then failed the write
+    with no reason, because the directory did not exist and nothing else may create one.
+    """
+    rel = "scripts/sub/deeper/new.py"
+    gs.get_file(rel, gs.current_receipt_key("scripts/"))
+    gs.patch_file(rel, "", "fresh = 1\n", gs.current_edit_key(rel))
+    assert (repo / rel).read_text() == "fresh = 1\n"
+
+
 def test_an_empty_old_string_will_not_clobber_an_existing_file(repo) -> None:
     """Creation is the only empty-old_string case; anything else is a whole-file overwrite."""
     _, edit_key = _keys()
