@@ -22,7 +22,8 @@ from memory.
 13. Alignment a human chose meets `ruff format` — Step 3
 14. A repository adopting the stack carries ruff exclusions — Step 6
 15. `HACS validation` is red — Step 9
-16. Reference
+16. The integration goes into the default catalog — Step 10
+17. Reference
 
 ## The scaffold
 
@@ -261,7 +262,7 @@ exec pre-commit run
 |---|---|---|
 | `CLAUDE.md` | the per-repo rule that a session invokes this skill before touching integration code, and the hooks setting | the snippet below |
 | `hacs.json` | the HACS manifest | the shape below |
-| `README.md` | the project readme, carrying the AI-assistance note below | — |
+| `README.md` | the project readme, carrying the AI-assistance note and the two My links below | — |
 | `LICENSE` | the full text of the Step 1 licence | the licence's own text |
 | `tests/` | one test file per module under test | `reference/testing.md` |
 
@@ -292,6 +293,24 @@ linked to its public repository:
 > [!NOTE]
 > **AI assistance:** I'm a programmer; this project is built with AI (Claude, via Claude Code) for implementation, code review, and QA — under human direction, guided by my [`ha-integration`](https://github.com/PineappleEmperor/ha-skills) skill. Architecture and final review are mine; every change is human-reviewed before it merges.
 ```
+
+**`README.md` — the two My links**, each opening the reader's own Home Assistant:
+
+```markdown
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=<owner>&repository=<repository>&category=integration)
+
+[![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=<domain>)
+```
+
+| Rule | Value |
+|---|---|
+| where each row was read | `redirect.json` in `home-assistant/my.home-assistant.io`, and https://contributors.home-assistant.io/marketplace/guides/catalog/ |
+| `hacs_repository` | opens the repository in HACS; from 2026.11 it opens the Marketplace instead, so it reaches users on either side of that release |
+| `config_flow_start` | starts the integration's config flow, once the integration is installed |
+
+| what | lands in | do now | do then |
+|---|---|---|---|
+| the `marketplace_repository` My link, opening the repository in the Marketplace and offering to add it when the Marketplace does not know it yet | 2026.11 — https://contributors.home-assistant.io/marketplace/guides/catalog/ | link with `hacs_repository` | switch the link and its badge to `marketplace_repository` once the `homeassistant` key of `hacs.json` is 2026.11.0 or later |
 
 **`hacs.json`**
 
@@ -416,6 +435,39 @@ errors **and no ignores**, so every check that runs on an integration must pass.
 > **Note:** on a pull request from a fork, `archived`, `description`, `issues`, `topics` and
 > `license` do not run, so only the other four checks do; the push to `main` and the nightly
 > run carry all nine.
+
+### The integration goes into the default catalog — Step 10
+
+The catalog is the `hacs/default` repository, which HACS and the Marketplace both read; an
+integration outside it is still added by anyone from its `hacs_repository` My link, Step 7.
+
+**Timing:** after Step 10, once `HACS validation` and hassfest pass with no `ignore`, and a
+full GitHub release is published — a tag alone does not count.
+
+| Rule | Value |
+|---|---|
+| where each row was read | https://contributors.home-assistant.io/marketplace/guides/catalog/ |
+| refused outright | an integration that replaces a core one, or exists only to test a core integration's alpha or beta |
+| the pull request | from a fork of `hacs/default`, on a branch off `master`, opened from a personal account rather than an organisation so the HACS team can edit it |
+| the change | `owner/repository` in the `integration` file, a JSON list, in alphabetical order |
+| its template | filled in completely: the checklist, a link to the latest release, and links to passing runs of the HACS action without `ignore` and of hassfest |
+| closed without notice | an incomplete template, a statement that is not true, or a review requested from people |
+| small problems | the pull request goes to draft; fix them, then mark it ready for review |
+| the wait | months; the backlog is the open pull requests of `hacs/default`, oldest first |
+| deleting the repository later | first ask for its removal with the *Request for repository removal* issue template in `hacs/integration`; deleting one still in the catalog bars every future submission |
+
+| Check | What's needed | Where to fix |
+|---|---|---|
+| Brands | what the `brands` row of *`HACS validation` is red — Step 9* needs | Step 5 |
+| Manifest | what the `integration_manifest` row of *`HACS validation` is red — Step 9* needs | Step 4 |
+| HACS validation | every row of *`HACS validation` is red — Step 9* | that case |
+| HACS manifest | `hacs.json` with a `name` | Step 7 |
+| Archived | the repository is not archived | GitHub repo settings |
+| Releases | at least one release | `reference/versioning.md` |
+| Owner | the submitter owns the repository, or is a major contributor | — |
+| Images | nothing on an integration — it runs on dashboard plugins and themes only | — |
+| Repository | a description, issues turned on, and topics | Step 10 |
+| Lint | the catalog file the pull request changed is valid JSON, and sorted | the pull request |
 
 ## Reference
 
