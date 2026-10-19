@@ -64,6 +64,11 @@ device logic from the HA lifecycle, so it is unit-testable without a running HA 
 | `migration.py` | `async_migrate_entry` logic when it is complex; import into `__init__.py` | this skill |
 | `helpers.py` / `util.py` | pure functions shared across platforms | this skill |
 
+| anti-pattern | use instead | why (one clause) | reference |
+|---|---|---|---|
+| protocol parsing, a device state machine or other domain logic inside the integration | a library of its own on PyPI, which `api.py` calls and `requirements` in `manifest.json` pins | an integration is a thin wrapper | `.claude/skills/ha-integration-knowledge/SKILL.md` in core, at the `2026.10.0` tag |
+| a workaround in the integration for a limit of its library | a fix in the library, then the new pin in `requirements` | the fix belongs where every user of the library gets it | `.claude/skills/ha-integration-knowledge/SKILL.md` in core, at the `2026.10.0` tag |
+
 ### Step 2: Pick the shape HA models
 
 - An entity platform when the thing has state a user would see in history or on a dashboard.
@@ -152,6 +157,8 @@ DATA_SCHEMA = probatio.Schema(
 | `OptionsFlowWithConfigEntry` as the options flow's base class | `OptionsFlow`, reading `self.config_entry` | core is phasing it out and keeps it for custom integrations only | `OptionsFlowWithConfigEntry` in `homeassistant/config_entries.py`, at the `.0` tag of the release row in `reference/freshness.md` |
 | a config-entry update listener alongside a reloading method | drop the listener, or call `async_update_and_abort()` in place of `async_update_reload_and_abort()` and pass `reload_on_update=False` to `_abort_if_unique_id_configured()` | the integration reloads twice or races; an error from **2026.12** | `async_update_reload_and_abort` and `_abort_if_unique_id_configured` in `homeassistant/config_entries.py` |
 | `FlowHandler.show_advanced_options`, or the `show_advanced_options` key in `FlowHandler.context` | group the extra fields in a schema `section` | the property returns `True` unconditionally and the context key is already gone; removed **2027.6** | `FlowHandler.show_advanced_options` in `homeassistant/data_entry_flow.py` |
+| a `scan_interval`, `update_interval` or other polling-frequency field, in a config or options flow | an interval the integration sets itself — *`DataUpdateCoordinator` (polling) — Step 1* | a polling interval is not user-configurable | `.claude/skills/ha-integration-knowledge/SKILL.md` in core, at the `2026.10.0` tag |
+| a field asking for the config entry's name | a title the flow sets, which the user can change later in the UI; a `helper` integration may ask | the name is generated, not asked for | `.claude/skills/ha-integration-knowledge/SKILL.md` in core, at the `2026.10.0` tag |
 | a hand-written `SelectSelector` of device-class values | `DeviceClassSelector` | it carries HA's own values, so the hand-written translations for them go too | https://contributors.home-assistant.io/blog/2026/09/04/device-and-state-class-selectors/ |
 | core's own text, copied word for word into an `abort` section of `translations/en.json`, `config_subentries` included, for an abort core translates itself — `reauth_successful` or `reconfigure_successful` from `async_update_reload_and_abort` or `async_update_and_abort` called without `reason`, `already_in_progress` from `async_set_unique_id`, an OAuth2 flow's shared reasons | delete it; to word one your own way, keep your text and pass `reason` to the helper, or `translation_domain=DOMAIN` to an OAuth2 flow's `async_abort` | from 2026.10.0 those aborts carry the `homeassistant` translation domain, so the copy is never read | `async_update_reload_and_abort`, `async_update_and_abort` and `async_set_unique_id` in `homeassistant/config_entries.py`, and `AbstractOAuth2FlowHandler.async_abort` with `_SHARED_ABORT_REASONS` in `homeassistant/helpers/config_entry_oauth2_flow.py`, at the `2026.10.0` tag |
 
@@ -228,6 +235,7 @@ def device_info(self) -> DeviceInfo:
 | `update_before_add=True` on `async_add_entities` for a `CoordinatorEntity` | compute `native_value` as a property off `self.coordinator.data`, or call `self._handle_coordinator_update()` at the end of `async_added_to_hass`, after `await super().async_added_to_hass()` | it schedules a debouncer timer that outlives the test and the frozen clock | `CoordinatorEntity.async_update` in `homeassistant/helpers/update_coordinator.py` |
 | a collection sensor whose state is the raw list or a timestamp | the `len()` count with `_attr_state_class = MEASUREMENT`, and a sensor of its own for any other value worth a history | `last_updated` and `last_changed` are state attributes already, and a count graphs | https://contributors.home-assistant.io/core/entities/sensor/ |
 | deleting `state_class` to silence an impossible-pair warning | the `state_class` that device class permits | deleting it drops long-term statistics altogether | `DEVICE_CLASS_STATE_CLASSES` in `homeassistant/components/sensor/const.py` |
+| redeclaring an attribute, property or method the base class — `SensorEntity`, `TrackerEntity` — already provides, or guarding against its behaviour changing | the base class as it stands | the base class is the stable API a platform builds on | `.claude/skills/ha-integration-knowledge/SKILL.md` in core, at the `2026.10.0` tag |
 | a lawn mower stopped but neither docked nor paused, reported as `LawnMowerActivity.PAUSED` or `ERROR` | `LawnMowerActivity.IDLE`, from 2026.10.0; and for an action that cancels the task without docking, `LawnMowerEntityFeature.STOP` with `async_stop` | `PAUSED` says the task can be resumed, `ERROR` that the mower needs help | `LawnMowerActivity`, `LawnMowerEntityFeature` and `LawnMowerEntity.async_stop` in `homeassistant/components/lawn_mower/`, at the `2026.10.0` tag |
 
 **Symptom:** `CoordinatorEntity` does not push initial state on add, so an entity that sets
@@ -456,6 +464,8 @@ Covers the rule `log-when-unavailable` (`reference/quality-scale.md`) and HA's l
 | a device dropdown | `selector: device` with `integration: {domain}`, never `selector: config_entry`, which the HA frontend labels "Integration" |
 | resolving that device to your own config entry | `async_get_device_and_config_entry_for_domain`, in the handler — the helper core added in 2026.9 |
 | a call with no target | `hass.services.async_call(DOMAIN, svc, …)` reaches every config entry, so pass your own `entry_id`/`device_id` and filter on it unless the call is a deliberate bulk one |
+| a key the schema guarantees | `call.data[KEY]`, not `call.data.get(KEY)`, so a wrong assumption fails at once — `.claude/skills/ha-integration-knowledge/SKILL.md` in core, at the `2026.10.0` tag |
+| a value the schema or the entity filter already enforces | no second check in the handler; guard only a value that bypasses validation or is transformed on the way — the same file |
 
 ```python
 from homeassistant.helpers.device_registry import (
