@@ -77,8 +77,8 @@ Each of these needs its own test, not just the code:
 - `stale-devices` — `async_remove_config_entry_device` → `False` while the device is live,
   `True` once it's gone
 - `exception-translations` / `entity-translations` — a test that scrapes the
-  `translation_key`s used in code and asserts each exists in `strings.json`, which catches a
-  typo'd key that hassfest passes
+  `translation_key`s used in code and asserts each exists in `translations/en.json`, which
+  catches a typo'd key that hassfest passes
 - `icon-translations` — the same test against `icons.json`, for each `translation_key` whose
   entity has a custom icon; an entity that takes its icon from its device class needs none
 

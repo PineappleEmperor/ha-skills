@@ -65,14 +65,13 @@ Under `custom_components/<domain>/`. What goes inside each file is `reference/pa
 | `config_flow.py` | the config flow | always |
 | `const.py` | the domain and the constants | always |
 | `manifest.json` | the manifest — Step 4 | always |
-| `strings.json` | the flow and entity strings | always |
-| `translations/en.json` | the English translation | always |
+| `translations/en.json` | every string the integration shows — flows, entities, actions, exceptions — *`services.yaml` + `translations/en.json` — Step 1* in `reference/patterns.md` | always |
 | `quality_scale.yaml` | the tier ledger — `reference/quality-scale.md` | always |
 | `diagnostics.py` | the diagnostics download — *Diagnostics platform — Step 1* in `reference/patterns.md` | always |
 | `<platform>.py` | one per platform chosen in Step 1 | always |
 | `brand/` | the brand images — Step 5 | always |
 | `icons.json` | action icons, `{"services": {"my_action": {"service": "mdi:icon"}}}` | the integration registers an action |
-| `services.yaml` | each action's fields — *`services.yaml` + `strings.json` — Step 1* in `reference/patterns.md` | the integration registers its own action, where no standard one fits |
+| `services.yaml` | each action's fields — *`services.yaml` + `translations/en.json` — Step 1* in `reference/patterns.md` | the integration registers its own action, where no standard one fits |
 | `api.py`, `coordinator.py`, `models.py`, `entity.py`, `helpers.py` | what *Step 1: Lay out the files by responsibility* in `reference/patterns.md` gives each | as that step says |
 
 **Docstrings and comments in every generated module**

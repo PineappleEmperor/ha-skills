@@ -1,7 +1,7 @@
 # Implementation patterns, file structure and typing
 
 Read this when writing or changing the package under `custom_components/` — its Python,
-`strings.json`, `services.yaml` and translations. Panel code is `reference/panels.md`, tests
+`services.yaml` and `translations/en.json`. Panel code is `reference/panels.md`, tests
 `reference/testing.md`, the manifest *Step 4: Write `manifest.json`* in `reference/scaffold.md`.
 
 **Pick the shape Home Assistant already models, then write that shape the way core writes
@@ -28,7 +28,7 @@ it.**
 17. `ConfigEntry` mutation — Step 3
 18. Logging — Step 1
 19. Custom services — Step 1
-20. `services.yaml` + `strings.json` — Step 1
+20. `services.yaml` + `translations/en.json` — Step 1
 21. Register integration-global resources in `async_setup`, not `async_setup_entry` — Step 3
 22. Diagnostics platform — Step 1
 23. Devices belong to one config entry — Step 3
@@ -87,8 +87,8 @@ device logic from the HA lifecycle, so it is unit-testable without a running HA 
    Type its device parameter `AnyDeviceEntry` (`DeviceEntry | ChildDeviceEntry`), since from
    2026.9 Home Assistant hands it a child device too — `_async_remove_device` in
    `homeassistant/components/config/device_registry.py` at the `2026.9.0` tag.
-5. If the entity carries `_attr_translation_key`, add the matching block to `strings.json`
-   and `translations/en.json` — `entity-translations` in `reference/quality-scale.md`.
+5. If the entity carries `_attr_translation_key`, add the matching block to
+   `translations/en.json` — `entity-translations` in `reference/quality-scale.md`.
 
 What the audit checks of this list at PR time, and how, is *What the audit checks now* in
 ha-integration-ci's README.
@@ -191,7 +191,7 @@ the rows a custom integration gets wrong against it.
 | `unique_id` | set on every entity |
 | `_attr_has_entity_name` | `True`, mandatory for a new integration — the entity name then identifies only the data point |
 | the main feature entity's name | `_attr_name = None`, so only the device name shows |
-| `_attr_translation_key = "my_key"` | translated entity names and states; pairs with the `entity` section of `strings.json` |
+| `_attr_translation_key = "my_key"` | translated entity names and states; pairs with the `entity` section of `translations/en.json` |
 | `_attr_entity_category` | on a non-primary entity: `EntityCategory.DIAGNOSTIC` for read-only info such as RSSI, `EntityCategory.CONFIG` for a setting that changes device behaviour |
 | a value set at init or on update | an `_attr_*` class or instance attribute, assigned in `__init__` or in `_handle_coordinator_update`, never a property method |
 | a value derived on read, from `self.coordinator.data` say | a property — https://contributors.home-assistant.io/core/entities/entity-class/ |
@@ -477,18 +477,18 @@ device, entry = async_get_device_and_config_entry_for_domain(
 | a composite device id no split matches | the restored composite device, and `None` |
 | whether that config entry is loaded | not checked — keep your own `ConfigEntryState.LOADED` test |
 
-### `services.yaml` + `strings.json` — Step 1
+### `services.yaml` + `translations/en.json` — Step 1
 
 | Rule | Value |
 |---|---|
 | what hassfest checks of a custom integration's actions | not their `name` or `description`, which it accepts in `services.yaml` too — `script/hassfest/services.py`, at the `.0` tag of the release row in `reference/freshness.md` |
 | what this stack checks of them | the translation check under *Implementation notes* in ha-integration-ci's README |
 | what `services.yaml` carries | field **structure** only — selectors, `required`, `default`, collapsible `sections` |
-| what `strings.json` carries | every name and description, under a top-level `services` key: `services.{svc}.name/description`, `.fields.{key}.name/description`, `.sections.{key}.name` |
-| a field key nested in a `sections` block in `services.yaml` | flat in `strings.json` all the same |
-| `translations/en.json` | a copy of `strings.json` |
+| what `translations/en.json` carries | every name and description, under a top-level `services` key: `services.{svc}.name/description`, `.fields.{key}.name/description`, `.sections.{key}.name` |
+| a field key nested in a `sections` block in `services.yaml` | flat in `translations/en.json` all the same |
 | what Home Assistant reads | `translations/<language>.json`, with `en.json` loaded first as the fallback for every other language, and never `strings.json` — `_async_get_component_strings` in `homeassistant/helpers/translation.py`, at the `2026.10.0` tag |
-| a literal URL in a `strings.json` description | forbidden by hassfest — `the string should not contain URLs`; use plain text, or a `{placeholder}` filled via `description_placeholders` in the flow step |
+| `strings.json` | none in a custom integration: core compiles it into `translations/` with a step that runs only in core, so a custom integration ships `translations/en.json` complete, and any other language beside it, under *Custom integrations* at https://contributors.home-assistant.io/core/integrations/translations/ |
+| a literal URL in a description | forbidden by hassfest — `the string should not contain URLs`; use plain text, or a `{placeholder}` filled via `description_placeholders` in the flow step |
 | a markdown image `![x]({url})` with a placeholder | fine, since it leaves no literal `http` |
 | a collapsible service form | `fields: { appearance: { collapsed: true, fields: {...} } }` |
 | what a section changes in the call | nothing — sections are UI-only, the call data stays flat, so the action's schema is unaffected |
