@@ -69,7 +69,7 @@ A PR fixing a `pull_request_target` caller can never go green on its own.
 | why | GitHub loads a `pull_request_target` caller from the base branch, so the PR is checked by the copy it fixes — `pr-checks.yml` under *The five workflows* in release-flow's README, https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/README.md |
 | what the exception covers | **one job, on one PR, whose own definition the PR changes**; it is the only sanctioned case |
 
-**Fix:** prove it with `git show origin/main:.github/workflows/pr-checks.yml` against the
+**Fix:** prove it with `git show origin/main:.github/workflows/<caller>.yml` against the
 branch's copy, then say in the PR that the failure is the bug being fixed.
 
 **Timing:** re-derive that diff every time before claiming the exception, and verify on the
@@ -77,5 +77,7 @@ next PR, where the fixed caller runs as `main`'s.
 
 ### An action hits more devices than it should — debugging Step 2
 
-**Fix:** suspect the fan-out first — the "a call with no target" row of *Custom services —
-Step 1* in `reference/patterns.md`.
+`hass.services.async_call(DOMAIN, svc, …)` with no target reaches every config entry.
+
+**Fix:** suspect that fan-out first, then filter on your own `entry_id` or `device_id` — the
+"a call with no target" row of *Custom services — Step 1* in `reference/patterns.md`.

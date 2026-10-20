@@ -54,9 +54,9 @@ nothing else.**
 
 | Rule | Value |
 |---|---|
-| a version in `manifest.json` for a Dependabot PR to bump | none: `release.yml` writes the release tag into it at publish — *The three workflows* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
+| the committed `version` in `manifest.json` | compared by no check, so a Dependabot PR needs no exemption: it is a placeholder between releases, which `release.yml` overwrites with the tag at publish — *Implementation notes* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
 | the label gate on a Dependabot PR | skipped, since a bot opened the PR — the `if:` of the `title-check` job, https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/.github/workflows/pr-checks.yml |
-| where a Dependabot PR lands in the release notes | under 🧰 Maintenance, from its `chore:` commit subject — `HEADINGS` in release-flow's `scripts/commit_summary.py`, https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/scripts/commit_summary.py |
+| where a Dependabot PR lands in the release notes | under 🧰 Maintenance, from its `chore:` commit subject — `MAINT`, `classify` and `HEADINGS` in release-flow's `scripts/commit_summary.py`, https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/scripts/commit_summary.py |
 | a `github-actions` bump | merge it once its checks are green |
 | a bump of the callers to a new major of ha-integration-ci | add to the PR the edits *The version model* lists under that version; it cannot go green without them — ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
 | a bump of the callers to an ha-integration-ci release on a new Python floor | raise ruff's `target-version` and `mypy.ini`'s `python_version` to that floor in the same PR, since the audit fails while they differ from the reusable workflows' — `version_sync.py`, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/scripts/version_sync.py |
@@ -74,7 +74,7 @@ floor in lockstep* in `reference/testing.md`.
 |---|---|
 | where the new floor is read | `requires_python` in https://pypi.org/pypi/pytest-homeassistant-custom-component/<version>/json, for the version the PR pins |
 | the floor at the skill's last refresh | the harness row of `reference/freshness.md` |
-| a bump that raises the floor | merge it only once the callers' pins sit on an ha-integration-ci release on that floor; the PR that moved those pins raised `target-version` and `python_version` — Step 5 |
+| a bump that raises the floor | merge it only once the callers' pins sit on an ha-integration-ci release on that floor — Step 5 |
 
 **Fix:** check the new harness's floor before merging, and wait for the CI release when it rises.
 

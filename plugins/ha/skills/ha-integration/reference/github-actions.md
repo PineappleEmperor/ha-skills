@@ -43,7 +43,7 @@ order:
 
 | Rule | Value |
 |---|---|
-| the files it holds for Step 2 | the four plain workflows, `.github/dependabot.yml`, `tests/`, `pyproject.toml`, `mypy.ini`, `requirements.test.txt`, `ruleset.json`, `.gitignore`, the four local-hook files and `scripts/bootstrap_repo.sh` |
+| the files `templates/` holds for Step 2 | the four plain workflows, `.github/dependabot.yml`, `tests/`, `pyproject.toml`, `mypy.ini`, `requirements.test.txt`, `ruleset.json`, `.gitignore`, the four local-hook files and `scripts/bootstrap_repo.sh` |
 | `hooks/` | optional reminders for your own `~/.claude`, carried by no integration; each is installed as its script's header says |
 
 ### Step 2: Take each file from its source
@@ -66,8 +66,8 @@ How to verify a copy is *Step 1: Callers, not bodies; copies, not paraphrases* i
 | Rule | Value |
 |---|---|
 | what the audit checks in a caller | that its `uses:` names the right repository and workflow, and that it carries no body — `check_callers` under *What the audit checks now* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
-| what the audit checks in a pin | a 40-hex SHA with a version comment — `check_action_pins` under *What the audit checks now* in ha-integration-ci's README |
-| what the audit never checks | that a copied file matches its source, so a caller written from memory can pass — the core rule of `reference/audit.md` |
+| what the audit checks in a pin | a 40-hex SHA with a version comment — `check_action_pins` under *What the audit checks now* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
+| what the audit never checks | that a copied file matches its source, so a caller written from memory can pass — *What the audit deliberately no longer checks* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
 
 The four workflows the scaffold copies whole are settings over a third-party action, so they
 carry nothing of ours to version:
