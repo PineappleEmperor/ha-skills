@@ -50,7 +50,6 @@ The set is a snapshot; re-verify it per its row in `reference/freshness.md`.
 | Rule | Value |
 |---|---|
 | which tier a rule sits in | `ALL_RULES` in core's `script/hassfest/quality_scale.py`, never the rule's name |
-| where one rule is documented | `contributors.home-assistant.io/core/quality-scale/<rule-name>/` |
 
 > **Note:** `PlatformNotReady` is for legacy `async_setup_platform` only — config-entry
 > integrations use `ConfigEntryNotReady` instead.

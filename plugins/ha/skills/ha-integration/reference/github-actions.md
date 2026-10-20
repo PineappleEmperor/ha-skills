@@ -41,10 +41,8 @@ Resolve it in this order:
    `plugins/ha/skills/ha-integration/templates/` inside a checkout of the skill repo.
 4. **Last resort:** `find ~/.claude ~/.agents . -type d -path '*ha-integration/templates' 2>/dev/null`
 
-It holds the copied files Step 2 names: the four plain workflows, `.github/dependabot.yml`,
-`tests/`, `pyproject.toml`, `mypy.ini`, `requirements.test.txt`, `ruleset.json`,
-`.gitignore`, the four local-hook files, `scripts/bootstrap_repo.sh` and `hooks/` (optional
-per-turn reminders for your own `~/.claude`, installed per the header in each script).
+It holds every file Step 2 takes from `templates/`, and `hooks/`: optional per-turn reminders
+for your own `~/.claude`, installed per the header in each script.
 
 ### Step 2: Take each file from its source
 

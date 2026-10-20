@@ -23,7 +23,6 @@ from memory.
 14. A repository adopting the stack carries ruff exclusions — Step 6
 15. `HACS validation` is red — Step 9
 16. The integration goes into the default catalog — Step 10
-17. Reference
 
 ## The scaffold
 
@@ -219,18 +218,18 @@ Copy every file in the table under *Step 2: Take each file from its source* in
 as *Step 3: Resolve each caller's pin* in `reference/github-actions.md` says. The root files
 among them:
 
-| File | Holds | Taken from |
-|---|---|---|
-| `pyproject.toml` | HA core's ruff rule set adapted for a custom integration — `google` docstrings, HA's Python floor, no `from __future__ import annotations` — and the `asyncio_mode = "auto"` without which no async test runs | `templates/pyproject.toml`, verbatim |
-| `mypy.ini` | the general section of HA core's mypy config — keep `python_version` in `[mypy]`, since it is what the audit's version comparison reads from this file — *What the audit checks now* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md | `templates/mypy.ini`, verbatim |
-| `requirements.test.txt` | the pinned test harness — why the pin matters is `reference/testing.md` | `templates/requirements.test.txt` |
-| `tests/conftest.py`, `tests/__init__.py`, `tests/ruff.toml` | the harness setup and core's ruff rules for tests — `reference/testing.md` | `templates/tests/` |
-| `.gitignore` | the paths git must never track | `templates/.gitignore` |
-| `ruleset.json` | the branch ruleset — what it requires is `reference/github-setup.md` | `templates/ruleset.json` |
-| `.githooks/commit-msg` | the Conventional Commit check — `reference/commits.md` | release-flow's copy, https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/.githooks/commit-msg, `chmod +x` |
-| `.pre-commit-config.yaml` | the local hooks: ruff, codespell, `check-json`, a guard on `main`, yamllint and prettier | `templates/.pre-commit-config.yaml`, verbatim |
-| `.yamllint`, `.prettierrc.js`, `.prettierignore` | the configs yamllint and prettier read | the files of those names in `templates/`, verbatim |
-| `.githooks/pre-commit` | the wrapper that runs the local hooks on commit | the snippet below, `chmod +x` |
+| File | Holds |
+|---|---|
+| `pyproject.toml` | HA core's ruff rule set adapted for a custom integration — `google` docstrings, HA's Python floor, no `from __future__ import annotations` — and the `asyncio_mode = "auto"` without which no async test runs |
+| `mypy.ini` | the general section of HA core's mypy config — keep `python_version` in `[mypy]`, since it is what the audit's version comparison reads from this file — *What the audit checks now* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
+| `requirements.test.txt` | the pinned test harness — why the pin matters is *Step 4: Keep the harness pin and the Python floor in lockstep* in `reference/testing.md` |
+| `tests/conftest.py`, `tests/__init__.py`, `tests/ruff.toml` | the harness setup and core's ruff rules for tests — *Testing — prerequisites before any of the rules below apply* in `reference/testing.md` |
+| `.gitignore` | the paths git must never track |
+| `ruleset.json` | the branch ruleset — what it requires is `reference/github-setup.md` |
+| `.githooks/commit-msg` | the Conventional Commit check — *Step 1: Install the `commit-msg` hook* in `reference/commits.md`; `chmod +x` |
+| `.pre-commit-config.yaml` | the local hooks: ruff, codespell, `check-json`, a guard on `main`, yamllint and prettier |
+| `.yamllint`, `.prettierrc.js`, `.prettierignore` | the configs yamllint and prettier read |
+| `.githooks/pre-commit` | the wrapper that runs the local hooks on commit — the snippet below; `chmod +x` |
 
 | Rule | Value |
 |---|---|
@@ -460,15 +459,3 @@ pass, and a full GitHub release is published — a tag alone does not count.
 | Releases | at least one release | `reference/versioning.md` |
 | Owner | the submitter owns the repository, or is a major contributor | — |
 | Lint | the catalog file the pull request changed is valid JSON, and sorted | the pull request |
-
-## Reference
-
-| file | when to read |
-|---|---|
-| `reference/patterns.md` | writing the code inside any generated file — setup and unload, coordinator, entity, notify, `entry.runtime_data`, `DeviceInfo`, typing, the file splits |
-| `reference/testing.md` | writing the tests, and the harness prerequisites behind `tests/conftest.py` and `requirements.test.txt` |
-| `reference/quality-scale.md` | filling in `quality_scale.yaml` |
-| `reference/commits.md` | writing the first commit |
-| `reference/versioning.md` | where the version comes from, and how an rc and a final are published |
-| `reference/github-actions.md` | what the CI stack carries, and each workflow's contract |
-| `reference/github-setup.md` | the GitHub side — token, required checks, ruleset |
