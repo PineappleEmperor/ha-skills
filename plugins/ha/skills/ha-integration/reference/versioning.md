@@ -11,8 +11,9 @@ Read this when cutting or gating a release.
 3. Step 2: Leave the label to the stack
 4. Step 3: Publish the draft
 5. Cases
-6. Release candidate — Step 3
-7. The branch's PR has already merged — Step 3
+6. A merged PR carried too low a type — Step 1
+7. Release candidate — Step 3
+8. The branch's PR has already merged — Step 3
 
 ## Cutting a release
 
@@ -41,6 +42,27 @@ drafts are kept and numbered, and how the body is written and checked, is releas
 README under `release-drafter.yml`.
 
 ## Cases
+
+### A merged PR carried too low a type — Step 1
+
+**Symptom:** the draft's version is lower than the change needs: a break merged under `fix:`
+or `feat:`, so the draft resolves a patch or a minor.
+
+**Fix:** merge a follow-up PR whose commit carries `!` and says what the user has to change.
+
+```bash
+git checkout -b declare-break origin/main
+git commit --allow-empty -m "feat!: <what the user has to change>"
+git push -u origin declare-break
+```
+
+How that commit becomes the PR's title, its `xfeat` label and the notes' Breaking Changes
+entry is `auto-draft-pr.yml`, `pr-checks.yml` and `release-drafter.yml` under *The five
+workflows* in release-flow's README,
+https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/README.md.
+
+**Timing:** before the draft is published; once it is, declare the break the same way in the
+next release.
 
 ### Release candidate — Step 3
 
