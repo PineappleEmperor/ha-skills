@@ -58,8 +58,8 @@ How to verify a copy is *Step 1: Callers, not bodies; copies, not paraphrases* i
 | `.github/workflows/panel-bundle.yml` (panel repos only) | the usage block under *Calling the workflow* in ha-panel-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-panel-ci/main/README.md |
 | `.github/release-drafter.yml`, `.githooks/commit-msg` | release-flow's own files, https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/.github/release-drafter.yml and https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/.githooks/commit-msg, per *Called versus copied* in its README |
 | `.github/workflows/dependency-review.yml`, `hacs-validate.yml`, `hassfest-validate.yml`, `issue_stale.yml` | this skill's `templates/.github/workflows/`; each is settings over a third-party action |
-| `.github/dependabot.yml` | this skill's `templates/`; what it must contain is `reference/dependabot.md` |
-| `ruleset.json`, `pyproject.toml`, `mypy.ini`, `tests/conftest.py`, `tests/__init__.py`, `tests/ruff.toml`, `requirements.test.txt`, `.gitignore`, `.pre-commit-config.yaml`, `.yamllint`, `.prettierrc.js`, `.prettierignore`, and the `CLAUDE.md` and `.githooks/pre-commit` snippets | this skill's `templates/` and `reference/scaffold.md` |
+| `.github/dependabot.yml` | this skill's `templates/`; what it must contain is *Step 1: Write `.github/dependabot.yml`* in `reference/dependabot.md` |
+| `ruleset.json`, `pyproject.toml`, `mypy.ini`, `tests/conftest.py`, `tests/__init__.py`, `tests/ruff.toml`, `requirements.test.txt`, `.gitignore`, `.pre-commit-config.yaml`, `.yamllint`, `.prettierrc.js`, `.prettierignore`, and the `CLAUDE.md` and `.githooks/pre-commit` snippets | this skill's `templates/`; the two snippets are under *Step 7: Write the files no template carries* and *Step 6: Copy the config and CI files* in `reference/scaffold.md` |
 | `frontend/package.json`, `frontend/tsconfig.json` (panel repos only) | ha-panel-ci's `frontend/`, https://raw.githubusercontent.com/PineappleEmperor/ha-panel-ci/main/frontend/package.json and https://raw.githubusercontent.com/PineappleEmperor/ha-panel-ci/main/frontend/tsconfig.json |
 | `scripts/bootstrap_repo.sh` | this skill's `templates/scripts/`; when to run it is *Step 10: Apply the GitHub settings* in `reference/scaffold.md` |
 
@@ -92,7 +92,7 @@ only list of them.
 |---|---|
 | `pyproject.toml` | a `[project]` table carrying no version, and pytest options; never the `[tool.ruff]` tables, which are Home Assistant core's rule set |
 | `frontend/package.json` | the `<domain>` and `<name>` placeholders → this integration's values, as ha-panel-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-panel-ci/main/README.md, says |
-| `requirements.test.txt` | uncomment the `home-assistant-frontend` pin and give it its version, panel repos only — how is `reference/panels.md` |
+| `requirements.test.txt` | uncomment the `home-assistant-frontend` pin and give it its version, panel repos only — how is *Step 2: Pin `home-assistant-frontend` in `requirements.test.txt`* in `reference/panels.md` |
 | `tests/conftest.py` | the repo's own imports and fixtures added to the template's |
 | `ruleset.json` | drop a context the repo does not produce |
 | `.pre-commit-config.yaml` | a hook `rev` newer than the template's, and words added to codespell's `--ignore-words-list` |

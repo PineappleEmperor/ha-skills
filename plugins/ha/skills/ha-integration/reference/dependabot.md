@@ -58,8 +58,9 @@ the next release. A `pip` bump is the one to review before merging — *A `pip` 
 
 ### A `pip` bump — Step 5
 
-A bump here moves the **HA version the suite tests against** (`reference/testing.md` says
-why), and can drag the Python floor with it.
+A bump here moves the **HA version the suite tests against** (*Step 4: Keep the harness pin
+and the Python floor in lockstep* in `reference/testing.md` says why), and can drag the Python
+floor with it.
 
 **Fix:** review these PRs rather than auto-merging, and match ruff's `target-version` and
 `mypy.ini`'s `python_version` to the floor the CI declares, which the audit compares —

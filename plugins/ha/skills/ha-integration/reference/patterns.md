@@ -561,7 +561,7 @@ changes nothing.
 | what a section changes in the call | nothing — sections are UI-only, the call data stays flat, so the action's schema is unaffected |
 
 ### Register integration-global resources in `async_setup`, not `async_setup_entry` — Step 3
-The registration happens once per process; doing it per entry races when two entries set up in parallel. Claim the `hass.data` flag **before** the `await`, or both entries pass the check. The panel case, with the code, is `reference/panels.md`.
+The registration happens once per process; doing it per entry races when two entries set up in parallel. Claim the `hass.data` flag **before** the `await`, or both entries pass the check. The panel case, with the code, is *Step 3: Register the static path and the panel in `async_setup`* in `reference/panels.md`.
 
 ### Diagnostics platform — Step 1
 
@@ -614,7 +614,7 @@ A device has exactly one config entry and at most one subentry: read `config_ent
 |---|---|
 | where each release below comes from | the `breaks_in_ha_version` of the call site that reports that usage, or the version argument of the `DeprecatedConstant`, read at the `.0` tag of the release row in `reference/freshness.md` in `homeassistant/helpers/device_registry.py`, `homeassistant/helpers/device.py`, `homeassistant/helpers/entity_platform.py` and `homeassistant/const.py` |
 | a row naming no release | one core attaches none to |
-| the WebSocket keys of the same names | `reference/panels.md` |
+| the WebSocket keys of the same names | *A panel that reads devices reads them by config entry — Step 3* in `reference/panels.md` |
 | how a custom integration is told | a logged warning, from `report_usage` in `homeassistant/helpers/frame.py` or `deprecated_function` in `homeassistant/helpers/deprecation.py`, at the `.0` tag of the release row in `reference/freshness.md` — unless the row says it raises already |
 
 | anti-pattern | use instead | why (one clause) | reference |
@@ -696,7 +696,7 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 | any other failure | raise `ConfigEntryError` with a `translation_key`, which the entry shows as its reason, or return `False`; either way the entry stops in `migration_error`, as it does for any other exception, which is logged with its traceback and leaves no reason |
 | returning `False` | logs nothing and leaves the entry no reason, so log why before you return it |
 | `ConfigEntryAuthFailed` during migration | logged at WARNING and the entry stops in `migration_error`; no reauth flow starts, since reauth expects a migrated entry |
-| the way out of `migration_error` | a repair issue whose fix flow calls `await hass.config_entries.async_retry_migration(entry_id)` — https://contributors.home-assistant.io/blog/2026/09/17/Use-config-entry-exc-in-migration/ |
+| the way out of `migration_error` | a repair issue whose fix flow calls `await hass.config_entries.async_retry_migration(entry_id)` — https://contributors.home-assistant.io/blog/2026/09/17/use-config-entry-exc-in-migration/ |
 | a major version bump with no `async_migrate_entry` | setup fails for every existing user, so ship the handler in the same change |
 
 ### OAuth2 errors at setup — Step 3
