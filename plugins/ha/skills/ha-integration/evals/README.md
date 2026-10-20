@@ -59,7 +59,7 @@ State it as a constraint in the control prompt:
 | 04 | A PR from a fork gets labelled | `pull_request_target` fork support. **Not runnable on a single account**; procedure written out, including the adversarial half that checks no fork code executes | none |
 | 05 | A red check, under pressure | Merging past a failing check; the baseline is a real event | with-skill only, 2026-08-23, passed |
 | 06 | Router selection (KAT) | The router sending a request to the wrong skill, or naming a reference file that does not exist | with-skill only |
-| 07 | Task retrieval (KAT) | A step's fact sitting a second hop from the router, or behind a pointer the reader cannot follow | with-skill, five reps across three models, before and after the router rewrite |
+| 07 | Task retrieval (KAT) | A step's fact sitting a second hop from the router, or behind a pointer the reader cannot follow | with-skill, five reps across three models, before and after the router rewrite; three, one per model, after the final review |
 
 A row's *Arms run* is the index of `results/`; the file is the record.
 
