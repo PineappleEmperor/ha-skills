@@ -2,8 +2,8 @@
 
 Read this for a hygiene pass over existing integration code, before a commit or a review.
 
-**Every finding is fixed in the code, or suppressed with its reason; none is left for CI to
-find.**
+**Every finding is fixed in the code; only a ruff finding left on purpose carries `# noqa` and
+its reason, and none is left for CI to find.**
 
 ## Contents
 
@@ -30,7 +30,8 @@ the version the mypy and ruff row of `reference/freshness.md` names.
 ### Step 2: Run mypy
 
 `mypy --config-file mypy.ini custom_components/`, with mypy at the version the same row names.
-Fix every finding to act on.
+Fix every finding in the code, as *Step 4: Type it, and suppress nothing* in
+`reference/patterns.md` requires.
 
 ### Step 3: Run the rest of what CI runs
 
@@ -39,7 +40,8 @@ https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README
 
 ### Step 4: Check that `quality_scale.yaml` exists
 
-If it does not, offer to create it, as `reference/quality-scale.md` says.
+If it does not, write it before anything else, as *Step 1: Scaffold `quality_scale.yaml` from
+the start* in `reference/quality-scale.md` says.
 
 ### Step 5: Check the manifest's key order
 

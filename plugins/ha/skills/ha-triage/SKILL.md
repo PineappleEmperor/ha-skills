@@ -4,15 +4,16 @@ description: >-
   Use when a Home Assistant custom integration misbehaves and the fault is not yet named — a
   `home-assistant.log` or traceback naming `custom_components`, a failed setup, entities
   unavailable, stale, missing or duplicated, an action or panel that stopped working, a break
-  after an update — to name the class of fault and the file that owns the fix. Not for
-  writing the fix (ha-integration), nor for automations, dashboards, add-ons or core
-  integrations' devices.
+  after an update, `Setup failed for custom integration`, `Detected blocking call` — to name
+  the class of fault and the file that owns the fix. Not for writing the fix
+  (ha-integration), nor for automations, dashboards, add-ons or core integrations' devices.
 ---
 
 # Home Assistant Triage
 
-**Name the class of fault from a line core printed or a symptom someone saw, then open the
-file that owns that class. A line count ranks nothing.**
+This skill names what is wrong with a misbehaving custom integration, from a line core printed
+or a symptom someone saw, and opens the file that owns the fix. Count a log by logger, not by
+line: one fault can print a thousand lines, and a line count ranks nothing.
 
 ## Detect the fault class
 
@@ -39,7 +40,7 @@ file before naming a cause**.
 | **Deprecation** | it worked before a Home Assistant update; or `Detected that custom integration '<domain>' … This will stop working in Home Assistant <release>` | `ha-integration/reference/patterns.md` | `homeassistant/helpers/frame.py` |
 | **Blocking call** | `Detected blocking call to <function>`, or a `RuntimeError` beginning `Caught blocking call to` | `ha-integration/reference/patterns.md` | `homeassistant/util/loop.py` |
 | **Panel** | the panel shows its previous version after an update, or a change made in its source is not there | `ha-integration/reference/panels.md` | — |
-| **hassfest** | a red hassfest check on the manifest | `ha-integration/reference/scaffold.md` | — |
+| **hassfest** | a red hassfest check on the manifest | `ha-integration/reference/scaffold.md` | https://contributors.home-assistant.io/core/integrations/manifest/index.md, `script/hassfest/manifest.py` |
 | **Naming the cause** | a class is matched and a root cause is about to be named | `ha-integration/reference/discipline.md` | — |
 
 ## Read a log

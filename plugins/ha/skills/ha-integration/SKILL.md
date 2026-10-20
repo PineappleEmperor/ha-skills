@@ -4,8 +4,8 @@ description: >-
   Use when building, changing, testing or releasing a Home Assistant custom integration: the
   `custom_components/` package, its panel, or its repository's CI, Dependabot, HACS listing
   and releases — a new platform, config flow, coordinator or manifest key, a red hassfest,
-  HACS or CI check, a quality-scale tier, a panel that looks wrong beside Home Assistant's
-  pages. Not for naming a fault's cause from a log (ha-triage), Lovelace cards, YAML
+  HACS or CI check, a device_class or state_class warning, a quality-scale tier, a panel that
+  looks wrong beside Home Assistant's pages. Not for naming a fault's cause from a log (ha-triage), Lovelace cards, YAML
   dashboards, or Python unrelated to Home Assistant.
 ---
 

@@ -10,12 +10,13 @@ defect.
 The base is Anthropic's skill-authoring best practices,
 https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices — a concise
 `SKILL.md` that says what the skill is for, a description saying what it does and when to use
-it, and every file a task needs one level from `SKILL.md` — with the description's form taken
-from superpowers' `writing-skills`. Everything below that those two are silent on is this
-repository's own: the block and table shapes, the section orders, the pointer form, the
-cached-fact ledger, and release numbers read back from core. Until 2026-10-20 the base was the
-format of the `home-assistant-best-practices` skill served by the `ha` MCP server — the
-reference implementation the sections below cite where they follow it or depart from it.
+it, and every reference file one level from `SKILL.md` — with the description's form taken
+from superpowers' `writing-skills`, and a rule's reason from Anthropic's `skill-creator`.
+Everything below that those three are silent on is this repository's own: the block and table
+shapes, the section orders, the pointer form, the cached-fact ledger, and release numbers read
+back from core. Until 2026-10-20 the base was the format of the `home-assistant-best-practices`
+skill served by the `ha` MCP server — the reference implementation the sections below cite
+where they follow it or depart from it.
 
 ## Why the shape is the fix
 
@@ -24,7 +25,7 @@ reference implementation the sections below cite where they follow it or depart 
 | The 2026.9 refresh took four review rounds | facts written as prose, so reviews spent themselves on interpretation rather than facts | a fact in a cell is wrong about a release number or it is not wrong |
 | `pending_release` was invented mid-build and broke `patterns.md` | design reasoning had somewhere to live in the file being edited | no field accepts it, so it goes to the rationale doc or nowhere |
 | A `freshness.md` row lists five files that hold the same number | the ledger records duplication instead of the schema forbidding it | a long consumers list is a defect to fix, not a fact to maintain |
-| Eval scenario 07, run on 2026-10-20 before the rewrite: the skill named no panel docs page, and no run reached the breaking-change marker from the file the Release row names | a Source cell could be `—` where an upstream page existed, and a step's fact sat in a second reference file or an unlinked README | an upstream page on every row one covers, and every file a task needs named in its row |
+| Eval scenario 07, run on 2026-10-20 before the rewrite: the skill named no panel docs page, and no run reached the breaking-change marker from the file the Release row names | a Source cell could be `—` where an upstream page existed, and a step's fact sat in a second reference file or an unlinked README | an upstream page on every row one covers, every file a task reads on every run named in its row, and a pointer with a URL to every page outside the skill |
 
 ## Files, by when they are read
 
@@ -43,23 +44,25 @@ reading every pattern.
 
 | # | Section | Form |
 |---|---|---|
-| 1 | frontmatter | `name`; `description` as one paragraph in the third person, starting `Use when`: what the skill covers, the tasks and symptoms that call for it, and the near misses that do not — never a summary of its steps, which an agent follows instead of the body, and never a bullet list, which YAML folds into one line; at most 1024 characters, the spec's cap, and under 500 where it can be, as `writing-skills` asks |
+| 1 | frontmatter | `name`; `description` as one paragraph in the third person, starting `Use when`: what the skill covers, the tasks and symptoms that call for it, and the near misses that do not — never a summary of its steps, which an agent follows instead of the body, and never a bullet list, which YAML folds into one line; the whole frontmatter at most 1024 characters — the spec caps the description alone, and `scripts/skill_meta_audit.py` holds the stricter line — and the description under 500 where it can be, as `writing-skills` asks |
 | 2 | overview | the title, then one paragraph of one or two sentences in plain language: what the skill is for, and the rule a reader keeps if they read nothing else |
 | 3 | mode router | a `##` whose one-line lead-in says what a mode is, then the `mode \| when \| read first \| source` table — the decision workflow, and the only gate a reader needs; a row for every action that has a file, not only for every state of the working directory, and the upstream pages for that action in the fourth column |
 | 4 | mode detail | a `##` per mode that owns commands no reference file holds, and no other mode |
 
-The mode router is the reference map: one row per action, each naming every file that action
-needs — a file may take several rows, and a mode whose commands live in the router names
-none — with the upstream pages for that action beside it. A separate
+The mode router is the reference map: one row per action, each naming the files that action
+reads on every run — a file may take several rows, and a mode whose commands live in the
+router names none — with the upstream pages for that action beside it. A separate
 `file | when to read` table under the router, or a list of source URLs above it, is the
 same relation stated a second time, and the two drift — the `ha-integration` router carried
 both until 2026-09-26.
 
 **One hop.** A reader skims a file that a reference file names, reading part of it, as
 Anthropic's practices record; scenario 07's first run saw even a file the router names read
-only in part. So a mode row names every file its action needs, the step a task needs sits in
-the file that row names, and the `source` cell is `—` only where no upstream page covers the
-action.
+only in part. So every reference file is one the router links; a row names the files its task
+reads on every run; a fact a step uses sits in that step's file, or in the `freshness.md` row
+the step cites; a step that hands its work to another task names that task's file and heading,
+which the reader opens and reads in full as that task's row would send them; and the `source`
+cell is `—` only where no upstream page covers the action.
 
 A router carries no anti-pattern table. Every anti-pattern lives in the file that owns its
 topic, beside the step it contradicts, and the mode table is what gets a reader there before
@@ -158,7 +161,7 @@ column. Matching ignores case and backticks.
 | rule | `rule \| value` — a named constraint and what it is; the default where no narrower shape fits |
 | requirement | `# \| requirement \| answer \| default` — what is asked before anything is written |
 | check | `check \| what's needed \| where to fix` — an external validator's checks, one row each |
-| mode | `mode \| when \| read first \| source`, or `mode \| when \| read first` in a router with no external pages to name — `SKILL.md`'s router, and nowhere else; `read first` names every file the action needs, the entry file first, `when` says when to open them, and `source` holds the upstream pages for that action — the URL that serves its Markdown where there is one (a contributors page's `index.md`, a README at `raw.githubusercontent.com`), the page's own URL where there is not, or a core file path read at the tag the release row of `reference/freshness.md` names — or `—` where none covers it |
+| mode | `mode \| when \| read first \| source`, or `mode \| when \| read first` in a router with no external pages to name — `SKILL.md`'s router, and nowhere else; `read first` names the files the action reads on every run, the entry file first, `when` says when to open them, and `source` holds the upstream pages for that action — the URL that serves its Markdown where there is one (a contributors page's `index.md`, a README at `raw.githubusercontent.com`), the page's own URL where there is not, or a core file path read at the tag the release row of `reference/freshness.md` names — or `—` where none covers it |
 
 A table whose columns fit none of these is a finding, not a licence to invent one — but a
 table degraded into a bullet list is a loss, so report it and the set gains a row. The
@@ -225,7 +228,7 @@ Writing `none` in that column is what turns an unavoidable duplication into a kn
 | a pointer inside the same file | the step or case it names — `Step 5`, `*Entity platform files — Step 1*` — with no file |
 | the heading | must exist verbatim in the target |
 | what a pointer never does | restate the fact it points at |
-| a pointer to another reference file | names a file for a different task; a step this task needs is in this file, or its mode row names both files |
+| a pointer to another reference file | hands the step's work to another task, naming that task's file and heading; a fact the step uses is in this file, or the `freshness.md` row it cites |
 | a pointer outside the skill | carries a URL the reader can fetch — a docs page's `index.md`, or a CI repository's README at `raw.githubusercontent.com` with the heading meant — since a reader in an integration repository has no clone of either |
 
 ## What a release changes

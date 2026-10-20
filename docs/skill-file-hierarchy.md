@@ -8,8 +8,9 @@ resolving each conflict deliberately — not by guessing intent.
 
 **A file owns a topic when it is the file a reader opens *for that task*.** Not the file
 that mentions it most, and not the file where it is most interesting. Everything else
-links, and a task that needs a second owner's fact gets that owner named in its mode row
-too, as *Pointers* in `docs/skill-schema.md` says.
+links: a task that reads a second owner on every run gets it named in its mode row too, and
+a step that hands its work to another task names that task's file and heading, as *Pointers*
+in `docs/skill-schema.md` says.
 
 Three tiers:
 
@@ -49,7 +50,7 @@ Three tiers:
 | scaffolding: what to ask, what to generate | `scaffold.md` | The reader is starting a repo. |
 | `manifest.json` — its keys and what each requires | `scaffold.md` | The manifest is written at scaffold time and its rules do not change after; a later key change reads the same step. `patterns.md` and `SKILL.md`'s Manifest row point here. |
 | `manifest.json` key order | `scaffold.md`, the key-order row of *Step 4: Write `manifest.json`* | It is one more rule about the manifest, which `scaffold.md` owns. `lint.md` checks it and points there. |
-| the lint and quality check — ruff, mypy, the rest of what CI runs, `quality_scale.yaml`, the key order | `lint.md` | The reader is checking existing code before a commit or a review. `scaffold.md`, `patterns.md` and `audit.md` point here. |
+| the lint and quality check — running ruff, mypy and the rest of what CI runs, and checking that `quality_scale.yaml` exists and the key order holds | `lint.md` | The reader is checking existing code before a commit or a review. It owns the run and the check; the rules it checks stay with their owners. `scaffold.md`, `patterns.md` and `audit.md` point here. |
 | audit procedure — the judgement items | `audit.md` | The reader is auditing. Owns no facts of its own; it cites the owners. |
 | the skill's freshness — the values it copies from outside itself, each with its capture date, re-derivation command, the files holding a copy, and the check that keeps them in step | `freshness.md` | The reader is asking whether the skill is still current. A task file cites the row; a file that must hold the value is listed as its consumer. |
 | how a panel looks — type scale, theme tokens, spacing, touch targets, disclosure | `panel-design.md` | The reader is changing a panel's CSS or markup. `panels.md` and `SKILL.md`'s Panel design row point here; it points at `panels.md` for the bundle. |
