@@ -227,9 +227,10 @@ Writing `none` in that column is what turns an unavoidable duplication into a kn
 | form | `*<heading>* in \`<file>\`` — the form `check_named_sections` in `scripts/skill_meta_audit.py` reads, and the one every shipped file uses |
 | a pointer inside the same file | the step or case it names — `Step 5`, `*Entity platform files — Step 1*` — with no file |
 | the heading | must exist verbatim in the target |
-| what a pointer never does | restate the fact it points at |
-| a pointer to another reference file | hands the step's work to another task, naming that task's file and heading; a fact the step uses is in this file, or the `freshness.md` row it cites |
-| a pointer outside the skill | carries a URL the reader can fetch — a docs page's `index.md`, or a CI repository's README at `raw.githubusercontent.com` with the heading meant — since a reader in an integration repository has no clone of either |
+| a fact the step uses | stated in the step, once; a citation beside it names where the fact came from, and is never a second copy to go and read |
+| a pointer to another reference file | only to hand the step's remaining work to another task, naming that task's file and heading — never to fetch a fact this step needs, which belongs in this step |
+| a pointer outside the skill that sends the reader to read it | carries a URL the reader can fetch — a docs page's `index.md`, or a CI repository's README at `raw.githubusercontent.com` with the heading meant — since a reader in an integration repository has no clone of either |
+| a `reference` cell, or a "where each row was read" cell | the fact's origin, as *Anti-patterns, and where they live* gives it; a core file and call site needs no URL, since the reader is not sent there |
 
 ## What a release changes
 
