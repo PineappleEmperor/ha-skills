@@ -29,11 +29,10 @@ Read this when cutting or gating a release.
 
 ### Step 2: Leave the label to the stack
 
-Never add a second labeler or patch a label by hand: the autolabeler and the label gate own
-the label — `pr-checks.yml` under *The five workflows* in release-flow's README,
-https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/README.md. If the gate
-says the label is wrong, fix the title or the commits, in the form *Step 2: Write the subject
-in the Conventional Commits form* in `reference/commits.md` gives.
+| Rule | Value |
+|---|---|
+| who owns the label | the autolabeler and the label gate; never a second labeler or a label set by hand — `pr-checks.yml` under *The five workflows* in release-flow's README, https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/README.md |
+| when the gate says the label is wrong | fix the title or the commits, in the form *Step 2: Write the subject in the Conventional Commits form* in `reference/commits.md` gives |
 
 The `pull_request_target` deadlock and its narrow exception are *One exception, and it is
 narrow — merge Step 2* in `reference/discipline.md`.
