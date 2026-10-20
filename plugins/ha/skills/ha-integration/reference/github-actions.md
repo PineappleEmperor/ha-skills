@@ -41,10 +41,10 @@ order:
    `plugins/ha/skills/ha-integration/templates/` inside a checkout of the skill repo.
 4. **Last resort:** `find ~/.claude ~/.agents . -type d -path '*ha-integration/templates' 2>/dev/null`
 
-It holds the copied files Step 2 names: the four plain workflows, `.github/dependabot.yml`,
-`tests/`, `pyproject.toml`, `mypy.ini`, `requirements.test.txt`, `ruleset.json`,
-`.gitignore`, the four local-hook files, `scripts/bootstrap_repo.sh` and `hooks/` (optional
-per-turn reminders for your own `~/.claude`, installed per the header in each script).
+| Rule | Value |
+|---|---|
+| the files it holds for Step 2 | the four plain workflows, `.github/dependabot.yml`, `tests/`, `pyproject.toml`, `mypy.ini`, `requirements.test.txt`, `ruleset.json`, `.gitignore`, the four local-hook files and `scripts/bootstrap_repo.sh` |
+| `hooks/` | optional reminders for your own `~/.claude`, carried by no integration; each is installed as its script's header says |
 
 ### Step 2: Take each file from its source
 
@@ -56,16 +56,18 @@ How to verify a copy is *Step 1: Callers, not bodies; copies, not paraphrases* i
 | `.github/workflows/pr-checks.yml`, `lint-pr.yml`, `auto-draft-pr.yml`, `release-drafter.yml` | the usage blocks under *Calling the workflows* in release-flow's README, https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/README.md |
 | `.github/workflows/python-validate.yml`, `quality-audit.yml`, `release.yml` | the usage blocks under *Calling the workflows* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
 | `.github/workflows/panel-bundle.yml` (panel repos only) | the usage block under *Calling the workflow* in ha-panel-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-panel-ci/main/README.md |
-| `.github/release-drafter.yml`, `.githooks/commit-msg` | release-flow's own files, https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/.github/release-drafter.yml and https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/.githooks/commit-msg, per *Called versus copied* in its README |
+| `.github/release-drafter.yml`, `.githooks/commit-msg` | release-flow's own files, https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/.github/release-drafter.yml and https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/.githooks/commit-msg, per *Called versus copied* in its README, https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/README.md |
 | `.github/workflows/dependency-review.yml`, `hacs-validate.yml`, `hassfest-validate.yml`, `issue_stale.yml` | this skill's `templates/.github/workflows/`; each is settings over a third-party action |
 | `.github/dependabot.yml` | this skill's `templates/`; what it must contain is `reference/dependabot.md` |
 | `ruleset.json`, `pyproject.toml`, `mypy.ini`, `tests/conftest.py`, `tests/__init__.py`, `tests/ruff.toml`, `requirements.test.txt`, `.gitignore`, `.pre-commit-config.yaml`, `.yamllint`, `.prettierrc.js`, `.prettierignore`, and the `CLAUDE.md` and `.githooks/pre-commit` snippets | this skill's `templates/` and `reference/scaffold.md` |
-| `frontend/package.json`, `frontend/tsconfig.json` (panel repos only) | ha-panel-ci's `frontend/`, https://github.com/PineappleEmperor/ha-panel-ci/tree/main/frontend |
+| `frontend/package.json`, `frontend/tsconfig.json` (panel repos only) | ha-panel-ci's `frontend/`, https://raw.githubusercontent.com/PineappleEmperor/ha-panel-ci/main/frontend/package.json and https://raw.githubusercontent.com/PineappleEmperor/ha-panel-ci/main/frontend/tsconfig.json |
 | `scripts/bootstrap_repo.sh` | this skill's `templates/scripts/`; when to run it is *Step 10: Apply the GitHub settings* in `reference/scaffold.md` |
 
 | Rule | Value |
 |---|---|
-| what the audit checks in a caller | that its `uses:` names the right repository and workflow at a SHA with a version comment, and that it carries no body; never that it matches its README block, so a caller written from memory can pass — *What the audit checks now* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
+| what the audit checks in a caller | that its `uses:` names the right repository and workflow, and that it carries no body — `check_callers` under *What the audit checks now* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
+| what the audit checks in a pin | a 40-hex SHA with a version comment — `check_action_pins` under *What the audit checks now* in ha-integration-ci's README |
+| what the audit never checks | that a copied file matches its source, so a caller written from memory can pass — the core rule of `reference/audit.md` |
 
 The four workflows the scaffold copies whole are settings over a third-party action, so they
 carry nothing of ours to version:
@@ -82,7 +84,7 @@ carry nothing of ours to version:
 | Rule | Value |
 |---|---|
 | what every caller block ends in | `@{{sha}} # {{tag}}` |
-| how to resolve both | the two commands the same README prints after its blocks, run before writing the file |
+| how to resolve both | the two commands printed after the caller blocks in the README Step 2 names for that caller, run before writing the file |
 | how the pin moves after that | *The version model* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
 
 ### Step 4: Apply only the sanctioned adaptations
@@ -132,4 +134,5 @@ located — Step 1* requires for the templates.
 
 | Rule | Value |
 |---|---|
-| what the audit does with the marker | lets that workflow run `gh pr create`; the reason is for a reader, and the audit does not read it — *What the audit checks now* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
+| what the marker allows | `gh pr create` in that workflow — *What the audit checks now* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
+| who reads the reason | a person; the audit reads only the marker |
