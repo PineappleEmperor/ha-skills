@@ -74,7 +74,7 @@ Under `custom_components/<domain>/`. What goes inside each file is `reference/pa
 | `services.yaml` | each action's fields — *`services.yaml` + `translations/en.json` — Step 1* in `reference/patterns.md` | the integration registers its own action, where no standard one fits |
 | `api.py`, `coordinator.py`, `models.py`, `entity.py`, `helpers.py` | what *Step 1: Lay out the files by responsibility* in `reference/patterns.md` gives each | as that step says |
 
-**Docstrings and comments in every generated module**
+**Docstrings and comments in every generated module:**
 
 | Rule | Value |
 |---|---|
@@ -141,7 +141,7 @@ rest.
 |---|---|---|---|
 | Marketplace, replacing HACS, shows an integration's `brand/` images before install, picked up from the latest release of every integration in the catalog; an entry for the domain in `home-assistant/brands` wins over them | 2026.11 — https://contributors.home-assistant.io/marketplace/guides/integrations/; the brands entry winning, `BrandsMarketplaceView.get` in core's `homeassistant/components/brands/__init__.py` on `dev` | ship `brand/icon.png` in every release | nothing |
 
-**Which files to ship**
+**Which files to ship:**
 
 | File | Holds | When |
 |---|---|---|
@@ -168,7 +168,7 @@ rest.
 | nothing on the CDN either, requested with `?placeholder=no` | 404 |
 | nothing on the CDN either, requested without it | a generic placeholder |
 
-**Rules every file must meet**
+**Rules every file must meet:**
 
 - PNG; compressed and optimised, lossless preferred, interlaced preferred, transparent preferred.
 - The unprefixed file is the one optimised for a white ground; the dark-optimised one takes the `dark_` prefix.
@@ -387,7 +387,7 @@ CONF_REFRESH_TOKEN = "refresh_token"
 | an entry too long for the column | re-pad the whole block, in the same commit |
 | a generator that emits a fenced table | emits the fence too, or the next regeneration drops it |
 
-**What earns a fence**
+**What earns a fence:**
 
 - Padding before `=` or `:`.
 - Padding after them, where the values form the column.
