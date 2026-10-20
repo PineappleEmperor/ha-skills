@@ -54,9 +54,13 @@ nothing else.**
 
 | Rule | Value |
 |---|---|
-| what the stack asks of a Dependabot PR | nothing more: the label gate skips a PR a bot opened, and the `chore:` title labels it — `pr-checks.yml` under *The five workflows* in release-flow's README, https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/README.md |
-| a `github-actions` bump | merge it once its checks are green; it ships in the next release as a patch |
-| a `pip` bump | review it before merging, never auto-merge it — *A `pip` bump — Step 5* |
+| an exemption for Dependabot | none: nothing compares a committed version |
+| the label gate on a Dependabot PR | skipped, since a bot opened the PR — the `if:` of the `title-check` job, https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/.github/workflows/pr-checks.yml |
+| where a Dependabot PR lands in the release | under 🧰 Maintenance, from its `chore` label — https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/.github/release-drafter.yml |
+| a `github-actions` bump | merge it once its checks are green |
+| a bump of the callers to a new major of a CI repository | add to the PR the edits *The version model* lists under that version; it cannot go green without them — ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
+| a bump of the callers to an ha-integration-ci release on a new Python floor | raise ruff's `target-version` and `mypy.ini`'s `python_version` to that floor in the same PR, since the audit fails while they differ from the reusable workflows' — `version_sync.py` under *What the audit checks now* in ha-integration-ci's README |
+| a `pip` bump | review it before merging — *A `pip` bump — Step 5* |
 
 ## Cases
 
@@ -68,17 +72,18 @@ floor in lockstep* in `reference/testing.md`.
 
 | Rule | Value |
 |---|---|
-| what the audit compares | ruff's `target-version` and `mypy.ini`'s `python_version` against the Python version ha-integration-ci's three reusable workflows set up — `version_sync.py` under *What the audit checks now* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
-| where the new floor is read | the `requires-python` of the harness release the PR pins, on https://pypi.org/project/pytest-homeassistant-custom-component/ |
-| a bump that raises the floor | merge it after the callers' pins reach an ha-integration-ci release on that floor, with `target-version` and `python_version` raised to match in the same PR |
+| where the new floor is read | `requires_python` in https://pypi.org/pypi/pytest-homeassistant-custom-component/<version>/json, for the version the PR pins |
+| the floor at the skill's last refresh | the harness row of `reference/freshness.md` |
+| a bump that raises the floor | merge it only once the callers sit on an ha-integration-ci release on that floor, whose own PR raised the floor — Step 5 |
 
-**Fix:** check the new harness's floor before merging, and follow the table when it rises.
+**Fix:** check the new harness's floor before merging, and wait for the CI release when it rises.
 
 ### Re-copying a plain workflow — Step 2
 
-The four plain workflows ship in `templates/.github/workflows/` with the pins they carried
-when the skill was written, so re-copying one over a file Dependabot has bumped moves its
-pins backwards. The callers ship with no stored pin, so a re-copy cannot regress them.
+The four plain workflows ship in `templates/.github/workflows/` with the pins of the skill's
+last refresh — the GitHub action versions row of `reference/freshness.md` — so re-copying
+one over a file Dependabot has bumped since moves its pins backwards. The callers ship with
+no stored pin, so a re-copy cannot regress them.
 
 **Fix:** diff before overwriting, then follow the plain-workflows row of *Step 4: Apply only
 the sanctioned adaptations* in `reference/github-actions.md`.
