@@ -12,7 +12,7 @@ nothing else.**
 3. Step 2: Enable `github-actions`
 4. Step 3: Enable `pip`
 5. Step 4: Leave `manifest.json` `requirements` to a deliberate PR
-6. Step 5: Merge the PRs as they arrive
+6. Step 5: Merge the PRs once their checks are green
 7. Cases
 8. A `pip` bump — Step 5
 9. Re-copying a plain workflow — Step 2
@@ -48,11 +48,11 @@ test dependencies are pinned, as the template ships them
 | raising a `>=` floor | by hand, in a PR of its own |
 | automating it | nothing in the stack does; anything that ever does is a reusable workflow in ha-integration-ci, never a script and a PR opener written into one repo |
 
-### Step 5: Merge the PRs as they arrive
+### Step 5: Merge the PRs once their checks are green
 
 Dependabot needs no exemption: nothing compares a committed version, and the label gate
-skips bot-authored PRs. Its PRs carry a `chore` label from their `chore:` title, fold into
-the next release, and need no special case anywhere.
+skips bot-authored PRs. Its PRs carry a `chore` label from their `chore:` title and fold into
+the next release. A `pip` bump is the one to review before merging — *A `pip` bump — Step 5*.
 
 ## Cases
 
