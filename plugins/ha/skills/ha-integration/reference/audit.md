@@ -21,9 +21,9 @@ its source, and never runs the repo's tests.**
 
 | Rule | Value |
 |---|---|
-| what runs it on every PR | the `quality-audit` caller, per *Calling the workflows* in ha-integration-ci's README |
+| what runs it on every PR | the `quality-audit` caller — *Calling the workflows* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
 | running it by hand | `python3 scripts/skill_audit.py --root <repo>`, from a checkout of ha-integration-ci |
-| the list of mechanical checks | `--list`, and *What the audit checks now* in that README |
+| the list of mechanical checks | `--list`, and *What the audit checks now* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
 | what this file adds | the items below, which a grep cannot decide |
 
 ### Step 1: Callers, not bodies; copies, not paraphrases
@@ -36,7 +36,7 @@ file.
 | a workflow the scaffold carries | either a caller matching its README block with the tokens resolved, or a copy matching this skill's `templates/` |
 | where `templates/` is | *Step 1: Locate `templates/`* in `reference/github-actions.md` |
 | every difference from the source | in *Step 4: Apply only the sanctioned adaptations* in `reference/github-actions.md`, or it is a finding |
-| what the mechanical audit checks | *What the audit checks now* in ha-integration-ci's README |
+| what the mechanical audit checks | *What the audit checks now* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
 | `.github/` and `scripts/` | scan for extras the template does not have |
 
 | anti-pattern | use instead | why (one clause) | reference |
@@ -68,25 +68,29 @@ before claiming a tier* in `reference/testing.md`.
 
 ### Step 5: Commit and PR discipline
 
-Subjects and titles judged against `reference/commits.md`, the version model against
-`reference/versioning.md`.
+| Rule | Value |
+|---|---|
+| commit subjects and PR titles | judged against *Step 2: Write the subject in the Conventional Commits form* in `reference/commits.md` |
+| PR bodies | judged against *Step 1: Leave the body empty* in `reference/commits.md` |
+| the version model | judged against *Step 1: Let the merged PRs' labels decide the version* in `reference/versioning.md` |
 
 ### Step 6: Cached facts still true
 
-Apply the core rule of `reference/freshness.md` to every row, and report each as still
-current or stale with its new value.
+Hand this to the Freshness task: every row of *The cached facts* in `reference/freshness.md`,
+each reported as still current, or stale with its new value.
 
 ### Step 7: Run what CI runs
 
-Run every step of `reference/lint.md` and the test suite against the repository under audit,
-and read the result, before reporting the audit clean.
+Run every step of *The check* in `reference/lint.md` and the test suite against the
+repository under audit, and read the result, before reporting the audit clean.
 
 ```bash
 pytest tests/ -q
 ```
 
-> **Note:** the command block in ha-integration-ci's README is that repository's own; a
-> consumer reaches those scripts through `quality-audit.yml` instead.
+> **Note:** the commands under *Working on this repository* in ha-integration-ci's README,
+> https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md, are
+> that repository's own; a consumer reaches its scripts through `quality-audit.yml` instead.
 
 ### Step 8: Report
 
