@@ -50,9 +50,9 @@ test dependencies are pinned, as the template ships them
 
 ### Step 5: Merge the PRs once their checks are green
 
-Dependabot needs no exemption: nothing compares a committed version, and the label gate
-skips bot-authored PRs. Its PRs carry a `chore` label from their `chore:` title and fold into
-the next release. A `pip` bump is the one to review before merging — *A `pip` bump — Step 5*.
+Merge each once its checks are green. Dependabot needs no exemption: nothing compares a
+committed version, and the label gate skips bot-authored PRs. Its PRs carry a `chore` label
+from their `chore:` title and fold into the next release. A `pip` bump is the one to review before merging — *A `pip` bump — Step 5*.
 
 ## Cases
 
