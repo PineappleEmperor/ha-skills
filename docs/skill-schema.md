@@ -36,7 +36,7 @@ reading every pattern.
 |---|---|---|---|
 | deciding | `SKILL.md` | should I act, and where do I go | yes |
 | doing | `reference/<topic>.md` | what shape does this take | yes |
-| checking currency | `reference/freshness.md` | is this value still true, and what moves with it | yes |
+| checking freshness | `reference/freshness.md` | is this value still true, and what moves with it | yes |
 | maintaining | `docs/*.md` | why it is this way, what is still wrong | no |
 
 ## `SKILL.md` — section order, fixed

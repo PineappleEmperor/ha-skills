@@ -39,7 +39,7 @@ Pick the mode from what is about to be done, then **read that mode's file before
 | **Catalog** | getting the integration into the default catalog HACS and the Marketplace read, or putting its My links in the README | `reference/scaffold.md` | Get into the catalog: https://contributors.home-assistant.io/marketplace/guides/catalog/ |
 | **Repo setup** | configuring the repository on GitHub: token, required checks, dependency graph, supply chain | `reference/github-setup.md` | — |
 | **Audit** | auditing a repository against this skill | `reference/audit.md` | — |
-| **Currency** | acting on a pin, SHA, count or Home Assistant release number, or asking whether a cached value is still true | `reference/freshness.md` | What a release changed or deprecated: https://contributors.home-assistant.io/blog/ |
+| **Freshness** | acting on a pin, SHA, count or Home Assistant release number, or asking whether a cached value is still true | `reference/freshness.md` | What a release changed or deprecated: https://contributors.home-assistant.io/blog/ |
 
 ## Lint & quality check
 

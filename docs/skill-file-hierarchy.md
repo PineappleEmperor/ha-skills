@@ -20,7 +20,7 @@ Three tiers:
    stated here is stated *only* here.
 2. **Task files** — one per trigger. Own their topic outright, including every anti-pattern
    for that topic.
-3. **The currency ledger** (`freshness.md`) — owns the values the skill copies from outside
+3. **The freshness ledger** (`freshness.md`) — owns the values the skill copies from outside
    itself and must keep in step with their source: the Home Assistant release it is written
    for, the Python floor, the harness pin, the action versions, the revision of an external
    spec it was read against. Each row carries when the value was captured, the command that
@@ -50,7 +50,7 @@ Three tiers:
 | `manifest.json` — its keys and what each requires | `scaffold.md` | The manifest is written at scaffold time and its rules do not change after; a later key change reads the same step. `patterns.md` and `SKILL.md`'s Manifest row point here. |
 | `manifest.json` key order | `SKILL.md`, item 5 of *Lint & quality check* | It is hassfest's rule, and the lint check is where it is checked. `scaffold.md` points there. |
 | audit procedure — the judgement items | `audit.md` | The reader is auditing. Owns no facts of its own; it cites the owners. |
-| the skill's currency — the values it copies from outside itself, each with its capture date, re-derivation command, the files holding a copy, and the check that keeps them in step | `freshness.md` | The reader is asking whether the skill is still current. A task file cites the row; a file that must hold the value is listed as its consumer. |
+| the skill's freshness — the values it copies from outside itself, each with its capture date, re-derivation command, the files holding a copy, and the check that keeps them in step | `freshness.md` | The reader is asking whether the skill is still current. A task file cites the row; a file that must hold the value is listed as its consumer. |
 | how a panel looks — type scale, theme tokens, spacing, touch targets, disclosure | `panel-design.md` | The reader is changing a panel's CSS or markup. `panels.md` and `SKILL.md`'s Panel design row point here; it points at `panels.md` for the bundle. |
 
 ## Conflicts found, and how each was resolved
