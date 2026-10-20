@@ -56,7 +56,9 @@ nothing else.**
 |---|---|
 | the committed `version` in `manifest.json` | a placeholder between releases — *Implementation notes* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
 | what writes the real version | `release.yml`, with the release tag, at publish — the `release.yml` row of *The three workflows* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
-| what compares the committed version on a PR | no check, so a Dependabot PR needs no exemption — the manifest keys `check_quality_scale_and_manifest` reads, in https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/scripts/skill_audit.py |
+| what compares the committed version on a PR | no check, so a Dependabot PR needs no exemption |
+| the manifest keys the audit reads | not `version` — *What the audit checks now* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
+| what the label gate runs of `manifest_gate.py` | `--suggest` alone, which reads no manifest — the last step of `title-check`, https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/.github/workflows/pr-checks.yml |
 | the label gate on a Dependabot PR | skipped, since a bot opened the PR — the `if:` of the `title-check` job, https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/.github/workflows/pr-checks.yml |
 | where a Dependabot PR lands in the release notes | under 🧰 Maintenance, from its `chore:` commit subject — `MAINT`, `classify` and `HEADINGS` in release-flow's `scripts/commit_summary.py`, https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/scripts/commit_summary.py |
 | a `github-actions` bump | merge it once its checks are green |

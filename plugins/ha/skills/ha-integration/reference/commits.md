@@ -96,7 +96,7 @@ No job writes it, and the draft PR arrives empty.
 
 | Rule | Value |
 |---|---|
-| text typed into a draft release | lost, since `release-drafter.yml` rewrites the body — *The PR body — for reviewers, and nothing users read* |
+| text typed into a draft release | lost, since `release-drafter.yml` writes the body over it, last of all at publish — `release-drafter.yml` under *The five workflows* in release-flow's README, https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/README.md |
 | what a reader of the release should learn | goes in the commit subjects |
 | who writes the release body | one workflow; the audit fails a second writer among the workflow bodies the repository carries — *What the audit checks now* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
 

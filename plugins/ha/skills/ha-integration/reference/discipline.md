@@ -77,5 +77,8 @@ next PR, where the fixed caller runs as `main`'s.
 
 ### An action hits more devices than it should — debugging Step 2
 
-**Fix:** suspect a call with no target first; the code fix is the Modify task, so hand it to
-the "a call with no target" row of *Custom services — Step 1* in `reference/patterns.md`.
+The usual cause: `hass.services.async_call(DOMAIN, svc, …)` with no target reaches every
+config entry, so a handler that does not filter acts on all of them.
+
+**Fix:** a code change, which is the Modify task — the "a call with no target" row of
+*Custom services — Step 1* in `reference/patterns.md`.

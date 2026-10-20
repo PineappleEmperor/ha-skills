@@ -70,9 +70,9 @@ before claiming a tier* in `reference/testing.md`.
 
 | Rule | Value |
 |---|---|
-| commit subjects and PR titles | judged against *Step 2: Write the subject in the Conventional Commits form* in `reference/commits.md` |
-| PR bodies | judged against *Step 1: Leave the body empty* in `reference/commits.md` |
-| the version model | judged against *Step 1: Let the merged PRs' labels decide the version* in `reference/versioning.md` |
+| commit subjects and PR titles | judged against every step of *Commit subjects* in `reference/commits.md` |
+| PR bodies, release descriptions and PR comments | judged against every step of *The PR body — for reviewers, and nothing users read* in `reference/commits.md` |
+| the version model | judged against every step of *Cutting a release* in `reference/versioning.md` |
 
 ### Step 6: Cached facts still true
 
@@ -89,8 +89,8 @@ pytest tests/ -q
 ```
 
 > **Note:** the commands under *Working on this repository* in ha-integration-ci's README,
-> https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md, are
-> that repository's own; a consumer reaches its scripts through `quality-audit.yml` instead.
+> https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md, are its
+> own; a consumer runs those scripts through its `python-validate` and `quality-audit` callers.
 
 ### Step 8: Report
 
