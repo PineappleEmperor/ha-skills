@@ -78,8 +78,8 @@ current or stale with its new value.
 
 ### Step 7: Run what CI runs
 
-Run the *Lint & quality check* commands in `SKILL.md` and the test suite against the
-repository under audit, and read the result, before reporting the audit clean.
+Run every step of `reference/lint.md` and the test suite against the repository under audit,
+and read the result, before reporting the audit clean.
 
 ```bash
 pytest tests/ -q

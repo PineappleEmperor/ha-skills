@@ -106,9 +106,8 @@ ha-integration-ci's README.
 
 ### Step 4: Type it, and suppress nothing
 
-The `strict-typing` rule in `reference/quality-scale.md`. Every file passes the mypy run
-*Lint & quality check* in `SKILL.md` names, under the shipped `mypy.ini`, with zero errors,
-before a PR is ready.
+The `strict-typing` rule in `reference/quality-scale.md`. Every file passes *Step 2: Run mypy*
+in `reference/lint.md`, under the shipped `mypy.ini`, with zero errors, before a PR is ready.
 
 - **Never add `from __future__ import annotations`** — HA's Python floor (the row in
   `reference/freshness.md`) is past the release where PEP 649 made annotation evaluation
