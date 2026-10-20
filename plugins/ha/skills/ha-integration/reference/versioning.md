@@ -48,7 +48,7 @@ what the body is built from is *The PR body — for reviewers, and nothing users
 **Symptom:** the draft's version is lower than the change needs: a break merged under `fix:`
 or `feat:`, so the draft resolves a patch or a minor.
 
-**Fix:** merge a follow-up PR whose commit carries `!` and says what the user has to change.
+**Fix:** merge a follow-up PR whose commit carries `!`, the breaking marker *Step 2: Write the subject in the Conventional Commits form* in `reference/commits.md` names, and says what the user has to change — never a label set by hand, as Step 2 says.
 
 ```bash
 git checkout -b declare-break origin/main
