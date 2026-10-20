@@ -12,7 +12,7 @@ nothing else.**
 3. Step 2: Enable `github-actions`
 4. Step 3: Enable `pip`
 5. Step 4: Leave `manifest.json` `requirements` to a deliberate PR
-6. Step 5: Merge the PRs as they arrive
+6. Step 5: Merge each PR once its checks are green
 7. Cases
 8. A `pip` bump — Step 5
 9. Re-copying a plain workflow — Step 2
@@ -23,22 +23,24 @@ nothing else.**
 
 | Rule | Value |
 |---|---|
-| `commit-message.prefix: "chore"` | on each ecosystem, so titles read `chore: bump …` and the autolabeler files them; the mapping is release-flow's drafter config |
-| `cooldown: {exclude: ["PineappleEmperor/*"]}` | on the `github-actions` ecosystem alone — what it exempts, what keeps the hold, and why it is spelled that way, is the cooldown bullet of *The version model* in ha-integration-ci's README |
+| `commit-message.prefix: "chore"` | on each ecosystem, so titles read `chore: bump …` and the autolabeler labels them `chore`, a patch — release-flow's `.github/release-drafter.yml`, https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/.github/release-drafter.yml |
+| `cooldown: {exclude: ["PineappleEmperor/*"]}` | on the `github-actions` ecosystem alone, so a release of this stack's CI arrives without the three-day hold every other action and package keeps — the cooldown bullet of *The version model* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
 | what turns it on | the file on the default branch; GitHub needs no setting switched on for version updates |
-| the scaffold's copy | `templates/.github/dependabot.yml` carries both rows above |
+| the scaffold's copy | `templates/.github/dependabot.yml`, which carries both rows above and groups each ecosystem's bumps into one weekly PR |
 
 ### Step 2: Enable `github-actions`
 
-Bumps every `uses:` pin under `.github/workflows/`: the action pins in the four plain
-workflows, and the callers' pins, which is how a release of a CI repository reaches you —
-*The version model* in ha-integration-ci's README.
+| Rule | Value |
+|---|---|
+| what it bumps | every `uses:` pin under `.github/workflows/`: the action pins in the four plain workflows, and the callers' pins |
+| how a release of a CI repository reaches the integration | as that bump, with the pin's SHA and its version comment moved together in one PR — *The version model* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
 
 ### Step 3: Enable `pip`
 
-Points at `requirements.test.txt` / `pyproject`. It has something to bump only where the
-test dependencies are pinned, as the template ships them
-(`pytest-homeassistant-custom-component==…`); no version specifier means nothing to bump.
+| Rule | Value |
+|---|---|
+| what it reads | `requirements.test.txt` and `pyproject.toml` at the repository root, the template's `directory: /` |
+| what it bumps | a version pinned with `==`, as the template pins `pytest-homeassistant-custom-component`; a requirement with no version specifier gives it nothing to bump |
 
 ### Step 4: Leave `manifest.json` `requirements` to a deliberate PR
 
@@ -48,29 +50,35 @@ test dependencies are pinned, as the template ships them
 | raising a `>=` floor | by hand, in a PR of its own |
 | automating it | nothing in the stack does; anything that ever does is a reusable workflow in ha-integration-ci, never a script and a PR opener written into one repo |
 
-### Step 5: Merge the PRs as they arrive
+### Step 5: Merge each PR once its checks are green
 
-Dependabot needs no exemption: nothing compares a committed version, and the label gate
-skips bot-authored PRs. Its PRs carry a `chore` label from their `chore:` title, fold into
-the next release, and need no special case anywhere.
+| Rule | Value |
+|---|---|
+| what the stack asks of a Dependabot PR | nothing more: the label gate skips a PR a bot opened, and the `chore:` title labels it — `pr-checks.yml` under *The five workflows* in release-flow's README, https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/README.md |
+| a `github-actions` bump | merge it once its checks are green; it ships in the next release as a patch |
+| a `pip` bump | review it before merging, never auto-merge it — *A `pip` bump — Step 5* |
 
 ## Cases
 
 ### A `pip` bump — Step 5
 
-A bump here moves the **HA version the suite tests against** (`reference/testing.md` says
-why), and can drag the Python floor with it.
+A bump to `pytest-homeassistant-custom-component` moves the Home Assistant version the suite
+tests against, and can raise the Python floor — *Step 4: Keep the harness pin and the Python
+floor in lockstep* in `reference/testing.md`.
 
-**Fix:** review these PRs rather than auto-merging, and match ruff's `target-version` and
-`mypy.ini`'s `python_version` to the floor the CI declares, which the audit compares —
-*What the audit checks now* in ha-integration-ci's README.
+| Rule | Value |
+|---|---|
+| what the audit compares | ruff's `target-version` and `mypy.ini`'s `python_version` against the Python version ha-integration-ci's three reusable workflows set up — `version_sync.py` under *What the audit checks now* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
+| where the new floor is read | the `requires-python` of the harness release the PR pins, on https://pypi.org/project/pytest-homeassistant-custom-component/ |
+| a bump that raises the floor | merge it after the callers' pins reach an ha-integration-ci release on that floor, with `target-version` and `python_version` raised to match in the same PR |
 
-**Timing:** a floor move is a CI release first.
+**Fix:** check the new harness's floor before merging, and follow the table when it rises.
 
 ### Re-copying a plain workflow — Step 2
 
-The callers carry no stored pin anywhere but your repo, so there is nothing to regress. The
-four plain workflows have a template, so re-copying one can move its pin *backwards*.
+The four plain workflows ship in `templates/.github/workflows/` with the pins they carried
+when the skill was written, so re-copying one over a file Dependabot has bumped moves its
+pins backwards. The callers ship with no stored pin, so a re-copy cannot regress them.
 
-**Fix:** diff before overwriting, then apply the plain-workflows row of *Step 4: Apply only
+**Fix:** diff before overwriting, then follow the plain-workflows row of *Step 4: Apply only
 the sanctioned adaptations* in `reference/github-actions.md`.
