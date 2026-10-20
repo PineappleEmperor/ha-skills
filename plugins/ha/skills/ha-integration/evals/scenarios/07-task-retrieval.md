@@ -34,8 +34,8 @@ integration repository has none.
 
 | Request | The answer holds | Reached by |
 |---|---|---|
-| A | the merged PRs' labels decide the version and the highest wins; `!` on the type in the PR title is the only breaking marker, never a `BREAKING CHANGE:` footer; with the PR already merged, the fix is a follow-up PR whose commit carries `!`, never a hand-set label or a hand-written version | a file the router's Release row names, or a URL the row or that file gives |
-| B | `https://contributors.home-assistant.io/frontend/custom-ui/panel/index.md`, or the same page without `index.md` | the router's Panel row, or the file it names |
+| A | the merged PRs' labels decide the version and the highest wins; `!` on the type in the PR title is the only breaking marker, never a `BREAKING CHANGE:` footer; the fix is the title or the commits, never a hand-set label or a hand-written version | a file the router's Release row names, or a URL the row or that file gives |
+| B | `https://contributors.home-assistant.io/frontend/custom-ui/panel/` | the router's Panel row, or the file it names |
 | C | no auto-merge; the bump moves the Home Assistant version the tests run against, and can move the Python floor; match ruff's `target-version` and mypy's `python_version` to the floor the CI declares | a file the router's Dependabot row names, or a URL the row or that file gives |
 | D | `reference/freshness.md`'s release row and the command that re-derives it | the router row a reader asking "is this current" picks |
 

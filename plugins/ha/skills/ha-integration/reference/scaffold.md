@@ -23,6 +23,7 @@ from memory.
 14. A repository adopting the stack carries ruff exclusions — Step 6
 15. `HACS validation` is red — Step 9
 16. The integration goes into the default catalog — Step 10
+17. Reference
 
 ## The scaffold
 
@@ -57,8 +58,7 @@ folder and the manifest's `domain` key, and every config entry is stored under i
 
 ### Step 3: Write the integration package
 
-Under `custom_components/<domain>/`. What goes inside each file is the Modify task's: *Writing
-code in `custom_components/`* and *Cases* in `reference/patterns.md`, the whole file.
+Under `custom_components/<domain>/`. What goes inside each file is `reference/patterns.md`.
 
 | File | Holds | When |
 |---|---|---|
@@ -67,7 +67,7 @@ code in `custom_components/`* and *Cases* in `reference/patterns.md`, the whole 
 | `const.py` | the domain and the constants | always |
 | `manifest.json` | the manifest — Step 4 | always |
 | `translations/en.json` | every string the integration shows — flows, entities, actions, exceptions — *`services.yaml` + `translations/en.json` — Step 1* in `reference/patterns.md` | always |
-| `quality_scale.yaml` | the tier ledger — *Step 1: Scaffold `quality_scale.yaml` from the start* and *Step 2: Set every rule in the canonical set* in `reference/quality-scale.md` | always |
+| `quality_scale.yaml` | the tier ledger — `reference/quality-scale.md` | always |
 | `diagnostics.py` | the diagnostics download — *Diagnostics platform — Step 1* in `reference/patterns.md` | always |
 | `<platform>.py` | one per platform chosen in Step 1 | always |
 | `brand/` | the brand images — Step 5 | always |
@@ -80,7 +80,7 @@ code in `custom_components/`* and *Cases* in `reference/patterns.md`, the whole 
 | Rule | Value |
 |---|---|
 | module docstring | on every file; the only docstring that may run to several lines, and the place a file-level constraint is explained |
-| public function and class docstrings | one line; what the audit checks and what it leaves to you is *What the audit checks now* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
+| public function and class docstrings | one line; what the audit checks and what it leaves to you is *What the audit checks now* in ha-integration-ci's README |
 | inline comments | only where the code does not show why |
 
 ### Step 4: Write `manifest.json`
@@ -103,17 +103,17 @@ code in `custom_components/`* and *Cases* in `reference/patterns.md`, the whole 
 
 | Rule | Value |
 |---|---|
-| where each rule below was read | https://contributors.home-assistant.io/core/integrations/manifest/index.md; beyond the page, https://raw.githubusercontent.com/home-assistant/core/2026.10.0/script/hassfest/manifest.py, at the `.0` tag of the release row in `reference/freshness.md`, and https://raw.githubusercontent.com/hacs/integration/04fac58f2b04e263370c6ba9a7a3df0136268a80/custom_components/hacs/utils/validate.py, at the revision the HACS validation row of `reference/freshness.md` records |
+| where each rule below was read | https://contributors.home-assistant.io/core/integrations/manifest/; beyond the page, `script/hassfest/manifest.py` in core at the `.0` tag of the release row's value and `custom_components/hacs/utils/validate.py` in hacs/integration at the HACS validation row's revision, both rows in `reference/freshness.md` |
 | key order | `domain`, `name`, then every other key alphabetically, as above; hassfest fails any other order — `sort_manifest` in `script/hassfest/manifest.py` |
 | `domain`, `name` | required; the domain is the directory name and never changes |
-| `version` | required for a custom integration — hassfest and HACS both fail its absence; a version AwesomeVersion reads as CalVer, SemVer, SimpleVer, BuildVer or PEP 440, the five forms hassfest's `verify_version` accepts; what sets it at release is *Cutting a release* in `reference/versioning.md` |
+| `version` | required for a custom integration — hassfest and HACS both fail its absence; a version AwesomeVersion reads as CalVer, SemVer, SimpleVer, BuildVer or PEP 440, the five forms hassfest's `verify_version` accepts; what sets it at release is `reference/versioning.md` |
 | `documentation` | required; `https`, and not under `www.home-assistant.io/integrations/`, which hassfest reserves for core |
 | `codeowners` | required by hassfest and HACS — at least your own GitHub username |
 | `issue_tracker` | required by HACS's `integration_manifest` check |
 | `iot_class` | required — `assumed_state` · `calculated` · `cloud_polling` · `cloud_push` · `local_polling` · `local_push` |
 | `integration_type` | `device` · `hub` · `service` · `entity` · `hardware` · `helper` · `system`; absent means `hub`, so set it; `virtual` is core-only |
 | `config_flow` | `true`, and `config_flow.py` must exist |
-| `single_config_entry` | `true` when the integration supports one config entry only; otherwise omit it and meet the `unique-config-entry` rule, https://contributors.home-assistant.io/core/quality-scale/unique-config-entry/index.md |
+| `single_config_entry` | `true` when the integration supports one config entry only; otherwise omit it and meet the `unique-config-entry` rule, `reference/quality-scale.md` |
 | `requirements` | pip requirement strings, `aiohue==1.9.1`; only libraries core's own `requirements.txt` does not already carry |
 | `loggers` | the names the requirements pass to `getLogger` |
 | `dependencies` | integrations that must be set up before this one, built-in or custom — `mqtt` goes here when the integration needs the client |
@@ -125,9 +125,8 @@ code in `custom_components/`* and *Cases* in `reference/patterns.md`, the whole 
 
 ### Step 5: Add the brand images to `brand/`
 
-Into `custom_components/<domain>/brand/`. The image rules were read from the brands README,
-https://raw.githubusercontent.com/home-assistant/brands/4551ca76ba467ecdb521f4c7a505c43d46a3f13a/README.md,
-the revision the brand row of `reference/freshness.md` records; the fallbacks are core's, below.
+Into `custom_components/<domain>/brand/`. The image rules were read from the brands README at
+the brand row's revision in `reference/freshness.md`; the fallbacks are core's, below.
 
 **Ship `icon.png`.** It is the only file HACS gates on; the serving layer falls back for the
 rest.
@@ -141,7 +140,7 @@ rest.
 
 | what | lands in | do now | do then |
 |---|---|---|---|
-| Marketplace, replacing HACS, shows an integration's `brand/` images before install, picked up from the latest release of every integration in the catalog; an entry for the domain in `home-assistant/brands` wins over them | 2026.11 — https://contributors.home-assistant.io/marketplace/guides/integrations/index.md; the brands entry winning, `BrandsMarketplaceView.get` in https://raw.githubusercontent.com/home-assistant/core/c517d079e1cd3831dd8aa547dd953e336830e846/homeassistant/components/brands/__init__.py, the `dev` commit the Marketplace row of `reference/freshness.md` names | ship `brand/icon.png` in every release | nothing |
+| Marketplace, replacing HACS, shows an integration's `brand/` images before install, picked up from the latest release of every integration in the catalog; an entry for the domain in `home-assistant/brands` wins over them | 2026.11 — https://contributors.home-assistant.io/marketplace/guides/integrations/; the brands entry winning, `BrandsMarketplaceView.get` in core's `homeassistant/components/brands/__init__.py` on `dev` | ship `brand/icon.png` in every release | nothing |
 
 **Which files to ship**
 
@@ -154,7 +153,7 @@ rest.
 | `dark_icon.png`, `dark_icon@2x.png` | as the icons | the icon is unreadable on a dark ground |
 | `dark_logo.png`, `dark_logo@2x.png` | as the logos | the logo is unreadable on a dark ground |
 
-**What an absent file serves instead, tried in order — `IMAGE_FALLBACKS` in https://raw.githubusercontent.com/home-assistant/core/2026.10.0/homeassistant/components/brands/const.py, and past the chain `BrandsIntegrationView.get` in https://raw.githubusercontent.com/home-assistant/core/2026.10.0/homeassistant/components/brands/__init__.py, at the `.0` tag of the release row in `reference/freshness.md`:**
+**What an absent file serves instead, tried in order — `IMAGE_FALLBACKS` in core's `homeassistant/components/brands/const.py`, and past the chain `BrandsIntegrationView.get` in `__init__.py` beside it, at the `.0` tag of the release row in `reference/freshness.md`:**
 
 - `logo.png` → `icon.png`
 - `icon@2x.png` → `icon.png`
@@ -181,12 +180,12 @@ rest.
 
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
-| duplicating the icon at `logo.png` | ship only the icons | `icon.png` already serves that slot | *Using the same image for logo & icon* in https://raw.githubusercontent.com/home-assistant/brands/4551ca76ba467ecdb521f4c7a505c43d46a3f13a/README.md |
-| padding a mark into a landscape canvas | trim, and ship it square | no rule requires a logo aspect ratio | *Image specification* and *Logo image requirements* in https://raw.githubusercontent.com/home-assistant/brands/4551ca76ba467ecdb521f4c7a505c43d46a3f13a/README.md |
-| honouring a brand's clear-space guideline inside the PNG | trim, and let Home Assistant space it | that guideline governs placement in a UI, not the asset | *Image specification* in https://raw.githubusercontent.com/home-assistant/brands/4551ca76ba467ecdb521f4c7a505c43d46a3f13a/README.md |
-| omitting `icon@2x.png` because the 1× is served | ship it | a HiDPI client renders 256px where it asked for 512 | `IMAGE_FALLBACKS` in https://raw.githubusercontent.com/home-assistant/core/2026.10.0/homeassistant/components/brands/const.py, and *Icon image requirements* in https://raw.githubusercontent.com/home-assistant/brands/4551ca76ba467ecdb521f4c7a505c43d46a3f13a/README.md |
-| dressing an integration up as an official one | your own mark | it is what the no-HA-branding rule protects against | *Image specification* in https://raw.githubusercontent.com/home-assistant/brands/4551ca76ba467ecdb521f4c7a505c43d46a3f13a/README.md |
-| deriving a new mark from a brand's artwork | reproduce theirs, and meet any published usage terms | identification is the only permitted use | *Trademark Legal Notices* in https://raw.githubusercontent.com/home-assistant/brands/4551ca76ba467ecdb521f4c7a505c43d46a3f13a/README.md |
+| duplicating the icon at `logo.png` | ship only the icons | `icon.png` already serves that slot | *Using the same image for logo & icon* in the brands README |
+| padding a mark into a landscape canvas | trim, and ship it square | no rule requires a logo aspect ratio | *Image specification* and *Logo image requirements* in the brands README |
+| honouring a brand's clear-space guideline inside the PNG | trim, and let Home Assistant space it | that guideline governs placement in a UI, not the asset | *Image specification* in the brands README |
+| omitting `icon@2x.png` because the 1× is served | ship it | a HiDPI client renders 256px where it asked for 512 | `IMAGE_FALLBACKS` in core's `homeassistant/components/brands/const.py`, at the `.0` tag of the release row in `reference/freshness.md`, and *Icon image requirements* in the brands README |
+| dressing an integration up as an official one | your own mark | it is what the no-HA-branding rule protects against | *Image specification* in the brands README |
+| deriving a new mark from a brand's artwork | reproduce theirs, and meet any published usage terms | identification is the only permitted use | *Trademark Legal Notices* in the brands README |
 | PR-ing `home-assistant/brands` to fix a blank HACS tile | nothing — it is a HACS-side gap | `custom_integrations/*` PRs are auto-closed | the HACS dashboard row of `reference/freshness.md` |
 
 > **Note:** the HACS store dashboard reads the legacy CDN, not the inline `brand/` folder, so
@@ -223,12 +222,12 @@ among them:
 | File | Holds | Taken from |
 |---|---|---|
 | `pyproject.toml` | HA core's ruff rule set adapted for a custom integration — `google` docstrings, HA's Python floor, no `from __future__ import annotations` — and the `asyncio_mode = "auto"` without which no async test runs | `templates/pyproject.toml`, verbatim |
-| `mypy.ini` | the general section of HA core's mypy config — keep `python_version` in `[mypy]`, since it is what the audit's version comparison reads from this file — *What the audit checks now* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md | `templates/mypy.ini`, verbatim |
-| `requirements.test.txt` | the pinned test harness — why the pin matters is *Step 4: Keep the harness pin and the Python floor in lockstep* in `reference/testing.md` | `templates/requirements.test.txt` |
-| `tests/conftest.py`, `tests/__init__.py`, `tests/ruff.toml` | the harness setup and core's ruff rules for tests — *Step 1: Copy `templates/tests/`* in `reference/testing.md` | `templates/tests/` |
+| `mypy.ini` | the general section of HA core's mypy config — keep `python_version` in `[mypy]`, since it is what the audit's version comparison reads from this file — *What the audit checks now* in ha-integration-ci's README | `templates/mypy.ini`, verbatim |
+| `requirements.test.txt` | the pinned test harness — why the pin matters is `reference/testing.md` | `templates/requirements.test.txt` |
+| `tests/conftest.py`, `tests/__init__.py`, `tests/ruff.toml` | the harness setup and core's ruff rules for tests — `reference/testing.md` | `templates/tests/` |
 | `.gitignore` | the paths git must never track | `templates/.gitignore` |
-| `ruleset.json` | the branch ruleset — what it requires is *Make the checks required — a workflow is not a gate until it can block a merge* in `reference/github-setup.md` | `templates/ruleset.json` |
-| `.githooks/commit-msg` | the Conventional Commit check — *Step 1: Install the `commit-msg` hook* in `reference/commits.md` | release-flow's copy, `chmod +x` |
+| `ruleset.json` | the branch ruleset — what it requires is `reference/github-setup.md` | `templates/ruleset.json` |
+| `.githooks/commit-msg` | the Conventional Commit check — `reference/commits.md` | release-flow's copy, `chmod +x` |
 | `.pre-commit-config.yaml` | the local hooks: ruff, codespell, `check-json`, a guard on `main`, yamllint and prettier | `templates/.pre-commit-config.yaml`, verbatim |
 | `.yamllint`, `.prettierrc.js`, `.prettierignore` | the configs yamllint and prettier read | the files of those names in `templates/`, verbatim |
 | `.githooks/pre-commit` | the wrapper that runs the local hooks on commit | the snippet below, `chmod +x` |
@@ -241,8 +240,8 @@ among them:
 | enabling the commit hook | the `core.hooksPath` setting the `CLAUDE.md` snippet in Step 7 gives; in this clone `bootstrap_repo.sh` sets it at Step 10, after the first commit, which the guard on `main` would otherwise refuse |
 | enabling the local hooks | install `pre-commit`; the same `core.hooksPath` setting runs the wrapper, and `pre-commit install` refuses to run while that setting is in place |
 | what prettier leaves alone | Markdown, as core leaves it; and `.github/`, `ruleset.json` and a built panel bundle, so a copied or built file stays identical to its source |
-| omitting `.gitignore` | a local `pytest` plus a `git add -A` tracks `.pyc` files, which *What the audit checks now* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md, fails a repository for |
-| `panel-bundle.yml` and `frontend/` | only an integration that serves a panel — *Shipping a panel from an integration* in `reference/panels.md` |
+| omitting `.gitignore` | a local `pytest` plus a `git add -A` tracks `.pyc` files, which *What the audit checks now* in ha-integration-ci's README fails a repository for |
+| `panel-bundle.yml` and `frontend/` | only an integration that serves a panel — `reference/panels.md` |
 | a file left out | its own audit failure on the first CI run |
 
 **`.githooks/pre-commit`**
@@ -264,7 +263,7 @@ exec pre-commit run
 | `hacs.json` | the HACS manifest | the shape below |
 | `README.md` | the project readme, carrying the AI-assistance note and the two My links below | — |
 | `LICENSE` | the full text of the Step 1 licence | the licence's own text |
-| `tests/` | one test file per module under test | *Testing — mock at the boundary, not your own code* and *Cases* in `reference/testing.md` |
+| `tests/` | one test file per module under test | `reference/testing.md` |
 
 | Rule | Value |
 |---|---|
@@ -304,13 +303,13 @@ linked to its public repository:
 
 | Rule | Value |
 |---|---|
-| where each row was read | https://raw.githubusercontent.com/home-assistant/my.home-assistant.io/main/redirect.json, and https://contributors.home-assistant.io/marketplace/guides/catalog/index.md |
+| where each row was read | `redirect.json` in `home-assistant/my.home-assistant.io`, and https://contributors.home-assistant.io/marketplace/guides/catalog/ |
 | `hacs_repository` | opens the repository in HACS; from 2026.11 it opens the Marketplace instead, so it reaches users on either side of that release |
 | `config_flow_start` | starts the integration's config flow, once the integration is installed |
 
 | what | lands in | do now | do then |
 |---|---|---|---|
-| the `marketplace_repository` My link, opening the repository in the Marketplace and offering to add it when the Marketplace does not know it yet and the link names its category | 2026.11 — https://contributors.home-assistant.io/marketplace/guides/catalog/index.md | link with `hacs_repository` | switch the link and its badge to `marketplace_repository` once the `homeassistant` key of `hacs.json` is 2026.11.0 or later |
+| the `marketplace_repository` My link, opening the repository in the Marketplace and offering to add it when the Marketplace does not know it yet | 2026.11 — https://contributors.home-assistant.io/marketplace/guides/catalog/ | link with `hacs_repository` | switch the link and its badge to `marketplace_repository` once the `homeassistant` key of `hacs.json` is 2026.11.0 or later |
 
 **`hacs.json`**
 
@@ -324,27 +323,27 @@ linked to its public repository:
 | every key | one of the ten keys HACS's `hacsjson` check accepts — `content_in_root`, `country`, `filename`, `hacs`, `hide_default_branch`, `homeassistant`, `name`, `persistent_directory`, `render_readme`, `zip_release`; anything else fails it |
 | `homeassistant` | the oldest HA you actually test, never a floor copied from an example |
 | `zip_release` | makes HACS download a release **asset** rather than the tag's source archive, so it requires the `release.yml` caller |
-| `filename` | the name `release.yml` attaches — *The three workflows* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
+| `filename` | the name `release.yml` attaches — *The three workflows* in ha-integration-ci's README |
 | dropping `zip_release` and `filename` | only to have HACS pull the whole tagged repository archive instead |
 
 | what | lands in | do now | do then |
 |---|---|---|---|
-| Marketplace, replacing HACS, reads `hacs.json` from the repository root for every version it installs, and cannot install or update a repository without it | 2026.11 — https://contributors.home-assistant.io/marketplace/reference/hacs-json/index.md | keep `hacs.json` at the root of every release | nothing |
+| Marketplace, replacing HACS, reads `hacs.json` from the repository root for every version it installs, and cannot install or update a repository without it | 2026.11 — https://contributors.home-assistant.io/marketplace/reference/hacs-json/ | keep `hacs.json` at the root of every release | nothing |
 
 **Symptom:** a `zip_release` repository whose release carries no attached zip fails HACS
 install with `Could not download`.
 
-> **Note:** the tag is the version, not the committed manifest: `release.yml` writes the tag
-> into `manifest.json` at publish — *The three workflows* and *Implementation notes* in
-> ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md.
+> **Note:** the tag is the version, not the committed manifest — `reference/versioning.md`.
+> What patches the manifest is `release.yml` under *Implementation notes* in
+> ha-integration-ci's README.
 
 ### Step 8: Run the checks and fix the code
 
-Run every step of *The check* in `reference/lint.md`, before the first commit.
+Run every step of `reference/lint.md`, before the first commit.
 
 | Rule | Value |
 |---|---|
-| a finding | fixed in the code, to the rule *Writing code in `custom_components/`* or *Cases* in `reference/patterns.md` gives for it, or *Testing — mock at the boundary, not your own code* or *Cases* in `reference/testing.md` for a test |
+| a finding | fixed in the code, to the rule `reference/patterns.md` gives for it, or `reference/testing.md` for a test |
 | relaxing a copied config to get past a finding | drift — Step 6 |
 
 ### Step 9: Commit and push `main`
@@ -402,10 +401,10 @@ shape a reader could see in the source is gone.
 
 ### A repository adopting the stack carries ruff exclusions — Step 6
 
-| Rule | Value |
-|---|---|
-| what the stack lints and formats | the whole tree — the `python-validate.yml` bullet under *Implementation notes* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
-| what `templates/pyproject.toml` excludes | nothing, so anything kept out of ruff's sight is linted once the repository adopts that file |
+The stack lints and formats the whole tree, for the reason the `python-validate.yml` bullet
+under *Implementation notes* in ha-integration-ci's README gives, and
+`templates/pyproject.toml` excludes nothing. Anything kept out of ruff's sight is linted once
+the repository adopts that file.
 
 **Fix:** drop the exclusions and format what they were hiding as its own `style:` commit,
 before the migration.
@@ -443,7 +442,7 @@ pass, and a full GitHub release is published — a tag alone does not count.
 
 | Rule | Value |
 |---|---|
-| where each row was read | https://contributors.home-assistant.io/marketplace/guides/catalog/index.md |
+| where each row was read | https://contributors.home-assistant.io/marketplace/guides/catalog/ |
 | the catalog | the `hacs/default` repository, which HACS and the Marketplace both read |
 | an integration outside it | still added by anyone from its `hacs_repository` My link, Step 7 |
 | refused outright | an integration that replaces a core one, or exists only to test a core integration's alpha or beta |
@@ -458,6 +457,18 @@ pass, and a full GitHub release is published — a tag alone does not count.
 | Check | What's needed | Where to fix |
 |---|---|---|
 | Brands, Manifest, HACS validation, HACS manifest, Archived, Images, Repository | what the matching rows of *`HACS validation` is red — Step 9* need | that case |
-| Releases | at least one release | *Cutting a release* in `reference/versioning.md` |
+| Releases | at least one release | `reference/versioning.md` |
 | Owner | the submitter owns the repository, or is a major contributor | — |
 | Lint | the catalog file the pull request changed is valid JSON, and sorted | the pull request |
+
+## Reference
+
+| file | when to read |
+|---|---|
+| `reference/patterns.md` | writing the code inside any generated file — setup and unload, coordinator, entity, notify, `entry.runtime_data`, `DeviceInfo`, typing, the file splits |
+| `reference/testing.md` | writing the tests, and the harness prerequisites behind `tests/conftest.py` and `requirements.test.txt` |
+| `reference/quality-scale.md` | filling in `quality_scale.yaml` |
+| `reference/commits.md` | writing the first commit |
+| `reference/versioning.md` | where the version comes from, and how an rc and a final are published |
+| `reference/github-actions.md` | what the CI stack carries, and each workflow's contract |
+| `reference/github-setup.md` | the GitHub side — token, required checks, ruleset |
