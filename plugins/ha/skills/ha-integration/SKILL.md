@@ -11,14 +11,15 @@ description: >-
 
 # Home Assistant Integration Assistant
 
-**Target platinum quality scale, and fetch the mode's source before writing the code that
-meets it — a contributors.home-assistant.io docs page as Markdown, its URL plus `index.md`,
-which a blog post does not serve; https://contributors.home-assistant.io/llms.txt links each
-area's page list.**
+This skill builds and maintains Home Assistant custom integrations — the code, its tests, its
+panel, its CI and its releases — to the platinum tier of Home Assistant's quality scale. Pick
+the mode that matches the task, read every file its row names in full, and fetch its sources
+before writing anything.
 
-## Detect the mode
+## Pick the mode
 
-Pick the mode from what is about to be done, then **read that mode's file before acting**.
+A mode is one kind of task; each row says when it applies, which files it reads and which
+pages back it.
 
 | Mode | When | Read first | Source |
 |---|---|---|---|
