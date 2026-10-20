@@ -46,7 +46,8 @@ The hook is stricter than this file, and its own source is the list of what it r
 | Rule | Value |
 |---|---|
 | the types a PR title may carry | the ten listed in release-flow's `lint-pr.yml`, https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/.github/workflows/lint-pr.yml |
-| `revert:` | allowed on a commit, never on a title, since it maps to no label; the draft opener retypes it `chore:` in the title it builds — `lint-pr.yml` under *The five workflows* in release-flow's README, https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/README.md |
+| `revert:` on a PR title | refused, since it maps to no label — `lint-pr.yml` under *The five workflows* in release-flow's README, https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/README.md |
+| `revert:` on a commit | allowed; the draft opener retypes it `chore:` in the title it builds — `lint-pr.yml` under *The five workflows* in release-flow's README, https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/README.md |
 | a scope | tolerated, never generated |
 | the breaking marker | **`!` on the type, and nothing else**, since the autolabeler, the label gate and the notes read titles and subjects, never a footer — *Called versus copied* in release-flow's README, https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/README.md |
 | the description | imperative mood, lowercase after the colon, no trailing period |
@@ -95,7 +96,7 @@ No job writes it, and the draft PR arrives empty.
 
 | Rule | Value |
 |---|---|
-| text typed into a draft release | lost: `release-drafter.yml` rewrites the body from the commit subjects, as *The PR body — for reviewers, and nothing users read* says |
+| text typed into a draft release | lost, since `release-drafter.yml` rewrites the body — *The PR body — for reviewers, and nothing users read* |
 | what a reader of the release should learn | goes in the commit subjects |
 | who writes the release body | one workflow; the audit fails a second writer among the workflow bodies the repository carries — *What the audit checks now* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
 
