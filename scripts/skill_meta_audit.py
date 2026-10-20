@@ -193,8 +193,8 @@ def check_skill_frontmatter(repo: Repo) -> Result:
 
     `name` and `description` are the two required fields, the block is capped at 1024
     characters, and the description states WHEN to reach for the skill. ha-panel-design
-    shipped seven releases with no `name` at all, and a description that summarised what
-    the skill does — which is the documented way to get an agent to act on the summary
+    shipped seven releases with no `name` at all, and a description that summarised the
+    skill's steps — which is the documented way to get an agent to act on the summary
     instead of reading the skill.
     """
     fails, warns = [], []
@@ -205,8 +205,8 @@ def check_skill_frontmatter(repo: Repo) -> Result:
             fails.append(f"{skill.parent.name}/SKILL.md has no frontmatter block")
             continue
         fm = parts[1]
-        # The block is YAML, so it is judged as YAML: the schema's TRIGGER/SYMPTOMS form
-        # needs a `>-` block scalar, and a line regex read the indicator as the text.
+        # The block is YAML, so it is judged as YAML: a description that wraps needs a
+        # `>-` block scalar, and a line regex read the indicator as the text.
         try:
             fields = yaml.safe_load(fm) or {}
         except yaml.YAMLError as exc:
@@ -232,7 +232,7 @@ def check_skill_frontmatter(repo: Repo) -> Result:
         elif not description.lstrip().startswith("Use when"):
             fails.append(
                 f"{skill.parent.name}/SKILL.md description must start with 'Use when' "
-                "and state triggers, not what the skill does"
+                "and say when to use the skill, not summarise its steps"
             )
         if len(fm) > 1024:
             fails.append(

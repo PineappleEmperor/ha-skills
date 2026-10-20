@@ -8,7 +8,8 @@ resolving each conflict deliberately — not by guessing intent.
 
 **A file owns a topic when it is the file a reader opens *for that task*.** Not the file
 that mentions it most, and not the file where it is most interesting. Everything else
-links.
+links, and a task that needs a second owner's fact gets that owner named in its mode row
+too, as *Pointers* in `docs/skill-schema.md` says.
 
 Three tiers:
 

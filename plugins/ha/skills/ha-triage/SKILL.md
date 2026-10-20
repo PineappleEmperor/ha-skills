@@ -1,24 +1,12 @@
 ---
 name: ha-triage
 description: >-
-  Use when a Home Assistant custom integration misbehaves and the fault is not yet named —
-  from a log, a traceback or a symptom — to find the class of fault and the file that owns
-  the fix.
-  TRIGGER WHEN:
-  - reading `home-assistant.log`, or a traceback that names `custom_components`
-  - an integration fails to set up, or its entities go unavailable, stale, missing or
-  duplicated
-  - an action or a panel of an integration stops working
-  - an integration broke after a Home Assistant update
-  SYMPTOMS:
-  - `Setup failed for custom integration`
-  - `Error setting up entry`
-  - `Unexpected error fetching … data`
-  - `Detected blocking call to … inside the event loop`
-  - `Detected that custom integration … This will stop working in Home Assistant`
-  - `does not generate unique IDs`
-  NOT for writing the fix (ha-integration), nor for automations, dashboards, add-ons or the
-  devices of core integrations.
+  Use when a Home Assistant custom integration misbehaves and the fault is not yet named — a
+  `home-assistant.log` or traceback naming `custom_components`, a failed setup, entities
+  unavailable, stale, missing or duplicated, an action or panel that stopped working, a break
+  after an update — to name the class of fault and the file that owns the fix. Not for
+  writing the fix (ha-integration), nor for automations, dashboards, add-ons or core
+  integrations' devices.
 ---
 
 # Home Assistant Triage
@@ -28,7 +16,8 @@ file that owns that class. A line count ranks nothing.**
 
 ## Detect the fault class
 
-Match the line or the symptom to a row, then **read that row's file before naming a cause**.
+A mode is one class of fault: match the line or the symptom to a row, then **read that row's
+file before naming a cause**.
 
 | Mode | When | Read first | Source |
 |---|---|---|---|

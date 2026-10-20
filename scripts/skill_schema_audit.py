@@ -3,12 +3,12 @@
 
 `skill_meta_audit.py` asks whether these skills are well built — frontmatter the spec
 requires, a router whose links resolve, docs that match the templates that ship. This asks
-the narrower question the schema asks: is every block a labelled field or a table row, does
-every table use a column set the schema names, does the contents list match the headings
-underneath it, do the steps of a procedure run in order, does an anti-pattern's
-`reference` cell name where the rule came from rather than a step of its own file, and does
-each `SKILL.md` keep the router order. `--list` prints the registry, which is the list of
-record.
+the narrower question the schema asks: is every block a labelled field, a table row or a
+short lead-in, does every table use a column set the schema names, does the contents list
+match the headings underneath it, do the steps of a procedure run in order, does an
+anti-pattern's `reference` cell name where the rule came from rather than a step of its own
+file, and does each `SKILL.md` keep the router order. `--list` prints the registry, which
+is the list of record.
 
 It does NOT check a task file's section order, so a scope line or core rule out of place
 passes it, and only a reading catches that — invariant 10 of `docs/review.md` is that
@@ -28,7 +28,6 @@ Exit 1 on any FAIL. Runs locally and in this repository's `ci.yml`.
 """
 
 import argparse
-import itertools
 import pathlib
 import re
 import sys
@@ -95,8 +94,8 @@ def classify(text: str) -> list[tuple[int, str, str]]:
     schema's own rule — "a bullet that runs to a paragraph is prose wearing a dash" — and
     it is deliberate here rather than an artefact of stripping the indent.
 
-    A router's YAML block is metadata rather than markdown, and the folded description the
-    schema asks for runs to ten lines, so it is delimited here: `---` on the first line,
+    A router's YAML block is metadata rather than markdown, and a folded description runs
+    to several lines, so it is delimited here: `---` on the first line,
     through the next `---`. A rule elsewhere in a file is not an opener.
     """
     out: list[tuple[int, str, str]] = []
@@ -338,42 +337,58 @@ def _cells(line: str) -> list[str]:
     return [c.strip() for c in re.split(r"(?<!\\)\|", line.strip()[1:-1])]
 
 
-def _listed(front: list[str], label: str) -> bool:
-    """Whether a frontmatter line carrying `label` ends in a colon over a `- ` list."""
-    return any(
-        label in line and line.endswith(":") and below.startswith("- ")
-        for line, below in itertools.pairwise(front)
-    )
+def _blocks(lines: list[tuple[int, str, str]]) -> list[list[tuple[int, str, str]]]:
+    """The runs of non-blank lines, a heading line left out."""
+    blocks: list[list[tuple[int, str, str]]] = [[]]
+    for entry in lines:
+        if entry[1] == "blank":
+            blocks.append([])
+        elif entry[1] != "heading":
+            blocks[-1].append(entry)
+    return [block for block in blocks if block]
 
 
-def _router_break(lines: list[tuple[int, str, str]]) -> str | None:
+def _description(text: str) -> list[str]:
+    """The lines of the frontmatter's `description`: its key line and every indented one after."""
+    out: list[str] = []
+    for raw in text.splitlines()[1:]:
+        if raw.strip() == "---":
+            break
+        if raw.startswith("description:"):
+            out = [raw]
+        elif out and raw[:1].isspace():
+            out.append(raw)
+        elif out:
+            break
+    return out
+
+
+def _router_break(text: str) -> str | None:
     """The first way a router departs from *`SKILL.md` — section order, fixed*, or None."""
+    lines = classify(text)
     front = [line for _, kind, line in lines if kind == "frontmatter"]
     if not front:
         return "has no frontmatter"
     if not any(line.startswith("name:") for line in front):
         return "frontmatter has no name"
-    if not (_listed(front, "TRIGGER") and _listed(front, "SYMPTOMS")):
-        return "frontmatter description carries no TRIGGER and SYMPTOMS lists"
+    description = _description(text)
+    if not description:
+        return "frontmatter has no description"
+    if any(line.strip().startswith("- ") for line in description):
+        return "frontmatter description carries a bullet list, which YAML folds into one line"
     body = [entry for entry in lines if entry[1] != "frontmatter"]
     sections = [i for i, (_, _, line) in enumerate(body) if line.startswith("## ")]
     if not sections:
         return "has no mode table opening its first section"
-    # Section 2: one bold span, which may wrap, and nothing else before section 3.
-    blocks: list[list[str]] = [[]]
-    for _, kind, line in body[: sections[0]]:
-        if kind == "blank":
-            blocks.append([])
-        elif not line.startswith("# "):
-            blocks[-1].append(line)
-    opening = [" ".join(block) for block in blocks if block]
+    # Section 2: the overview, one paragraph that may wrap, and nothing else before section 3.
+    opening = _blocks(body[: sections[0]])
     if not (
         len(opening) == 1
-        and opening[0].startswith("**")
-        and opening[0].endswith("**")
-        and opening[0].count("**") == 2
+        and len(opening[0]) <= MAX_PROSE_RUN
+        and all(kind in {"prose", "labelled"} for _, kind, _ in opening[0])
+        and not opening[0][0][2].startswith(">")
     ):
-        return "does not open with one bold core-principle line"
+        return "does not open with a one-paragraph overview"
     # (line index, column tuple) for every table header: a table line over a separator.
     headers = [
         (i, tuple(normalise(c) for c in _cells(line)))
@@ -384,6 +399,8 @@ def _router_break(lines: list[tuple[int, str, str]]) -> str | None:
     router = [(i, cols) for i, cols in headers if sections[0] < i < end]
     if not router or router[0][1][:3] != _MODE:
         return "has no mode table opening its first section"
+    if not _blocks(body[sections[0] + 1 : router[0][0]]):
+        return "has no lead-in saying what a mode is before its mode table"
     if any(cols == _ANTI_PATTERN for _, cols in headers):
         return "carries an anti-pattern table, which the topic's own file holds"
     if any(cols == _REFERENCE for _, cols in headers):
@@ -404,12 +421,12 @@ def _router_break(lines: list[tuple[int, str, str]]) -> str | None:
 
 
 def check_router_order(root: pathlib.Path) -> Result:
-    """Each `SKILL.md` keeps the router order: frontmatter, bold line, mode table, detail."""
+    """Each `SKILL.md` keeps the router order: frontmatter, overview, mode table, detail."""
     failures = []
     for path in shipped(root):
         if path.name != "SKILL.md":
             continue
-        broken = _router_break(classify(path.read_text(encoding="utf-8")))
+        broken = _router_break(path.read_text(encoding="utf-8"))
         if broken:
             failures.append(
                 f"{path.relative_to(root)} {broken} ({SCHEMA}, `SKILL.md` — section "

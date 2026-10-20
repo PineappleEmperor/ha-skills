@@ -1,23 +1,12 @@
 ---
 name: ha-integration
 description: >-
-  Use when developing or troubleshooting a Home Assistant custom integration — the package
-  under `custom_components/`, or the panel it serves.
-  TRIGGER WHEN:
-  - scaffolding an integration, or adding a platform, flow, coordinator, service, diagnostics
-  or manifest key to one
-  - fixing a bug or a test in one, or claiming a quality-scale tier
-  - restyling its panel: sizing, type, colour, spacing or layout
-  - cutting a release, or setting up its CI, Dependabot, HACS or hassfest
-  SYMPTOMS:
-  - an entity unavailable after restart
-  - a notify or custom service broken by an HA update
-  - a device_class/state_class mismatch warning
-  - a red check on an integration repository
-  - a panel foreign beside HA's pages: unscaled text, hardcoded colours broken in dark
-  mode, tap targets too small
-  NOT for Lovelace cards, YAML dashboards, fault triage (ha-triage), or non-HA Python. Invoke
-  before editing integration code or panel CSS; re-invoke after /compact.
+  Use when building, changing, testing or releasing a Home Assistant custom integration: the
+  `custom_components/` package, its panel, or its repository's CI, Dependabot, HACS listing
+  and releases — a new platform, config flow, coordinator or manifest key, a red hassfest,
+  HACS or CI check, a quality-scale tier, a panel that looks wrong beside Home Assistant's
+  pages. Not for naming a fault's cause from a log (ha-triage), Lovelace cards, YAML
+  dashboards, or Python unrelated to Home Assistant.
 ---
 
 # Home Assistant Integration Assistant

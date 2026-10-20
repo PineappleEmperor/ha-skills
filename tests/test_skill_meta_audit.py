@@ -198,7 +198,7 @@ def test_skill_without_a_name_field_fails(tmp_path) -> None:
 
 
 def test_description_summarising_the_skill_fails(tmp_path) -> None:
-    """A description that says what the skill does gets followed instead of the skill."""
+    """A description that does not open `Use when` reads as a summary, and gets followed."""
     _skill(
         tmp_path,
         "ha-thing",
@@ -209,22 +209,18 @@ def test_description_summarising_the_skill_fails(tmp_path) -> None:
 
 
 def test_a_folded_description_is_judged_on_its_text_not_its_indicator(tmp_path) -> None:
-    """`docs/skill-schema.md` wants TRIGGER and SYMPTOMS bullet lists, which need `>-`.
+    """A description that wraps is a `>-` block scalar, which a line regex misreads.
 
-    A bullet line ends in a colon and a plain scalar cannot carry one, so the schema's
-    form has to be a block scalar — and a line regex then sees `>-` where the text
-    begins. The field is YAML; judge what YAML makes of it.
+    The regex sees `>-` where the text begins, so a correct description failed and a
+    wrong one could pass. The field is YAML; judge what YAML makes of it.
     """
     _skill(
         tmp_path,
         "ha-thing",
         "name: ha-thing\n"
         "description: >-\n"
-        "  Use when doing a thing.\n"
-        "  TRIGGER WHEN:\n"
-        "  - a thing is asked for\n"
-        "  SYMPTOMS:\n"
-        "  - the thing is wrong",
+        "  Use when doing a thing,\n"
+        "  or when the thing is wrong.",
     )
     fails, _ = audit.check_skill_frontmatter(audit.Repo(tmp_path))
     assert fails == []
@@ -232,7 +228,7 @@ def test_a_folded_description_is_judged_on_its_text_not_its_indicator(tmp_path) 
     _skill(
         tmp_path,
         "ha-thing",
-        "name: ha-thing\ndescription: >-\n  Material 3 tokens.\n  TRIGGER WHEN:\n  - asked",
+        "name: ha-thing\ndescription: >-\n  Material 3 tokens,\n  for a panel.",
     )
     fails, _ = audit.check_skill_frontmatter(audit.Repo(tmp_path))
     assert any("must start with 'Use when'" in f for f in fails)
