@@ -34,7 +34,7 @@ pages back it.
 | **Debug** | a root cause is about to be named | `reference/discipline.md` | — |
 | **Commit / PR** | writing a commit subject, a PR title or a PR body | `reference/commits.md` | — |
 | **Merge** | a check is red, or a merge is about to happen | `reference/discipline.md` | — |
-| **Workflow** | writing or reviewing a CI file, and what a copy may change | `reference/github-actions.md` | — |
+| **CI files** | adding, changing or reviewing a CI file — a workflow under `.github/workflows/`, or a config file copied from `templates/` — and what a copy may change | `reference/github-actions.md` | — |
 | **Dependabot** | configuring or debugging Dependabot, including the callers' pins and what it cannot reach | `reference/dependabot.md` | — |
 | **Release** | cutting or gating a release once the release process is set up, including an rc, or touching the version in `manifest.json` | `reference/versioning.md` | — |
 | **Catalog** | getting the integration into the default catalog HACS and the Marketplace read, or putting its My links in the README | `reference/scaffold.md` | Get into the catalog: https://contributors.home-assistant.io/marketplace/guides/catalog/ |
