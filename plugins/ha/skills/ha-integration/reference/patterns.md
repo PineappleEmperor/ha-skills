@@ -102,7 +102,8 @@ calls to the device or service apart from the HA lifecycle, so it is unit-testab
    `translations/en.json` — `entity-translations` in `reference/quality-scale.md`.
 
 What the audit checks of this list at PR time, and how, is *What the audit checks now* in
-ha-integration-ci's README.
+ha-integration-ci's README,
+https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md.
 
 ### Step 4: Type it, and suppress nothing
 
@@ -547,13 +548,13 @@ changes nothing.
 | Rule | Value |
 |---|---|
 | what hassfest checks of a custom integration's actions | not their `name` or `description`, which it accepts in `services.yaml` too — `script/hassfest/services.py`, at the `.0` tag of the release row in `reference/freshness.md` |
-| what this stack checks of them | the translation check under *Implementation notes* in ha-integration-ci's README |
+| what this stack checks of them | the translation check under *Implementation notes* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
 | what `services.yaml` carries | field **structure** only — selectors, `required`, `default`, collapsible `sections` |
 | what `translations/en.json` carries | every name and description, under a top-level `services` key: `services.{svc}.name/description`, `.fields.{key}.name/description`, `.sections.{key}.name` |
 | a field key nested in a `sections` block in `services.yaml` | flat in `translations/en.json` all the same |
 | what Home Assistant reads | `translations/<language>.json`, with `en.json` loaded first as the fallback for every other language, and never `strings.json` — `_async_get_component_strings` in `homeassistant/helpers/translation.py`, at the `.0` tag of the release row in `reference/freshness.md` |
 | `strings.json` | none in a custom integration: core compiles it into `translations/` with a step that runs only in core, so a custom integration ships `translations/en.json` complete, and any other language beside it, under *Custom integrations* at https://contributors.home-assistant.io/core/integrations/translations/ |
-| a `[%key:…%]` reference in a `translations/` file | none: nothing resolves it there, so the user sees the raw text; write every string out in full, as *Custom integrations* at https://contributors.home-assistant.io/core/integrations/translations/ says; the audit fails one in `en.json`, per *What the audit checks now* in ha-integration-ci's README |
+| a `[%key:…%]` reference in a `translations/` file | none: nothing resolves it there, so the user sees the raw text; write every string out in full, as *Custom integrations* at https://contributors.home-assistant.io/core/integrations/translations/ says; the audit fails one in `en.json`, per *What the audit checks now* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
 | a literal URL in a description | forbidden by hassfest — `the string should not contain URLs`; use plain text, or a `{placeholder}` filled via `description_placeholders` in the flow step |
 | a markdown image `![x]({url})` with a placeholder | fine, since it leaves no literal `http` |
 | a collapsible service form | `fields: { appearance: { collapsed: true, fields: {...} } }` |

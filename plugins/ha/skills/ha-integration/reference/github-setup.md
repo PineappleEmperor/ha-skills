@@ -26,11 +26,11 @@ repository applies on its own.**
 
 One secret, once per repo, passed by the `auto-draft-pr.yml` caller to release-flow's
 draft-PR opener. Why the opener needs a token of its own, and what happens without one, is
-*The one secret* in release-flow's README. That the audit checks it is set is *What the
-audit checks now* in ha-integration-ci's README.
+*The one secret* in release-flow's README, https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/README.md. That the audit checks it is set is *What the
+audit checks now* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md.
 
 - The release path needs no token.
-- A GitHub App cannot stand in for it; *The one secret* in release-flow's README says why.
+- A GitHub App cannot stand in for it; *The one secret* in release-flow's README, https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/README.md, says why.
 
 ### Step 1: Generate a fine-grained PAT
 
@@ -69,7 +69,7 @@ Nothing else changes.
 
 It requires the eight contexts the scaffold's workflows produce, and keeps deletions and
 force-pushes blocked. Whether the audit sees the ruleset, and what it reports when it
-cannot ask GitHub, is *What the audit checks now* in ha-integration-ci's README.
+cannot ask GitHub, is *What the audit checks now* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md.
 
 ### Step 2: Apply the ruleset once, or run `scripts/bootstrap_repo.sh`
 
@@ -104,27 +104,27 @@ eight in `ruleset.json`:
 - `Dependency review`
 
 The five carrying a `<caller job id> / ` prefix are named by GitHub's rule for called
-workflows, *Check names* in release-flow's README, which also says why the three label
+workflows, *Check names* in release-flow's README, https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/README.md, which also says why the three label
 checks are not redundant. The last three are plain workflows, so GitHub names them after the
 job itself; `Dependency review` is `dependency-review.yml`'s.
 
 | Rule | Value |
 |---|---|
-| a process-automation context — the ones *Check names* in release-flow's README and *Calling the workflows* in ha-integration-ci's list | never required: it fires on a push or a release, so a PR waits on a context that never reports |
-| a context the repo does not produce | blocks every PR permanently: in a conforming repo, add the workflow *What the audit checks now* in ha-integration-ci's README requires rather than drop the context |
+| a process-automation context — the ones *Check names* in release-flow's README, https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/README.md, and *Calling the workflows* in ha-integration-ci's, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md, list | never required: it fires on a push or a release, so a PR waits on a context that never reports |
+| a context the repo does not produce | blocks every PR permanently: in a conforming repo, add the workflow *What the audit checks now* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md, requires rather than drop the context |
 | dropping a context | required, not merely permitted, where the repo has deliberately left the canonical set — no `quality-audit.yml`, no `dependency-review.yml` — since the PR otherwise waits for a check that never runs |
 | `panel / Panel type-check and tests` | never required: it is path-filtered, so it does not report on a Python-only PR |
 | a skipped job | satisfies its required check, so a job-level `if:` guard is fine |
-| a cancelled run | does not, per *Calling the workflows* in release-flow's README on the `pr-checks` trigger types |
-| a matrix job's context | suffixed with the matrix value, so it is not the job name — *Implementation notes* in ha-integration-ci's README |
+| a cancelled run | does not, per *Calling the workflows* in release-flow's README, https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/README.md, on the `pr-checks` trigger types |
+| a matrix job's context | suffixed with the matrix value, so it is not the job name — *Implementation notes* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
 
 ## Supply chain
 
 | file | when to read |
 |---|---|
 | *Step 2: Take each file from its source* in `reference/github-actions.md` | placing `dependency-review.yml` and `issue_stale.yml`, and which mutable refs `hacs-validate.yml` and `hassfest-validate.yml` keep |
-| *The version model* in ha-integration-ci's README | pinning a release of a CI repository |
-| *What the audit checks now* in ha-integration-ci's README | checking a `uses:` line, in a caller or a step, and the two refs the audit exempts |
+| *The version model* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md | pinning a release of a CI repository |
+| *What the audit checks now* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md | checking a `uses:` line, in a caller or a step, and the two refs the audit exempts |
 | `reference/dependabot.md` | asking what keeps the pins moving |
 
 ## Cases

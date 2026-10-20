@@ -23,8 +23,8 @@ nothing else.**
 
 | Rule | Value |
 |---|---|
-| `commit-message.prefix: "chore"` | on each ecosystem, so titles read `chore: bump …` and the autolabeler files them; the mapping is release-flow's drafter config |
-| `cooldown: {exclude: ["PineappleEmperor/*"]}` | on the `github-actions` ecosystem alone — what it exempts, what keeps the hold, and why it is spelled that way, is the cooldown bullet of *The version model* in ha-integration-ci's README |
+| `commit-message.prefix: "chore"` | on each ecosystem, so titles read `chore: bump …` and the autolabeler files them; the mapping is release-flow's drafter config, https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/.github/release-drafter.yml |
+| `cooldown: {exclude: ["PineappleEmperor/*"]}` | on the `github-actions` ecosystem alone — what it exempts, what keeps the hold, and why it is spelled that way, is the cooldown bullet of *The version model* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
 | what turns it on | the file on the default branch; GitHub needs no setting switched on for version updates |
 | the scaffold's copy | `templates/.github/dependabot.yml` carries both rows above |
 
@@ -32,7 +32,7 @@ nothing else.**
 
 Bumps every `uses:` pin under `.github/workflows/`: the action pins in the four plain
 workflows, and the callers' pins, which is how a release of a CI repository reaches you —
-*The version model* in ha-integration-ci's README.
+*The version model* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md.
 
 ### Step 3: Enable `pip`
 
@@ -63,7 +63,7 @@ why), and can drag the Python floor with it.
 
 **Fix:** review these PRs rather than auto-merging, and match ruff's `target-version` and
 `mypy.ini`'s `python_version` to the floor the CI declares, which the audit compares —
-*What the audit checks now* in ha-integration-ci's README.
+*What the audit checks now* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md.
 
 **Timing:** a floor move is a CI release first.
 

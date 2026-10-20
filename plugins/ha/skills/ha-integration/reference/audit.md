@@ -21,9 +21,9 @@ its source, and never runs the repo's tests.**
 
 | Rule | Value |
 |---|---|
-| what runs it on every PR | the `quality-audit` caller, per *Calling the workflows* in ha-integration-ci's README |
+| what runs it on every PR | the `quality-audit` caller, per *Calling the workflows* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
 | running it by hand | `python3 scripts/skill_audit.py --root <repo>`, from a checkout of ha-integration-ci |
-| the list of mechanical checks | `--list`, and *What the audit checks now* in that README |
+| the list of mechanical checks | `--list`, and *What the audit checks now* in that README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
 | what this file adds | the items below, which a grep cannot decide |
 
 ### Step 1: Callers, not bodies; copies, not paraphrases
@@ -36,7 +36,7 @@ file.
 | a workflow the scaffold carries | either a caller matching its README block with the tokens resolved, or a copy matching this skill's `templates/` |
 | where `templates/` is | *Step 1: Locate `templates/`* in `reference/github-actions.md` |
 | every difference from the source | in *Step 4: Apply only the sanctioned adaptations* in `reference/github-actions.md`, or it is a finding |
-| what the mechanical audit checks | *What the audit checks now* in ha-integration-ci's README |
+| what the mechanical audit checks | *What the audit checks now* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
 | `.github/` and `scripts/` | scan for extras the template does not have |
 
 | anti-pattern | use instead | why (one clause) | reference |
@@ -85,7 +85,7 @@ and read the result, before reporting the audit clean.
 pytest tests/ -q
 ```
 
-> **Note:** the command block in ha-integration-ci's README is that repository's own; a
+> **Note:** the command block in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md, is that repository's own; a
 > consumer reaches those scripts through `quality-audit.yml` instead.
 
 ### Step 8: Report

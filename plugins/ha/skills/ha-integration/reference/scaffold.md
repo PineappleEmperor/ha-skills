@@ -80,7 +80,7 @@ Under `custom_components/<domain>/`. What goes inside each file is `reference/pa
 | Rule | Value |
 |---|---|
 | module docstring | on every file; the only docstring that may run to several lines, and the place a file-level constraint is explained |
-| public function and class docstrings | one line; what the audit checks and what it leaves to you is *What the audit checks now* in ha-integration-ci's README |
+| public function and class docstrings | one line; what the audit checks and what it leaves to you is *What the audit checks now* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
 | inline comments | only where the code does not show why |
 
 ### Step 4: Write `manifest.json`
@@ -222,12 +222,12 @@ among them:
 | File | Holds | Taken from |
 |---|---|---|
 | `pyproject.toml` | HA core's ruff rule set adapted for a custom integration — `google` docstrings, HA's Python floor, no `from __future__ import annotations` — and the `asyncio_mode = "auto"` without which no async test runs | `templates/pyproject.toml`, verbatim |
-| `mypy.ini` | the general section of HA core's mypy config — keep `python_version` in `[mypy]`, since it is what the audit's version comparison reads from this file — *What the audit checks now* in ha-integration-ci's README | `templates/mypy.ini`, verbatim |
+| `mypy.ini` | the general section of HA core's mypy config — keep `python_version` in `[mypy]`, since it is what the audit's version comparison reads from this file — *What the audit checks now* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md | `templates/mypy.ini`, verbatim |
 | `requirements.test.txt` | the pinned test harness — why the pin matters is `reference/testing.md` | `templates/requirements.test.txt` |
 | `tests/conftest.py`, `tests/__init__.py`, `tests/ruff.toml` | the harness setup and core's ruff rules for tests — `reference/testing.md` | `templates/tests/` |
 | `.gitignore` | the paths git must never track | `templates/.gitignore` |
 | `ruleset.json` | the branch ruleset — what it requires is `reference/github-setup.md` | `templates/ruleset.json` |
-| `.githooks/commit-msg` | the Conventional Commit check — `reference/commits.md` | release-flow's copy, `chmod +x` |
+| `.githooks/commit-msg` | the Conventional Commit check — `reference/commits.md` | release-flow's copy, https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/.githooks/commit-msg, `chmod +x` |
 | `.pre-commit-config.yaml` | the local hooks: ruff, codespell, `check-json`, a guard on `main`, yamllint and prettier | `templates/.pre-commit-config.yaml`, verbatim |
 | `.yamllint`, `.prettierrc.js`, `.prettierignore` | the configs yamllint and prettier read | the files of those names in `templates/`, verbatim |
 | `.githooks/pre-commit` | the wrapper that runs the local hooks on commit | the snippet below, `chmod +x` |
@@ -240,7 +240,7 @@ among them:
 | enabling the commit hook | the `core.hooksPath` setting the `CLAUDE.md` snippet in Step 7 gives; in this clone `bootstrap_repo.sh` sets it at Step 10, after the first commit, which the guard on `main` would otherwise refuse |
 | enabling the local hooks | install `pre-commit`; the same `core.hooksPath` setting runs the wrapper, and `pre-commit install` refuses to run while that setting is in place |
 | what prettier leaves alone | Markdown, as core leaves it; and `.github/`, `ruleset.json` and a built panel bundle, so a copied or built file stays identical to its source |
-| omitting `.gitignore` | a local `pytest` plus a `git add -A` tracks `.pyc` files, which *What the audit checks now* in ha-integration-ci's README fails a repository for |
+| omitting `.gitignore` | a local `pytest` plus a `git add -A` tracks `.pyc` files, which *What the audit checks now* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md, fails a repository for |
 | `panel-bundle.yml` and `frontend/` | only an integration that serves a panel — `reference/panels.md` |
 | a file left out | its own audit failure on the first CI run |
 
@@ -303,7 +303,7 @@ linked to its public repository:
 
 | Rule | Value |
 |---|---|
-| where each row was read | `redirect.json` in `home-assistant/my.home-assistant.io`, and https://contributors.home-assistant.io/marketplace/guides/catalog/ |
+| where each row was read | `redirect.json` in `home-assistant/my.home-assistant.io`, https://raw.githubusercontent.com/home-assistant/my.home-assistant.io/main/redirect.json, and https://contributors.home-assistant.io/marketplace/guides/catalog/ |
 | `hacs_repository` | opens the repository in HACS; from 2026.11 it opens the Marketplace instead, so it reaches users on either side of that release |
 | `config_flow_start` | starts the integration's config flow, once the integration is installed |
 
@@ -323,7 +323,7 @@ linked to its public repository:
 | every key | one of the ten keys HACS's `hacsjson` check accepts — `content_in_root`, `country`, `filename`, `hacs`, `hide_default_branch`, `homeassistant`, `name`, `persistent_directory`, `render_readme`, `zip_release`; anything else fails it |
 | `homeassistant` | the oldest HA you actually test, never a floor copied from an example |
 | `zip_release` | makes HACS download a release **asset** rather than the tag's source archive, so it requires the `release.yml` caller |
-| `filename` | the name `release.yml` attaches — *The three workflows* in ha-integration-ci's README |
+| `filename` | the name `release.yml` attaches — *The three workflows* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
 | dropping `zip_release` and `filename` | only to have HACS pull the whole tagged repository archive instead |
 
 | what | lands in | do now | do then |
@@ -335,7 +335,7 @@ install with `Could not download`.
 
 > **Note:** the tag is the version, not the committed manifest — `reference/versioning.md`.
 > What patches the manifest is `release.yml` under *Implementation notes* in
-> ha-integration-ci's README.
+> ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md.
 
 ### Step 8: Run the checks and fix the code
 
@@ -402,7 +402,7 @@ shape a reader could see in the source is gone.
 ### A repository adopting the stack carries ruff exclusions — Step 6
 
 The stack lints and formats the whole tree, for the reason the `python-validate.yml` bullet
-under *Implementation notes* in ha-integration-ci's README gives, and
+under *Implementation notes* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md, gives, and
 `templates/pyproject.toml` excludes nothing. Anything kept out of ruff's sight is linted once
 the repository adopts that file.
 
