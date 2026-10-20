@@ -1,6 +1,6 @@
 # 07 — Task retrieval
 
-Known-answer test for what a reader gets once routed: does the file the router names hold
+Known-answer test for what a reader gets once routed: do the files the router names hold
 the answer, or does the answer sit a second hop away, in a place the reader cannot reach?
 
 ## Setup
@@ -34,9 +34,9 @@ integration repository has none.
 
 | Request | The answer holds | Reached by |
 |---|---|---|
-| A | the merged PRs' labels decide the version and the highest wins; `!` on the type in the PR title is the only breaking marker, never a `BREAKING CHANGE:` footer; the fix is the title or the commits, never a hand-set label or a hand-written version | the file the router's Release row names |
+| A | the merged PRs' labels decide the version and the highest wins; `!` on the type in the PR title is the only breaking marker, never a `BREAKING CHANGE:` footer; the fix is the title or the commits, never a hand-set label or a hand-written version | a file the router's Release row names, or a URL the row or that file gives |
 | B | `https://contributors.home-assistant.io/frontend/custom-ui/panel/` | the router's Panel row, or the file it names |
-| C | no auto-merge; the bump moves the Home Assistant version the tests run against, and can move the Python floor; match ruff's `target-version` and mypy's `python_version` to the floor the CI declares | the file the router's Dependabot row names |
+| C | no auto-merge; the bump moves the Home Assistant version the tests run against, and can move the Python floor; match ruff's `target-version` and mypy's `python_version` to the floor the CI declares | a file the router's Dependabot row names, or a URL the row or that file gives |
 | D | `reference/freshness.md`'s release row and the command that re-derives it | the router row a reader asking "is this current" picks |
 
 Each part of an answer must cite a sentence from the skill. A part answered from the
@@ -44,5 +44,5 @@ agent's own knowledge, or from a page the skill does not give, does not count.
 
 ## Fail
 
-A part of an answer missing or wrong; a part reached only through a second reference file;
-a pointer the agent could not follow.
+A part of an answer missing or wrong; a part reached only through a reference file the row
+does not name; a pointer the agent could not follow.
