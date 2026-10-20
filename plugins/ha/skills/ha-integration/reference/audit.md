@@ -89,8 +89,8 @@ pytest tests/ -q
 ```
 
 > **Note:** the commands under *Working on this repository* in ha-integration-ci's README,
-> https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md, are its
-> own; a consumer runs those scripts through its `python-validate` and `quality-audit` callers.
+> https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md, test
+> that repository; a consumer reaches its scripts only through the `python-validate` and `quality-audit` callers.
 
 ### Step 8: Report
 

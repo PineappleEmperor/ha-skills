@@ -23,7 +23,6 @@ from memory.
 14. A repository adopting the stack carries ruff exclusions — Step 6
 15. `HACS validation` is red — Step 9
 16. The integration goes into the default catalog — Step 10
-17. Reference
 
 ## The scaffold
 
@@ -59,7 +58,7 @@ folder and the manifest's `domain` key, and every config entry is stored under i
 ### Step 3: Write the integration package
 
 Under `custom_components/<domain>/`. What goes inside each file is the Modify task's: *Writing
-code in `custom_components/`* in `reference/patterns.md`.
+code in `custom_components/`* and *Cases* in `reference/patterns.md`, the whole file.
 
 | File | Holds | When |
 |---|---|---|
@@ -68,7 +67,7 @@ code in `custom_components/`* in `reference/patterns.md`.
 | `const.py` | the domain and the constants | always |
 | `manifest.json` | the manifest — Step 4 | always |
 | `translations/en.json` | every string the integration shows — flows, entities, actions, exceptions — *`services.yaml` + `translations/en.json` — Step 1* in `reference/patterns.md` | always |
-| `quality_scale.yaml` | the tier ledger — *Step 1: Scaffold `quality_scale.yaml` from the start* in `reference/quality-scale.md` | always |
+| `quality_scale.yaml` | the tier ledger — *Step 1: Scaffold `quality_scale.yaml` from the start* and *Step 2: Set every rule in the canonical set* in `reference/quality-scale.md` | always |
 | `diagnostics.py` | the diagnostics download — *Diagnostics platform — Step 1* in `reference/patterns.md` | always |
 | `<platform>.py` | one per platform chosen in Step 1 | always |
 | `brand/` | the brand images — Step 5 | always |
@@ -104,7 +103,7 @@ code in `custom_components/`* in `reference/patterns.md`.
 
 | Rule | Value |
 |---|---|
-| where each rule below was read | https://contributors.home-assistant.io/core/integrations/manifest/index.md; beyond the page, https://raw.githubusercontent.com/home-assistant/core/2026.10.0/script/hassfest/manifest.py, at the `.0` tag of the release row in `reference/freshness.md`, and https://raw.githubusercontent.com/hacs/integration/04fac58f2b04e263370c6ba9a7a3df0136268a80/custom_components/hacs/utils/validate.py, at the revision of its HACS validation row |
+| where each rule below was read | https://contributors.home-assistant.io/core/integrations/manifest/index.md; beyond the page, https://raw.githubusercontent.com/home-assistant/core/2026.10.0/script/hassfest/manifest.py, at the `.0` tag of the release row in `reference/freshness.md`, and https://raw.githubusercontent.com/hacs/integration/04fac58f2b04e263370c6ba9a7a3df0136268a80/custom_components/hacs/utils/validate.py, at the revision the HACS validation row of `reference/freshness.md` records |
 | key order | `domain`, `name`, then every other key alphabetically, as above; hassfest fails any other order — `sort_manifest` in `script/hassfest/manifest.py` |
 | `domain`, `name` | required; the domain is the directory name and never changes |
 | `version` | required for a custom integration — hassfest and HACS both fail its absence; a version AwesomeVersion reads as CalVer, SemVer, SimpleVer, BuildVer or PEP 440, the five forms hassfest's `verify_version` accepts; what sets it at release is *Cutting a release* in `reference/versioning.md` |
@@ -126,8 +125,9 @@ code in `custom_components/`* in `reference/patterns.md`.
 
 ### Step 5: Add the brand images to `brand/`
 
-Into `custom_components/<domain>/brand/`. The image rules were read from the brands README at
-the brand row's revision in `reference/freshness.md`; the fallbacks are core's, below.
+Into `custom_components/<domain>/brand/`. The image rules were read from the brands README,
+https://raw.githubusercontent.com/home-assistant/brands/4551ca76ba467ecdb521f4c7a505c43d46a3f13a/README.md,
+the revision the brand row of `reference/freshness.md` records; the fallbacks are core's, below.
 
 **Ship `icon.png`.** It is the only file HACS gates on; the serving layer falls back for the
 rest.
@@ -154,7 +154,7 @@ rest.
 | `dark_icon.png`, `dark_icon@2x.png` | as the icons | the icon is unreadable on a dark ground |
 | `dark_logo.png`, `dark_logo@2x.png` | as the logos | the logo is unreadable on a dark ground |
 
-**What an absent file serves instead, tried in order — `IMAGE_FALLBACKS` in core's `homeassistant/components/brands/const.py`, and past the chain `BrandsIntegrationView.get` in `__init__.py` beside it, at the `.0` tag of the release row in `reference/freshness.md`:**
+**What an absent file serves instead, tried in order — `IMAGE_FALLBACKS` in https://raw.githubusercontent.com/home-assistant/core/2026.10.0/homeassistant/components/brands/const.py, and past the chain `BrandsIntegrationView.get` in https://raw.githubusercontent.com/home-assistant/core/2026.10.0/homeassistant/components/brands/__init__.py, at the `.0` tag of the release row in `reference/freshness.md`:**
 
 - `logo.png` → `icon.png`
 - `icon@2x.png` → `icon.png`
@@ -181,12 +181,12 @@ rest.
 
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
-| duplicating the icon at `logo.png` | ship only the icons | `icon.png` already serves that slot | *Using the same image for logo & icon* in the brands README, https://raw.githubusercontent.com/home-assistant/brands/master/README.md |
-| padding a mark into a landscape canvas | trim, and ship it square | no rule requires a logo aspect ratio | *Image specification* and *Logo image requirements* in the brands README, https://raw.githubusercontent.com/home-assistant/brands/master/README.md |
-| honouring a brand's clear-space guideline inside the PNG | trim, and let Home Assistant space it | that guideline governs placement in a UI, not the asset | *Image specification* in the brands README, https://raw.githubusercontent.com/home-assistant/brands/master/README.md |
-| omitting `icon@2x.png` because the 1× is served | ship it | a HiDPI client renders 256px where it asked for 512 | `IMAGE_FALLBACKS` in core's `homeassistant/components/brands/const.py`, at the `.0` tag of the release row in `reference/freshness.md`, and *Icon image requirements* in the brands README, https://raw.githubusercontent.com/home-assistant/brands/master/README.md |
-| dressing an integration up as an official one | your own mark | it is what the no-HA-branding rule protects against | *Image specification* in the brands README, https://raw.githubusercontent.com/home-assistant/brands/master/README.md |
-| deriving a new mark from a brand's artwork | reproduce theirs, and meet any published usage terms | identification is the only permitted use | *Trademark Legal Notices* in the brands README, https://raw.githubusercontent.com/home-assistant/brands/master/README.md |
+| duplicating the icon at `logo.png` | ship only the icons | `icon.png` already serves that slot | *Using the same image for logo & icon* in https://raw.githubusercontent.com/home-assistant/brands/4551ca76ba467ecdb521f4c7a505c43d46a3f13a/README.md |
+| padding a mark into a landscape canvas | trim, and ship it square | no rule requires a logo aspect ratio | *Image specification* and *Logo image requirements* in https://raw.githubusercontent.com/home-assistant/brands/4551ca76ba467ecdb521f4c7a505c43d46a3f13a/README.md |
+| honouring a brand's clear-space guideline inside the PNG | trim, and let Home Assistant space it | that guideline governs placement in a UI, not the asset | *Image specification* in https://raw.githubusercontent.com/home-assistant/brands/4551ca76ba467ecdb521f4c7a505c43d46a3f13a/README.md |
+| omitting `icon@2x.png` because the 1× is served | ship it | a HiDPI client renders 256px where it asked for 512 | `IMAGE_FALLBACKS` in https://raw.githubusercontent.com/home-assistant/core/2026.10.0/homeassistant/components/brands/const.py, and *Icon image requirements* in https://raw.githubusercontent.com/home-assistant/brands/4551ca76ba467ecdb521f4c7a505c43d46a3f13a/README.md |
+| dressing an integration up as an official one | your own mark | it is what the no-HA-branding rule protects against | *Image specification* in https://raw.githubusercontent.com/home-assistant/brands/4551ca76ba467ecdb521f4c7a505c43d46a3f13a/README.md |
+| deriving a new mark from a brand's artwork | reproduce theirs, and meet any published usage terms | identification is the only permitted use | *Trademark Legal Notices* in https://raw.githubusercontent.com/home-assistant/brands/4551ca76ba467ecdb521f4c7a505c43d46a3f13a/README.md |
 | PR-ing `home-assistant/brands` to fix a blank HACS tile | nothing — it is a HACS-side gap | `custom_integrations/*` PRs are auto-closed | the HACS dashboard row of `reference/freshness.md` |
 
 > **Note:** the HACS store dashboard reads the legacy CDN, not the inline `brand/` folder, so
@@ -264,7 +264,7 @@ exec pre-commit run
 | `hacs.json` | the HACS manifest | the shape below |
 | `README.md` | the project readme, carrying the AI-assistance note and the two My links below | — |
 | `LICENSE` | the full text of the Step 1 licence | the licence's own text |
-| `tests/` | one test file per module under test | *Testing — mock at the boundary, not your own code* in `reference/testing.md` |
+| `tests/` | one test file per module under test | *Testing — mock at the boundary, not your own code* and *Cases* in `reference/testing.md` |
 
 | Rule | Value |
 |---|---|
@@ -310,7 +310,7 @@ linked to its public repository:
 
 | what | lands in | do now | do then |
 |---|---|---|---|
-| the `marketplace_repository` My link, opening the repository in the Marketplace and offering to add it when the Marketplace does not know it yet | 2026.11 — https://contributors.home-assistant.io/marketplace/guides/catalog/index.md | link with `hacs_repository` | switch the link and its badge to `marketplace_repository` once the `homeassistant` key of `hacs.json` is 2026.11.0 or later |
+| the `marketplace_repository` My link, opening the repository in the Marketplace and offering to add it when the Marketplace does not know it yet and the link names its category | 2026.11 — https://contributors.home-assistant.io/marketplace/guides/catalog/index.md | link with `hacs_repository` | switch the link and its badge to `marketplace_repository` once the `homeassistant` key of `hacs.json` is 2026.11.0 or later |
 
 **`hacs.json`**
 
@@ -334,8 +334,8 @@ linked to its public repository:
 **Symptom:** a `zip_release` repository whose release carries no attached zip fails HACS
 install with `Could not download`.
 
-> **Note:** the tag is the version, not the committed manifest — *Cutting a release* in
-> `reference/versioning.md`; `release.yml` patches the manifest — *Implementation notes* in
+> **Note:** the tag is the version, not the committed manifest: `release.yml` writes the tag
+> into `manifest.json` at publish — *The three workflows* and *Implementation notes* in
 > ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md.
 
 ### Step 8: Run the checks and fix the code
@@ -344,7 +344,7 @@ Run every step of *The check* in `reference/lint.md`, before the first commit.
 
 | Rule | Value |
 |---|---|
-| a finding | fixed in the code, to the rule *Writing code in `custom_components/`* in `reference/patterns.md` gives for it, or *Testing — mock at the boundary, not your own code* in `reference/testing.md` for a test |
+| a finding | fixed in the code, to the rule *Writing code in `custom_components/`* or *Cases* in `reference/patterns.md` gives for it, or *Testing — mock at the boundary, not your own code* or *Cases* in `reference/testing.md` for a test |
 | relaxing a copied config to get past a finding | drift — Step 6 |
 
 ### Step 9: Commit and push `main`
@@ -461,15 +461,3 @@ pass, and a full GitHub release is published — a tag alone does not count.
 | Releases | at least one release | *Cutting a release* in `reference/versioning.md` |
 | Owner | the submitter owns the repository, or is a major contributor | — |
 | Lint | the catalog file the pull request changed is valid JSON, and sorted | the pull request |
-
-## Reference
-
-| file | when to read |
-|---|---|
-| `reference/patterns.md` | writing the code inside any generated file — setup and unload, coordinator, entity, notify, `entry.runtime_data`, `DeviceInfo`, typing, the file splits |
-| `reference/testing.md` | writing the tests, and the harness prerequisites behind `tests/conftest.py` and `requirements.test.txt` |
-| `reference/quality-scale.md` | filling in `quality_scale.yaml` |
-| `reference/commits.md` | writing the first commit |
-| `reference/versioning.md` | where the version comes from, and how an rc and a final are published |
-| `reference/github-actions.md` | what the CI stack carries, and each workflow's contract |
-| `reference/github-setup.md` | the GitHub side — token, required checks, ruleset |
