@@ -102,13 +102,13 @@ calls to the device or service apart from the HA lifecycle, so it is unit-testab
    `translations/en.json` — `entity-translations` in `reference/quality-scale.md`.
 
 What the audit checks of this list at PR time, and how, is *What the audit checks now* in
-ha-integration-ci's README.
+ha-integration-ci's README,
+https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md.
 
 ### Step 4: Type it, and suppress nothing
 
-The `strict-typing` rule in `reference/quality-scale.md`. Every file passes the mypy run
-*Lint & quality check* in `SKILL.md` names, under the shipped `mypy.ini`, with zero errors,
-before a PR is ready.
+The `strict-typing` rule in `reference/quality-scale.md`. Every file passes *Step 2: Run mypy*
+in `reference/lint.md`, under the shipped `mypy.ini`, with zero errors, before a PR is ready.
 
 - **Never add `from __future__ import annotations`** — HA's Python floor (the row in
   `reference/freshness.md`) is past the release where PEP 649 made annotation evaluation
@@ -160,7 +160,7 @@ DATA_SCHEMA = probatio.Schema(
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
 | `OptionsFlowWithConfigEntry` as the options flow's base class | `OptionsFlow`, reading `self.config_entry` | core is phasing it out and keeps it for custom integrations only | `OptionsFlowWithConfigEntry` in `homeassistant/config_entries.py`, at the `.0` tag of the release row in `reference/freshness.md` |
-| a config-entry update listener alongside a reloading method | drop the listener, or call `async_update_and_abort()` in place of `async_update_reload_and_abort()` and pass `reload_on_update=False` to `_abort_if_unique_id_configured()` | the integration reloads twice or races; an error from **2026.12** | `async_update_reload_and_abort` and `_abort_if_unique_id_configured` in `homeassistant/config_entries.py` |
+| a config-entry update listener alongside a reloading method | drop the listener and base the options flow on `OptionsFlowWithReload`, which reloads the entry when the options change; or call `async_update_and_abort()` in place of `async_update_reload_and_abort()` and pass `reload_on_update=False` to `_abort_if_unique_id_configured()` | the integration reloads twice or races; an error from **2026.12** | `async_update_reload_and_abort`, `_abort_if_unique_id_configured` and `OptionsFlowWithReload` in `homeassistant/config_entries.py` |
 | `FlowHandler.show_advanced_options`, or the `show_advanced_options` key in `FlowHandler.context` | group the extra fields in a schema `section` | the property returns `True` unconditionally and the context key is already gone; removed **2027.6** | `FlowHandler.show_advanced_options` in `homeassistant/data_entry_flow.py` |
 | a `scan_interval`, `update_interval` or other polling-frequency field, in a config or options flow | an interval the integration sets itself — *`DataUpdateCoordinator` (polling) — Step 1* | a polling interval is not user-configurable | `.claude/skills/ha-integration-knowledge/SKILL.md` in core, at the `.0` tag of the release row in `reference/freshness.md` |
 | a field asking for the config entry's name | a title the flow sets, which the user can change later in the UI; a `helper` integration may ask | the name is generated, not asked for | `.claude/skills/ha-integration-knowledge/SKILL.md` in core, at the `.0` tag of the release row in `reference/freshness.md` |
@@ -548,20 +548,20 @@ changes nothing.
 | Rule | Value |
 |---|---|
 | what hassfest checks of a custom integration's actions | not their `name` or `description`, which it accepts in `services.yaml` too — `script/hassfest/services.py`, at the `.0` tag of the release row in `reference/freshness.md` |
-| what this stack checks of them | the translation check under *Implementation notes* in ha-integration-ci's README |
+| what this stack checks of them | the translation check under *Implementation notes* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
 | what `services.yaml` carries | field **structure** only — selectors, `required`, `default`, collapsible `sections` |
 | what `translations/en.json` carries | every name and description, under a top-level `services` key: `services.{svc}.name/description`, `.fields.{key}.name/description`, `.sections.{key}.name` |
 | a field key nested in a `sections` block in `services.yaml` | flat in `translations/en.json` all the same |
 | what Home Assistant reads | `translations/<language>.json`, with `en.json` loaded first as the fallback for every other language, and never `strings.json` — `_async_get_component_strings` in `homeassistant/helpers/translation.py`, at the `.0` tag of the release row in `reference/freshness.md` |
 | `strings.json` | none in a custom integration: core compiles it into `translations/` with a step that runs only in core, so a custom integration ships `translations/en.json` complete, and any other language beside it, under *Custom integrations* at https://contributors.home-assistant.io/core/integrations/translations/ |
-| a `[%key:…%]` reference in a `translations/` file | none: nothing resolves it there, so the user sees the raw text; write every string out in full, as *Custom integrations* at https://contributors.home-assistant.io/core/integrations/translations/ says; the audit fails one in `en.json`, per *What the audit checks now* in ha-integration-ci's README |
+| a `[%key:…%]` reference in a `translations/` file | none: nothing resolves it there, so the user sees the raw text; write every string out in full, as *Custom integrations* at https://contributors.home-assistant.io/core/integrations/translations/ says; the audit fails one in `en.json`, per *What the audit checks now* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
 | a literal URL in a description | forbidden by hassfest — `the string should not contain URLs`; use plain text, or a `{placeholder}` filled via `description_placeholders` in the flow step |
 | a markdown image `![x]({url})` with a placeholder | fine, since it leaves no literal `http` |
 | a collapsible service form | `fields: { appearance: { collapsed: true, fields: {...} } }` |
 | what a section changes in the call | nothing — sections are UI-only, the call data stays flat, so the action's schema is unaffected |
 
 ### Register integration-global resources in `async_setup`, not `async_setup_entry` — Step 3
-The registration happens once per process; doing it per entry races when two entries set up in parallel. Claim the `hass.data` flag **before** the `await`, or both entries pass the check. The panel case, with the code, is `reference/panels.md`.
+The registration happens once per process; doing it per entry races when two entries set up in parallel. Claim the `hass.data` flag **before** the `await`, or both entries pass the check. The panel case, with the code, is *Step 3: Register the static path and the panel in `async_setup`* in `reference/panels.md`.
 
 ### Diagnostics platform — Step 1
 
@@ -614,7 +614,7 @@ A device has exactly one config entry and at most one subentry: read `config_ent
 |---|---|
 | where each release below comes from | the `breaks_in_ha_version` of the call site that reports that usage, or the version argument of the `DeprecatedConstant`, read at the `.0` tag of the release row in `reference/freshness.md` in `homeassistant/helpers/device_registry.py`, `homeassistant/helpers/device.py`, `homeassistant/helpers/entity_platform.py` and `homeassistant/const.py` |
 | a row naming no release | one core attaches none to |
-| the WebSocket keys of the same names | `reference/panels.md` |
+| the WebSocket keys of the same names | *A panel that reads devices reads them by config entry — Step 3* in `reference/panels.md` |
 | how a custom integration is told | a logged warning, from `report_usage` in `homeassistant/helpers/frame.py` or `deprecated_function` in `homeassistant/helpers/deprecation.py`, at the `.0` tag of the release row in `reference/freshness.md` — unless the row says it raises already |
 
 | anti-pattern | use instead | why (one clause) | reference |
@@ -696,7 +696,7 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 | any other failure | raise `ConfigEntryError` with a `translation_key`, which the entry shows as its reason, or return `False`; either way the entry stops in `migration_error`, as it does for any other exception, which is logged with its traceback and leaves no reason |
 | returning `False` | logs nothing and leaves the entry no reason, so log why before you return it |
 | `ConfigEntryAuthFailed` during migration | logged at WARNING and the entry stops in `migration_error`; no reauth flow starts, since reauth expects a migrated entry |
-| the way out of `migration_error` | a repair issue whose fix flow calls `await hass.config_entries.async_retry_migration(entry_id)` — https://contributors.home-assistant.io/blog/2026/09/17/Use-config-entry-exc-in-migration/ |
+| the way out of `migration_error` | a repair issue whose fix flow calls `await hass.config_entries.async_retry_migration(entry_id)` — https://contributors.home-assistant.io/blog/2026/09/17/use-config-entry-exc-in-migration/ |
 | a major version bump with no `async_migrate_entry` | setup fails for every existing user, so ship the handler in the same change |
 
 ### OAuth2 errors at setup — Step 3

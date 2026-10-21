@@ -22,8 +22,8 @@ built bundle.**
 
 Run `npm run build` and commit the output into `custom_components/<domain>/panel/`; a
 checkout runs it, and the release zip rebuilds it — *The three workflows* in
-ha-integration-ci's README. The templates and the caller are *The frontend templates* and
-*Calling the workflow* in ha-panel-ci's README.
+ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md.
+The templates and the caller are *The frontend templates* and *Calling the workflow* in ha-panel-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-panel-ci/main/README.md.
 
 **Timing:** rebuild and commit the bundle in the same PR as the source change; the built
 file is display-only and never hand-edited.
@@ -33,7 +33,7 @@ file is display-only and never hand-edited.
 
 **Symptom:** a stale committed bundle reads as "the fix I made isn't there" to whoever opens
 it; what the panel check does about one, and how to make that fail, is *Calling the workflow*
-in ha-panel-ci's README.
+in ha-panel-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-panel-ci/main/README.md.
 
 ### Step 2: Pin `home-assistant-frontend` in `requirements.test.txt`
 
@@ -46,7 +46,7 @@ curl -s https://raw.githubusercontent.com/home-assistant/core/<ha-version>/homea
 A panel declares `frontend` (usually `panel_custom` too) in manifest `dependencies`, and the
 frontend *component* has its own pip requirement that `pip install homeassistant` does not
 pull in — component requirements are installed by HA at runtime. Gate-enforced, per *What
-the audit checks now* in ha-integration-ci's README.
+the audit checks now* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md.
 
 **Symptom:** every setup test fails in CI with `No module named 'hass_frontend'`, surfacing
 as `'MockConfigEntry' object has no attribute 'runtime_data'`.
@@ -160,8 +160,8 @@ export function displayName(item: Pick<Set, "name">): string { ... }   // "{?}" 
 
 | Rule | Value |
 |---|---|
-| the runner | `vitest`, which ha-panel-ci's `frontend/package.json` ships with a `test` script — where the test files go is *The frontend templates* in its README |
-| what it costs users | nothing: `frontend/` is not in the release zip, per *The three workflows* in ha-integration-ci's README |
+| the runner | `vitest`, which ha-panel-ci's `frontend/package.json`, https://raw.githubusercontent.com/PineappleEmperor/ha-panel-ci/main/frontend/package.json, ships with a `test` script — where the test files go is *The frontend templates* in its README, https://raw.githubusercontent.com/PineappleEmperor/ha-panel-ci/main/README.md |
+| what it costs users | nothing: `frontend/` is not in the release zip, per *The three workflows* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
 | `callService` | takes `Record<string, any>`, so omitting a `probatio.Required` field type-checks cleanly and fails at runtime in the browser |
 
 ## Cases

@@ -12,7 +12,7 @@ nothing else.**
 3. Step 2: Enable `github-actions`
 4. Step 3: Enable `pip`
 5. Step 4: Leave `manifest.json` `requirements` to a deliberate PR
-6. Step 5: Merge the PRs as they arrive
+6. Step 5: Merge the PRs once their checks are green
 7. Cases
 8. A `pip` bump — Step 5
 9. Re-copying a plain workflow — Step 2
@@ -23,8 +23,8 @@ nothing else.**
 
 | Rule | Value |
 |---|---|
-| `commit-message.prefix: "chore"` | on each ecosystem, so titles read `chore: bump …` and the autolabeler files them; the mapping is release-flow's drafter config |
-| `cooldown: {exclude: ["PineappleEmperor/*"]}` | on the `github-actions` ecosystem alone — what it exempts, what keeps the hold, and why it is spelled that way, is the cooldown bullet of *The version model* in ha-integration-ci's README |
+| `commit-message.prefix: "chore"` | on each ecosystem, so titles read `chore: bump …` and the autolabeler files them; the mapping is release-flow's drafter config, https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/.github/release-drafter.yml |
+| `cooldown: {exclude: ["PineappleEmperor/*"]}` | on the `github-actions` ecosystem alone — what it exempts, what keeps the hold, and why it is spelled that way, is the cooldown bullet of *The version model* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
 | what turns it on | the file on the default branch; GitHub needs no setting switched on for version updates |
 | the scaffold's copy | `templates/.github/dependabot.yml` carries both rows above |
 
@@ -32,7 +32,7 @@ nothing else.**
 
 Bumps every `uses:` pin under `.github/workflows/`: the action pins in the four plain
 workflows, and the callers' pins, which is how a release of a CI repository reaches you —
-*The version model* in ha-integration-ci's README.
+*The version model* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md.
 
 ### Step 3: Enable `pip`
 
@@ -48,22 +48,23 @@ test dependencies are pinned, as the template ships them
 | raising a `>=` floor | by hand, in a PR of its own |
 | automating it | nothing in the stack does; anything that ever does is a reusable workflow in ha-integration-ci, never a script and a PR opener written into one repo |
 
-### Step 5: Merge the PRs as they arrive
+### Step 5: Merge the PRs once their checks are green
 
-Dependabot needs no exemption: nothing compares a committed version, and the label gate
-skips bot-authored PRs. Its PRs carry a `chore` label from their `chore:` title, fold into
-the next release, and need no special case anywhere.
+Merge each once its checks are green. Dependabot needs no exemption: nothing compares a
+committed version, and the label gate skips bot-authored PRs. Its PRs carry a `chore` label
+from their `chore:` title and fold into the next release. A `pip` bump is the one to review before merging — *A `pip` bump — Step 5*.
 
 ## Cases
 
 ### A `pip` bump — Step 5
 
-A bump here moves the **HA version the suite tests against** (`reference/testing.md` says
-why), and can drag the Python floor with it.
+A bump here moves the **HA version the suite tests against** (*Step 4: Keep the harness pin
+and the Python floor in lockstep* in `reference/testing.md` says why), and can drag the Python
+floor with it.
 
 **Fix:** review these PRs rather than auto-merging, and match ruff's `target-version` and
 `mypy.ini`'s `python_version` to the floor the CI declares, which the audit compares —
-*What the audit checks now* in ha-integration-ci's README.
+*What the audit checks now* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md.
 
 **Timing:** a floor move is a CI release first.
 

@@ -104,7 +104,7 @@ def test_a_pipe_inside_a_fence_is_not_a_table(tmp_path) -> None:
 
 
 def test_a_paragraph_fails_and_a_lead_in_does_not(tmp_path) -> None:
-    """The core rule: every block is a labelled field or a table row."""
+    """The core rule: every block is a labelled field, a table row or a short lead-in."""
     lead_in = "# T\n\n" + "one line about the step.\n" * audit.MAX_PROSE_RUN
     assert audit.check_no_prose_blocks(_repo(tmp_path, lead_in)) == ([], [])
 
@@ -114,17 +114,17 @@ def test_a_paragraph_fails_and_a_lead_in_does_not(tmp_path) -> None:
 
 
 def test_frontmatter_is_not_prose(tmp_path) -> None:
-    """A router's YAML block is metadata, and the schema's folded description is ten lines.
+    """A router's YAML block is metadata, and a folded description runs to several lines.
 
     A three-field block was exactly `MAX_PROSE_RUN` lines of "prose" — `---`, two fields,
-    `---` — so it passed by coincidence, and the TRIGGER/SYMPTOMS form the schema asks for
-    failed the moment it was written. The block is delimited; it is classified as such.
+    `---` — so it passed by coincidence, and a ten-line description failed the moment it
+    was written. The block is delimited; it is classified as such.
     """
     root = _repo(tmp_path, "# T\n")
     router = root / "plugins/ha/skills/demo/SKILL.md"
     router.write_text(
-        "---\nname: demo\ndescription: >-\n  Use when demoing.\n  TRIGGER WHEN:\n"
-        "  - asked\n  - told\n  SYMPTOMS:\n  - a demo\n  - another\n---\n\n# Demo\n",
+        "---\nname: demo\ndescription: >-\n  Use when demoing.\n  Or when a demo\n"
+        "  fails.\n  Or when\n  one is\n  asked for.\n---\n\n# Demo\n",
         encoding="utf-8",
     )
     assert audit.check_no_prose_blocks(root) == ([], [])
@@ -247,20 +247,17 @@ def test_only_the_anti_pattern_shape_has_a_reference_cell(tmp_path) -> None:
 _ROUTER = """---
 name: demo
 description: >-
-  Use when demoing.
-  TRIGGER WHEN:
-  - asked
-  SYMPTOMS:
-  - a demo
+  Use when demoing a thing, or when a demo fails to start. Not for
+  rehearsals.
 ---
 
 # Demo
 
-**Pick the mode, then read its file.**
+Demo shows a thing to a room. Read the file a mode names in full before acting.
 
 ## Detect the mode
 
-Match the task to a row.
+A mode is the task at hand; match it to a row.
 
 | Mode | When | Read first | Source |
 |---|---|---|---|
@@ -281,21 +278,56 @@ def _router(tmp_path: Path, text: str) -> Path:
 
 
 def test_a_router_in_the_schema_s_order_passes(tmp_path) -> None:
-    """Frontmatter, one bold line, the mode table, then mode detail."""
+    """Frontmatter, an overview, the mode table with its lead-in, then mode detail."""
     assert audit.check_router_order(_router(tmp_path, _ROUTER)) == ([], [])
+
+
+def test_an_overview_may_be_plain_or_bold_and_may_wrap(tmp_path) -> None:
+    """The overview is one paragraph; the schema sets its content, not its emphasis."""
+    overview = "Demo shows a thing to a room. Read the file a mode names in full before acting."
+    for text in (
+        "**Demo shows a thing to a room.**",
+        "Demo shows a thing\nto a room, and wraps\nat the column limit.",
+    ):
+        root = _router(tmp_path, _ROUTER.replace(overview, text))
+        assert audit.check_router_order(root) == ([], []), text
+
+
+def test_a_list_under_another_frontmatter_key_is_not_the_description_s(
+    tmp_path,
+) -> None:
+    """Only a list inside the description is folded away; another key may hold one."""
+    text = _ROUTER.replace(
+        "---\n\n# Demo", "allowed-tools:\n  - Read\n  - Bash\n---\n\n# Demo"
+    )
+    assert audit.check_router_order(_router(tmp_path, text)) == ([], [])
 
 
 def test_a_router_out_of_the_schema_s_order_fails(tmp_path) -> None:
     """Row 224: each section of the fixed order, broken one at a time."""
+    overview = "Demo shows a thing to a room. Read the file a mode names in full before acting."
     broken = {
-        "no TRIGGER": _ROUTER.replace("TRIGGER WHEN:", "WHEN:"),
-        "no SYMPTOMS": _ROUTER.replace("SYMPTOMS:", "SIGNS:"),
-        "no frontmatter": _ROUTER[_ROUTER.index("# Demo") :],
-        "no core principle": _ROUTER.replace(
-            "**Pick the mode, then read its file.**", "Pick the mode."
+        "no description": _ROUTER.replace(
+            "description: >-\n  Use when demoing a thing, or when a demo fails to start. "
+            "Not for\n  rehearsals.\n",
+            "",
         ),
+        "a bullet list in the description, which YAML folds": _ROUTER.replace(
+            "  rehearsals.\n", "  rehearsals.\n  TRIGGER WHEN:\n  - asked\n"
+        ),
+        "no frontmatter": _ROUTER[_ROUTER.index("# Demo") :],
+        "no overview": _ROUTER.replace(overview + "\n\n", ""),
         "two blocks before the router": _ROUTER.replace(
-            "read its file.**\n", "read its file.**\n\nAnd more.\n"
+            overview + "\n", overview + "\n\nAnd more.\n"
+        ),
+        "an overview longer than a paragraph": _ROUTER.replace(
+            overview, "\n".join(["a line of overview."] * (audit.MAX_PROSE_RUN + 1))
+        ),
+        "a Note as the overview": _ROUTER.replace(
+            overview, "> **Note:** pick the mode."
+        ),
+        "no lead-in before the mode table": _ROUTER.replace(
+            "A mode is the task at hand; match it to a row.\n\n", ""
         ),
         "no mode table first": _ROUTER.replace("| Mode | When |", "| Rule | When |"),
         "an anti-pattern table": _ROUTER
@@ -304,18 +336,6 @@ def test_a_router_out_of_the_schema_s_order_fails(tmp_path) -> None:
         "a second mode table": _ROUTER
         + "\n| Mode | When | Read first |\n|---|---|---|\n| B | x | y |\n",
         "no name key": _ROUTER.replace("name: demo\n", ""),
-        "TRIGGER in prose, not a list": _ROUTER.replace(
-            "TRIGGER WHEN:\n  - asked\n", "TRIGGER when asked.\n"
-        ),
-        "SYMPTOMS in prose, not a list": _ROUTER.replace(
-            "SYMPTOMS:\n  - a demo\n", "SYMPTOMS: a demo.\n"
-        ),
-        "a bold line with prose after it": _ROUTER.replace(
-            "read its file.**\n", "read its file.** Then more prose.\n"
-        ),
-        "a Note as the core principle": _ROUTER.replace(
-            "**Pick the mode, then read its file.**", "> **Note:** pick the mode."
-        ),
         "a reference table": _ROUTER
         + "\n| file | when to read |\n|---|---|\n| `reference/a.md` | always |\n",
         "a section no mode names": _ROUTER + "\n## Extra\n\n1. more\n",

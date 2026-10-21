@@ -29,7 +29,7 @@ No fixture. The agent needs read access to `plugins/ha/skills/` — both skills.
 |---|---|---|
 | A | `ha-triage` | `ha-integration/reference/patterns.md`, from the Unexpected reply row; naming its case *A reply the code does not expect — Step 1* as well is correct |
 | B | `ha-integration` | `reference/patterns.md` |
-| C | `ha-integration` | `reference/panel-design.md`, from the Panel design row, plus the Material 3 / HA theming sources it names |
+| C | `ha-integration` | `reference/panel-design.md`, from the Panel design row, plus the HA theming and foundation pages it names |
 | D | `ha-integration` | `reference/scaffold.md`, from the Scaffold row |
 | E | `ha-integration` | `reference/testing.md` |
 
