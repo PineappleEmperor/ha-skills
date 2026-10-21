@@ -59,11 +59,9 @@ both until 2026-09-26.
 **One hop.** A reader skims a file that a reference file names, reading part of it, as
 Anthropic's practices record; scenario 07's first run saw even a file the router names read
 only in part. So every reference file is one the router links; a row names the files its task
-reads on every run; a fact has one home, per *The rule* in `docs/skill-file-hierarchy.md`, and a
-step that uses a fact owned elsewhere names that file and heading, or the `freshness.md` row,
-rather than restating it; a step that hands its work to another task names that task's file and heading,
-which the reader opens and reads in full as that task's row would send them; and the `source`
-cell is `—` only where no upstream page covers the action.
+reads on every run; a step that uses a fact another file owns, or hands its work to another
+task, points there in the form *Pointers* gives; and the `source` cell is `—` only where no
+upstream page covers the action.
 
 A router carries no anti-pattern table. Every anti-pattern lives in the file that owns its
 topic, beside the step it contradicts, and the mode table is what gets a reader there before
@@ -229,7 +227,8 @@ Writing `none` in that column is what turns an unavoidable duplication into a kn
 | a pointer inside the same file | the step or case it names — `Step 5`, `*Entity platform files — Step 1*` — with no file |
 | the heading | must exist verbatim in the target |
 | what a pointer never does | restate the fact it points at |
-| a pointer to another reference file | names that file and heading — to hand the step's work to another task, or to reach a fact the other file owns; the fact has one home, per *The rule* in `docs/skill-file-hierarchy.md` |
+| a pointer to another reference file | names that file and heading — to reach a fact the other file owns, which has one home, per *The rule* in `docs/skill-file-hierarchy.md`; or to hand the step's work to another task, whose heading the reader then reads in full, as that task's own row would send them |
+| a pointer to a cached value | names the row of `reference/freshness.md` by its fact — `the release row of \`reference/freshness.md\`` — since that row is the value's one home |
 | a pointer outside the skill | carries a URL the reader can fetch — a docs page's `index.md`, or a CI repository's README at `raw.githubusercontent.com` with the heading meant — since a reader in an integration repository has no clone of either |
 
 ## What a release changes

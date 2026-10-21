@@ -9,8 +9,7 @@ resolving each conflict deliberately — not by guessing intent.
 **A file owns a topic when it is the file a reader opens *for that task*.** Not the file
 that mentions it most, and not the file where it is most interesting. Everything else
 links: a task that reads a second owner on every run gets it named in its mode row too, and
-a step that hands its work to another task names that task's file and heading, as *Pointers*
-in `docs/skill-schema.md` says.
+every other mention takes the form *Pointers* in `docs/skill-schema.md` gives.
 
 Three tiers:
 
