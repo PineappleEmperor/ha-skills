@@ -21,6 +21,6 @@
 | C | 3/3 | 3/3 |
 | D | 3/3 | 3/3 |
 
-**Items of A answered, by run:** highest-label-wins — haiku, sonnet, opus (was opus only); never-hand-set-label — sonnet, opus (was opus only); `!`-only, never a footer — opus.
+**Items of A answered, by run:** highest-label-wins — haiku, sonnet, opus (was sonnet, opus); never-hand-set-label — sonnet, opus (was opus only); `!`-only, never a footer — opus.
 
 **Wrong answers:** none.
