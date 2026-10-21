@@ -12,11 +12,22 @@ links.
 
 Three tiers:
 
-1. **SKILL.md** — routes. Owns nothing except the mode table and the invariants that cause
-   damage when missed. Any fact stated here is stated *only* here.
-2. **Task files** — one per trigger. Own their topic outright.
-3. **Fact files** (`freshness.md`) — own values that rot, with dates and re-derivation
-   commands. Task files cite them; they never restate the values.
+1. **SKILL.md** — routes. Owns the mode table — whose shape, and that it is the reference
+   map as well, is *`SKILL.md` — section order, fixed* in `docs/skill-schema.md` — and the
+   commands of a mode no reference file holds. It carries no anti-pattern table, for the
+   reason *Anti-patterns, and where they live* in `docs/skill-schema.md` gives. Any fact
+   stated here is stated *only* here.
+2. **Task files** — one per trigger. Own their topic outright, including every anti-pattern
+   for that topic.
+3. **The currency ledger** (`freshness.md`) — owns the values the skill copies from outside
+   itself and must keep in step with their source: the Home Assistant release it is written
+   for, the Python floor, the harness pin, the action versions, the revision of an external
+   spec it was read against. Each row carries when the value was captured, the command that
+   re-derives it, the files that hold a copy, and the check that keeps the copies in step. A
+   reader opens it to ask whether the skill is still current, and what moves if it is not.
+   A task file cites a row; where a file has to hold the value itself — a config file's
+   schema, a release read at a tag — the row lists it as a consumer. A fact read from core
+   and stated once in its owning file needs no row.
 
 ## Ownership
 
@@ -35,8 +46,11 @@ Three tiers:
 | quality scale rules and evidence | `quality-scale.md` | The reader is claiming a tier. |
 | Dependabot: ecosystems, grouping, floors, exemption | `dependabot.md` | The reader is configuring or debugging Dependabot. `versioning.md` and `github-setup.md` link. |
 | scaffolding: what to ask, what to generate | `scaffold.md` | The reader is starting a repo. |
+| `manifest.json` — its keys and what each requires | `scaffold.md` | The manifest is written at scaffold time and its rules do not change after; a later key change reads the same step. `patterns.md` and `SKILL.md`'s Manifest row point here. |
+| `manifest.json` key order | `SKILL.md`, item 5 of *Lint & quality check* | It is hassfest's rule, and the lint check is where it is checked. `scaffold.md` points there. |
 | audit procedure — the judgement items | `audit.md` | The reader is auditing. Owns no facts of its own; it cites the owners. |
-| values that rot | `freshness.md` | Dated, with a re-derivation command per row. |
+| the skill's currency — the values it copies from outside itself, each with its capture date, re-derivation command, the files holding a copy, and the check that keeps them in step | `freshness.md` | The reader is asking whether the skill is still current. A task file cites the row; a file that must hold the value is listed as its consumer. |
+| how a panel looks — type scale, theme tokens, spacing, touch targets, disclosure | `panel-design.md` | The reader is changing a panel's CSS or markup. `panels.md` and `SKILL.md`'s Panel design row point here; it points at `panels.md` for the bundle. |
 
 ## Conflicts found, and how each was resolved
 
