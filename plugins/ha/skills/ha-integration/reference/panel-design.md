@@ -3,7 +3,7 @@
 Read this when changing a panel's CSS or markup — sizing, typography, colour, spacing or layout.
 
 **Every colour, size, space and duration is a Home Assistant theme variable or `--ha-` token,
-with its value as the fallback — never a value chosen by eye.**
+never a value chosen by eye; an `--ha-` token carries its listed value as a fallback.**
 
 ## Contents
 
@@ -37,15 +37,15 @@ color: var(--accent-color);                       /* HA accent */
 | Rule | Value |
 |---|---|
 | where each row was read | the theming page, the *Color* and *Accessibility* foundation pages, and *Supported theme variables* on the `frontend` integration page — each in the Panel design row of `SKILL.md` |
-| text, background, divider, primary and accent | the theme variables above: user themes set them, and the theming page's own component uses them |
-| a purpose they do not cover — a danger or success fill, a border, the focus ring | the semantic `--ha-color-*` token for that purpose, and its `--ha-color-on-*` partner for text on that fill |
+| text, background, divider, primary and accent | the theme variables above, which user themes set; the theming page's own component uses `--primary-text-color` and `--card-background-color` |
+| a status colour — a danger, warning or success fill or border — and the focus ring | the semantic `--ha-color-*` token for that purpose; text on a quiet or normal fill takes the matching `--ha-color-on-*` token |
 | a colour pair outside the token system | its contrast checked in the light and the dark theme: 4.5:1 for text, 3:1 for a control's edge or an icon |
 | a variable a user's theme is supported to override | `primary-color`, `accent-color` and the `state-*` colours; any other may change between releases |
 
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
 | a palette token, `--ha-color-primary-40` say | the semantic token for the purpose | a palette token names a shade, not a purpose, so dark mode cannot retarget it | https://contributors.home-assistant.io/design/foundations/color/index.md |
-| a colour with no variable | the theme variable, with that colour as its fallback | a bare value ignores the user's theme and dark mode | https://contributors.home-assistant.io/frontend/architecture/theming/index.md |
+| a colour with no variable | the theme variable | a bare value ignores the user's theme and dark mode | https://contributors.home-assistant.io/frontend/architecture/theming/index.md |
 
 Define a small `:host` block mapping panel-local names (`--<domain>-primary`,
 `--<domain>-outline`) to these once, then reference those — one place to retune.
@@ -54,18 +54,19 @@ Define a small `:host` block mapping panel-local names (`--<domain>-primary`,
 
 | Rule | Value |
 |---|---|
-| where each row was read | the *Typography* and *Spacing* foundation pages, in the Panel design row of `SKILL.md`; the floor, `src/resources/theme/core.globals.ts` in the frontend at `20251105.0`, the version core pins at its `2025.11.0` tag |
+| where each row was read | the *Typography* and *Spacing* foundation pages, in the Panel design row of `SKILL.md`; the body size, `typography.globals.ts` in the frontend, https://raw.githubusercontent.com/home-assistant/frontend/dev/src/resources/theme/typography.globals.ts |
 | font size | a `--ha-font-size-*` token, `xs` to `5xl`; the scale is adjusted as a whole, so a pixel size falls out of step |
+| body text | `--ha-font-size-m`, the size the frontend sets on `html` |
 | font weight | `--ha-font-weight-normal` for body text, `-medium` for actions such as button labels, `-bold` for headings |
 | line height | `--ha-line-height-condensed` for headings and single lines, `-normal` for running text |
 | padding, margin and gap | a `--ha-space-*` token, `1` to `20` in steps of 4px: the small steps inside a component, the larger between components |
 | corner radius | a `--ha-border-radius-*` token: the larger ones for cards and dialogs, `pill` for buttons and chips |
-| the fallback | each `var()` carries the value its foundation page lists — `var(--ha-space-4, 16px)` — since a token is absent below the release that added it; the spacing tokens arrive in 2025.11.0 |
-| a section header, including a collapsible group's | `--ha-font-size-xl` or larger, at the heading weight; never the body size |
+| the fallback | each `--ha-` token's `var()` carries the value its foundation page lists — `var(--ha-space-4, 16px)` — since an older frontend lacks the token |
+| a section header, including a collapsible group's | `--ha-font-size-xl` or larger, at the heading weight — this skill's choice, since the Typography page gives sizes no roles |
 
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
-| a pixel size, or a Material 3 size, typed into the CSS | the `--ha-` token, with that size as its fallback | the scale is adjusted as a whole, and a typed size falls out of step with it | https://contributors.home-assistant.io/design/foundations/typography/index.md |
+| a pixel size, or a Material 3 size, typed into the CSS | the `--ha-` token, with its listed value as the fallback | the scale is adjusted as a whole, and a typed size falls out of step with it | https://contributors.home-assistant.io/design/foundations/typography/index.md |
 
 ### Step 3: Size targets, icons and thumbnails
 
@@ -75,7 +76,6 @@ Define a small `:host` block mapping panel-local names (`--<domain>-primary`,
 | an icon button | `ha-icon-button`, 48×48 by default, with a `label`, which is its only accessible name and its tooltip |
 | a button | 40px high by default |
 | any pointer target | 24×24 at the least — the floor, not the goal |
-| an icon | 24px, through `--mdc-icon-size` |
 | a control of your own | a native element or an `ha-*` component; a `<div>` with a `click` listener cannot be reached by keyboard |
 | a focus ring | on `:focus-visible`, and never removed without a visible one in its place |
 
@@ -84,7 +84,7 @@ Define a small `:host` block mapping panel-local names (`--<domain>-primary`,
 | Rule | Value |
 |---|---|
 | where each row was read | the *Motion* foundation page, in the Panel design row of `SKILL.md` |
-| a transition | `--ha-animation-duration-fast`, `-normal` or `-slow`, with its milliseconds as the fallback; reduced motion sets every token to 1ms, so the transition follows it unaided |
+| a transition | `--ha-animation-duration-fast`, `-normal` or `-slow`, with its milliseconds as the fallback; reduced motion sets every token to 1ms, so the transition follows it unaided — where the frontend has the tokens, since the fallback ignores reduced motion |
 | an animation the tokens do not time, a loop say | its own `@media (prefers-reduced-motion: reduce)` block |
 
 ### Step 5: Sort a list by an intrinsic property
