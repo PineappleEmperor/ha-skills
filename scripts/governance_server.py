@@ -31,7 +31,8 @@ Run via the repo venv, which carries the SDK:
 import importlib.util
 import pathlib
 
-from mcp.server.mcpserver import MCPServer
+from mcp.server.mcpserver import Context, MCPServer
+from pydantic import BaseModel, Field
 
 _GATE = pathlib.Path(__file__).resolve().parent / "governance_gate.py"
 _spec = importlib.util.spec_from_file_location("governance_gate", _GATE)
@@ -84,9 +85,19 @@ def get_function(path: str, name: str, ReceiptKey: str | None = None) -> str:
         return f"REFUSED: {exc}"
 
 
+class Approval(BaseModel):
+    """The maintainer's answer to one proposed edit of an approval-only file."""
+
+    approve: bool = Field(description="Write this exact change")
+
+
 @mcp.tool()
-def patch_file(
-    path: str, old_string: str, new_string: str, EditKey: str | None = None
+async def patch_file(
+    path: str,
+    old_string: str,
+    new_string: str,
+    ctx: Context,
+    EditKey: str | None = None,
 ) -> str:
     """Replace one exact, unique occurrence of old_string, returning the resulting diff.
 
@@ -95,8 +106,25 @@ def patch_file(
     this exists to prevent. Refuses when old_string is absent or appears more than once rather
     than choosing for you. The reply ends with the EditKey for the next patch, so one read
     serves many patches.
+
+    The design docs and this gate's own files are written only after the maintainer approves
+    the exact diff in a dialog the client shows them; the caller cannot answer it. Declined,
+    cancelled, or a client that cannot show the dialog: the patch is refused, never written.
     """
     try:
+        if gate.needs_approval(path):
+            diff = gate.patch_file(path, old_string, new_string, EditKey, dry_run=True)
+            try:
+                answer = await ctx.elicit(
+                    f"Approve this edit to {path}?\n\n{diff}", Approval
+                )
+            except Exception as exc:  # noqa: BLE001 - any failure to ask is a refusal
+                return (
+                    f"REFUSED: {path} is written only with the maintainer's approval, and "
+                    f"the approval dialog could not be shown ({exc})."
+                )
+            if answer.action != "accept" or not answer.data.approve:
+                return f"REFUSED: the maintainer did not approve this edit to {path}."
         return gate.patch_file(path, old_string, new_string, EditKey)
     except gate.GateError as exc:
         return f"REFUSED: {exc}"

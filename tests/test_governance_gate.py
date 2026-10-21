@@ -600,6 +600,40 @@ def test_patch_is_refused_without_a_file_receipt_and_allowed_with_one(repo) -> N
     assert (repo / "scripts/t.py").read_text().startswith("a = 9")
 
 
+def test_a_dry_run_reports_the_diff_and_writes_nothing(repo) -> None:
+    """The diff the maintainer approves is the one written, and asking changes nothing."""
+    _, edit_key = _keys()
+    report = gs.patch_file("scripts/t.py", "a = 1", "a = 9", edit_key, dry_run=True)
+    assert "+a = 9" in report
+    assert (repo / "scripts/t.py").read_text().startswith("a = 1")
+    # Nothing moved, so the key that asked is still the key that writes.
+    gs.patch_file("scripts/t.py", "a = 1", "a = 9", edit_key)
+    assert (repo / "scripts/t.py").read_text().startswith("a = 9")
+
+
+def test_a_dry_run_is_refused_like_a_patch(repo) -> None:
+    """No dialog is shown for an edit the gate would refuse anyway."""
+    with pytest.raises(gs.GateError):
+        gs.patch_file("scripts/t.py", "a = 1", "a = 9", None, dry_run=True)
+
+
+def test_the_design_docs_and_the_gate_itself_need_approval(repo) -> None:
+    """The lock covers its own two files, or the caller it binds could patch it away."""
+    for rel in (
+        "docs/skill-schema.md",
+        "docs/skill-file-hierarchy.md",
+        "scripts/governance_gate.py",
+        "scripts/governance_server.py",
+    ):
+        assert gs.needs_approval(rel), rel
+    for rel in (
+        "docs/backlog.md",
+        "scripts/t.py",
+        "plugins/ha/skills/ha-integration/reference/patterns.md",
+    ):
+        assert not gs.needs_approval(rel), rel
+
+
 def test_a_file_receipt_dies_when_the_file_changes(repo) -> None:
     """Bound to content, so a stale key means the file moved under the reader."""
     _, edit_key = _keys()

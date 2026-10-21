@@ -133,6 +133,16 @@ CI_TIERS: dict[str, tuple[str, ...]] = {
 # the one place whose whole purpose is to assert things about the rest of the repository,
 # so it is the one place where naming a file is a claim rather than a mention.
 CLAIM_CHECKED = ("docs/backlog.md", "docs/backlog/")
+
+# Written only once the maintainer approves the exact diff, which the server asks for: the two
+# design docs every skill file is written to, and the gate's own two files, so the lock cannot
+# be patched away by the caller it binds. The gate stays pure and only names them.
+APPROVAL_REQUIRED = (
+    "docs/skill-schema.md",
+    "docs/skill-file-hierarchy.md",
+    "scripts/governance_gate.py",
+    "scripts/governance_server.py",
+)
 # The release window's fetched sources, and the tier whose release claims must come out of
 # them. scripts/fetch_ha_sources.py writes both the index and the files it names.
 SOURCE_DIR = "docs/ha-release/"
@@ -690,6 +700,11 @@ def _write(rel: str, text: str) -> None:
     (REPO / rel).write_text(text, encoding="utf-8")
 
 
+def needs_approval(path: str) -> bool:
+    """Whether a patch to path is written only after the maintainer approves its diff."""
+    return safe_relpath(path) in APPROVAL_REQUIRED
+
+
 def _report(before: str, after: str, rel: str) -> str:
     """The actual diff, so an unintended edit is visible the moment it lands.
 
@@ -717,9 +732,18 @@ def _report(before: str, after: str, rel: str) -> str:
 
 
 def patch_file(
-    path: str, old_string: str, new_string: str, edit_key: str | None
+    path: str,
+    old_string: str,
+    new_string: str,
+    edit_key: str | None,
+    dry_run: bool = False,
 ) -> str:
-    """Replace one exact, unique occurrence of old_string, reporting what actually changed."""
+    """Replace one exact, unique occurrence of old_string, reporting what actually changed.
+
+    With dry_run every check still runs, and the diff comes back with nothing written and no
+    key rolled forward: it is what the server shows the maintainer before an APPROVAL_REQUIRED
+    file is written.
+    """
     rel = safe_relpath(path)
     tier = resolve_tier(rel)
     if tier is None:
@@ -747,6 +771,8 @@ def patch_file(
         # Fail open, as ha-mcp does when its skill content is missing: a broken governing doc
         # makes the key unobtainable, and bricking every edit is the worse failure.
         after = _apply(before, old_string, new_string, rel)
+        if dry_run:
+            return _report(before, after, rel)
         _write(rel, after)
         return (
             f"wrote {rel} (gate OPEN: a governing doc for '{tier}' is unreadable)\n"
@@ -805,6 +831,8 @@ def patch_file(
             f"old_string lies outside the text get_function returned for {scope!r} in {rel}; "
             f"read the function that contains it, or the whole file with get_file"
         )
+    if dry_run:
+        return _report(before, after, rel)
     _write(rel, after)
     # The key rolls forward: the caller read the file (or the function's closure) and has
     # just seen this diff, so it has read that text as it now stands. Without this every
