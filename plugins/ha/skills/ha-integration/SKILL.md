@@ -1,62 +1,43 @@
 ---
 name: ha-integration
 description: >-
-  Use when developing or troubleshooting a Home Assistant custom integration — the package
-  under `custom_components/`, or the panel it serves.
-  TRIGGER WHEN:
-  - scaffolding an integration, or adding a platform, flow, coordinator, service, diagnostics
-  or manifest key to one
-  - fixing a bug or a test in one, or claiming a quality-scale tier
-  - restyling its panel: sizing, type, colour, spacing or layout
-  - cutting a release, or setting up its CI, Dependabot, HACS or hassfest
-  SYMPTOMS:
-  - an entity unavailable after restart
-  - a notify or custom service broken by an HA update
-  - a device_class/state_class mismatch warning
-  - a red check on an integration repository
-  - a panel foreign beside HA's pages: unscaled text, hardcoded colours broken in dark
-  mode, tap targets too small
-  NOT for Lovelace cards, YAML dashboards, fault triage (ha-triage), or non-HA Python. Invoke
-  before editing integration code or panel CSS; re-invoke after /compact.
+  Use when building, changing, testing or releasing a Home Assistant custom integration: the
+  `custom_components/` package, its panel, or its repository's CI, Dependabot, HACS listing
+  and releases — a new platform, config flow, coordinator or manifest key, a red hassfest,
+  HACS or CI check, a device_class or state_class warning, a quality-scale tier, a panel that
+  looks wrong beside Home Assistant's pages. Not for naming a fault's cause from a log
+  (ha-triage), Lovelace cards, YAML dashboards, or Python unrelated to Home Assistant.
 ---
 
 # Home Assistant Integration Assistant
 
-**Target platinum quality scale, and fetch the mode's source before writing the code that
-meets it — a contributors.home-assistant.io docs page as Markdown, its URL plus `index.md`,
-which a blog post does not serve; https://contributors.home-assistant.io/llms.txt links each
-area's page list.**
+This skill builds and maintains Home Assistant custom integrations — the code, its tests, its
+panel, its CI and its releases — to the platinum tier of Home Assistant's quality scale. Pick
+the mode that matches the task, read every file its row names in full, and fetch its sources
+before writing anything.
 
-## Detect the mode
+## Pick the mode
 
-Pick the mode from what is about to be done, then **read that mode's file before acting**.
+A mode is one kind of task; each row says when it applies, which files it reads and which
+pages back it.
 
 | Mode | When | Read first | Source |
 |---|---|---|---|
-| **Scaffold** | no `custom_components/`, or a new integration or a new repository for one, including setting up its CI and release process — from the first questions to the GitHub settings, in order | `reference/scaffold.md` | Creating integrations: https://contributors.home-assistant.io/core/integrations/create/ · File structure: https://contributors.home-assistant.io/core/integrations/file-structure/ · Manifest: https://contributors.home-assistant.io/core/integrations/manifest/ |
-| **Modify** | `custom_components/` exists and its package is being added to, changed or fixed — Python, `services.yaml`, `translations/` — including file structure and typing | `reference/patterns.md` | Config entries: https://contributors.home-assistant.io/core/integrations/config-entries/ · Config flows: https://contributors.home-assistant.io/core/integrations/config-flow/ · Data fetching + coordinator: https://contributors.home-assistant.io/core/integrations/fetching-data/ · Setup failures: https://contributors.home-assistant.io/core/integrations/setup-failures/ · Blocking operations: https://contributors.home-assistant.io/core/internals/blocking-operations/ · Core's own agent guidelines, written for core's tree, so `homeassistant/components/<domain>/` reads as `custom_components/<domain>/`: https://raw.githubusercontent.com/home-assistant/core/dev/.claude/skills/ha-integration-knowledge/SKILL.md · Real examples: https://github.com/home-assistant/core/tree/dev/homeassistant/components |
-| **Manifest** | adding or changing a `manifest.json` key | `reference/scaffold.md` | Manifest: https://contributors.home-assistant.io/core/integrations/manifest/ |
-| **Panel** | building or fixing an integration that serves a panel — how it is built and served; how it looks is the Panel design row | `reference/panels.md` | — |
-| **Panel design** | changing how a panel looks — the CSS or markup of a Lit/TS panel web component: sizing, typography, colour, spacing, layout | `reference/panel-design.md` | Material 3 type scale: https://m3.material.io/styles/typography/type-scale-tokens · Material 3 states and touch targets: https://m3.material.io/foundations/interaction/states/overview · HA theme properties: https://github.com/home-assistant/frontend/tree/dev/src/resources/theme · Theme variables a user may override: https://www.home-assistant.io/integrations/frontend/#supported-theme-variables |
-| **Test** | writing or fixing tests, mocking at the boundary, or a suite that fails before any test runs | `reference/testing.md` | — |
-| **Lint** | hygiene pass over existing code | *Lint & quality check* below | — |
-| **Tier** | claiming a quality-scale tier, and the canonical rule set behind it | `reference/quality-scale.md` | Quality scale: https://contributors.home-assistant.io/core/quality-scale/ · Core's procedure for proving a rule, written for core's tree, so `homeassistant/components/<domain>/` and `tests/components/<domain>/` read as `custom_components/<domain>/` and `tests/`, its `script.hassfest`, `.strict-typing` and requirements-file steps run in core only, and its brands step checks `brand/` instead: https://raw.githubusercontent.com/home-assistant/core/dev/.claude/skills/ha-quality-scale-verify/SKILL.md, whose rule links point at an archived repository — read each rule at `https://contributors.home-assistant.io/core/quality-scale/<rule>/index.md` |
+| **Scaffold** | no `custom_components/`, or a new integration or a new repository for one, including setting up its CI and release process — from the first questions to the GitHub settings, in order | `reference/scaffold.md`, `reference/lint.md` | Create an integration: https://contributors.home-assistant.io/core/integrations/create/index.md · File structure: https://contributors.home-assistant.io/core/integrations/file-structure/index.md · Manifest: https://contributors.home-assistant.io/core/integrations/manifest/index.md · Publish a custom integration: https://contributors.home-assistant.io/marketplace/guides/integrations/index.md |
+| **Modify** | `custom_components/` exists and its package is being added to, changed or fixed — Python, `services.yaml`, `translations/` — including file structure and typing | `reference/patterns.md`, `reference/lint.md` | Config entries: https://contributors.home-assistant.io/core/integrations/config-entries/index.md · Config flow: https://contributors.home-assistant.io/core/integrations/config-flow/index.md · Fetching data: https://contributors.home-assistant.io/core/integrations/fetching-data/index.md · Setup failures: https://contributors.home-assistant.io/core/integrations/setup-failures/index.md · Blocking operations: https://contributors.home-assistant.io/core/internals/blocking-operations/index.md · Core's own agent guidelines, written for core's tree, so `homeassistant/components/<domain>/` reads as `custom_components/<domain>/`: https://raw.githubusercontent.com/home-assistant/core/2026.10.0/.claude/skills/ha-integration-knowledge/SKILL.md · Real examples: https://github.com/home-assistant/core/tree/2026.10.0/homeassistant/components |
+| **Manifest** | adding or changing a `manifest.json` key, or its key order | `reference/scaffold.md` | Manifest: https://contributors.home-assistant.io/core/integrations/manifest/index.md |
+| **Panel** | building or fixing an integration that serves a panel — how it is built, served and fed with data; how it looks is the Panel design row | `reference/panels.md` | Custom panels: https://contributors.home-assistant.io/frontend/custom-ui/panel/index.md · A WebSocket command for the panel: https://contributors.home-assistant.io/frontend/extending/websocket-api/index.md · The bundle check and the `frontend/` templates: https://raw.githubusercontent.com/PineappleEmperor/ha-panel-ci/main/README.md |
+| **Panel design** | changing how a panel looks — the CSS or markup of a Lit/TS panel web component: sizing, typography, colour, spacing, layout | `reference/panel-design.md` | Theming and design tokens: https://contributors.home-assistant.io/frontend/architecture/theming/index.md · Color: https://contributors.home-assistant.io/design/foundations/color/index.md · Typography: https://contributors.home-assistant.io/design/foundations/typography/index.md · Spacing: https://contributors.home-assistant.io/design/foundations/spacing/index.md · Accessibility: https://contributors.home-assistant.io/design/foundations/accessibility/index.md · Motion: https://contributors.home-assistant.io/design/foundations/motion/index.md · Theme variables a user may override: https://www.home-assistant.io/integrations/frontend/#supported-theme-variables |
+| **Test** | writing or fixing tests, mocking at the boundary, or a suite that fails before any test runs | `reference/testing.md` | Writing tests: https://contributors.home-assistant.io/core/development/tests/index.md · Running the tests: https://contributors.home-assistant.io/core/development/testing/index.md |
+| **Lint** | a hygiene pass over existing code, before a commit or a review | `reference/lint.md`, `reference/scaffold.md` | Code style: https://contributors.home-assistant.io/core/development/style/index.md · Type hints: https://contributors.home-assistant.io/core/development/typing/index.md · Linters, hassfest and CI: https://contributors.home-assistant.io/core/development/checks/index.md · What the stack's CI runs: https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
+| **Tier** | claiming a quality-scale tier, and the canonical rule set behind it | `reference/quality-scale.md` | Quality scale: https://contributors.home-assistant.io/core/quality-scale/index.md · The quality scale file: https://contributors.home-assistant.io/core/quality-scale/quality-scale-file/index.md · Core's procedure for proving a rule, written for core's tree, so `homeassistant/components/<domain>/` reads as `custom_components/<domain>/`: https://raw.githubusercontent.com/home-assistant/core/2026.10.0/.claude/skills/ha-quality-scale-verify/SKILL.md, whose rule link points at an archived repository — read each rule at `https://contributors.home-assistant.io/core/quality-scale/<rule>/index.md` |
 | **Debug** | a root cause is about to be named | `reference/discipline.md` | — |
-| **Commit / PR** | writing a commit subject, a PR title or a PR body | `reference/commits.md` | — |
-| **Merge** | a check is red, or a merge is about to happen | `reference/discipline.md` | — |
-| **Workflow** | writing or reviewing a CI file, and what a copy may change | `reference/github-actions.md` | — |
-| **Dependabot** | configuring or debugging Dependabot, including the callers' pins and what it cannot reach | `reference/dependabot.md` | — |
-| **Release** | cutting or gating a release once the release process is set up, including an rc, or touching the version in `manifest.json` | `reference/versioning.md` | — |
-| **Catalog** | getting the integration into the default catalog HACS and the Marketplace read, or putting its My links in the README | `reference/scaffold.md` | Get into the catalog: https://contributors.home-assistant.io/marketplace/guides/catalog/ |
-| **Repo setup** | configuring the repository on GitHub: token, required checks, dependency graph, supply chain | `reference/github-setup.md` | — |
-| **Audit** | auditing a repository against this skill | `reference/audit.md` | — |
-| **Currency** | acting on a pin, SHA, count or Home Assistant release number, or asking whether a cached value is still true | `reference/freshness.md` | What a release changed or deprecated: https://contributors.home-assistant.io/blog/ |
-
-## Lint & quality check
-
-1. Run `ruff check .` and `ruff format --check .` under the shipped `pyproject.toml`, with ruff at the version the mypy and ruff row of `reference/freshness.md` names — fix all actionable issues; suppress intentional ones with `# noqa` and a reason
-2. Run `mypy --config-file mypy.ini custom_components/`, with mypy at the version the mypy and ruff row of `reference/freshness.md` names — fix all actionable issues
-3. Run the rest of what CI runs: *The three workflows* in ha-integration-ci's README
-4. Check `quality_scale.yaml` exists; if not, offer to create it
-5. Check `manifest.json`'s keys run `domain`, `name`, then the rest alphabetically — hassfest fails any other order (`sort_manifest` in core's `script/hassfest/manifest.py`)
-6. Report: files changed · issues fixed · issues intentionally suppressed (with rationale) · remaining manual work
+| **Commit / PR** | writing a commit subject, a PR title or a PR body | `reference/commits.md` | The commit types a PR title may carry: https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/.github/workflows/lint-pr.yml · The breaking-change marker, under *Called versus copied*: https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/README.md · AI policy: https://contributors.home-assistant.io/start/ai-policy/index.md |
+| **Merge** | a check is red, or a merge is about to happen | `reference/discipline.md` | Why a `pull_request_target` caller cannot prove its own fix, under *The five workflows*: https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/README.md |
+| **CI files** | adding, changing or reviewing a CI file — a workflow under `.github/workflows/`, or a config file copied from `templates/` — and what a copy may change | `reference/github-actions.md` | The PR, label and release workflows: https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/README.md · The validation, audit and release-zip workflows: https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md · The panel workflow: https://raw.githubusercontent.com/PineappleEmperor/ha-panel-ci/main/README.md |
+| **Dependabot** | configuring or debugging Dependabot, including the callers' pins and what it cannot reach | `reference/dependabot.md`, `reference/testing.md` | How a pin moves: https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
+| **Release** | cutting or gating a release once the release process is set up, including an rc, or touching the version in `manifest.json` | `reference/versioning.md`, `reference/commits.md` | Releases and updates: https://contributors.home-assistant.io/marketplace/guides/releases/index.md · How the version is decided and the draft kept: https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/README.md · What a published release builds: https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
+| **Catalog** | getting the integration into the default catalog HACS and the Marketplace read, or putting its My links in the README | `reference/scaffold.md` | Get into the catalog: https://contributors.home-assistant.io/marketplace/guides/catalog/index.md |
+| **Repo setup** | configuring the repository on GitHub: token, required checks, dependency graph, supply chain | `reference/github-setup.md` | The token and the check names: https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/README.md · Validation checks: https://contributors.home-assistant.io/marketplace/reference/validation/index.md |
+| **Audit** | auditing a repository against this skill | `reference/audit.md`, `reference/lint.md` | What the audit checks: https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
+| **Freshness** | acting on a pin, SHA, count or Home Assistant release number, or asking whether the skill or a cached value is still current | `reference/freshness.md` | What each release changed or deprecated, where a post serves no `index.md`, so read it at its page URL: https://contributors.home-assistant.io/blog/rss.xml · Every docs page, by area: https://contributors.home-assistant.io/llms.txt |

@@ -31,7 +31,7 @@ before merging.
 |---|---|---|---|
 | merging on "I understand why it's red" | fix it | understanding a failure is a reason to fix it, not to merge it | — |
 | merging on "the content is correct, only the check is wrong" | fix the check | a wrong check is a defect, not an exemption | — |
-| merging on "it's the `pull_request_target` self-validation case" | prove it with the diff, on that job, on that PR | if you did not check, it is not that case | `pr-checks.yml` under *The five workflows* in release-flow's README |
+| merging on "it's the `pull_request_target` self-validation case" | prove it with the diff, on that job, on that PR | if you did not check, it is not that case | `pr-checks.yml` under *The five workflows* in release-flow's README, https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/README.md |
 | merging on "I merged past a red check earlier for a good reason" | carry this merge's own proof | the earlier exception was proved on its own diff, which says nothing about this one | — |
 | merging on "the version/label/content is right anyway" | say in writing why the gate is wrong, before merging | the gate is reporting what it can see | — |
 | merging on "it's only advisory, GitHub let me" | read the log | advisory means GitHub will not stop you, not that the check is wrong | — |
@@ -63,7 +63,8 @@ Name it from the trace, and say which call in the trace produces the behaviour.
 ### One exception, and it is narrow — merge Step 2
 
 A PR fixing a `pull_request_target` caller can never go green on its own; why is
-`pr-checks.yml` under *The five workflows* in release-flow's README. That is the only
+`pr-checks.yml` under *The five workflows* in release-flow's README,
+https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/README.md. That is the only
 sanctioned case, and it covers **one job, on one PR, whose own definition the PR changes**.
 
 **Fix:** prove it with `git show origin/main:.github/workflows/pr-checks.yml` against the

@@ -23,7 +23,6 @@ from memory.
 14. A repository adopting the stack carries ruff exclusions — Step 6
 15. `HACS validation` is red — Step 9
 16. The integration goes into the default catalog — Step 10
-17. Reference
 
 ## The scaffold
 
@@ -75,17 +74,15 @@ Under `custom_components/<domain>/`. What goes inside each file is `reference/pa
 | `services.yaml` | each action's fields — *`services.yaml` + `translations/en.json` — Step 1* in `reference/patterns.md` | the integration registers its own action, where no standard one fits |
 | `api.py`, `coordinator.py`, `models.py`, `entity.py`, `helpers.py` | what *Step 1: Lay out the files by responsibility* in `reference/patterns.md` gives each | as that step says |
 
-**Docstrings and comments in every generated module**
+**Docstrings and comments in every generated module:**
 
 | Rule | Value |
 |---|---|
 | module docstring | on every file; the only docstring that may run to several lines, and the place a file-level constraint is explained |
-| public function and class docstrings | one line; what the audit checks and what it leaves to you is *What the audit checks now* in ha-integration-ci's README |
+| public function and class docstrings | one line; what the audit checks and what it leaves to you is *What the audit checks now* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
 | inline comments | only where the code does not show why |
 
 ### Step 4: Write `manifest.json`
-
-The key order is item 5 of *Lint & quality check* in `SKILL.md`.
 
 ```json
 {
@@ -106,6 +103,7 @@ The key order is item 5 of *Lint & quality check* in `SKILL.md`.
 | Rule | Value |
 |---|---|
 | where each rule below was read | https://contributors.home-assistant.io/core/integrations/manifest/; beyond the page, `script/hassfest/manifest.py` in core at the `.0` tag of the release row's value and `custom_components/hacs/utils/validate.py` in hacs/integration at the HACS validation row's revision, both rows in `reference/freshness.md` |
+| key order | `domain`, `name`, then every other key alphabetically, as above; hassfest fails any other order — `sort_manifest` in `script/hassfest/manifest.py` |
 | `domain`, `name` | required; the domain is the directory name and never changes |
 | `version` | required for a custom integration — hassfest and HACS both fail its absence; a version AwesomeVersion reads as CalVer, SemVer, SimpleVer, BuildVer or PEP 440, the five forms hassfest's `verify_version` accepts; what sets it at release is `reference/versioning.md` |
 | `documentation` | required; `https`, and not under `www.home-assistant.io/integrations/`, which hassfest reserves for core |
@@ -143,7 +141,7 @@ rest.
 |---|---|---|---|
 | Marketplace, replacing HACS, shows an integration's `brand/` images before install, picked up from the latest release of every integration in the catalog; an entry for the domain in `home-assistant/brands` wins over them | 2026.11 — https://contributors.home-assistant.io/marketplace/guides/integrations/; the brands entry winning, `BrandsMarketplaceView.get` in core's `homeassistant/components/brands/__init__.py` on `dev` | ship `brand/icon.png` in every release | nothing |
 
-**Which files to ship**
+**Which files to ship:**
 
 | File | Holds | When |
 |---|---|---|
@@ -170,7 +168,7 @@ rest.
 | nothing on the CDN either, requested with `?placeholder=no` | 404 |
 | nothing on the CDN either, requested without it | a generic placeholder |
 
-**Rules every file must meet**
+**Rules every file must meet:**
 
 - PNG; compressed and optimised, lossless preferred, interlaced preferred, transparent preferred.
 - The unprefixed file is the one optimised for a white ground; the dark-optimised one takes the `dark_` prefix.
@@ -220,18 +218,18 @@ Copy every file in the table under *Step 2: Take each file from its source* in
 as *Step 3: Resolve each caller's pin* in `reference/github-actions.md` says. The root files
 among them:
 
-| File | Holds | Taken from |
-|---|---|---|
-| `pyproject.toml` | HA core's ruff rule set adapted for a custom integration — `google` docstrings, HA's Python floor, no `from __future__ import annotations` — and the `asyncio_mode = "auto"` without which no async test runs | `templates/pyproject.toml`, verbatim |
-| `mypy.ini` | the general section of HA core's mypy config — keep `python_version` in `[mypy]`, since it is what the audit's version comparison reads from this file — *What the audit checks now* in ha-integration-ci's README | `templates/mypy.ini`, verbatim |
-| `requirements.test.txt` | the pinned test harness — why the pin matters is `reference/testing.md` | `templates/requirements.test.txt` |
-| `tests/conftest.py`, `tests/__init__.py`, `tests/ruff.toml` | the harness setup and core's ruff rules for tests — `reference/testing.md` | `templates/tests/` |
-| `.gitignore` | the paths git must never track | `templates/.gitignore` |
-| `ruleset.json` | the branch ruleset — what it requires is `reference/github-setup.md` | `templates/ruleset.json` |
-| `.githooks/commit-msg` | the Conventional Commit check — `reference/commits.md` | release-flow's copy, `chmod +x` |
-| `.pre-commit-config.yaml` | the local hooks: ruff, codespell, `check-json`, a guard on `main`, yamllint and prettier | `templates/.pre-commit-config.yaml`, verbatim |
-| `.yamllint`, `.prettierrc.js`, `.prettierignore` | the configs yamllint and prettier read | the files of those names in `templates/`, verbatim |
-| `.githooks/pre-commit` | the wrapper that runs the local hooks on commit | the snippet below, `chmod +x` |
+| File | Holds |
+|---|---|
+| `pyproject.toml` | HA core's ruff rule set adapted for a custom integration — `google` docstrings, HA's Python floor, no `from __future__ import annotations` — and the `asyncio_mode = "auto"` without which no async test runs |
+| `mypy.ini` | the general section of HA core's mypy config — keep `python_version` in `[mypy]`, since it is what the audit's version comparison reads from this file — *What the audit checks now* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
+| `requirements.test.txt` | the pinned test harness — why the pin matters is *Step 4: Keep the harness pin and the Python floor in lockstep* in `reference/testing.md` |
+| `tests/conftest.py`, `tests/__init__.py`, `tests/ruff.toml` | the harness setup and core's ruff rules for tests — *Testing — prerequisites before any of the rules below apply* in `reference/testing.md` |
+| `.gitignore` | the paths git must never track |
+| `ruleset.json` | the branch ruleset — what it requires is `reference/github-setup.md` |
+| `.githooks/commit-msg` | the Conventional Commit check — *Step 1: Install the `commit-msg` hook* in `reference/commits.md`; `chmod +x` |
+| `.pre-commit-config.yaml` | the local hooks: ruff, codespell, `check-json`, a guard on `main`, yamllint and prettier |
+| `.yamllint`, `.prettierrc.js`, `.prettierignore` | the configs yamllint and prettier read |
+| `.githooks/pre-commit` | the wrapper that runs the local hooks on commit — the snippet below; `chmod +x` |
 
 | Rule | Value |
 |---|---|
@@ -241,7 +239,7 @@ among them:
 | enabling the commit hook | the `core.hooksPath` setting the `CLAUDE.md` snippet in Step 7 gives; in this clone `bootstrap_repo.sh` sets it at Step 10, after the first commit, which the guard on `main` would otherwise refuse |
 | enabling the local hooks | install `pre-commit`; the same `core.hooksPath` setting runs the wrapper, and `pre-commit install` refuses to run while that setting is in place |
 | what prettier leaves alone | Markdown, as core leaves it; and `.github/`, `ruleset.json` and a built panel bundle, so a copied or built file stays identical to its source |
-| omitting `.gitignore` | a local `pytest` plus a `git add -A` tracks `.pyc` files, which *What the audit checks now* in ha-integration-ci's README fails a repository for |
+| omitting `.gitignore` | a local `pytest` plus a `git add -A` tracks `.pyc` files, which *What the audit checks now* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md, fails a repository for |
 | `panel-bundle.yml` and `frontend/` | only an integration that serves a panel — `reference/panels.md` |
 | a file left out | its own audit failure on the first CI run |
 
@@ -304,7 +302,7 @@ linked to its public repository:
 
 | Rule | Value |
 |---|---|
-| where each row was read | `redirect.json` in `home-assistant/my.home-assistant.io`, and https://contributors.home-assistant.io/marketplace/guides/catalog/ |
+| where each row was read | `redirect.json` in `home-assistant/my.home-assistant.io`, https://raw.githubusercontent.com/home-assistant/my.home-assistant.io/main/redirect.json, and https://contributors.home-assistant.io/marketplace/guides/catalog/ |
 | `hacs_repository` | opens the repository in HACS; from 2026.11 it opens the Marketplace instead, so it reaches users on either side of that release |
 | `config_flow_start` | starts the integration's config flow, once the integration is installed |
 
@@ -324,7 +322,7 @@ linked to its public repository:
 | every key | one of the ten keys HACS's `hacsjson` check accepts — `content_in_root`, `country`, `filename`, `hacs`, `hide_default_branch`, `homeassistant`, `name`, `persistent_directory`, `render_readme`, `zip_release`; anything else fails it |
 | `homeassistant` | the oldest HA you actually test, never a floor copied from an example |
 | `zip_release` | makes HACS download a release **asset** rather than the tag's source archive, so it requires the `release.yml` caller |
-| `filename` | the name `release.yml` attaches — *The three workflows* in ha-integration-ci's README |
+| `filename` | the name `release.yml` attaches — *The three workflows* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
 | dropping `zip_release` and `filename` | only to have HACS pull the whole tagged repository archive instead |
 
 | what | lands in | do now | do then |
@@ -336,11 +334,11 @@ install with `Could not download`.
 
 > **Note:** the tag is the version, not the committed manifest — `reference/versioning.md`.
 > What patches the manifest is `release.yml` under *Implementation notes* in
-> ha-integration-ci's README.
+> ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md.
 
 ### Step 8: Run the checks and fix the code
 
-Run *Lint & quality check* in `SKILL.md`, before the first commit.
+Run every step of `reference/lint.md`, before the first commit.
 
 | Rule | Value |
 |---|---|
@@ -389,7 +387,7 @@ CONF_REFRESH_TOKEN = "refresh_token"
 | an entry too long for the column | re-pad the whole block, in the same commit |
 | a generator that emits a fenced table | emits the fence too, or the next regeneration drops it |
 
-**What earns a fence**
+**What earns a fence:**
 
 - Padding before `=` or `:`.
 - Padding after them, where the values form the column.
@@ -403,7 +401,7 @@ shape a reader could see in the source is gone.
 ### A repository adopting the stack carries ruff exclusions — Step 6
 
 The stack lints and formats the whole tree, for the reason the `python-validate.yml` bullet
-under *Implementation notes* in ha-integration-ci's README gives, and
+under *Implementation notes* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md, gives, and
 `templates/pyproject.toml` excludes nothing. Anything kept out of ruff's sight is linted once
 the repository adopts that file.
 
@@ -461,15 +459,3 @@ pass, and a full GitHub release is published — a tag alone does not count.
 | Releases | at least one release | `reference/versioning.md` |
 | Owner | the submitter owns the repository, or is a major contributor | — |
 | Lint | the catalog file the pull request changed is valid JSON, and sorted | the pull request |
-
-## Reference
-
-| file | when to read |
-|---|---|
-| `reference/patterns.md` | writing the code inside any generated file — setup and unload, coordinator, entity, notify, `entry.runtime_data`, `DeviceInfo`, typing, the file splits |
-| `reference/testing.md` | writing the tests, and the harness prerequisites behind `tests/conftest.py` and `requirements.test.txt` |
-| `reference/quality-scale.md` | filling in `quality_scale.yaml` |
-| `reference/commits.md` | writing the first commit |
-| `reference/versioning.md` | where the version comes from, and how an rc and a final are published |
-| `reference/github-actions.md` | what the CI stack carries, and each workflow's contract |
-| `reference/github-setup.md` | the GitHub side — token, required checks, ruleset |

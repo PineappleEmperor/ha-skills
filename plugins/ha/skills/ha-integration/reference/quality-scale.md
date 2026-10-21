@@ -50,7 +50,6 @@ The set is a snapshot; re-verify it per its row in `reference/freshness.md`.
 | Rule | Value |
 |---|---|
 | which tier a rule sits in | `ALL_RULES` in core's `script/hassfest/quality_scale.py`, never the rule's name |
-| where one rule is documented | `contributors.home-assistant.io/core/quality-scale/<rule-name>/` |
 
 > **Note:** `PlatformNotReady` is for legacy `async_setup_platform` only — config-entry
 > integrations use `ConfigEntryNotReady` instead.
@@ -68,7 +67,7 @@ rest are proved by what they name:
 | `async-dependency` | the dependency, read |
 | `parallel-updates` | the `PARALLEL_UPDATES` module constant in each platform file, read |
 | `strict-typing` | the mypy run — *Step 4: Type it, and suppress nothing* in `reference/patterns.md` |
-| `test-coverage` | ha-integration-ci's `scripts/coverage_gate.py` — which modules it holds, and to what bar, is *The coverage gate* under *Implementation notes* in ha-integration-ci's README |
+| `test-coverage` | ha-integration-ci's `scripts/coverage_gate.py`, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/scripts/coverage_gate.py — which modules it holds, and to what bar, is the **The coverage gate** bullet under *Implementation notes* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
 
 Each of these needs its own test, not just the code:
 
@@ -92,10 +91,11 @@ proved by reading is never `exempt` for want of a test.
 - hassfest never opens `quality_scale.yaml` — `validate_iqs_file` in
   `script/hassfest/quality_scale.py` returns for anything outside `homeassistant/components`.
 - The rules that core's gate applies there are applied here by the skill's audit — which
-  ones, and what each fails on, is *What the audit checks now* in ha-integration-ci's README.
+  ones, and what each fails on, is *What the audit checks now* in ha-integration-ci's README,
+  https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md.
 - The audit judges the claim, not the tests: a fresh scaffold claims nothing, so it has
   nothing to prove; what a `done` must have behind it is *What the audit checks now* in
-  ha-integration-ci's README.
+  ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md.
 
 ## Cases
 

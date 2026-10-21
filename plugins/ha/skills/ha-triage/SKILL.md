@@ -1,34 +1,24 @@
 ---
 name: ha-triage
 description: >-
-  Use when a Home Assistant custom integration misbehaves and the fault is not yet named —
-  from a log, a traceback or a symptom — to find the class of fault and the file that owns
-  the fix.
-  TRIGGER WHEN:
-  - reading `home-assistant.log`, or a traceback that names `custom_components`
-  - an integration fails to set up, or its entities go unavailable, stale, missing or
-  duplicated
-  - an action or a panel of an integration stops working
-  - an integration broke after a Home Assistant update
-  SYMPTOMS:
-  - `Setup failed for custom integration`
-  - `Error setting up entry`
-  - `Unexpected error fetching … data`
-  - `Detected blocking call to … inside the event loop`
-  - `Detected that custom integration … This will stop working in Home Assistant`
-  - `does not generate unique IDs`
-  NOT for writing the fix (ha-integration), nor for automations, dashboards, add-ons or the
-  devices of core integrations.
+  Use when a Home Assistant custom integration misbehaves and the fault is not yet named — a
+  `home-assistant.log` or traceback naming `custom_components`, a failed setup, entities
+  unavailable, stale, missing or duplicated, an action or panel that stopped working, a break
+  after an update, `Setup failed for custom integration`, `Detected blocking call` — to name
+  the class of fault and the file that owns the fix. Not for writing the fix
+  (ha-integration), nor for automations, dashboards, add-ons or core integrations' devices.
 ---
 
 # Home Assistant Triage
 
-**Name the class of fault from a line core printed or a symptom someone saw, then open the
-file that owns that class. A line count ranks nothing.**
+This skill names what is wrong with a misbehaving custom integration, from a line core printed
+or a symptom someone saw, and opens the file that owns the fix. Count a log by logger, not by
+line: one fault can print a thousand lines, and a line count ranks nothing.
 
 ## Detect the fault class
 
-Match the line or the symptom to a row, then **read that row's file before naming a cause**.
+A mode is one class of fault: match the line or the symptom to a row, then **read that row's
+file before naming a cause**.
 
 | Mode | When | Read first | Source |
 |---|---|---|---|
@@ -39,7 +29,7 @@ Match the line or the symptom to a row, then **read that row's file before namin
 | **Flow will not open** | `Error occurred loading flow for integration <domain>`, or adding the integration or opening its options fails before the first form or ends at once | `ha-integration/reference/patterns.md` | `homeassistant/config_entries.py` |
 | **Raised too late** | `<domain> raises exception <name> in forwarded platform <platform>; Instead raise <name> before calling async_forward_entry_setups` | `ha-integration/reference/patterns.md` | `homeassistant/helpers/entity_platform.py` |
 | **Sign-in** | `Config entry '<title>' for <domain> integration could not authenticate`, `Authentication failed while fetching <name> data`, or a request to sign in again that keeps coming back | `ha-integration/reference/patterns.md` | `homeassistant/config_entries.py`, `homeassistant/helpers/update_coordinator.py` |
-| **Connection** | `Timeout fetching <name> data`, `Error requesting <name> data`, `Error fetching <name> data`; or entities unavailable until the integration is reloaded | `ha-integration/reference/patterns.md` | `homeassistant/helpers/update_coordinator.py` |
+| **Connection** | `Timeout fetching <name> data`, `Error requesting <name> data`, `Error fetching <name> data` with no `Unexpected` before it; or entities unavailable until the integration is reloaded | `ha-integration/reference/patterns.md` | `homeassistant/helpers/update_coordinator.py` |
 | **Unexpected reply** | `Unexpected error fetching <name> data`, `Unexpected error updating listener`, or a `ValueError` raised from a sensor's state | `ha-integration/reference/patterns.md` | `homeassistant/helpers/update_coordinator.py`, `homeassistant/components/sensor/__init__.py` |
 | **Value wrong or stuck** | a state that reads `unknown` once the entity is added, or carries the wrong unit, with no line in the log | `ha-integration/reference/patterns.md` | — |
 | **Entities duplicated** | `Platform <domain> does not generate unique IDs` | `ha-integration/reference/patterns.md` | `homeassistant/helpers/entity_platform.py` |
@@ -50,7 +40,7 @@ Match the line or the symptom to a row, then **read that row's file before namin
 | **Deprecation** | it worked before a Home Assistant update; or `Detected that custom integration '<domain>' … This will stop working in Home Assistant <release>` | `ha-integration/reference/patterns.md` | `homeassistant/helpers/frame.py` |
 | **Blocking call** | `Detected blocking call to <function>`, or a `RuntimeError` beginning `Caught blocking call to` | `ha-integration/reference/patterns.md` | `homeassistant/util/loop.py` |
 | **Panel** | the panel shows its previous version after an update, or a change made in its source is not there | `ha-integration/reference/panels.md` | — |
-| **hassfest** | a red hassfest check on the manifest | `ha-integration/reference/scaffold.md` | — |
+| **hassfest** | a red hassfest check on the manifest | `ha-integration/reference/scaffold.md` | https://contributors.home-assistant.io/core/integrations/manifest/index.md, `script/hassfest/manifest.py` |
 | **Naming the cause** | a class is matched and a root cause is about to be named | `ha-integration/reference/discipline.md` | — |
 
 ## Read a log

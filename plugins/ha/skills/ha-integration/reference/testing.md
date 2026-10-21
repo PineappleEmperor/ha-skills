@@ -116,7 +116,7 @@ Regex parsers, date/format extraction and data transforms (`order_parse`, `vouch
 unpatched code, then fix.
 
 Which rules demand a behavioural test before you may mark them `done`, and what each test
-must prove, is `reference/quality-scale.md`.
+must prove, is *Step 3: Prove every `done`* in `reference/quality-scale.md`.
 
 ## Cases
 

@@ -24,8 +24,8 @@ Commits form, subject-only by default.**
 
 ### Step 1: Install the `commit-msg` hook
 
-Copy release-flow's `.githooks/commit-msg`, whose purpose *Called versus copied* in its
-README gives, to `.githooks/commit-msg` and `chmod +x`. Tell contributors in `CLAUDE.md` to
+Copy release-flow's `.githooks/commit-msg`, https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/.githooks/commit-msg, whose purpose *Called versus copied* in its
+README, https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/README.md, gives, to `.githooks/commit-msg` and `chmod +x`. Tell contributors in `CLAUDE.md` to
 enable it once per clone:
 
 ```bash
@@ -41,11 +41,11 @@ The hook is stricter than this file, and its own source is the list of what it r
 ```
 
 - A PR title carries one of the types release-flow's `lint-pr.yml` accepts — the list is in
-  that workflow; why `revert:` is not among them, and what the draft opener does with a
-  `revert:` commit, is `lint-pr.yml` under *The five workflows* in its README.
+  that workflow, https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/.github/workflows/lint-pr.yml; why `revert:` is not among them, and what the draft opener does with a
+  `revert:` commit, is `lint-pr.yml` under *The five workflows* in its README, https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/README.md.
 - A scope is tolerated and never generated.
 - **`!` is the only breaking marker**; why is *Called versus copied* in release-flow's
-  README.
+  README, https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/README.md.
 - Imperative mood, lowercase after the colon, no trailing period.
 
 ### Step 3: Stop at the subject
@@ -66,7 +66,7 @@ The hook is stricter than this file, and its own source is the list of what it r
 **Release notes are generated from commit subjects, never from PR bodies.** How the body is
 built, grouped by the type of each commit, and why not from release-drafter's own
 PR-per-label output, is `release-drafter.yml` under *The five workflows* in release-flow's
-README.
+README, https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/README.md.
 
 ### Step 1: Leave the body empty
 
@@ -74,7 +74,7 @@ No job writes it, and the draft PR arrives empty.
 
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
-| "this change is complex, it needs explaining" | split it, or write better commit subjects | the subjects are the changelog | `release-drafter.yml` under *The five workflows* in release-flow's README |
+| "this change is complex, it needs explaining" | split it, or write better commit subjects | the subjects are the changelog | `release-drafter.yml` under *The five workflows* in release-flow's README, https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/README.md |
 | "reviewers need the reasoning" | put it in the README or another file in the repo | a file is versioned with the code, and a PR page is not | — |
 | "the verification belongs with the change" | leave it to the checks | a green check is the evidence | — |
 | "I wrapped it in `<details>` so it's stripped" | leave the fold to Dependabot's own output | a folded body is still published under the repo owner's byline | — |
@@ -91,7 +91,7 @@ No job writes it, and the draft PR arrives empty.
 
 Text typed into a draft release is lost: `release-drafter.yml` rewrites the body, as the
 section above says. What a reader of the release should learn goes in the commit subjects.
-The body has one writer — *What the audit checks now* in ha-integration-ci's README.
+The body has one writer — *What the audit checks now* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md.
 
 ### Step 3: Post no comment on the PR by default
 
