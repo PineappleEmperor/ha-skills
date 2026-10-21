@@ -1,28 +1,94 @@
 # Audit — the judgement checklist
 
-The audit items a grep cannot decide. ha-integration-ci's `skill_audit.py --list` covers the mechanical ones.
+Read this when auditing a repo against the skill: the items the mechanical audit cannot decide.
 
-## Judgement checklist (read the code — a grep can't decide these)
+**A green gate is not a green suite — the mechanical audit compares no copied file against
+its source, and never runs the repo's tests.**
 
-- **Callers, not bodies; copies, not paraphrases** — the invariant in `SKILL.md`, checked
-  per file. Each workflow the scaffold carries is either a caller matching its README block
-  with the tokens resolved, or a copy matching this skill's `templates/` (located per
-  *Where `templates/` lives* in `reference/github-actions.md`), and every difference is in
-  that file's sanctioned-adaptations table. The mechanical audit compares neither against
-  its source (ha-integration-ci's README, *What the audit checks now*), so compare them
-  **per file** with `cmp`, never per directory — a tree still being assembled reads as
-  identical when individual files differ — and scan `.github/` and `scripts/` for extras
-  the template does not have. If `templates/` cannot be located, report the item as **not
-  checked**; do not mark it passed.
-- **Patterns applied** — judged against `reference/patterns.md`, section by section: the `__init__.py` wiring list, *Entity platform files*, *Notify platform (modern pattern — HA 2023.8+)*, *Typed `ConfigEntry`*. Cite the section beside each finding.
-- **`quality_scale.yaml` honest** — judged against `reference/quality-scale.md`: the structural rules under *Scaffold `quality_scale.yaml` from the start*, plus the one thing no check sees — an optimistic `exempt` masking a gap (e.g. `stale-devices` exempt while a device *is* created).
-- **Tests mock the boundary** — judged against `reference/testing.md`: *Mock only at the external boundary* and *Minimum coverage before claiming a tier*.
-- **Commit/PR discipline:** subjects and titles follow `reference/commits.md`, which points at the types a title may carry. The version model is `reference/versioning.md` — check the repo against that, not against memory.
-- **Cached facts still true.** Re-derive any row in the cached-facts table (`reference/freshness.md`) captured more than ~3 months ago, using the command in its *Re-derive with* column. Report each as still-current or stale-with-the-new-value, and update every consumer listed on that row in one pass.
+## Contents
 
-**A green gate is not a green suite.** What `skill_audit.py` checks is *What the audit
-checks now* in ha-integration-ci's README; the per-file comparison above is a human item
-because nothing mechanical does it, and the audit never runs the repo's tests. Run what CI
-runs — the commands ha-integration-ci's README lists — before reporting an audit clean.
+1. The audit
+2. Step 1: Callers, not bodies; copies, not paraphrases
+3. Step 2: Patterns applied
+4. Step 3: `quality_scale.yaml` honest
+5. Step 4: Tests mock the boundary
+6. Step 5: Commit and PR discipline
+7. Step 6: Cached facts still true
+8. Step 7: Run what CI runs
+9. Step 8: Report
 
-**Report:** per-item pass/fail with `file:line` evidence · what the mechanical gate caught · remaining manual work. Fix findings before claiming the tier.
+## The audit
+
+| Rule | Value |
+|---|---|
+| what runs it on every PR | the `quality-audit` caller, per *Calling the workflows* in ha-integration-ci's README |
+| running it by hand | `python3 scripts/skill_audit.py --root <repo>`, from a checkout of ha-integration-ci |
+| the list of mechanical checks | `--list`, and *What the audit checks now* in that README |
+| what this file adds | the items below, which a grep cannot decide |
+
+### Step 1: Callers, not bodies; copies, not paraphrases
+
+*Step 2: Take each file from its source* in `reference/github-actions.md`, checked per
+file.
+
+| Rule | Value |
+|---|---|
+| a workflow the scaffold carries | either a caller matching its README block with the tokens resolved, or a copy matching this skill's `templates/` |
+| where `templates/` is | *Step 1: Locate `templates/`* in `reference/github-actions.md` |
+| every difference from the source | in *Step 4: Apply only the sanctioned adaptations* in `reference/github-actions.md`, or it is a finding |
+| what the mechanical audit checks | *What the audit checks now* in ha-integration-ci's README |
+| `.github/` and `scripts/` | scan for extras the template does not have |
+
+| anti-pattern | use instead | why (one clause) | reference |
+|---|---|---|---|
+| `cmp` a template directory against the repo's | `cmp` file against file | a tree still being assembled reads as identical when individual files differ | *Step 1: Locate `templates/`* in `reference/github-actions.md` |
+
+> **Note:** if `templates/` cannot be located, report this item as **not checked**; do not
+> mark it passed.
+
+### Step 2: Patterns applied
+
+Judged section by section, citing the section beside each finding:
+
+- the `__init__.py` wiring list of *Step 3: Wire the entry setup and unload* in `reference/patterns.md`
+- *Entity platform files — Step 1* in `reference/patterns.md`
+- *Notify platform — Step 1* in `reference/patterns.md`
+- *Typed `ConfigEntry` — Step 4* in `reference/patterns.md`
+
+### Step 3: `quality_scale.yaml` honest
+
+Judged against *Step 4: Claim the tier in the manifest only once it is fully met* in
+`reference/quality-scale.md`, plus the one thing no check sees — an optimistic `exempt`
+masking a gap, such as `stale-devices` exempt while a device *is* created.
+
+### Step 4: Tests mock the boundary
+
+Judged against *Step 1: Mock only at the external boundary* and *Step 4: Minimum coverage
+before claiming a tier* in `reference/testing.md`.
+
+### Step 5: Commit and PR discipline
+
+Subjects and titles judged against `reference/commits.md`, the version model against
+`reference/versioning.md`.
+
+### Step 6: Cached facts still true
+
+Apply the core rule of `reference/freshness.md` to every row, and report each as still
+current or stale with its new value.
+
+### Step 7: Run what CI runs
+
+Run the *Lint & quality check* commands in `SKILL.md` and the test suite against the
+repository under audit, and read the result, before reporting the audit clean.
+
+```bash
+pytest tests/ -q
+```
+
+> **Note:** the command block in ha-integration-ci's README is that repository's own; a
+> consumer reaches those scripts through `quality-audit.yml` instead.
+
+### Step 8: Report
+
+Per item: pass/fail with `file:line` evidence · what the mechanical gate caught · remaining
+manual work. Fix findings before claiming the tier.
