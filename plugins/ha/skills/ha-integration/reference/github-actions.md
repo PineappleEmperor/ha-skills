@@ -103,8 +103,11 @@ only list of them.
 - `create-dev-pr.yml` → release-flow's `auto-draft-pr.yml`
 - `python_validate.yml`, `release_drafter.yml` and every other underscore-named copy of a
   reusable workflow → the hyphenated caller
+- `tests.yml` → ha-integration-ci's `python-validate.yml`
+- `semantic_release.yml` → release-flow's `release-drafter.yml`
 - `pr-labeler.yml`, `pr-title-check.yml`, `pr-commit-summary.yml`,
-  `check-manifest-version.yml` → no successor of their own name; delete
+  `check-manifest-version.yml`, `dependabot_automerge.yml` → no successor of their own name;
+  delete
 
 What the audit does with a body left under `.github/workflows/` is *What the audit checks
 now* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md.
