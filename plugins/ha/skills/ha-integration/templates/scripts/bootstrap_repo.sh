@@ -5,12 +5,23 @@
 #
 # Run from the repo root, once, after the first push:
 #   bash scripts/bootstrap_repo.sh "One-line description of the integration"
+# On a repo adopting the stack, --replace-all also deletes every other repository
+# ruleset that still requires checks on the default branch:
+#   bash scripts/bootstrap_repo.sh --replace-all "One-line description"
 #
 # Needs a gh login with admin on the repo. RELEASE_TOKEN is prompted for, never
 # passed as an argument, so it stays out of shell history and process listings.
 set -euo pipefail
 
-DESC="${1:-}"
+REPLACE_ALL=""
+DESC=""
+for ARG in "$@"; do
+  if [ "$ARG" = --replace-all ]; then
+    REPLACE_ALL=1
+  else
+    DESC=$ARG
+  fi
+done
 REPO=$(gh repo view --json nameWithOwner --jq .nameWithOwner)
 DOMAIN=$(basename "$(ls -d custom_components/*/ | head -1)")
 
@@ -51,13 +62,37 @@ fi
 git config core.hooksPath .githooks
 echo "  commit-msg hook enabled"
 
+# Why "Protect main" is replaced and every other ruleset requiring checks is named is
+# the ha-integration skill's reference/github-setup.md.
 if [ -f ruleset.json ]; then
-  if gh api "repos/$REPO/rulesets" --jq '.[].name' | grep -qx "Protect main"; then
-    echo "  ruleset already present"
+  ID=$(gh api --paginate "repos/$REPO/rulesets" --jq '.[] | select(.source_type == "Repository"
+    and .target == "branch" and .name == "Protect main") | .id')
+  if [ -n "$ID" ]; then
+    gh api -X PUT "repos/$REPO/rulesets/$ID" --input ruleset.json >/dev/null
+    echo "  ruleset replaced from ruleset.json"
   else
-    gh api -X POST "repos/$REPO/rulesets" --input ruleset.json >/dev/null
+    ID=$(gh api -X POST "repos/$REPO/rulesets" --input ruleset.json --jq .id)
     echo "  ruleset applied"
   fi
+  MAIN=$(gh repo view --json defaultBranchRef --jq .defaultBranchRef.name)
+  OTHERS=$(gh api --paginate "repos/$REPO/rules/branches/$MAIN" --jq ".[]
+    | select(.type == \"required_status_checks\" and .ruleset_id != $ID)
+    | \"\(.ruleset_id) \(.ruleset_source_type) \(.ruleset_source)\"" | sort -u)
+  while read -r OTHER SOURCE OWNER; do
+    if [ -z "$OTHER" ]; then
+      continue
+    elif [ "$SOURCE" = Repository ] && [ -n "$REPLACE_ALL" ]; then
+      gh api -X DELETE "repos/$REPO/rulesets/$OTHER" >/dev/null
+      echo "  ruleset $OTHER deleted"
+    elif [ "$SOURCE" = Repository ]; then
+      echo "  ruleset $OTHER also requires checks on $MAIN, so every PR waits on its"
+      echo "  old contexts — delete it at https://github.com/$REPO/settings/rules/$OTHER"
+      echo "  or re-run with --replace-all"
+    else
+      echo "  $OWNER's organisation ruleset $OTHER also requires checks on $MAIN —"
+      echo "  remove $MAIN from it at https://github.com/organizations/$OWNER/settings/rules/$OTHER"
+    fi
+  done <<< "$OTHERS"
 else
   echo "  no ruleset.json in the repo root — copy it from the skill's templates/"
 fi
