@@ -40,9 +40,9 @@ Every brief answers these before any work starts, under *The rules table* in
    comments and docs for the same.
 6. **A sentence about code is checked against the code.** "The audit fails a repo that…"
    is read against the check that would fail it, in the repository that owns it.
-7. **The `[marketplace-repo]` hook's rule holds under `plugins/`**; the hook, in
-   `.claude/settings.json`, states it. The one exception is the evals directory, which its
-   README says is maintenance of the skill and not copied into a scaffold (row 203).
+7. **Nothing under `plugins/` names a workflow or file that exists only in this
+   repository.** The one exception is the evals directory, which its README says is
+   maintenance of the skill and not copied into a scaffold (row 203).
 8. **Every Home Assistant release number stated in a skill file is read back from core**, at
    the `.0` tag of the release the release row of
    `plugins/ha/skills/ha-integration/reference/freshness.md` names —
