@@ -198,9 +198,8 @@ def test_each_invariant_names_the_documents_it_checks_against() -> None:
 
 
 def test_an_invariant_names_files_of_any_type() -> None:
-    """Invariants 7 and 10 name a settings file and a script, not only documents."""
+    """Invariant 10 names a script, not only documents."""
     named = bg.invariant_sources()
-    assert ".claude/settings.json" in named[7]
     assert "scripts/skill_schema_audit.py" in named[10]
 
 

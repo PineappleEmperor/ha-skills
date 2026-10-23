@@ -12,12 +12,10 @@ node_modules/
 !/.githooks/
 !/.claude-plugin/
 !/.gitignore
-# The project hook layer describes conventions specific to this repo, so it travels
-# with it. Everything else under .claude/ is per-machine state, including the
-# settings.local.json personal layer.
+# Everything under .claude/ is per-machine state, settings included: they name this
+# machine's paths. The agent definitions below are the one exception.
 !/.claude/
 /.claude/*
-!/.claude/settings.json
 
-# Repo-local agent definitions are conventions of this repo, like the hook layer.
+# Repo-local agent definitions are conventions of this repo, so they travel with it.
 !/.claude/agents/
