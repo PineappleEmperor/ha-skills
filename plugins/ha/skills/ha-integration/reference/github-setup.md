@@ -89,6 +89,10 @@ the ruleset (only if `ruleset.json` is at the repo root — it skips otherwise),
 bash scripts/bootstrap_repo.sh "One-line description of the integration"
 ```
 
+> **Note:** it replaces a ruleset named `Protect main`, and names any other ruleset still
+> requiring checks on `main`, whose old contexts would block every PR; run with
+> `--replace-all`, it deletes those, except an organisation's.
+
 ### Step 3: The eight required contexts, and what must never be required
 
 A *check* runs on a pull request and can be required, so a red one blocks the merge. The
