@@ -38,6 +38,10 @@ Fix every finding in the code, as *Step 4: Type it, and suppress nothing* in
 Each job *The three workflows* in ha-integration-ci's README lists:
 https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md.
 
+| Rule | Value |
+|---|---|
+| the local hooks | `prek run --all-files`, the tool and wrapper *Step 6: Copy the config and CI files* in `reference/scaffold.md` gives |
+
 ### Step 4: Check that `quality_scale.yaml` exists
 
 If it does not, write it before anything else, as *Step 1: Scaffold `quality_scale.yaml` from
