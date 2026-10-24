@@ -40,7 +40,7 @@ https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README
 
 | Rule | Value |
 |---|---|
-| the local hooks | `prek run --all-files`, the tool and wrapper *Step 6: Copy the config and CI files* in `reference/scaffold.md` gives |
+| the local hooks | `PREK_SKIP=no-commit-to-branch prek run --all-files`, with the tool and wrapper *Step 6: Copy the config and CI files* in `reference/scaffold.md` gives; the skip drops the guard on `main`, which fails every run on that branch, as CI drops it |
 
 ### Step 4: Check that `quality_scale.yaml` exists
 
