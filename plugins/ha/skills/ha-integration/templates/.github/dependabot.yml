@@ -20,3 +20,14 @@ updates:
     groups:
       pip:
         patterns: ["*"]
+  - package-ecosystem: pre-commit
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore
+    ignore:
+      - dependency-name: "https://github.com/astral-sh/ruff-pre-commit"
+    groups:
+      hooks:
+        patterns: ["*"]
