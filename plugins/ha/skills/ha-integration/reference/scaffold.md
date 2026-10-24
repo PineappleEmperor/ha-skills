@@ -237,8 +237,7 @@ among them:
 | `.github/dependabot.yml` | copied; what it carries and what turns it on is *Step 1: Write `.github/dependabot.yml`* in `reference/dependabot.md` |
 | a copy that relaxes `pyproject.toml`'s ruff or pytest tables | drift |
 | enabling the commit hook | the `core.hooksPath` setting the `CLAUDE.md` snippet in Step 7 gives; in this clone `bootstrap_repo.sh` sets it at Step 10, after the first commit, which the guard on `main` would otherwise refuse |
-| enabling the local hooks | install prek, `uv tool install prek` — the tool core runs its own hooks with, at the version the mypy and ruff row of `reference/freshness.md` names; the same `core.hooksPath` setting runs the wrapper |
-| a wrapper that does not run `prek run` | from ha-integration-ci v4.0.0, an audit failure — *What the audit checks now* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md; replace it with the snippet below |
+| enabling the local hooks | `pip install prek==<version>`, at the version the mypy and ruff row of `reference/freshness.md` names — prek is the tool core runs its own hooks with; the same `core.hooksPath` setting runs the wrapper |
 | what prettier leaves alone | Markdown, as core leaves it; and `.github/`, `ruleset.json` and a built panel bundle, so a copied or built file stays identical to its source |
 | omitting `.gitignore` | a local `pytest` plus a `git add -A` tracks `.pyc` files, which *What the audit checks now* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md, fails a repository for |
 | `panel-bundle.yml` and `frontend/` | only an integration that serves a panel — `reference/panels.md` |
@@ -249,7 +248,7 @@ among them:
 ```sh
 #!/bin/sh
 if ! command -v prek >/dev/null 2>&1; then
-  echo "prek is not installed: uv tool install prek" >&2
+  echo "prek is not installed: pip install prek" >&2
   exit 1
 fi
 exec prek run
@@ -258,11 +257,15 @@ exec prek run
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
 | running the local hooks with `pre-commit run` | `prek run`, which reads the same `.pre-commit-config.yaml` | pre-commit strips `GIT_CONFIG_PARAMETERS` from git's environment, so behind a proxy whose login travels there it cannot fetch a hook repository | `no_git_env` in pre-commit's `pre_commit/git.py`, 3.6.2; core pins `prek` in `requirements_test.txt` at the `.0` tag of the release row in `reference/freshness.md` |
-| running `prek install` | leave `core.hooksPath` pointing at `.githooks` | with that setting in place it writes its own hook over the tracked `.githooks/pre-commit` | prek 0.5.4, run in a repository whose `core.hooksPath` is `.githooks` |
+| running `prek install` | leave `core.hooksPath` pointing at `.githooks` | it honours a `core.hooksPath` set in the repository, so it moves the tracked `.githooks/pre-commit` aside and writes its own hook in its place | `install` and `install_hook_script` in prek's `crates/prek/src/cli/install.rs`, at the prek version the mypy and ruff row of `reference/freshness.md` names |
 
 **Symptom:** a commit in a Claude Code sandbox fails on `git fetch` of a hook repository with
 `Proxy CONNECT aborted`, which reads as a network fault; the cause is pre-commit, and
 `prek run` fetches the same repository through the same proxy.
+
+| what | lands in | do now | do then |
+|---|---|---|---|
+| the audit fails a repository whose `.githooks/pre-commit` does not run `prek run` | ha-integration-ci v4.0.0 — *What the audit checks now* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md | copy the wrapper above | nothing |
 
 ### Step 7: Write the files no template carries
 

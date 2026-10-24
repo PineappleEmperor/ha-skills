@@ -93,7 +93,7 @@ only list of them.
 | `requirements.test.txt` | uncomment the `home-assistant-frontend` pin and give it its version, panel repos only — how is *Step 2: Pin `home-assistant-frontend` in `requirements.test.txt`* in `reference/panels.md` |
 | `tests/conftest.py` | the repo's own imports and fixtures added to the template's |
 | `ruleset.json` | drop a context the repo does not produce |
-| `.pre-commit-config.yaml` | a hook `rev` newer than the template's, and words added to codespell's `--ignore-words-list` |
+| `.pre-commit-config.yaml` | a hook `rev` or an `additional_dependencies` pin newer than the template's, where Dependabot has already bumped yours, and words added to codespell's `--ignore-words-list` |
 | `.prettierignore` | a path added for another file the repo copies or builds |
 | the four plain workflows | an action pin **newer** than the template's, where Dependabot has already bumped yours; keep the newer pin |
 
