@@ -14,6 +14,7 @@ These are the skills behind the AI-assistance note on my HA integrations, such a
 [ha-pimoroni-unicorn](https://github.com/PineappleEmperor/ha-pimoroni-unicorn).
 
 ## Skills
+# smoke
 
 | Skill | What it does |
 |-------|--------------|
