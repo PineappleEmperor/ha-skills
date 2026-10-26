@@ -85,18 +85,17 @@ Every brief answers these before any work starts, under *The rules table* in
 
 ## What has gone wrong before
 
-- A context-free reviewer found seven discrepancies on 2026-09-04
-  (`docs/backlog/2026-09-04-review-84-90.md`) and, on 2026-09-10, three that self-review
-  had passed (row 176).
-- Two findings reported on 2026-08-26 did not survive verification
-  (`docs/backlog/2026-08-26-post-fix-audit.md`); a reviewer's word is a claim too.
+- A context-free reviewer found seven discrepancies on 2026-09-04 and, on 2026-09-10, three
+  that self-review had passed.
+- Two findings reported on 2026-08-26 did not survive verification; a reviewer's word is a
+  claim too.
 - Hiding files does not withhold guidance, as `plugins/ha/skills/ha-integration/evals/README.md`
   records for the control arm; a context-free reviewer is told what it may not read.
 - A brief paraphrased from memory drops an invariant; the brief is this file, quoted.
-- A patch the gate had refused was recorded as done, seven times in one pass (row 200); a
-  Fix column is checked against the file, not the intent.
+- A patch the gate had refused was recorded as done, seven times in one pass; a
+  claim of done is checked against the file, not the intent.
 - The first review under this file found eight things, five of them in this file: four
-  claims a named source does not make and one restatement (row 202); the standard is
+  claims a named source does not make and one restatement; the standard is
   reviewed like anything else.
 - Four review rounds over the 2026.9 refresh passed a deadline of `2027.10` that appears
   nowhere in `homeassistant/helpers/device_registry.py` at `2026.9.0`, while a second file
@@ -107,8 +106,8 @@ Every brief answers these before any work starts, under *The rules table* in
   the meaning of six rules, and `scripts/skill_schema_audit.py` went greener with every one
   of them, because a deleted clause shortens a prose run. The sweep that found them was
   looking for schema violations, not for losses; hence invariant 9, and hence one file per
-  pass, each diffed against its previous version before it is committed (row 228).
+  pass, each diffed against its previous version before it is committed.
 - Invariant 4, then "each subject covers the whole diff of its commit", was read on
   2026-09-26 as forbidding a commit that touches four files for one decision, and the
   history was recut by file three times before the author ruled that a commit is one
-  decision (row 247); hence the invariant's present wording.
+  decision; hence the invariant's present wording.
