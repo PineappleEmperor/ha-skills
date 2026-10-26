@@ -81,6 +81,9 @@ Every caller block ends in `@{{sha}} # {{tag}}`. Resolve both with the two comma
 README prints after its blocks, before writing the file; from then on the pin moves as *The version model*
 in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md, says.
 
+On the gate path both commands are reads through `git-gate:gh`, as *Step 3: Read from
+GitHub* in `reference/github-access.md` says.
+
 ### Step 4: Apply only the sanctioned adaptations
 
 Any other difference from the README block or the template is drift, and this table is the

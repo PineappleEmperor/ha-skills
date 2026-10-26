@@ -82,7 +82,7 @@ No job writes it, and the draft PR arrives empty.
 
 | scenario | choice |
 |---|---|
-| typing prose into `gh pr create --body` | fix the commit subjects, or put it in a file in the repo |
+| typing prose into a PR body — `gh pr create --body`, or a `git-gate:pr` call's `body_file` | fix the commit subjects, or put it in a file in the repo |
 | reaching for `<details>` in a PR description | fix the commit subjects, or put it in a file in the repo |
 | a description longer than its diff is interesting | fix the commit subjects, or put it in a file in the repo |
 | explaining *why* anywhere the commit subjects should have said it | fix the commit subjects, or put it in a file in the repo |
@@ -111,6 +111,9 @@ The body has one writer — *What the audit checks now* in ha-integration-ci's R
 ```bash
 gh api -X PATCH repos/{o}/{r}/pulls/{n} -f title=… -F body=@file
 ```
+
+On the gate path the gate refuses that call; the edit is the `git-gate:pr` call *Step 6:
+Write to GitHub* in `reference/github-access.md` gives.
 
 ### A pull request to a Home Assistant project — PR body Step 1
 

@@ -36,7 +36,7 @@ before merging.
 | merging on "I merged past a red check earlier for a good reason" | carry this merge's own proof | the earlier exception was proved on its own diff, which says nothing about this one | — |
 | merging on "the version/label/content is right anyway" | say in writing why the gate is wrong, before merging | the gate is reporting what it can see | — |
 | merging on "it's only advisory, GitHub let me" | read the log | advisory means GitHub will not stop you, not that the check is wrong | — |
-| merging on "re-running it would waste minutes" | re-run it | a flake and a real failure look identical until the second run | — |
+| merging on "re-running it would waste minutes" | re-run it, or on the gate path ask the user to, as *Step 6: Write to GitHub* in `reference/github-access.md` says | a flake and a real failure look identical until the second run | — |
 
 | scenario | choice |
 |---|---|
@@ -77,7 +77,9 @@ https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/README.md. 
 sanctioned case, and it covers **one job, on one PR, whose own definition the PR changes**.
 
 **Fix:** prove it with `git show origin/main:.github/workflows/pr-checks.yml` against the
-branch's copy, then say in the PR that the failure is the bug being fixed.
+branch's copy, then say in the PR that the failure is the bug being fixed. On the gate path,
+fetch first, *Step 4: Fetch* in `reference/github-access.md`, and post the comment as *Step 6:
+Write to GitHub* in `reference/github-access.md` gives.
 
 **Timing:** re-derive that diff every time before claiming the exception, and verify on the
 next PR, where the fixed caller runs as `main`'s.

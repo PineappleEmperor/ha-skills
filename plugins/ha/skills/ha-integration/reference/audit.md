@@ -22,7 +22,7 @@ its source, and never runs the repo's tests.**
 | Rule | Value |
 |---|---|
 | what runs it on every PR | the `quality-audit` caller, per *Calling the workflows* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
-| running it by hand | `python3 scripts/skill_audit.py --root <repo>`, from a checkout of ha-integration-ci |
+| running it by hand | `python3 scripts/skill_audit.py --root <repo>`, from a checkout of ha-integration-ci, cloned as *Step 3: Read from GitHub* in `reference/github-access.md` gives |
 | the list of mechanical checks | `--list`, and *What the audit checks now* in that README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
 | what this file adds | the items below, which a grep cannot decide |
 

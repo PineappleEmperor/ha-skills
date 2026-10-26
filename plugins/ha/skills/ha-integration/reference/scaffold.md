@@ -52,7 +52,7 @@ folder and the manifest's `domain` key, and every config entry is stored under i
 |---|---|
 | the user already has a folder | work in it, renamed to the Step 1 repository name if the two differ; `git init -b main` if it is not a repository yet |
 | no folder yet | `mkdir <repository>`, then `git init -b main` inside it |
-| no GitHub repository yet | `gh repo create <repository> --public --description "<the Step 1 description>" --source . --remote origin`, from inside the folder |
+| no GitHub repository yet | `gh repo create <repository> --public --description "<the Step 1 description>" --source . --remote origin`, from inside the folder; on the gate path the user creates it, as *Step 6: Write to GitHub* in `reference/github-access.md` says, and grants the session write on it, as *The gate refuses a repository as outside the session — Step 3* in `reference/github-access.md` says |
 | an empty GitHub repository already exists, with no ruleset on `main` | `git remote add origin <its URL>` |
 
 ### Step 3: Write the integration package
@@ -361,12 +361,14 @@ Run every step of `reference/lint.md`, before the first commit.
 ### Step 9: Commit and push `main`
 
 Commit everything, with a subject in the form *Step 2: Write the subject in the Conventional
-Commits form* in `reference/commits.md` gives, then `git push -u origin main`.
+Commits form* in `reference/commits.md` gives, then `git push -u origin main` — on the gate
+path *Step 5: Push* in `reference/github-access.md`, whose refusal of `main` goes to the user
+as *Step 7: Hand a refused push to the user* in `reference/github-access.md` says.
 
 ### Step 10: Apply the GitHub settings
 
 1. Create the release token, as *Step 1: Generate a fine-grained PAT* in `reference/github-setup.md` says.
-2. From the repo root, run `bash scripts/bootstrap_repo.sh "<the Step 1 description>"`, and paste the token when it asks.
+2. From the repo root, run `bash scripts/bootstrap_repo.sh "<the Step 1 description>"`, and paste the token when it asks; on the gate path the user runs it in their own terminal, as *Step 6: Write to GitHub* in `reference/github-access.md` says.
 3. Fix anything it reports as missing or not done, then run it again.
 4. Re-run the `HACS Validation` workflow from the Actions tab: the Step 9 push ran it before these settings existed.
 

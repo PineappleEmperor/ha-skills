@@ -93,6 +93,9 @@ bash scripts/bootstrap_repo.sh "One-line description of the integration"
 > requiring checks on `main`, whose old contexts would block every PR; run with
 > `--replace-all`, it deletes those, except an organisation's.
 
+> **Note:** on the gate path both are the user's to run, in their own terminal — *Step 6:
+> Write to GitHub* in `reference/github-access.md`.
+
 ### Step 3: The eight required contexts, and what must never be required
 
 A *check* runs on a pull request and can be required, so a red one blocks the merge. The
@@ -169,3 +172,5 @@ any rule it can see.
 
 **Fix:** narrow the allow-rule to read-only verbs (`gh pr view`, `gh pr list`), and give the
 agent a credential without **Administration** if it should not edit rulesets or force-push.
+A session on the gate path holds no credential of its own — *Step 1: Pick the path* in
+`reference/github-access.md`.

@@ -59,6 +59,9 @@ git commit --allow-empty -m "feat!: <what the user has to change>"
 git push -u origin declare-break
 ```
 
+On the gate path, the fetch `origin/main` needs and the push are *Step 4: Fetch* and *Step 5:
+Push* in `reference/github-access.md`.
+
 How that commit becomes the PR's title and the notes' Breaking Changes entry is
 `auto-draft-pr.yml`, `pr-checks.yml` and `release-drafter.yml` under *The five workflows* in
 release-flow's README, https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/README.md;
@@ -100,4 +103,8 @@ git cherry-pick <orphaned commits, oldest first>
 git push -u origin feat/rc$((N+1))
 git push origin --delete feat/rcN
 ```
+
+On the gate path, the fetch and the push above are *Step 4: Fetch* and *Step 5: Push* in
+`reference/github-access.md`, and the delete is the user's: `feat/rcN` moved after its PR
+merged, so `git-gate:prune` refuses it, as that step says.
 
