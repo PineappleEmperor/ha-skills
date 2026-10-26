@@ -124,9 +124,10 @@ those files from memory.
 
 ### A README block cannot be read — Step 2
 
-**Fix:** with no network and no `gh` on the plain path, stop and say so, exactly as
-*`templates/` cannot be located — Step 1* requires for the templates; on the gate path, without
-`git-gate:file`, *A gate tool a step names is missing — Step 1* in `reference/github-access.md`.
+**Fix:** plain path, with no network or no `gh`: stop and say so, as *`templates/` cannot be
+located — Step 1* requires; gate path: *A gate tool a step names is missing — Step 1* without
+`git-gate:file`, or *The gate refuses a repository as outside the session — Step 3* when the
+gate refuses the repository, both in `reference/github-access.md`.
 
 ### A repo needs a second PR opener — Step 2
 

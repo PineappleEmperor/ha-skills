@@ -46,23 +46,24 @@ not; a refusal from the gate is the answer, never a cue to take the plain path.*
 | Scenario | Choice |
 |---|---|
 | plain path | `gh` as each step gives it, and a file at `raw.githubusercontent.com` fetched as the step or the router gives it |
-| gate path | the typed read below; never `gh`, which the gate does not offer, and never `curl` or a web fetch |
+| gate path | the gate read below for each `gh` read; never `gh`, which the gate does not offer, and never `curl` or a web fetch |
 | a clone of a repository, plain path | `git clone https://github.com/<owner>/<repo>.git <path>` |
 | the same, gate path | `git-gate:clone(repo, path)`, which checks nothing out, then `git -C <path> reset --hard` |
 | the gate refuses the repository | *The gate refuses a repository as outside the session — Step 3* |
 
-**On the gate path, each `gh` read is the call beside it:**
+On the gate path, each `gh` read is the gate read beside it.
 
 | Scenario | Choice |
 |---|---|
 | `gh pr view N` | `git-gate:pr(repo, "view", number=N)` |
 | `gh pr list [--state S] [--head H] [--base B] [-L N]` | `git-gate:pr(repo, "list", state=S, head=H, base=B, limit=N)`; `state` is `open` unless given, or `closed`, `merged` or `all`; `limit` at most 100 |
 | `gh pr list --search "TEXT"` | `git-gate:pr(repo, "list", search="TEXT")`; without `state` a search covers every state, so `is:merged` or `is:closed` in the text decides |
-| `gh pr diff N`, a small PR or one from a fork | `git-gate:pr(repo, "diff", number=N)`, which returns the whole diff in one reply |
-| `gh pr diff N`, a large PR from this repository | `git diff origin/<base>...origin/<branch>` after Step 4, since the gate's one reply is too long for the session to read |
+| `gh pr diff N` | `git-gate:pr(repo, "diff", number=N)`, which cuts a diff longer than the gate's output limit |
+| a cut diff, a PR from this repository | `git diff origin/<base>...origin/<branch>` after Step 4 |
+| a cut diff, a PR from a fork | ask the user for the diff: Step 4 bundles this repository's branches only, so a fork's branch never arrives |
 | `gh pr checks N`, with or without `--watch` | `git-gate:checks(repo, N, wait=true\|false)`, `N` also `"#N"`, a branch or a commit; on a private repository the answer comes from the commit's Actions runs and says so, since no fine-grained token can hold a Checks permission — never ask the user to grant one |
 | `gh run list [--branch B] [--workflow W] [--status S] [-L N]` | `git-gate:runs(repo, branch=B, workflow=W, status=S, limit=N)`; `limit` at most 50 |
-| `gh run view ID`, with or without `--log-failed`, or `gh run watch ID` | `git-gate:run(repo, ID, wait=true\|false)`: the jobs, the failed steps, and up to 80 lines of each failed step, from its start to its error |
+| `gh run view ID`, with or without `--log-failed`, or `gh run watch ID` | `git-gate:run(repo, ID, wait=true\|false)`: the jobs, the failed steps, and the last 80 lines of each failed step, from its start to its error |
 | `gh issue view N [--comments]` | `git-gate:issue(repo, "view", number=N)`, with the last 20 comments |
 | `gh issue list [--state S] [--label L] [--search "TEXT"] [-L N]` | `git-gate:issue(repo, "list", state=S, labels=[L], search="TEXT", limit=N)`; without `state` a search covers every state |
 | `gh release list` | `git-gate:release(repo, "list", limit=N)`; `limit` at most 30 |
@@ -190,12 +191,13 @@ meanwhile.
 
 ### The gate refuses a repository as outside the session — Step 3
 
-A session reaches its own repository and the ones the user has granted it, for reads as well
-as writes.
+**Symptom:** a gate call answers "This session (<folder>) has no access to <repo>" (an older
+gate: "not on the git-gate repo allowlist").
 
-**Fix:** stop, and tell the user which repository and whether the step needs read or write;
-they grant it with the command below. A `curl`, a web fetch or another session in its place
-routes around the refusal.
+**Fix:** a session reaches its own repository and the ones the user has granted it, for reads
+and writes alike; stop, tell the user the repository and whether the step needs read or
+write, and they grant it with the command below. A `curl`, a web fetch or another session in
+its place routes around the refusal.
 
 ```bash
 gitgaterules grant <folder> read|write <repo>
