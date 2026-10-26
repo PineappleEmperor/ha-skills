@@ -148,13 +148,13 @@ git push -u origin <branch>
 - `gh pr edit N --title T --body-file F` → `git-gate:pr(repo, "edit", number=N, title=T, body_file=F)`
 - `gh pr comment N --body-file F` → `git-gate:pr(repo, "comment", number=N, body_file=F)`
 - `gh pr close|reopen|ready N` → `git-gate:pr(repo, "close"|"reopen"|"ready", number=N)`
-- `gh issue create|edit|comment|close|reopen` → `git-gate:issue(repo, …)`, with the same verb
 - `--add-label`, `--add-assignee`, `--add-reviewer` and their `--remove-` forms → `git-gate:triage(repo, N, …)`
 - `gh label create|edit` → `git-gate:label(repo, …)`
 
 | Scenario | Choice |
 |---|---|
 | re-running or cancelling a workflow run, gate path | the user's, from the run's page — *A re-run or cancel comes back 403 — Step 6* |
+| creating, editing, commenting on or closing an issue, gate path | none: the gate's token has no Issues write, so issues are read-only there; open work goes to the session's memory, and the user is told |
 | `gh pr merge`, an approval, `gh release create\|edit\|upload`, a tag | the user's on either path — Step 2 |
 | `gh repo create`, a settings or ruleset change through `gh api -X`, `gh secret set`, `scripts/bootstrap_repo.sh`, gate path | the user's, in their own terminal: none has a typed tool |
 
