@@ -21,7 +21,9 @@ Read this when a check is red, a merge is about to happen, or before naming a ro
 
 ### Step 1: Stop and read the log
 
-Before anything else, and before the merge — not after it.
+Before anything else, and before the merge — not after it. On the gate path the run and its
+failing step's log are a gate read, never `gh` — *Step 3: Read from GitHub* in
+`reference/github-access.md`.
 
 ### Step 2: Fix it, or say in writing why the gate is wrong
 

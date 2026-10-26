@@ -123,8 +123,8 @@ gives, typed by what the revert changes — `fix: restore the previous retry del
 gh api -X PATCH repos/{o}/{r}/pulls/{n} -f title=… -F body=@file
 ```
 
-On the gate path the gate refuses that call; the edit is the `git-gate:pr` call *Step 6:
-Write to GitHub* in `reference/github-access.md` gives.
+On the gate path there is no `gh`; the edit is the `git-gate:pr` call *Step 6: Write to
+GitHub* in `reference/github-access.md` gives.
 
 ### A pull request to a Home Assistant project — PR body Step 1
 

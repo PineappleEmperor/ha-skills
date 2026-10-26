@@ -28,5 +28,6 @@ in a consumer, and a rule written from a newer release than it names is not curr
 > design — *Step 2: Take each file from its source* in `reference/github-actions.md` — and
 > exempt from the audit — *What the audit checks now* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md.
 
-> **Note:** on the gate path each `gh api` command above runs through `git-gate:gh` — *Step 3:
-> Read from GitHub* in `reference/github-access.md`.
+> **Note:** on the gate path each `gh api` command, GitHub file and issue above is a gate read
+> instead, never `gh`, and reads the whole reply in place of `--jq` — *Step 3: Read from
+> GitHub* in `reference/github-access.md`.
