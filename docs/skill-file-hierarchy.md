@@ -40,7 +40,7 @@ Three tiers:
 | repo setup on GitHub: token, required checks, ruleset, dependency graph | `github-setup.md` | The reader is configuring a repo. `discipline.md` and `versioning.md` link. |
 | workflow contracts — what each must do and must not | `github-actions.md` | The reader is reviewing a workflow. Owns template fidelity, since that is a workflow-review concern. |
 | PR openers | `github-actions.md` | It is a workflow contract. `github-setup.md` owns only the *token* the opener needs. |
-| merge under a red check, and tracing before naming a root cause | `discipline.md` | Two behavioural rules with no artefact of their own. Everything about *format* left for `commits.md`; ruleset config is `github-setup.md`. |
+| who merges, merge under a red check, and tracing before naming a root cause | `discipline.md` | Two behavioural rules with no artefact of their own. Everything about *format* left for `commits.md`; ruleset config is `github-setup.md`. |
 | test harness prerequisites, mocking | `testing.md` | The reader is writing a test. `scaffold.md` lists the files and links here for why. |
 | code patterns, typing, file structure | `patterns.md` | The canonical lookup for code inside `custom_components/`: pattern → rule → copyable snippet. Other files cite it; none restate it. |
 | building a panel-serving integration — registration, the committed bundle, staleness, the frontend pin, websocket backing | `panels.md` | The reader is building or fixing a panel integration. `patterns.md` states the general async-setup race rule and points here for the panel code. |

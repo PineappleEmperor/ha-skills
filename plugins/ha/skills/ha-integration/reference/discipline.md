@@ -1,6 +1,6 @@
 # Commit, PR and merge discipline
 
-Read this when a check is red, or before naming a root cause.
+Read this when a check is red, a merge is about to happen, or before naming a root cause.
 
 **A failing check is the gate working. Merging past it is not a judgement call.**
 
@@ -9,12 +9,13 @@ Read this when a check is red, or before naming a root cause.
 1. Merge discipline — never merge a red check
 2. Step 1: Stop and read the log
 3. Step 2: Fix it, or say in writing why the gate is wrong
-4. Debugging discipline
-5. Step 1: Trace the path
-6. Step 2: Name the cause
-7. Cases
-8. One exception, and it is narrow — merge Step 2
-9. An action hits more devices than it should — debugging Step 2
+4. Step 3: Tell the user it is ready to merge
+5. Debugging discipline
+6. Step 1: Trace the path
+7. Step 2: Name the cause
+8. Cases
+9. One exception, and it is narrow — merge Step 2
+10. An action hits more devices than it should — debugging Step 2
 
 ## Merge discipline — never merge a red check
 
@@ -39,11 +40,19 @@ before merging.
 
 | scenario | choice |
 |---|---|
-| about to run `gh pr merge` while any check is red | stop, and read the log |
-| diagnosing a failure **after** merging rather than before | diagnose first, merge after |
+| about to run `gh pr merge`, red check or green | stop — the merge is the user's, Step 3 |
+| diagnosing a failure **after** merging rather than before | diagnose first; the merge after it is the user's, Step 3 |
 | reusing a previous exception without re-deriving why it applies | re-derive the diff before claiming it |
 | reaching for `--admin`, `--force`, or a `bypass_actors` entry to get a merge through | stop and read the log, then fix it or say in writing why the gate is wrong |
 | telling yourself the failure is "unrelated" without having read the log | read the log |
+
+### Step 3: Tell the user it is ready to merge
+
+| Rule | Value |
+|---|---|
+| the merge | the user's, whatever the session's credential allows: say the PR is ready, or what still stands in its way, and stop there |
+| an approval | the user's too: a session acting with the user's credential would approve its own work as them |
+| ready | every required check green, or the exception *One exception, and it is narrow — merge Step 2* proved on this PR |
 
 ## Debugging discipline
 

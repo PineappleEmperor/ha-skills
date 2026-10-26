@@ -37,9 +37,12 @@ narrow — merge Step 2* in `reference/discipline.md`.
 
 ### Step 3: Publish the draft
 
-Publish a draft from the GitHub release page; the tag is created at publish. How the two
-drafts are kept and numbered is `release-drafter.yml` under *The five workflows* in release-flow's README, https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/README.md;
-what the body is built from is *The PR body — for reviewers, and nothing users read* in `reference/commits.md`.
+| Rule | Value |
+|---|---|
+| who publishes | the user, from the GitHub release page, whatever the session's credential allows; a session says which draft is ready and stops there |
+| the tag | created at publish |
+| how the two drafts are kept and numbered | `release-drafter.yml` under *The five workflows* in release-flow's README, https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/README.md |
+| what the body is built from | *The PR body — for reviewers, and nothing users read* in `reference/commits.md` |
 
 ## Cases
 
@@ -48,7 +51,7 @@ what the body is built from is *The PR body — for reviewers, and nothing users
 **Symptom:** the draft's version is lower than the change needs: a break merged under `fix:`
 or `feat:`, so the draft resolves a patch or a minor.
 
-**Fix:** merge a follow-up PR whose commit carries `!`, the breaking marker *Step 2: Write the subject in the Conventional Commits form* in `reference/commits.md` names, and says what the user has to change — never a label set by hand, as Step 2 says.
+**Fix:** open a follow-up PR whose commit carries `!`, the breaking marker *Step 2: Write the subject in the Conventional Commits form* in `reference/commits.md` names, and says what the user has to change — never a label set by hand, as Step 2 says. Its merge is the user's, as *Step 3: Tell the user it is ready to merge* in `reference/discipline.md` says.
 
 ```bash
 git checkout -b declare-break origin/main
