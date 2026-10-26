@@ -13,7 +13,7 @@ local hooks' versions except ruff's, and nothing else.**
 4. Step 3: Enable `pip`
 5. Step 4: Enable `pre-commit`
 6. Step 5: Leave `manifest.json` `requirements` to a deliberate PR
-7. Step 6: Merge the PRs once their checks are green
+7. Step 6: Leave each PR to the user once its checks are green
 8. Cases
 9. A `pip` bump — Step 6
 10. Re-copying a plain workflow — Step 2
@@ -60,9 +60,10 @@ Points at `.pre-commit-config.yaml`.
 | raising a `>=` floor | by hand, in a PR of its own |
 | automating it | nothing in the stack does; anything that ever does is a reusable workflow in ha-integration-ci, never a script and a PR opener written into one repo |
 
-### Step 6: Merge the PRs once their checks are green
+### Step 6: Leave each PR to the user once its checks are green
 
-Merge each once its checks are green. Dependabot needs no exemption: nothing compares a
+Each is the user's to merge once its checks are green, as *Step 3: Tell the user it is ready
+to merge* in `reference/discipline.md` says. Dependabot needs no exemption: nothing compares a
 committed version, and the label gate skips bot-authored PRs. Its PRs carry a `chore` label
 from their `chore:` title and fold into the next release. A `pip` bump is the one to review before merging — *A `pip` bump — Step 6*. A hook bump that turns `validate / Python validation` red is *A hook bump that reformats files — Step 6*.
 

@@ -14,7 +14,7 @@ description: >-
 This skill builds and maintains Home Assistant custom integrations — the code, its tests, its
 panel, its CI and its releases — to the platinum tier of Home Assistant's quality scale. Pick
 the mode that matches the task, read every file its row names in full, and fetch its sources
-before writing anything.
+before writing anything, a file on GitHub through the git-gate when the session has it.
 
 ## Pick the mode
 
@@ -33,6 +33,7 @@ pages back it.
 | **Tier** | claiming a quality-scale tier, and the canonical rule set behind it | `reference/quality-scale.md` | Quality scale: https://contributors.home-assistant.io/core/quality-scale/index.md · The quality scale file: https://contributors.home-assistant.io/core/quality-scale/quality-scale-file/index.md · Core's procedure for proving a rule, written for core's tree, so `homeassistant/components/<domain>/` reads as `custom_components/<domain>/`: https://raw.githubusercontent.com/home-assistant/core/2026.10.0/.claude/skills/ha-quality-scale-verify/SKILL.md, whose rule link points at an archived repository — read each rule at `https://contributors.home-assistant.io/core/quality-scale/<rule>/index.md` |
 | **Debug** | a root cause is about to be named | `reference/discipline.md` | — |
 | **Commit / PR** | writing a commit subject, a PR title or a PR body | `reference/commits.md` | The commit types a PR title may carry: https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/.github/workflows/lint-pr.yml · The breaking-change marker, under *Called versus copied*: https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/README.md · AI policy: https://contributors.home-assistant.io/start/ai-policy/index.md |
+| **GitHub** | about to read from GitHub — a file, a PR, its checks, a run's log — fetch, push, delete a branch or write to GitHub — a PR, an issue, a label, a re-run — or the git-gate refused one | `reference/github-access.md` | The GitHub CLI's commands: https://cli.github.com/manual/ |
 | **Merge** | a check is red, or a merge is about to happen | `reference/discipline.md` | Why a `pull_request_target` caller cannot prove its own fix, under *The five workflows*: https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/README.md |
 | **CI files** | adding, changing or reviewing a CI file — a workflow under `.github/workflows/`, or a config file copied from `templates/` — and what a copy may change | `reference/github-actions.md` | The PR, label and release workflows: https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/README.md · The validation, audit and release-zip workflows: https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md · The panel workflow: https://raw.githubusercontent.com/PineappleEmperor/ha-panel-ci/main/README.md |
 | **Dependabot** | configuring or debugging Dependabot, including the callers' pins and what it cannot reach | `reference/dependabot.md`, `reference/testing.md` | How a pin moves: https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |

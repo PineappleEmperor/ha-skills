@@ -81,6 +81,9 @@ Every caller block ends in `@{{sha}} # {{tag}}`. Resolve both with the two comma
 README prints after its blocks, before writing the file; from then on the pin moves as *The version model*
 in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md, says.
 
+On the gate path both commands are gate reads — *Step 3: Read from GitHub* in
+`reference/github-access.md`.
+
 ### Step 4: Apply only the sanctioned adaptations
 
 Any other difference from the README block or the template is drift, and this table is the
@@ -121,8 +124,10 @@ those files from memory.
 
 ### A README block cannot be read — Step 2
 
-**Fix:** with no network and no `gh`, stop and say so, exactly as *`templates/` cannot be
-located — Step 1* requires for the templates.
+**Fix:** plain path, with no network or no `gh`: stop and say so, as *`templates/` cannot be
+located — Step 1* requires; gate path: *A gate tool a step names is missing — Step 1* without
+`git-gate:file`, or *The gate refuses a repository as outside the session — Step 3* when the
+gate refuses the repository, both in `reference/github-access.md`.
 
 ### A repo needs a second PR opener — Step 2
 

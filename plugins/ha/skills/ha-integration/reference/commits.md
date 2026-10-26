@@ -17,8 +17,9 @@ Commits form, subject-only by default.**
 8. Step 2: Leave the release description to the workflow
 9. Step 3: Post no comment on the PR by default
 10. Cases
-11. `gh pr edit` fails on the Projects-classic deprecation — PR body Step 1
-12. A pull request to a Home Assistant project — PR body Step 1
+11. A PR from GitHub's Revert button fails `lint / CC title validation` — commit subjects Step 2
+12. `gh pr edit` fails on the Projects-classic deprecation — PR body Step 1
+13. A pull request to a Home Assistant project — PR body Step 1
 
 ## Commit subjects
 
@@ -82,7 +83,7 @@ No job writes it, and the draft PR arrives empty.
 
 | scenario | choice |
 |---|---|
-| typing prose into `gh pr create --body` | fix the commit subjects, or put it in a file in the repo |
+| typing prose into a PR body — `gh pr create --body`, or a `git-gate:pr` call's `body_file` | fix the commit subjects, or put it in a file in the repo |
 | reaching for `<details>` in a PR description | fix the commit subjects, or put it in a file in the repo |
 | a description longer than its diff is interesting | fix the commit subjects, or put it in a file in the repo |
 | explaining *why* anywhere the commit subjects should have said it | fix the commit subjects, or put it in a file in the repo |
@@ -104,6 +105,16 @@ The body has one writer — *What the audit checks now* in ha-integration-ci's R
 
 ## Cases
 
+### A PR from GitHub's Revert button fails `lint / CC title validation` — commit subjects Step 2
+
+**Symptom:** the pull request GitHub's **Revert** button opens is titled `Revert "<the
+original title>"`, which the title check fails whatever the original's type.
+
+**Fix:** retitle it in the form *Step 2: Write the subject in the Conventional Commits form*
+gives, typed by what the revert changes — `fix: restore the previous retry delay`, say, never
+`revert:` — with `gh pr edit N --title "<title>"`, or on the gate path the `git-gate:pr` call
+*Step 6: Write to GitHub* in `reference/github-access.md` gives.
+
 ### `gh pr edit` fails on the Projects-classic deprecation — PR body Step 1
 
 **Fix:** set the title and body through the API instead.
@@ -111,6 +122,9 @@ The body has one writer — *What the audit checks now* in ha-integration-ci's R
 ```bash
 gh api -X PATCH repos/{o}/{r}/pulls/{n} -f title=… -F body=@file
 ```
+
+On the gate path the edit is the `git-gate:pr` call *Step 6: Write to GitHub* in
+`reference/github-access.md` gives.
 
 ### A pull request to a Home Assistant project — PR body Step 1
 

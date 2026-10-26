@@ -128,7 +128,7 @@ as written, so the cell is the rule's origin, not a place to go and verify it.
 | the rule is a deprecation | the removal release, and the core file and call site that states it, read at that same tag |
 | the rule follows an external spec | the spec and the revision `reference/freshness.md` names for it — the brands README, the harness release |
 | the rule is a CI behaviour | the heading in the CI repository's README that owns it |
-| the rule was discovered in use | the public repository and the issue or pull request where it happened — never `docs/backlog.md`, which no consumer has |
+| the rule was discovered in use | the public repository and the issue or pull request where it happened — never a file of this repository, which no consumer has |
 | the rule is the skill's own policy, with no source outside it | `—`; the `why` cell is the whole case, so the row stands on its own |
 
 A cell never names a step of the file it sits in, `this file`, or a tool that enforces the
@@ -265,7 +265,7 @@ neither, and git already holds it.
 | what a past pass got wrong | deleted — git holds it |
 | rhetoric, exhortation, framing | deleted |
 | evidence for a fact | becomes a re-derivation command in `reference/freshness.md`, or is deleted |
-| a problem that is still open | one row in `docs/backlog.md` |
+| a problem that is still open | fixed in the pass that found it, or one line in the session's to-do memory, and the user told |
 
 **The test:** if knowing it does not change an action, it is not in a skill file.
 

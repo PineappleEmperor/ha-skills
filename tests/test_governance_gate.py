@@ -129,90 +129,6 @@ def test_a_ci_repository_root_governs_its_own_files(tmp_path, monkeypatch) -> No
     assert stale not in gs.valid_receipt_keys("scripts/")
 
 
-def _backlog(repo, monkeypatch):
-    """A repo whose backlog is governed, and whose claims are therefore checked."""
-    (repo / "docs/backlog.md").write_text("# Backlog\n\n| # | Finding |\n|---|---|\n")
-    monkeypatch.setattr(
-        gs,
-        "TIERS",
-        {"scripts/": ("docs/rules.md",), "docs/backlog.md": ("docs/rules.md",)},
-    )
-    monkeypatch.setattr(gs, "_SERVED", {})
-    docs_key = gs.current_receipt_key("docs/backlog.md")
-    gs.get_file("docs/backlog.md", docs_key)
-    return gs.current_edit_key("docs/backlog.md")
-
-
-def test_a_backlog_row_naming_an_unread_governed_file_is_refused(repo, monkeypatch):
-    """Row 89: the edit key proves the backlog was read, never the file it makes a claim about.
-
-    Row 85 was written under a valid key for the backlog and asserted, wrongly, that two
-    reference files contradicted each other. Nothing asked whether either had been opened.
-    """
-    key = _backlog(repo, monkeypatch)
-    with pytest.raises(gs.GateError) as excinfo:
-        gs.patch_file(
-            "docs/backlog.md",
-            "|---|---|\n",
-            "|---|---|\n| 1 | `scripts/t.py` drops the guard |\n",
-            key,
-        )
-    assert "scripts/t.py" in str(excinfo.value)
-
-    # Reading it is the whole requirement; the same patch then lands.
-    gs.get_file("scripts/t.py", gs.current_receipt_key("scripts/"))
-    gs.patch_file(
-        "docs/backlog.md",
-        "|---|---|\n",
-        "|---|---|\n| 1 | `scripts/t.py` drops the guard |\n",
-        gs.current_edit_key("docs/backlog.md"),
-    )
-    assert "drops the guard" in (repo / "docs/backlog.md").read_text()
-
-
-def test_a_claim_about_something_ungoverned_or_absent_is_not_checked(repo, monkeypatch):
-    """Only a file this gate could have served is demanded.
-
-    Rows name another repository's `scripts/` by bare path, and name files deleted years
-    ago on purpose. Neither can be read here, so demanding it would make the register
-    unwritable rather than more honest.
-    """
-    key = _backlog(repo, monkeypatch)
-    gs.patch_file(
-        "docs/backlog.md",
-        "|---|---|\n",
-        "|---|---|\n| 1 | `README.md` and `scripts/gone.py` both say so |\n",
-        key,
-    )
-    assert "both say so" in (repo / "docs/backlog.md").read_text()
-
-
-def test_only_the_backlog_has_its_claims_checked(repo, monkeypatch):
-    """A script may name any path in a comment; it is the register that asserts."""
-    _backlog(repo, monkeypatch)
-    (repo / "scripts/other.py").write_text("x = 1\n")
-    gs.get_file("scripts/other.py", gs.current_receipt_key("scripts/"))
-    gs.patch_file(
-        "scripts/other.py",
-        "x = 1",
-        "x = 1  # see `scripts/t.py`",
-        gs.current_edit_key("scripts/other.py"),
-    )
-    assert "see `scripts/t.py`" in (repo / "scripts/other.py").read_text()
-
-
-def test_the_register_and_its_phase_files_are_both_governed() -> None:
-    """The register is splitting by phase, so both spellings must be in the real map.
-
-    No tool in the session can serve the register whole any more: the gate refused it
-    twice and the file reader caps below its size. A file nothing can read in full is a
-    file nothing can honestly claim about, which is how a receipt got harvested from a
-    refusal instead of earned.
-    """
-    assert gs.resolve_tier("docs/backlog.md") is not None
-    assert gs.resolve_tier("docs/backlog/2026-09-04-testbed-run.md") is not None
-
-
 def test_the_format_standard_is_governed_by_both_its_halves() -> None:
     """The audit parses the schema rather than copying it, so editing it moves the rules.
 
@@ -238,37 +154,6 @@ def test_the_refresh_procedure_and_the_review_brief_govern_themselves() -> None:
     for rel in ("docs/release-refresh.md", "docs/review.md"):
         assert gs.resolve_tier(rel) == rel
         assert gs.TIERS[rel] == (rel,)
-
-
-def test_a_phase_file_is_claim_checked_like_the_register(repo, monkeypatch):
-    """A row that moves into a phase file keeps the check that row 89 put on it.
-
-    The claim check named one filename. Splitting the register would have taken every row
-    that moved out of its reach the moment the new file was created — a guard removed by a
-    reorganisation rather than by a decision, which is the worst way to lose one.
-    """
-    (repo / "docs/backlog").mkdir()
-    phase = "docs/backlog/2026-09-04-a-pass.md"
-    (repo / phase).write_text("# A pass\n\n| # | Finding |\n|---|---|\n")
-    monkeypatch.setattr(
-        gs,
-        "TIERS",
-        {
-            "scripts/": ("docs/rules.md",),
-            "docs/backlog.md": ("docs/rules.md",),
-            "docs/backlog/": ("docs/rules.md",),
-        },
-    )
-    monkeypatch.setattr(gs, "_SERVED", {})
-    gs.get_file(phase, gs.current_receipt_key("docs/backlog/"))
-    with pytest.raises(gs.GateError) as excinfo:
-        gs.patch_file(
-            phase,
-            "|---|---|\n",
-            "|---|---|\n| 1 | `scripts/t.py` drops the guard |\n",
-            gs.current_edit_key(phase),
-        )
-    assert "scripts/t.py" in str(excinfo.value)
 
 
 def test_specific_tier_wins_over_general(monkeypatch, repo) -> None:

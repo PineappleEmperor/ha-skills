@@ -27,3 +27,6 @@ in a consumer, and a rule written from a newer release than it names is not curr
 > **Note:** `hacs/action@main` and `home-assistant/actions/hassfest@master` are mutable by
 > design — *Step 2: Take each file from its source* in `reference/github-actions.md` — and
 > exempt from the audit — *What the audit checks now* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md.
+
+> **Note:** on the gate path each `gh api` command, GitHub file and issue above is a gate read
+> instead — *Step 3: Read from GitHub* in `reference/github-access.md`.
