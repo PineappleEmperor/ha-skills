@@ -17,8 +17,9 @@ Commits form, subject-only by default.**
 8. Step 2: Leave the release description to the workflow
 9. Step 3: Post no comment on the PR by default
 10. Cases
-11. `gh pr edit` fails on the Projects-classic deprecation — PR body Step 1
-12. A pull request to a Home Assistant project — PR body Step 1
+11. A PR from GitHub's Revert button fails `lint / CC title validation` — commit subjects Step 2
+12. `gh pr edit` fails on the Projects-classic deprecation — PR body Step 1
+13. A pull request to a Home Assistant project — PR body Step 1
 
 ## Commit subjects
 
@@ -103,6 +104,16 @@ The body has one writer — *What the audit checks now* in ha-integration-ci's R
 | something the owner has to act on, with no better home | the one comment worth posting — *One exception, and it is narrow — merge Step 2* in `reference/discipline.md` is the case |
 
 ## Cases
+
+### A PR from GitHub's Revert button fails `lint / CC title validation` — commit subjects Step 2
+
+**Symptom:** the pull request GitHub's **Revert** button opens is titled `Revert "<the
+original title>"`, which the title check fails whatever the original's type.
+
+**Fix:** retitle it in the form *Step 2: Write the subject in the Conventional Commits form*
+gives, typed by what the revert changes — `fix: restore the previous retry delay`, say, never
+`revert:` — with `gh pr edit N --title "<title>"`, or on the gate path the `git-gate:pr` call
+*Step 6: Write to GitHub* in `reference/github-access.md` gives.
 
 ### `gh pr edit` fails on the Projects-classic deprecation — PR body Step 1
 
