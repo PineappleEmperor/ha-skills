@@ -17,6 +17,7 @@ local hooks' versions except ruff's, and nothing else.**
 8. Cases
 9. A `pip` bump — Step 6
 10. Re-copying a plain workflow — Step 2
+11. A hook bump that reformats files — Step 6
 
 ## Setting Dependabot up
 
@@ -63,7 +64,7 @@ Points at `.pre-commit-config.yaml`.
 
 Merge each once its checks are green. Dependabot needs no exemption: nothing compares a
 committed version, and the label gate skips bot-authored PRs. Its PRs carry a `chore` label
-from their `chore:` title and fold into the next release. A `pip` bump is the one to review before merging — *A `pip` bump — Step 6*.
+from their `chore:` title and fold into the next release. A `pip` bump is the one to review before merging — *A `pip` bump — Step 6*. A hook bump that turns `validate / Python validation` red is *A hook bump that reformats files — Step 6*.
 
 ## Cases
 
@@ -86,3 +87,27 @@ four plain workflows have a template, so re-copying one can move its pin *backwa
 
 **Fix:** diff before overwriting, then apply the plain-workflows row of *Step 4: Apply only
 the sanctioned adaptations* in `reference/github-actions.md`.
+
+### A hook bump that reformats files — Step 6
+
+A formatter's new version can lay out unchanged code differently, so its bump PR fails
+`validate / Python validation` at the step that runs the hooks.
+
+**Symptom:** a Dependabot hook PR fails on files it never touched, which reads as a broken bump
+rather than a new format.
+
+**Fix:** on the bump PR's own branch, run `prek run <hook id> --all-files` and push the result as
+one `style: apply <tool> <version>` commit; the reformat never goes into a feature branch.
+
+| Rule | Value |
+|---|---|
+| the red check | `validate / Python validation`, one of the contexts *Step 3: The eight required contexts, and what must never be required* in `reference/github-setup.md` lists; its hooks step is the pre-commit hooks bullet under *Implementation notes* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
+| prek | installed as the "enabling the local hooks" row of *Step 6: Copy the config and CI files* in `reference/scaffold.md` says |
+| a reformat under `frontend/` | a panel source change, so the `style:` commit carries the rebuilt bundle too — *Step 1: Build the bundle and commit it* in `reference/panels.md` |
+
+**Timing:** after any open branch that rewrites the same files has merged, or that branch
+rebases over the reformat, so the two never conflict.
+
+> **Note:** once anyone pushes to a Dependabot PR, Dependabot stops resolving its conflicts, so
+> the branch is kept up to date by hand; `@dependabot recreate`, or a newer grouped PR, drops the
+> `style:` commit, which is then pushed again — the commands list in Dependabot's PR body.
