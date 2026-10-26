@@ -128,7 +128,7 @@ def test_a_path_into_another_skill_resolves_against_that_skill(tmp_path) -> None
 
 
 def test_a_named_path_in_a_superseded_passage_is_not_a_finding(tmp_path) -> None:
-    """The backlog and the superseded sections name deleted files on purpose."""
+    """A superseded section, and anything under `docs/`, name deleted files on purpose."""
     skill = tmp_path / "plugins/ha/skills/ha-integration"
     (skill / "templates").mkdir(parents=True)
     (skill / "reference").mkdir()
@@ -137,8 +137,8 @@ def test_a_named_path_in_a_superseded_passage_is_not_a_finding(tmp_path) -> None
         "`templates/scripts/skill_audit.sh` was replaced by the audit repository's.\n"
     )
     (tmp_path / "docs").mkdir()
-    (tmp_path / "docs/backlog.md").write_text(
-        "| 149 | `templates/scripts/skill_audit.sh` in each | delete it | open |\n"
+    (tmp_path / "docs/notes.md").write_text(
+        "`templates/scripts/skill_audit.sh` is gone from each consumer.\n"
     )
     # A recorded eval run describes the tree as it stood on its date.
     (skill / "evals/results").mkdir(parents=True)
