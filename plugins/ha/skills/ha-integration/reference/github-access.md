@@ -147,6 +147,8 @@ git push -u origin <branch>
 - `gh pr create --title T --body-file F` → `git-gate:pr(repo, "create", title=T, body_file=F, head=<branch>)`
 - `gh pr edit N --title T --body-file F` → `git-gate:pr(repo, "edit", number=N, title=T, body_file=F)`
 - `gh pr comment N --body-file F` → `git-gate:pr(repo, "comment", number=N, body_file=F)`
+- `gh pr review N --comment --body-file F` → `git-gate:pr(repo, "review_comment", number=N, body_file=F)`
+- `gh pr review N --request-changes --body-file F` → `git-gate:pr(repo, "request_changes", number=N, body_file=F)`
 - `gh pr close|reopen|ready N` → `git-gate:pr(repo, "close"|"reopen"|"ready", number=N)`
 - `--add-label`, `--add-assignee`, `--add-reviewer` and their `--remove-` forms → `git-gate:triage(repo, N, …)`
 - `gh label create|edit` → `git-gate:label(repo, …)`
@@ -154,7 +156,7 @@ git push -u origin <branch>
 | Scenario | Choice |
 |---|---|
 | re-running or cancelling a workflow run, gate path | the user's, in the web UI from the run's page: the gate's token reads Actions only, so no gate tool does it |
-| creating, editing, commenting on or closing an issue, gate path | none: the gate's token has no Issues write, so issues are read-only there; open work goes to the session's memory, and the user is told |
+| creating, editing, commenting on, closing or reopening an issue, gate path | none: the gate's token has no Issues write, so issues are read-only there; open work goes to the session's memory, and the user is told |
 | `gh pr merge`, an approval, `gh release create\|edit\|upload`, a tag | the user's on either path — Step 2 |
 | `gh repo create`, a settings or ruleset change through `gh api -X`, `gh secret set`, `scripts/bootstrap_repo.sh`, gate path | the user's, in their own terminal: none has a typed tool |
 
