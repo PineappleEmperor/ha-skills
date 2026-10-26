@@ -21,7 +21,6 @@ not; a refusal from the gate is the answer, never a cue to take the plain path.*
 10. A gate tool a step names is missing — Step 1
 11. The gate refuses a repository as outside the session — Step 3
 12. A push is refused with no handover id — Step 5
-13. A re-run or cancel comes back 403 — Step 6
 
 ## Reaching GitHub
 
@@ -153,7 +152,7 @@ git push -u origin <branch>
 
 | Scenario | Choice |
 |---|---|
-| re-running or cancelling a workflow run, gate path | the user's, from the run's page — *A re-run or cancel comes back 403 — Step 6* |
+| re-running or cancelling a workflow run, gate path | the user's, in the web UI from the run's page: the gate's token reads Actions only, so no gate tool does it |
 | creating, editing, commenting on or closing an issue, gate path | none: the gate's token has no Issues write, so issues are read-only there; open work goes to the session's memory, and the user is told |
 | `gh pr merge`, an approval, `gh release create\|edit\|upload`, a tag | the user's on either path — Step 2 |
 | `gh repo create`, a settings or ruleset change through `gh api -X`, `gh secret set`, `scripts/bootstrap_repo.sh`, gate path | the user's, in their own terminal: none has a typed tool |
@@ -209,10 +208,3 @@ gitgaterules grant <folder> read|write <repo>
 
 **Fix:** Step 4, `git rebase origin/main`, then Step 5 again; a rebased branch already on
 GitHub is a non-fast-forward, which comes back as a handover — Step 7.
-
-### A re-run or cancel comes back 403 — Step 6
-
-**Symptom:** `git-gate:workflow_run` returns GitHub's 403.
-
-**Fix:** none from the session, since the gate's token has no Actions write; ask the user to
-re-run or cancel it from the run's page.
