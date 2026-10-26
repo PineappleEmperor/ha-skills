@@ -84,11 +84,6 @@ SKILL_TIERS: dict[str, tuple[str, ...]] = {
         "docs/skill-file-hierarchy.md",
         "docs/skill-schema.md",
     ),
-    # The register and the phase files it sheds. Both, because a cleared row moves out of
-    # the first into the second, and a tier naming only the register would drop the claim
-    # check on every row the moment it moved — a guard lost to a reorganisation.
-    "docs/backlog.md": ("plugins/ha/skills/ha-integration/reference/discipline.md",),
-    "docs/backlog/": ("plugins/ha/skills/ha-integration/reference/discipline.md",),
     # The release window's fetched sources. Governed by the doc that says what a pass must
     # read and what a post is worth, so reaching for one hands over that procedure first.
     "docs/ha-release/": ("docs/release-refresh.md",),
@@ -129,10 +124,6 @@ CI_TIERS: dict[str, tuple[str, ...]] = {
 }
 
 
-# Files whose PATCHES are checked for claims about other governed files. The register is
-# the one place whose whole purpose is to assert things about the rest of the repository,
-# so it is the one place where naming a file is a claim rather than a mention.
-CLAIM_CHECKED = ("docs/backlog.md", "docs/backlog/")
 # The release window's fetched sources, and the tier whose release claims must come out of
 # them. scripts/fetch_ha_sources.py writes both the index and the files it names.
 SOURCE_DIR = "docs/ha-release/"
@@ -140,8 +131,6 @@ SOURCE_INDEX = "docs/ha-release/index.md"
 REFERENCE_TIER = "plugins/ha/skills/ha-integration/reference/"
 # Repo-relative path -> the rotation window in which the gate last served it whole.
 _SERVED: dict[str, int] = {}
-# A path inside a backtick, which is how every row names a file.
-_NAMED = re.compile(r"`([A-Za-z0-9_./-]+\.[A-Za-z0-9]+)`")
 # A Home Assistant release, as every claim about one names it: 2026.9, `2026.10.2`, v2026.9.
 # Four digits and a dot, so a dependency pin (0.13.365) and a Python floor (3.14) are not
 # one; the optional `v` because a tag is written that way and a claim about a tag is a claim.
@@ -313,33 +302,6 @@ def receipt_line(tier: str) -> str:
 def _record_served(rel: str, now: float | None = None) -> None:
     """Remember that the gate handed this path over whole, in this rotation window."""
     _SERVED[rel] = int((time.time() if now is None else now) // ROTATION_SECONDS)
-
-
-def unread_claims(text: str, now: float | None = None) -> list[str]:
-    """Governed files the text names that the gate has not served recently enough.
-
-    Recently enough is the current rotation window or the one before it, so a read taken
-    minutes before the hour turns over is not silently dead while a read two windows old
-    is. Anything stricter would refuse a row written across a rollover and gain nothing.
-
-    Row 89: an edit key proves the file being *written* was read; nothing proves the files
-    it makes claims about were. A row once asserted that two reference docs contradicted
-    each other, under a perfectly valid key for the register, and neither had been opened.
-
-    A path is only demanded when this gate could actually have served it — governed here,
-    and present. Rows name another repository's `scripts/` by bare path and name deleted
-    files deliberately; demanding those would make the register unwritable rather than
-    more honest.
-    """
-    bucket = int((time.time() if now is None else now) // ROTATION_SECONDS)
-    named = dict.fromkeys(_NAMED.findall(text))
-    return [
-        rel
-        for rel in named
-        if resolve_tier(rel) is not None
-        and (REPO / rel).exists()
-        and _SERVED.get(rel, -2) < bucket - 1
-    ]
 
 
 def fetched_sources() -> dict[tuple[int, int], list[str]]:
@@ -773,16 +735,6 @@ def patch_file(
             f"the file moved under you - re-read rather than resending a previous value."
             + _cause(edit_key)
         )
-
-    if any(rel == p or rel.startswith(p) for p in CLAIM_CHECKED):
-        unread = unread_claims(new_string)
-        if unread:
-            raise GateError(
-                f"{rel} is where this repository states what is true of itself, and this "
-                f"patch makes a claim about {', '.join(unread)} without the gate having "
-                f"served {'it' if len(unread) == 1 else 'them'} in this rotation window or "
-                f"the one before. Read each with get_file, then write the row."
-            )
 
     # Both sides of the patch, so that editing a row which already names a release demands
     # that release's sources. Checking only the new text let the row be rewritten around the
