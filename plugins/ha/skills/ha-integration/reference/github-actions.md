@@ -16,6 +16,7 @@ Read this when writing or reviewing an integration's CI files: where each comes 
 8. `templates/` cannot be located — Step 1
 9. A README block cannot be read — Step 2
 10. A repo needs a second PR opener — Step 2
+11. A repository adopting the stack has code `ruff format` would change — Step 2
 
 ## Assembling the scaffold's CI files
 
@@ -64,6 +65,9 @@ How to verify a copy is *Step 1: Callers, not bodies; copies, not paraphrases* i
 The audit does not compare a caller with its README block — what it does check is *What the
 audit checks now* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md — so a caller written from memory can pass
 it.
+
+A repository adopting the stack, rather than starting from it, works through *A repository
+adopting the stack has code `ruff format` would change — Step 2* before its callers land.
 
 The four workflows the scaffold copies whole are settings over a third-party action, so they
 carry nothing of ours to version:
@@ -133,3 +137,16 @@ gate refuses the repository, both in `reference/github-access.md`.
 
 **Fix:** declare it, with the marker line *What the audit checks now* in ha-integration-ci's
 README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md, names.
+
+### A repository adopting the stack has code `ruff format` would change — Step 2
+
+The stack lints and formats the whole tree, for the reason the `python-validate.yml` bullet
+under *Implementation notes* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md, gives, and
+`templates/pyproject.toml` excludes nothing. Code the repository never formatted, and anything
+its own ruff exclusions kept out of sight, is linted and format-checked once it adopts that file.
+
+**Fix:** fence each aligned table first, as *Alignment a human chose meets `ruff format` —
+Step 1* in `reference/lint.md` says; then drop any ruff exclusions, fix what `ruff check`
+finds, and format the rest as its own `style:` commit.
+
+**Timing:** before the migration, so its diff carries no reformatting.

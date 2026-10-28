@@ -19,9 +19,8 @@ from memory.
 10. Step 9: Commit and push `main`
 11. Step 10: Apply the GitHub settings
 12. Cases
-13. A repository adopting the stack carries ruff exclusions — Step 6
-14. `HACS validation` is red — Step 9
-15. The integration goes into the default catalog — Step 10
+13. `HACS validation` is red — Step 9
+14. The integration goes into the default catalog — Step 10
 
 ## The scaffold
 
@@ -375,18 +374,6 @@ as *Step 7: Hand a refused push to the user* in `reference/github-access.md` say
 `main`, so applied first it refuses that push.
 
 ## Cases
-
-### A repository adopting the stack carries ruff exclusions — Step 6
-
-The stack lints and formats the whole tree, for the reason the `python-validate.yml` bullet
-under *Implementation notes* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md, gives, and
-`templates/pyproject.toml` excludes nothing. Anything kept out of ruff's sight is linted once
-the repository adopts that file.
-
-**Fix:** drop the exclusions and format what they were hiding as its own `style:` commit,
-before the migration.
-
-**Timing:** before the migration, so its diff carries no reformatting.
 
 ### `HACS validation` is red — Step 9
 
