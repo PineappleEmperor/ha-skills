@@ -12,4 +12,4 @@ permissions:
 
 jobs:
   release:
-    uses: PineappleEmperor/release-flow/.github/workflows/release-drafter.yml@aa2b6aaf8dadccd1f6ed5c65df774cf5f96091ae # v1.1.4
+    uses: PineappleEmperor/release-flow/.github/workflows/release-drafter.yml@372a07e572eb870bf6a29f1cecf1118927dcbb91 # v1.2.0
