@@ -19,10 +19,9 @@ from memory.
 10. Step 9: Commit and push `main`
 11. Step 10: Apply the GitHub settings
 12. Cases
-13. Alignment a human chose meets `ruff format` — Step 3
-14. A repository adopting the stack carries ruff exclusions — Step 6
-15. `HACS validation` is red — Step 9
-16. The integration goes into the default catalog — Step 10
+13. A repository adopting the stack carries ruff exclusions — Step 6
+14. `HACS validation` is red — Step 9
+15. The integration goes into the default catalog — Step 10
 
 ## The scaffold
 
@@ -376,42 +375,6 @@ as *Step 7: Hand a refused push to the user* in `reference/github-access.md` say
 `main`, so applied first it refuses that push.
 
 ## Cases
-
-### Alignment a human chose meets `ruff format` — Step 3
-
-`ruff format` reduces every run of spaces to one, which destroys a table someone aligned so
-it could be read as a table. Fence it rather than surrendering it or turning the formatter
-off:
-
-```python
-# fmt: off
-CONF_EMAIL         = "email"
-CONF_API_KEY       = "api_key"
-CONF_REFRESH_TOKEN = "refresh_token"
-# fmt: on
-```
-
-| Rule | Value |
-|---|---|
-| what the fence stops | the formatter only — `ruff check` still runs inside it, so line length, import order and unused names are all still caught |
-| what you give up | whitespace normalisation, which is what you are overriding |
-| scope | statement-level: one inside a dict or call literal does nothing, so it wraps the whole enclosing statement at that statement's indent |
-| `# fmt: on` | never at a different indent from its `# fmt: off` |
-| which statement | the smallest one containing the table, never a class body and never a file |
-| the column | one per block, set one space past the longest key, spaces only and never tabs; a new block restarts it |
-| an entry too long for the column | re-pad the whole block, in the same commit |
-| a generator that emits a fenced table | emits the fence too, or the next regeneration drops it |
-
-**What earns a fence:**
-
-- Padding before `=` or `:`.
-- Padding after them, where the values form the column.
-- Padding after `,`.
-- One row or record per source line, even where nothing is padded — glyph rasters, icon bitmaps, colour palettes, layout tables, field-descriptor lists.
-- Not a flat wrapped list of strings, which is not a table; leave that to the formatter.
-
-**Symptom:** an unfenced raster or bitmap table comes back one element per line, and the
-shape a reader could see in the source is gone.
 
 ### A repository adopting the stack carries ruff exclusions — Step 6
 

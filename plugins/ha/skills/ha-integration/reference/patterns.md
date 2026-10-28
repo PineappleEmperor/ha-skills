@@ -146,7 +146,7 @@ in `reference/lint.md`, under the shipped `mypy.ini`, with zero errors, before a
 |---|---|
 | the schema library | `import probatio`, then `probatio.Schema`, `probatio.Required`, `probatio.Optional`, as core writes it; the shipped `pyproject.toml` bans `voluptuous` and `import probatio as vol`, as core's does, and `import probatio` sorts after the `homeassistant` imports, since `homeassistant` is third-party there |
 | a `probatio.Schema` in a flow | one entry per line, left to `ruff format` |
-| the `# fmt: off` fence | not earned here — a flow schema is a list of entries, not a table; *Alignment a human chose meets `ruff format` — Step 3* in `reference/scaffold.md` |
+| the `# fmt: off` fence | not earned here — a flow schema is a list of entries, not a table; *Alignment a human chose meets `ruff format` — Step 1* in `reference/lint.md` |
 
 ```python
 DATA_SCHEMA = probatio.Schema(
