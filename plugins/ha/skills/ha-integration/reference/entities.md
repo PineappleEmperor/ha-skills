@@ -175,6 +175,7 @@ async def async_setup_entry(
 | what it does not cover | a device still flashing after `async_install` has returned |
 | the lock for that | a boolean plus a monotonic timestamp, set at the top of `async_install` after the can't-install checks |
 | the window on that lock | so a device that never reports back cannot wedge the entity |
+| a device or service that says itself whether an update is available | override the `has_update` property, from 2026.11.0; core reads it only when both versions are known, differ and the latest is not skipped, and its default calls `version_is_newer` — `UpdateEntity.has_update` and `state` in `homeassistant/components/update/entity.py`, at the `.0` tag of the release row in `reference/freshness.md`; the floor, `homeassistant/components/update/__init__.py` at the `2026.10.0` tag |
 
   ```python
   @override
