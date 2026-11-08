@@ -52,7 +52,7 @@ folder and the manifest's `domain` key, and every config entry is stored under i
 |---|---|
 | the user already has a folder | work in it, renamed to the Step 1 repository name if the two differ; `git init -b main` if it is not a repository yet |
 | no folder yet | `mkdir <repository>`, then `git init -b main` inside it |
-| no GitHub repository yet | `gh repo create <repository> --public --description "<the Step 1 description>" --source . --remote origin`, from inside the folder; on the gate path the user creates it, as *Step 6: Write to GitHub* in `reference/github-access.md` says, and grants the session write on it, as *The gate refuses a repository as outside the session — Step 3* in `reference/github-access.md` says |
+| no GitHub repository yet | `gh repo create <repository> --public --description "<the Step 1 description>" --source . --remote origin`, from inside the folder; on the gate path nothing, since Step 10 creates it |
 | an empty GitHub repository already exists, with no ruleset on `main` | `git remote add origin <its URL>` |
 
 ### Step 3: Write the integration package
@@ -236,7 +236,7 @@ among them:
 | changing a copy | only as *Step 4: Apply only the sanctioned adaptations* in `reference/github-actions.md` allows; a new repository applies only its two panel rows, and only when it serves a panel |
 | `.github/dependabot.yml` | copied; what it carries and what turns it on is *Step 1: Write `.github/dependabot.yml`* in `reference/dependabot.md` |
 | a copy that relaxes `pyproject.toml`'s ruff or pytest tables | drift |
-| enabling the commit hook | the `core.hooksPath` setting the `CLAUDE.md` snippet in Step 7 gives; in this clone `bootstrap_repo.sh` sets it at Step 10, after the first commit, which the guard on `main` would otherwise refuse |
+| enabling the commit hook | the `core.hooksPath` setting the `CLAUDE.md` snippet in Step 7 gives; in this clone it is set at Step 10, after the first commit, which the guard on `main` would otherwise refuse |
 | enabling the local hooks | `pip install prek==<version>`, at the version the mypy and ruff row of `reference/freshness.md` names — prek is the tool core runs its own hooks with; the same `core.hooksPath` setting runs the wrapper |
 | what prettier leaves alone | Markdown, as core leaves it; and `.github/`, `ruleset.json` and a built panel bundle, so a copied or built file stays identical to its source |
 | omitting `.gitignore` | a local `pytest` plus a `git add -A` tracks `.pyc` files, which *What the audit checks now* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md, fails a repository for |
@@ -361,19 +361,25 @@ Run every step of `reference/lint.md`, before the first commit.
 ### Step 9: Commit and push `main`
 
 Commit everything, with a subject in the form *Step 2: Write the subject in the Conventional
-Commits form* in `reference/commits.md` gives, then `git push -u origin main` — on the gate
-path *Step 5: Push* in `reference/github-access.md`, whose refusal of `main` goes to the user
-as *Step 7: Hand a refused push to the user* in `reference/github-access.md` says.
+Commits form* in `reference/commits.md` gives, then:
+
+| Scenario | Choice |
+|---|---|
+| plain path | `git push -u origin main` |
+| gate path | no push: `main` goes up in Step 10's `gitgatesetup` run, as the `bundle` |
 
 ### Step 10: Apply the GitHub settings
 
 1. Create the release token, as *Step 1: Generate a fine-grained PAT* in `reference/github-setup.md` says.
-2. From the repo root, run `bash scripts/bootstrap_repo.sh "<the Step 1 description>"`, and paste the token when it asks; on the gate path the user runs it in their own terminal, as *Step 6: Write to GitHub* in `reference/github-access.md` says.
-3. Fix anything it reports as missing or not done, then run it again.
-4. Re-run the `HACS Validation` workflow from the Actions tab: the Step 9 push ran it before these settings existed.
+2. Apply the settings by the row for the session's path:
+
+| Scenario | Choice |
+|---|---|
+| gate path | `git-gate:repo_setup` with the Step 1 description, then the user's `gitgatesetup <id>` run, as *Step 2: Apply the ruleset once, or run `scripts/bootstrap_repo.sh`* in `reference/github-setup.md` says; the user adds the token as *Step 2: Store it as the `RELEASE_TOKEN` repository secret* in `reference/github-setup.md` says |
+| plain path | from the repo root, `bash scripts/bootstrap_repo.sh "<the Step 1 description>"`, pasting the token when it asks; fix anything it reports as missing or not done and run it again, then re-run the `HACS Validation` workflow from the Actions tab, since the Step 9 push ran it before these settings existed |
 
 **Timing:** after Step 9 — the ruleset's required checks apply even to the push that creates
-`main`, so applied first it refuses that push.
+`main`, so a ruleset applied before that push refuses it.
 
 ## Cases
 

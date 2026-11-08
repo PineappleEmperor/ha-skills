@@ -57,6 +57,10 @@ audit checks now* in ha-integration-ci's README, https://raw.githubusercontent.c
 Repo → **Settings** → **Secrets and variables** → **Actions** → **Secrets** tab → **New
 repository secret** → Name `RELEASE_TOKEN`, paste into **Secret** → **Add secret**
 
+> **Note:** on the gate path the user adds it at the link the `gitgatesetup` run of checks
+> Step 2 prints, https://github.com/<owner>/<repo>/settings/secrets/actions/new; a session
+> never sets it.
+
 ### Step 3: Rotate by pasting a new value into the same secret
 
 Nothing else changes.
@@ -72,6 +76,10 @@ force-pushes blocked. Whether the audit sees the ruleset, and what it reports wh
 cannot ask GitHub, is *What the audit checks now* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md.
 
 ### Step 2: Apply the ruleset once, or run `scripts/bootstrap_repo.sh`
+
+Which path a session is on is *Step 1: Pick the path* in `reference/github-access.md`.
+
+Plain path:
 
 ```bash
 gh api -X POST repos/<owner>/<repo>/rulesets --input ruleset.json
@@ -93,8 +101,24 @@ bash scripts/bootstrap_repo.sh "One-line description of the integration"
 > requiring checks on `main`, whose old contexts would block every PR; run with
 > `--replace-all`, it deletes those, except an organisation's.
 
-> **Note:** on the gate path both are the user's to run, in their own terminal — *Step 6:
-> Write to GitHub* in `reference/github-access.md`.
+**Gate path**, `<abs>` being the repository's absolute path, and neither command above:
+
+1. The user grants the session write on the repository, which need not exist yet — *The gate
+   refuses a repository as outside the session — Step 3* in `reference/github-access.md`.
+2. `git-gate:repo_setup(repo, description, topics, ruleset_file, bundle, secrets)`, with the
+   values below.
+3. Hand the user `gitgatesetup <id>`, the command its reply names, to run in their own
+   terminal.
+
+| Rule | Value |
+|---|---|
+| `topics` | the ones `bootstrap_repo.sh` adds with `--add-topic` |
+| `ruleset_file` | `<abs>/ruleset.json`, Step 1 |
+| `bundle` | the first `main`, for a repository with no `main` on GitHub yet: `git bundle create <abs>/.tmp/main.bundle main`, which holds its whole history and no other branch |
+| `secrets` | `["RELEASE_TOKEN"]`, a name and never a value; the user adds the value as token Step 2 says |
+| what the run does | creates the repository if it does not exist; sets the description, topics, Issues and the dependency graph; shows the bundle's `main`, then pushes it; applies the ruleset |
+| no `bundle`, and no `main` on GitHub | the ruleset waits for `main`: the user pushes it, as *Step 7: Hand a refused push to the user* in `reference/github-access.md` says, then runs `gitgatesetup <id>` again |
+| `core.hooksPath` | not a GitHub setting, so no run sets it: the session runs `git config core.hooksPath .githooks` in its clone, which `bootstrap_repo.sh` does on the plain path |
 
 ### Step 3: The eight required contexts, and what must never be required
 
@@ -150,7 +174,8 @@ Read and write`.
 check is red on every PR forever.
 
 **Fix:** enable it at Settings → Advanced Security, or run `bootstrap_repo.sh`, which
-enables it and reports when it cannot.
+enables it and reports when it cannot; on the gate path the `gitgatesetup` run of checks
+Step 2 enables it.
 
 ### A ruleset must be overruled — checks Step 1
 
