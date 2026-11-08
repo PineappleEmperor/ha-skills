@@ -272,6 +272,7 @@ exec prek run
 | Rule | Value |
 |---|---|
 | where the skill-invocation rule lives | the repository's own `CLAUDE.md`, never a user's global config |
+| install text and My link badges in `README.md` | between `<!-- ha-marketplace:exclude-start -->` and `<!-- ha-marketplace:exclude-end -->`, which the Marketplace leaves out of the repository's page, where its own install button stands in — https://contributors.home-assistant.io/marketplace/reference/repository-structure/index.md |
 
 **Symptom:** a missing or paraphrased licence fails HACS validation with `The repository
 license could not be identified (SPDX: NOASSERTION)`; HACS asks for one GitHub can identify
@@ -300,9 +301,11 @@ linked to its public repository:
 **`README.md` — the two My links**, each opening the reader's own Home Assistant:
 
 ```markdown
+<!-- ha-marketplace:exclude-start -->
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=<owner>&repository=<repository>&category=integration)
 
 [![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=<domain>)
+<!-- ha-marketplace:exclude-end -->
 ```
 
 | Rule | Value |
