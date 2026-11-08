@@ -23,7 +23,8 @@ dropped connection, an unexpected reply, a blocking call — or what it logs.
 - `update_interval` no shorter than the time the source's data takes to change — the `appropriate-polling` rule, https://contributors.home-assistant.io/core/quality-scale/appropriate-polling/; core sets no minimum
 - Set `always_update=False` when API responses support `__eq__` — avoids unnecessary state machine writes
 - Raise `ConfigEntryAuthFailed` on auth errors inside `_async_update_data`
-- Raise `UpdateFailed` on other errors; use `UpdateFailed(retry_after=60)` for rate-limited APIs — it sets the wait before the next poll once, and is ignored during the first refresh
+- Raise `UpdateFailed` on other errors; use `UpdateFailed(retry_after=60)` for rate-limited APIs — on a later poll it sets the wait before the next poll once
+- From 2026.11.0, the `retry_after` of an `UpdateFailed` raised in the first refresh becomes the `retry_after` of the `ConfigEntryNotReady` that `async_config_entry_first_refresh` raises — `_async_config_entry_first_refresh` in `homeassistant/helpers/update_coordinator.py`, at the `.0` tag of the release row in `reference/freshness.md`; the setup retry wait it gives is *A connection that drops — Step 1*
 - For push APIs: use `coordinator.async_set_updated_data(data)` instead of adapting to polling
 
 ## Cases
@@ -45,6 +46,7 @@ is back.
 |---|---|
 | where each row was read | https://contributors.home-assistant.io/core/integrations/setup-failures/, https://contributors.home-assistant.io/core/integrations/fetching-data/ and the `entity-unavailable` and `log-when-unavailable` rules; `homeassistant/config_entries.py`, `homeassistant/helpers/update_coordinator.py` and `homeassistant/components/mqtt/client.py` at the `.0` tag of the release row in `reference/freshness.md` |
 | how Home Assistant retries a setup that raised `ConfigEntryNotReady` | after 5 seconds, doubling on each failure up to `SETUP_RETRY_MAX_WAIT`, 600 seconds; and, where the integration supports discovery, as soon as the device is discovered |
+| a `ConfigEntryNotReady(retry_after=…)`, from 2026.11.0 | the retry waits the longer of that backoff and `retry_after`, which is capped at `SETUP_RETRY_AFTER_MAX_WAIT`, 86400 seconds — `ConfigEntry.async_setup`, through `__async_handle_config_entry_setup_error` |
 | what a failed poll does | `last_update_success` goes false, `CoordinatorEntity.available` returns it, and the next interval tries again |
 | what the coordinator catches unaided | `TimeoutError`, `aiohttp.ClientError`, `requests.exceptions.RequestException` and `urllib.error.URLError`, each a failed update |
 | a request timeout | `async with asyncio.timeout(10):` round the fetch, the value the fetching-data page's example uses |
