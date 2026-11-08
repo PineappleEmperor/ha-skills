@@ -96,11 +96,11 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 | Rule | Value |
 |---|---|
-| where each row was read | `__async_setup_with_context`, `__async_handle_config_entry_setup_error` and `ConfigEntries.async_retry_migration` in `homeassistant/config_entries.py`, at the `.0` tag of the release row in `reference/freshness.md`; the compatibility floor, `ConfigEntry.async_migrate` there at the `2026.9.0` tag |
+| where each row was read | `__async_setup_with_context`, `__async_handle_config_entry_setup_error`, `ConfigEntry.async_migrate`, `_async_process_entry_method_result` and `ConfigEntries.async_retry_migration` in `homeassistant/config_entries.py`, at the `.0` tag of the release row in `reference/freshness.md`; the compatibility floor, `ConfigEntry.async_migrate` there at the `2026.9.0` tag; the `False` row's floor, the same file at the `2026.10.0` tag |
 | the compatibility floor | 2026.10.0; below it `ConfigEntry.async_migrate` catches any `Exception` and returns `False`, so `ConfigEntryNotReady` ends in `migration_error` too, and `async_retry_migration` does not exist |
 | a failure that may clear on its own — a timeout, a device offline | raise `ConfigEntryNotReady`; the migration is retried on the setup schedule |
-| any other failure | raise `ConfigEntryError` with a `translation_key`, which the entry shows as its reason, or return `False`; either way the entry stops in `migration_error`, as it does for any other exception, which is logged with its traceback and leaves no reason |
-| returning `False` | logs nothing and leaves the entry no reason, so log why before you return it |
+| any other failure | raise `ConfigEntryError` with a `translation_key`, which the entry shows as its reason; the entry stops in `migration_error`, as it does for any other exception, which is logged with its traceback and leaves no reason |
+| returning `False` | from 2026.11.0, a `ConfigEntryError` logged with its traceback, and the entry stops in `migration_error` with the generic reason *Failed to migrate the config entry.*; below it, nothing is logged and the entry has no reason — either way, raise your own `ConfigEntryError` for a reason that says what failed |
 | `ConfigEntryAuthFailed` during migration | logged at WARNING and the entry stops in `migration_error`; no reauth flow starts, since reauth expects a migrated entry |
 | the way out of `migration_error` | a repair issue whose fix flow calls `await hass.config_entries.async_retry_migration(entry_id)` — https://contributors.home-assistant.io/blog/2026/09/17/use-config-entry-exc-in-migration/ |
 | a major version bump with no `async_migrate_entry` | setup fails for every existing user, so ship the handler in the same change |
