@@ -65,6 +65,7 @@ changes nothing.
 | an entity that is unavailable | skipped; named only when targeted by its own id, in `Referenced entities <ids> are missing or not currently available` at WARNING |
 | an entity reached through a device, an area or a floor, or a device or area carrying a label | skipped when it carries an `entity_category` or is hidden, so a `CONFIG` or `DIAGNOSTIC` entity never receives an action aimed at its device |
 | an entity carrying the label itself | skipped when it is hidden |
+| an entity the target's `exclude` block names, or reaches through a device, area, floor or label | skipped, from 2026.11.0, however the rest of the target reaches it, `entity_id: all` included; a target holding only an `exclude` block targets nothing — `TargetSelection` and `async_extract_excluded_entity_ids` in `target.py`; the floor, `target.py` at the `2026.10.0` tag |
 | an entity without the action's required features or device class | skipped when reached through a device, area, floor or label; targeted by its own id, the call raises `ServiceNotSupported` |
 | no entity left to call | the call returns having called nothing, unless it asked for a response, which raises `Service call requested response data but did not match any entities` |
 | an action that reaches more entities than it was aimed at | the "a call with no target" row of Step 1 |
