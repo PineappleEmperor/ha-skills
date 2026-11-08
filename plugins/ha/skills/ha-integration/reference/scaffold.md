@@ -428,6 +428,9 @@ pass, and a full GitHub release is published — a tag alone does not count.
 | closed without notice | an incomplete template, a statement that is not true, or a review requested from people |
 | small problems | the pull request goes to draft; fix them, then mark it ready for review |
 | the wait | months; the backlog is the open pull requests of `hacs/default`, oldest first |
+| archiving the repository | the HACS team takes it out of the catalog; users who installed it keep it, get no more updates, and a repair tells them why |
+| the catalog's Removed list | repositories no longer offered — abandoned, archived, breaking Home Assistant, stealing credentials or deleted; installed copies keep working with no updates, and a repair tells the user why |
+| the catalog's Critical list | a harmful repository; the Marketplace uninstalls it from every Home Assistant that has it, at once, and restarts Home Assistant |
 | deleting the repository later | first ask for its removal with the *Request for repository removal* issue template in `hacs/integration`; deleting one still in the catalog bars every future submission |
 
 | Check | What's needed | Where to fix |
