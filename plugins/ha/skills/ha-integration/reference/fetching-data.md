@@ -94,7 +94,7 @@ def parse_reading(raw: dict[str, Any]) -> Reading:
 
 | Rule | Value |
 |---|---|
-| where each row was read | the `entity-unavailable` and `dynamic-devices` rules; `_async_refresh` and `async_update_listeners` in `homeassistant/helpers/update_coordinator.py` and `SensorEntity.state` in `homeassistant/components/sensor/__init__.py`, at the `.0` tag of the release row in `reference/freshness.md` |
+| where each row was read | the `entity-unavailable` and `dynamic-devices` rules; `_async_refresh` and `async_update_listeners` in `homeassistant/helpers/update_coordinator.py` and `SensorEntity.state` in `homeassistant/components/sensor/entity.py`, at the `.0` tag of the release row in `reference/freshness.md` |
 | a field missing from an otherwise good reply | `None` for that value: the entity reads `unknown` and the others update |
 | a device missing from an otherwise good reply | that entity alone unavailable — `return super().available and self._device_id in self.coordinator.data` |
 | an exception the coordinator has no branch for, a `KeyError` or a `TypeError` say, leaving `_async_update_data` | logged with its traceback, and `last_update_success` goes false — so one bad field takes every entity on the coordinator unavailable |
