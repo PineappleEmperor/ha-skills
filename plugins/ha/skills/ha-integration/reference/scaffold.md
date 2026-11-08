@@ -136,10 +136,7 @@ rest.
 | `home-assistant/brands` `custom_integrations/` | legacy; a PR adding one is auto-closed |
 | a local `brand/` file | takes precedence over the same file in the brands repository |
 | contributing the integration to core | delete `brand/` and open a brands-repository PR instead |
-
-| what | lands in | do now | do then |
-|---|---|---|---|
-| Marketplace, replacing HACS, shows an integration's `brand/` images before install, picked up from the latest release of every integration in the catalog; an entry for the domain in `home-assistant/brands` wins over them | 2026.11 — https://contributors.home-assistant.io/marketplace/guides/integrations/; the brands entry winning, `BrandsMarketplaceView.get` in core's `homeassistant/components/brands/__init__.py` on `dev` | ship `brand/icon.png` in every release | nothing |
+| before install | the Marketplace shows the `brand/` images of the latest release of every integration in the catalog, so ship `brand/icon.png` in every release; an entry for the domain in `home-assistant/brands` wins over them — https://contributors.home-assistant.io/marketplace/guides/integrations/index.md, and `BrandsMarketplaceView.get` in core's `homeassistant/components/brands/__init__.py`, at the `.0` tag of the release row in `reference/freshness.md` |
 
 **Which files to ship:**
 
@@ -315,13 +312,10 @@ linked to its public repository:
 
 | Rule | Value |
 |---|---|
-| where each row was read | `redirect.json` in `home-assistant/my.home-assistant.io`, https://raw.githubusercontent.com/home-assistant/my.home-assistant.io/main/redirect.json, and https://contributors.home-assistant.io/marketplace/guides/catalog/ |
-| `hacs_repository` | opens the repository in HACS; from 2026.11 it opens the Marketplace instead, so it reaches users on either side of that release |
+| where each row was read | `redirect.json` in `home-assistant/my.home-assistant.io`, https://raw.githubusercontent.com/home-assistant/my.home-assistant.io/main/redirect.json, and https://contributors.home-assistant.io/marketplace/guides/catalog/index.md |
+| `hacs_repository` | the link the snippet uses: it opens the repository in HACS before 2026.11 and in the Marketplace from 2026.11, so it reaches users on either side of that release |
+| `marketplace_repository` | from 2026.11: opens the repository in the Marketplace, and offers to add it as a custom repository when the Marketplace does not know it and the link names its `category`; switch the link and its badge to it once the `homeassistant` key of `hacs.json` is 2026.11.0 or later |
 | `config_flow_start` | starts the integration's config flow, once the integration is installed |
-
-| what | lands in | do now | do then |
-|---|---|---|---|
-| the `marketplace_repository` My link, opening the repository in the Marketplace and offering to add it when the Marketplace does not know it yet | 2026.11 — https://contributors.home-assistant.io/marketplace/guides/catalog/ | link with `hacs_repository` | switch the link and its badge to `marketplace_repository` once the `homeassistant` key of `hacs.json` is 2026.11.0 or later |
 
 **`hacs.json`**
 
@@ -337,10 +331,7 @@ linked to its public repository:
 | `zip_release` | makes HACS download a release **asset** rather than the tag's source archive, so it requires the `release.yml` caller |
 | `filename` | the name `release.yml` attaches — *The three workflows* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
 | dropping `zip_release` and `filename` | only to have HACS pull the whole tagged repository archive instead |
-
-| what | lands in | do now | do then |
-|---|---|---|---|
-| Marketplace, replacing HACS, reads `hacs.json` from the repository root for every version it installs, and cannot install or update a repository without it | 2026.11 — https://contributors.home-assistant.io/marketplace/reference/hacs-json/ | keep `hacs.json` at the root of every release | nothing |
+| where it is read | the repository root, by the Marketplace, for every version it installs; it cannot install or update a repository without it, so keep `hacs.json` at the root of every release — https://contributors.home-assistant.io/marketplace/reference/hacs-json/index.md |
 
 **Symptom:** a `zip_release` repository whose release carries no attached zip fails HACS
 install with `Could not download`.
