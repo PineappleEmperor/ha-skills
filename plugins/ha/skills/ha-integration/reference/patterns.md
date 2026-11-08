@@ -119,6 +119,10 @@ in `reference/lint.md`, under the shipped `mypy.ini`, with zero errors, before a
 | `# type: ignore[import-untyped]` on a stubless third-party import | nothing — import it plainly | the `mypy.ini` disables `import-untyped` and fails an unused ignore, so the leftover one is the error | `templates/mypy.ini` |
 | `hass.data[DOMAIN][entry.entry_id]`, which is untyped | `entry.runtime_data` on a typed `ConfigEntry` — *Typed `ConfigEntry` — Step 4* | the alias carries the runtime type, so no cast is needed | https://contributors.home-assistant.io/core/quality-scale/runtime-data/ |
 
+| what | lands in | do now | do then |
+|---|---|---|---|
+| `UNDEFINED` and `UndefinedType` from `homeassistant.helpers.typing`, deprecated for `Undefined`, which is both the default and the type | 2026.12 | `UNDEFINED`, typed `UndefinedType`, since `Undefined` does not exist at 2026.11.0 | `from homeassistant.helpers.typing import Undefined`, then `variable: str \| Undefined \| None = Undefined` |
+
 ## Cases
 
 ### `ConfigEntry` mutation — Step 3
