@@ -383,14 +383,15 @@ errors **and no ignores**, so every check that runs on an integration must pass.
 | `hacsjson` | `hacs.json` exists, carries `name`, holds no key beyond the ten Step 7 lists, and names a `filename` whenever `zip_release` is set | Step 7 |
 | `images` | nothing on an integration — it runs on plugins and themes only | — |
 | `information` | `README.md` exists | Step 7 |
+| `integration_categories` | `categories` in `manifest.json`, when present, is one to three known categories with no duplicates; a missing key only warns | Step 4 |
 | `integration_manifest` | `manifest.json` carrying `domain`, `name`, `version`, `documentation`, `issue_tracker` and `codeowners` | Step 4 |
 | `issues` | the Issues tab is enabled | Step 10, or GitHub repo settings → Features |
 | `topics` | the repository has at least one topic | Step 10, or GitHub repo settings → About |
 | `license` | a `LICENSE` GitHub identifies by SPDX as an OSI-approved licence, per Step 1 | Step 7 |
 
 > **Note:** on a pull request from a fork, `archived`, `description`, `issues`, `topics` and
-> `license` do not run, so only the other four checks do; the push to `main` and the nightly
-> run carry all nine.
+> `license` do not run, so only the other five checks do; the push to `main` and the nightly
+> run carry all ten.
 
 ### The integration goes into the default catalog — Step 10
 
