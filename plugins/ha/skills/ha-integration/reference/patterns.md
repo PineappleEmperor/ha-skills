@@ -86,6 +86,7 @@ https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README
 | Scenario | Choice |
 |---|---|
 | the stored `entry.data` schema changes | *Config entry migration — Step 1* in `reference/config-flows.md` |
+| `async_forward_entry_setups` left to run past `async_setup_entry`, in `hass.async_create_task` or another task setup does not wait for | `await` it in `async_setup_entry`, item 2; from 2026.11.0 the forward raises `HomeAssistantError` when it finds the setup finished before it, where 2026.10.0 logged it — `ConfigEntries.async_forward_entry_setups` in `homeassistant/config_entries.py`, at the `.0` tag of the release row in `reference/freshness.md`; the floor, the same file at the `2026.10.0` tag |
 | setup signs in through the OAuth2 helper | *OAuth2 errors at setup — Step 1* in `reference/config-flows.md` |
 | a service, static path, WebSocket command or panel registered once for the whole integration | *Register integration-global resources in `async_setup`, not `async_setup_entry` — Step 1* in `reference/services.md` |
 | the integration raises a repair issue about one config entry | *Repair issues that belong to a config entry — Step 3* |
