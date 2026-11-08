@@ -8,7 +8,7 @@ from memory.
 ## Contents
 
 1. The scaffold
-2. Step 1: Ask the user the ten questions below
+2. Step 1: Ask the user the eleven questions below
 3. Step 2: Put the folder under git and on GitHub
 4. Step 3: Write the integration package
 5. Step 4: Write `manifest.json`
@@ -25,7 +25,7 @@ from memory.
 
 ## The scaffold
 
-### Step 1: Ask the user the ten questions below
+### Step 1: Ask the user the eleven questions below
 
 All at once, before anything is written.
 
@@ -41,6 +41,7 @@ All at once, before anything is written.
 | 8 | licence | the full text goes in `LICENSE` | MIT |
 | 9 | version | — | `0.1.0` |
 | 10 | repository | its name on GitHub; an existing folder is renamed to match | the existing folder's name |
+| 11 | categories | what the integration is for, in the form the `categories` row of Step 4 gives, e.g. `energy.ev_charging` | — |
 
 **Timing:** settle the domain before Step 2. It names the `custom_components/<domain>/`
 folder and the manifest's `domain` key, and every config entry is stored under it.
@@ -89,6 +90,7 @@ the coordinator in `reference/fetching-data.md` and the actions in `reference/se
 {
   "domain": "my_device",
   "name": "My Device",
+  "categories": ["energy.ev_charging"],
   "codeowners": ["@username"],
   "config_flow": true,
   "dependencies": [],
@@ -112,6 +114,7 @@ the coordinator in `reference/fetching-data.md` and the actions in `reference/se
 | `issue_tracker` | required by HACS's `integration_manifest` check |
 | `iot_class` | required — `assumed_state` · `calculated` · `cloud_polling` · `cloud_push` · `local_polling` · `local_push` |
 | `integration_type` | `device` · `hub` · `service` · `entity` · `hardware` · `helper` · `system`; absent means `hub`, so set it; `virtual` is core-only |
+| `categories` | optional for a custom integration, and set from the Step 1 answer; one to three values, each `<category>` or `<category>.<subcategory>` from https://contributors.home-assistant.io/core/integrations/categories/index.md, the primary one first; hassfest fails an empty list, a fourth value, a duplicate, a category listed beside one of its own subcategories, or the key on an `entity` or `system` integration, and only warns on an unknown category, so a category core renames never fails the build — the `categories` key of `INTEGRATION_MANIFEST_SCHEMA`, and `validate_categories`, in `script/hassfest/manifest.py`; what the HACS action checks is the `integration_categories` row of *`HACS validation` is red — Step 9* |
 | `config_flow` | `true`, and `config_flow.py` must exist |
 | `single_config_entry` | `true` when the integration supports one config entry only; otherwise omit it and meet the `unique-config-entry` rule, `reference/quality-scale.md` |
 | `requirements` | pip requirement strings, `aiohue==1.9.1`; only libraries core's own `requirements.txt` does not already carry |
