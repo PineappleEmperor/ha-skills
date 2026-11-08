@@ -19,8 +19,9 @@ from memory.
 10. Step 9: Commit and push `main`
 11. Step 10: Apply the GitHub settings
 12. Cases
-13. `HACS validation` is red — Step 9
-14. The integration goes into the default catalog — Step 10
+13. The Marketplace refuses the install — Step 7
+14. `HACS validation` is red — Step 9
+15. The integration goes into the default catalog — Step 10
 
 ## The scaffold
 
@@ -367,6 +368,23 @@ as *Step 7: Hand a refused push to the user* in `reference/github-access.md` say
 `main`, so applied first it refuses that push.
 
 ## Cases
+
+### The Marketplace refuses the install — Step 7
+
+The Marketplace checks a repository before an install and again after writing the files,
+which it puts back when a check fails. The checks below are the ones no other step covers.
+
+| Rule | Value |
+|---|---|
+| where each row was read | https://contributors.home-assistant.io/marketplace/reference/validation/index.md and https://contributors.home-assistant.io/marketplace/guides/integrations/index.md; the checks themselves, core's `homeassistant/components/marketplace/repositories/`, at the `.0` tag of the release row in `reference/freshness.md` |
+
+| Check | What's needed | Where to fix |
+|---|---|---|
+| owner of the domain | no other installed repository has the same `domain` | Step 4 |
+| replaces a built-in integration | a `domain` no core integration uses; one that does needs the user to confirm the install, and the catalog refuses it outright | Step 4 |
+| loadable manifest | after writing, the installed `manifest.json` names the repository's own `domain` | Step 4 |
+| download size | the download, or the ZIP unpacked, at most 100 MiB and 50,000 files | the integration folder, Step 3, or the release zip |
+| archived or removed | the repository is not archived, and not taken out of the catalog | GitHub repo settings, or *The integration goes into the default catalog — Step 10* |
 
 ### `HACS validation` is red — Step 9
 
