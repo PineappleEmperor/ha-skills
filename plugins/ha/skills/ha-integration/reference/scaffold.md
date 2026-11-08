@@ -182,11 +182,6 @@ rest.
 | omitting `icon@2x.png` because the 1× is served | ship it | a HiDPI client renders 256px where it asked for 512 | `IMAGE_FALLBACKS` in core's `homeassistant/components/brands/const.py`, at the `.0` tag of the release row in `reference/freshness.md`, and *Icon image requirements* in the brands README |
 | dressing an integration up as an official one | your own mark | it is what the no-HA-branding rule protects against | *Image specification* in the brands README |
 | deriving a new mark from a brand's artwork | reproduce theirs, and meet any published usage terms | identification is the only permitted use | *Trademark Legal Notices* in the brands README |
-| PR-ing `home-assistant/brands` to fix a blank HACS tile | nothing — it is a HACS-side gap | `custom_integrations/*` PRs are auto-closed | the HACS dashboard row of `reference/freshness.md` |
-
-> **Note:** the HACS store dashboard reads the legacy CDN, not the inline `brand/` folder, so
-> an integration with no legacy brands entry renders blank there while Home Assistant's own UI
-> shows the icon. Nothing to fix in the repository.
 
 **Where the images come from.** Every size is scaled *down* from one master, so the set is
 consistent and nothing is upscaled.
