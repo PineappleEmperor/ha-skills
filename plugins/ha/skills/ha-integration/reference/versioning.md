@@ -73,8 +73,8 @@ next release.
 ### Release candidate — Step 3
 
 An rc tag is `vX.Y.ZrcN`, marked as a prerelease. The manifest inside the zip then carries
-the matching PEP 440 prerelease (`2.0.0rc1`), which AwesomeVersion, hassfest and HACS all
-order below the final.
+the matching PEP 440 prerelease (`2.0.0rc1`), which AwesomeVersion, hassfest and the
+Marketplace's update entity all order below the final.
 
 | Rule | Value |
 |---|---|

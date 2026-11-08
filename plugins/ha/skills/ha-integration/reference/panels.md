@@ -29,7 +29,7 @@ The templates and the caller are *The frontend templates* and *Calling the workf
 file is display-only and never hand-edited.
 
 > **Note:** a Lovelace *card* repo attaches the built `.js` as a release asset instead. An
-> integration cannot: the asset is not in the zip HACS installs.
+> integration cannot: the asset is not in the zip the Marketplace installs.
 
 **Symptom:** a stale committed bundle reads as "the fix I made isn't there" to whoever opens
 it; what the panel check does about one, and how to make that fail, is *Calling the workflow*

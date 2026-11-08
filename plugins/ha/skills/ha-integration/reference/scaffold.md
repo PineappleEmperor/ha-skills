@@ -105,7 +105,7 @@ the coordinator in `reference/fetching-data.md` and the actions in `reference/se
 | where each rule below was read | https://contributors.home-assistant.io/core/integrations/manifest/; beyond the page, `script/hassfest/manifest.py` in core at the `.0` tag of the release row's value and `custom_components/hacs/utils/validate.py` in hacs/integration at the HACS validation row's revision, both rows in `reference/freshness.md` |
 | key order | `domain`, `name`, then every other key alphabetically, as above; hassfest fails any other order — `sort_manifest` in `script/hassfest/manifest.py` |
 | `domain`, `name` | required; the domain is the directory name and never changes |
-| `version` | required for a custom integration — hassfest and HACS both fail its absence; a version AwesomeVersion reads as CalVer, SemVer, SimpleVer, BuildVer or PEP 440, the five forms hassfest's `verify_version` accepts; what sets it at release is `reference/versioning.md` |
+| `version` | required for a custom integration — hassfest and HACS both fail its absence, and the Marketplace refuses to install an integration without one the loader accepts, https://contributors.home-assistant.io/marketplace/guides/integrations/index.md; a version AwesomeVersion reads as CalVer, SemVer, SimpleVer, BuildVer or PEP 440, the five forms hassfest's `verify_version` accepts; what sets it at release is `reference/versioning.md` |
 | `documentation` | required; `https`, and not under `www.home-assistant.io/integrations/`, which hassfest reserves for core |
 | `codeowners` | required by hassfest and HACS — at least your own GitHub username |
 | `issue_tracker` | required by HACS's `integration_manifest` check |
@@ -200,7 +200,7 @@ consistent and nothing is upscaled.
 
 | Scenario | Choice |
 |---|---|
-| the `logo`, which renders large — the integration page, HACS | a busy or detailed screen, which reads well at that size |
+| the `logo`, which renders large — the integration page, the Marketplace | a busy or detailed screen, which reads well at that size |
 | the `icon`, which renders small — ~48px in the integrations list | a simple, low-detail screen; fine detail turns to mush |
 
 ### Step 6: Copy the config and CI files
@@ -323,13 +323,15 @@ linked to its public repository:
 | `name` | required in every `hacs.json` |
 | every key | one of the ten keys HACS's `hacsjson` check accepts — `content_in_root`, `country`, `filename`, `hacs`, `hide_default_branch`, `homeassistant`, `name`, `persistent_directory`, `render_readme`, `zip_release`; anything else fails it |
 | `homeassistant` | the oldest HA you actually test, never a floor copied from an example |
-| `zip_release` | makes HACS download a release **asset** rather than the tag's source archive, so it requires the `release.yml` caller |
+| `zip_release` | makes the Marketplace, and HACS before 2026.11, download the release **asset** `filename` names and extract it into the integration folder, rather than the tag's source archive, so it requires the `release.yml` caller — https://contributors.home-assistant.io/marketplace/guides/releases/index.md |
 | `filename` | the name `release.yml` attaches — *The three workflows* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
-| dropping `zip_release` and `filename` | only to have HACS pull the whole tagged repository archive instead |
+| dropping `zip_release` and `filename` | only to have the Marketplace install the tag's source archive instead |
 | where it is read | the repository root, by the Marketplace, for every version it installs; it cannot install or update a repository without it, so keep `hacs.json` at the root of every release — https://contributors.home-assistant.io/marketplace/reference/hacs-json/index.md |
 
-**Symptom:** a `zip_release` repository whose release carries no attached zip fails HACS
-install with `Could not download`.
+**Symptom:** a `zip_release` release with no attached zip fails the Marketplace install with
+`Could not install <repository>. Check the Home Assistant logs for details.`, and the log reads
+`<the asset> was not downloaded.` — `install_checks_failed` and `file_not_downloaded` in core's
+`homeassistant/components/marketplace/strings.json`, at the `.0` tag of the release row in `reference/freshness.md`.
 
 > **Note:** the tag is the version, not the committed manifest — `reference/versioning.md`.
 > What patches the manifest is `release.yml` under *Implementation notes* in
@@ -394,9 +396,9 @@ pass, and a full GitHub release is published — a tag alone does not count.
 
 | Rule | Value |
 |---|---|
-| where each row was read | https://contributors.home-assistant.io/marketplace/guides/catalog/ |
+| where each row was read | https://contributors.home-assistant.io/marketplace/guides/catalog/index.md, and https://contributors.home-assistant.io/marketplace/how-it-works/index.md |
 | the catalog | the `hacs/default` repository, which HACS and the Marketplace both read |
-| an integration outside it | still added by anyone from its `hacs_repository` My link, Step 7 |
+| an integration outside it | still added by anyone from its My link, Step 7, as a custom repository, which needs a GitHub connection in the Marketplace |
 | refused outright | an integration that replaces a core one, or exists only to test a core integration's alpha or beta |
 | the pull request | from a fork of `hacs/default`, on a branch off `master`, opened from a personal account rather than an organisation so the HACS team can edit it |
 | the change | `owner/repository` in the `integration` file, a JSON list, in alphabetical order |
