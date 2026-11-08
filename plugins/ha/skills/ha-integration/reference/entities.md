@@ -71,10 +71,7 @@ def device_info(self) -> DeviceInfo:
 | `TrackerEntity.location_name` | `in_zones` — zone entity ids, in any order, since the base class sorts them | stops working in **2027.7** | `TrackerEntity.in_zones` in `homeassistant/components/device_tracker/entity.py`, at the `.0` tag of the release row in `reference/freshness.md` |
 | `battery_level` on `StateVacuumEntity` | a dedicated battery sensor | already removed, in 2026.9 | the Vacuum entry under *Backward-incompatible changes* at https://www.home-assistant.io/blog/2026/09/02/release-20269/ |
 | a `TrackerEntity` for a device tracked by connection rather than position | `BaseScannerEntity` | it derives the state from the associated zone and sets the `tracking_type` capability attribute | https://contributors.home-assistant.io/blog/2026/06/15/device-tracker-changes/ |
-
-| what | lands in | do now | do then |
-|---|---|---|---|
-| `RestoreStateData.last_states` is removed, as stored states are keyed by entity registry id | 2026.11 — https://contributors.home-assistant.io/blog/2026/10/06/restore-state-last-states-removal/ | restore through `RestoreEntity` and `async_get_last_state()` or `async_get_last_extra_data()`, which are unaffected | `restore_state.async_get(hass).async_get_stored_state(entity_id)` where you read stored states directly |
+| `RestoreStateData.last_states`, read for a stored state | `restore_state.async_get(hass).async_get_stored_state(entity_id)`; an entity restores its own state through `RestoreEntity` and `async_get_last_state()` or `async_get_last_extra_data()` | removed in 2026.11, as stored states are keyed by entity registry id | `RestoreStateData.async_get_stored_state` in `homeassistant/helpers/restore_state.py`, at the `.0` tag of the release row in `reference/freshness.md` |
 
 **Symptom:** `CoordinatorEntity` does not push initial state on add, so an entity that sets
 `_attr_native_value` inside `_handle_coordinator_update` reads `unknown` until the next poll
