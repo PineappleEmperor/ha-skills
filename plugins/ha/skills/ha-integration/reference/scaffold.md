@@ -124,6 +124,7 @@ the coordinator in `reference/fetching-data.md` and the actions in `reference/se
 | `after_dependencies` | integrations set up first only when they are configured; their requirements are installed either way |
 | `quality_scale` | *Step 4: Claim the tier in the manifest only once it is fully met* in `reference/quality-scale.md` |
 | `zeroconf`, `ssdp`, `bluetooth`, `dhcp`, `usb` | a list of discovery matchers, whose shapes are on the manifest page under each key; the config flow gains the step of that name |
+| `lorawan` | from 2026.11.0, a list of discovery matchers, each a pair of a stack and the brand ID the network server uses for the vendor, `[["chirpstack", 744], ["tts", "sensecap"]]`; it needs `config_flow` `true` and `lorawan` in `dependencies`, and a match starts the flow's `integration_discovery` step — `LORAWAN_SCHEMA`, `LORAWAN_MANIFEST_SCHEMA` and `async_get_lorawan` in core's `homeassistant/loader.py`, and `_discover` in `homeassistant/components/lorawan/connection.py`, at the `.0` tag of the release row in `reference/freshness.md`; the floor, core at the `2026.10.0` tag, which has neither the matcher nor the `lorawan` integration |
 | `homekit` | `{"models": [...]}`, the model-name prefixes to match; the flow gains a `homekit` step |
 | `mqtt` | the discovery topics to subscribe to; the flow gains an `mqtt` step |
 
