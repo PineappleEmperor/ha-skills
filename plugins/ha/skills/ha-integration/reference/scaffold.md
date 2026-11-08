@@ -55,7 +55,9 @@ folder and the manifest's `domain` key, and every config entry is stored under i
 
 ### Step 3: Write the integration package
 
-Under `custom_components/<domain>/`. What goes inside each file is `reference/patterns.md`.
+Under `custom_components/<domain>/`. What goes inside each file is `reference/patterns.md`,
+with the config flow in `reference/config-flows.md`, the platforms in `reference/entities.md`,
+the coordinator in `reference/fetching-data.md` and the actions in `reference/services.md`.
 
 | File | Holds | When |
 |---|---|---|
@@ -63,13 +65,13 @@ Under `custom_components/<domain>/`. What goes inside each file is `reference/pa
 | `config_flow.py` | the config flow | always |
 | `const.py` | the domain and the constants | always |
 | `manifest.json` | the manifest — Step 4 | always |
-| `translations/en.json` | every string the integration shows — flows, entities, actions, exceptions — *`services.yaml` + `translations/en.json` — Step 1* in `reference/patterns.md` | always |
+| `translations/en.json` | every string the integration shows — flows, entities, actions, exceptions — *`services.yaml` + `translations/en.json` — Step 1* in `reference/services.md` | always |
 | `quality_scale.yaml` | the tier ledger — `reference/quality-scale.md` | always |
-| `diagnostics.py` | the diagnostics download — *Diagnostics platform — Step 1* in `reference/patterns.md` | always |
+| `diagnostics.py` | the diagnostics download — *Diagnostics platform — Step 1* in `reference/entities.md` | always |
 | `<platform>.py` | one per platform chosen in Step 1 | always |
 | `brand/` | the brand images — Step 5 | always |
 | `icons.json` | action icons, `{"services": {"my_action": {"service": "mdi:icon"}}}` | the integration registers an action |
-| `services.yaml` | each action's fields — *`services.yaml` + `translations/en.json` — Step 1* in `reference/patterns.md` | the integration registers its own action, where no standard one fits |
+| `services.yaml` | each action's fields — *`services.yaml` + `translations/en.json` — Step 1* in `reference/services.md` | the integration registers its own action, where no standard one fits |
 | `api.py`, `coordinator.py`, `models.py`, `entity.py`, `helpers.py` | what *Step 1: Lay out the files by responsibility* in `reference/patterns.md` gives each | as that step says |
 
 **Docstrings and comments in every generated module:**
@@ -353,7 +355,7 @@ Run every step of `reference/lint.md`, before the first commit.
 
 | Rule | Value |
 |---|---|
-| a finding | fixed in the code, to the rule `reference/patterns.md` gives for it, or `reference/testing.md` for a test |
+| a finding | fixed in the code, to the rule `reference/patterns.md`, `reference/config-flows.md`, `reference/entities.md`, `reference/fetching-data.md` or `reference/services.md` gives for it, or `reference/testing.md` for a test |
 | relaxing a copied config to get past a finding | drift — Step 6 |
 
 ### Step 9: Commit and push `main`

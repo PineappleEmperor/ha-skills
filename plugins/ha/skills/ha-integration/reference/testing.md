@@ -178,8 +178,8 @@ transport and asserts a sensor populates.
 **Fix:** **shift the fixture's dates forward at runtime** (parse + rewrite, or template)
 rather than `freeze_time(...)`.
 
-**Symptom:** a frozen clock stops the debouncer *Entity platform files — Step 1* in
-`reference/patterns.md` describes, so the entity stays `unknown` and a timer sits at the
+**Symptom:** a frozen clock stops the debouncer *Step 1: Write the entity platform files* in
+`reference/entities.md` describes, so the entity stays `unknown` and a timer sits at the
 frozen wall-clock time, failing teardown.
 
 ### Entities still read defaults after `async_block_till_done` — mocking Step 2
@@ -191,8 +191,8 @@ In a setup test, the on-add refresh is debounced and won't fire within `block_ti
 no new timer, so teardown stays clean.
 
 > **Note:** the fix for production is the `async_added_to_hass` initial-state population
-> that *Entity platform files — Step 1* in `reference/patterns.md` gives; the test then
-> needs no nudge at all.
+> that *Step 1: Write the entity platform files* in `reference/entities.md` gives; the test
+> then needs no nudge at all.
 
 ### Ruff flags a file under `tests/` or `scripts/` — mocking Step 4
 

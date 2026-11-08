@@ -88,5 +88,5 @@ next PR, where the fixed caller runs as `main`'s.
 
 ### An action hits more devices than it should — debugging Step 2
 
-**Fix:** suspect the fan-out first — the "a call with no target" row of *Custom services —
-Step 1* in `reference/patterns.md`.
+**Fix:** suspect the fan-out first — the "a call with no target" row of *Step 1: Register the
+custom services* in `reference/services.md`.
