@@ -41,6 +41,7 @@ narrow — merge Step 2* in `reference/discipline.md`.
 |---|---|
 | who publishes | the user, from the GitHub release page, whatever the session's credential allows; a session says which draft is ready and stops there |
 | the tag | created at publish |
+| when users see it | hours later: the catalog's data is generated every 4 hours and the Marketplace reads it every 6; a repository added from a link is polled through the GitHub API every 48 hours, and only with a GitHub connection — https://contributors.home-assistant.io/marketplace/guides/releases/index.md |
 | how the two drafts are kept and numbered | `release-drafter.yml` under *The five workflows* in release-flow's README, https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/README.md |
 | what the body is built from | *The PR body — for reviewers, and nothing users read* in `reference/commits.md` |
 
