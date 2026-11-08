@@ -331,6 +331,8 @@ linked to its public repository:
 | `filename` | the name `release.yml` attaches — *The three workflows* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
 | dropping `zip_release` and `filename` | only to have the Marketplace install the tag's source archive instead |
 | where it is read | the repository root, by the Marketplace, for every version it installs; it cannot install or update a repository without it, so keep `hacs.json` at the root of every release — https://contributors.home-assistant.io/marketplace/reference/hacs-json/index.md |
+| `hacs` | read by the Marketplace, never compared — the same page |
+| a key of the wrong type | the Marketplace leaves it out and logs a warning, and ignores `country`, `render_readme` and any other key it does not read; the `hacsjson` check still holds every repository to the ten keys — the same page |
 
 **Symptom:** a `zip_release` release with no attached zip fails the Marketplace install with
 `Could not install <repository>. Check the Home Assistant logs for details.`, and the log reads
