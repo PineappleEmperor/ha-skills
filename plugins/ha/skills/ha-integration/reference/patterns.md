@@ -18,9 +18,10 @@ it.**
 6. Cases
 7. `ConfigEntry` mutation — Step 3
 8. `Setup failed for custom integration` — Step 3
-9. Deprecated platform APIs — Step 1
-10. `TYPE_CHECKING` for expensive or circular imports — Step 4
-11. Typed `ConfigEntry` — Step 4
+9. Repair issues that belong to a config entry — Step 3
+10. Deprecated platform APIs — Step 1
+11. `TYPE_CHECKING` for expensive or circular imports — Step 4
+12. Typed `ConfigEntry` — Step 4
 
 ## Writing code in `custom_components/`
 
@@ -87,6 +88,7 @@ https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README
 | the stored `entry.data` schema changes | *Config entry migration — Step 1* in `reference/config-flows.md` |
 | setup signs in through the OAuth2 helper | *OAuth2 errors at setup — Step 1* in `reference/config-flows.md` |
 | a service, static path, WebSocket command or panel registered once for the whole integration | *Register integration-global resources in `async_setup`, not `async_setup_entry` — Step 1* in `reference/services.md` |
+| the integration raises a repair issue about one config entry | *Repair issues that belong to a config entry — Step 3* |
 | the integration claims Home Assistant 2026.11.0 or later | `async_setup_entry`, `async_unload_entry` and `async_migrate_entry` may return `None` and raise a `ConfigEntry*` exception on failure; unload is then `await hass.config_entries.async_unload_platforms_or_raise(entry, PLATFORMS)`, which raises a translated `ConfigEntryError` when a platform fails to unload — `_async_process_entry_method_result` and `ConfigEntries.async_unload_platforms_or_raise` in `homeassistant/config_entries.py`, at the `.0` tag of the release row in `reference/freshness.md`; the floor, the same file at the `2026.10.0` tag |
 | it claims an older release | all three return a boolean, `True` on success: below 2026.11.0 a `None` fails the setup, the unload or the migration — `ConfigEntry.__async_setup_with_context`, `ConfigEntry.async_unload` and `ConfigEntry.async_migrate` in `homeassistant/config_entries.py` at the `2026.10.0` tag |
 | `async_setup_entry` or `async_unload_entry` returns `False` | from 2026.11.0, a `ConfigEntryError` logged with its traceback, whose reason is the generic *Failed to set up the config entry.* or *Failed to unload the config entry.*; for a reason that says what failed, raise `ConfigEntryError` with your own `translation_key` — `_async_process_entry_method_result` in `homeassistant/config_entries.py` and the `exceptions` of `homeassistant/components/homeassistant/strings.json`, at the `.0` tag of the release row in `reference/freshness.md` |
@@ -139,6 +141,36 @@ config entry of the domain is set up, and a notification saying so.
 | `Integration '<domain>' did not return boolean if setup was successful. Disabling component.` | `async_setup` returned something other than `True` or `False` — `None`, from a missing `return` |
 | an exception out of `async_setup` | not this line: `Error during setup of component <domain>: <error>`, with the traceback |
 | a failure in `async_setup_entry` | not this line either; what Home Assistant logs for each exception is *Logging — Step 1* in `reference/fetching-data.md` |
+
+### Repair issues that belong to a config entry — Step 3
+
+Through `from homeassistant.helpers import issue_registry as ir`.
+
+| Rule | Value |
+|---|---|
+| where each row was read | `async_create_issue`, `async_delete_issue`, `async_refresh_issues`, `async_keep_issue`, `IssuesRefresh`, `IssueRegistry.async_get_or_create`, `IssueRegistry.async_clear_config_entry` and `IssueRegistry.async_is_hidden` in `homeassistant/helpers/issue_registry.py`, at the `.0` tag of the release row in `reference/freshness.md`; the compatibility floor, the same file at the `2026.10.0` tag |
+| the compatibility floor | 2026.11.0; below it no issue belongs to an entry and there is no refresh, so the integration deletes its own issues |
+| an issue about one config entry | `ir.async_create_issue(…, config_entry_id=entry.entry_id)`; Home Assistant deletes it when the entry is removed, and hides it from Repairs while the entry is disabled |
+| its `issue_id` | still unique within the domain, so an issue several entries can raise carries the entry ID in it |
+| a `config_entry_id` no entry has | `HomeAssistantError` |
+| creating an issue that already exists | replaces its `config_entry_id`, also when the call leaves it out |
+| an issue created before it carried `config_entry_id` | belongs to no entry until it is created again, so a persistent one that never is still needs deleting in `async_remove_entry` |
+| re-checking a set of issues | `with ir.async_refresh_issues(hass, DOMAIN, issue_id_pattern="firmware_too_old_", config_entry_id=entry.entry_id):` round the code that creates the issues still valid; when the block ends it deletes the issues of its set not created or kept since it began, so one the user ignored stays ignored |
+| the set | `issue_id_pattern`, a regular expression matched from the start of the issue ID; or `issue_ids`, a list; or neither, for every issue of the domain; `config_entry_id` narrows it to that entry's issues |
+| an issue that could not be checked, such as a device that did not answer | `ir.async_keep_issue(hass, DOMAIN, issue_id)`, or `async_keep` on the `IssuesRefresh` the block returns |
+| an exception out of the block | cancels the refresh, which then applies only the deletes deferred to it |
+| an issue deleted by an entity removed during a reload, which may create it again | `ir.async_delete_issue(hass, DOMAIN, issue_id, defer_to_refresh=True)`, which leaves it for an active refresh whose set holds it |
+| where the refresh runs | in the event loop only |
+
+| anti-pattern | use instead | why (one clause) | reference |
+|---|---|---|---|
+| deleting every issue of a kind, then creating the ones still valid | `ir.async_refresh_issues` round the creates | each valid issue disappears and comes back, and one the user ignored shows again | https://contributors.home-assistant.io/blog/2026/10/28/issue-registry-refresh/ |
+| deleting an entry's issues in `async_unload_entry` | `config_entry_id` on each issue | a reload unloads the entry too, so the issue flickers | https://contributors.home-assistant.io/blog/2026/10/28/issue-registry-refresh/ |
+| `ir.async_refresh_issues` round `async_forward_entry_setups` | the refresh round the code that checks the issues | the forward does not raise when a platform fails or is retried later, so the refresh deletes issues that were never checked | https://contributors.home-assistant.io/blog/2026/10/28/issue-registry-refresh/ |
+
+| what | lands in | do now | do then |
+|---|---|---|---|
+| `config_subentry_id` on `ir.async_create_issue`, which deletes the issue with its subentry; it needs `config_entry_id`, and the subentry must belong to that entry | 2026.12 | `config_entry_id` alone, with the subentry ID in the `issue_id` | add `config_subentry_id=subentry.subentry_id` |
 
 ### Deprecated platform APIs — Step 1
 
