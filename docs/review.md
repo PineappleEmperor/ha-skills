@@ -58,8 +58,9 @@ Every brief answers these before any work starts, under *The rules table* in
     only cases that earn one*, every
     table a canonical column set, no anti-pattern table in a router and every anti-pattern
     in the file that owns its topic with a `reference` cell naming where the rule was read
-    or observed, a mode row for every action that has a file and naming only its entry
-    file, and a pointer in the *Pointers* form. What `scripts/skill_schema_audit.py` checks
+    or observed, a mode row for every action that has a file, its `read first` cell as the
+    `mode` row of *Canonical tables* in `docs/skill-schema.md` says, and a pointer in the
+    *Pointers* form. What `scripts/skill_schema_audit.py` checks
     mechanically is its `--list`; everything else in that document is a reading.
 
 ## Protocol
