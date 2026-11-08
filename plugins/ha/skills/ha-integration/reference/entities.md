@@ -234,7 +234,7 @@ async def async_get_config_entry_diagnostics(
 |---|---|
 | where this was read | `async_redact_data` in `homeassistant/components/diagnostics/util.py`, and `homeassistant/components/nam/diagnostics.py`, at the `.0` tag of the release row in `reference/freshness.md` |
 | what goes in | the fields a bug report needs, each chosen — never `entry.runtime_data` whole |
-| what `async_redact_data` walks | mappings and lists only, so an object inside the dict passes through unredacted; turn each device's dataclass into a dict with `asdict` first, keyed by device id as `coordinator.data` is, and a `DeviceInfo` with its own `as_dict()`, as *Devices belong to one config entry — Step 1* says |
+| what `async_redact_data` walks | mappings and lists, and from 2026.11.0 a `DeviceInfo` or `ChildDeviceInfo`, through its own `as_dict()`, where below it both were dicts; any other object inside the dict passes through unredacted, so turn each device's dataclass into a dict with `asdict` first, keyed by device id as `coordinator.data` is — the floor, `util.py` at the `2026.10.0` tag |
 | registration | none — HA discovers it from the file name |
 
 ### Devices belong to one config entry — Step 1
