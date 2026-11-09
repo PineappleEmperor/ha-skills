@@ -34,6 +34,7 @@ ship the handler in the same change.**
 | a `probatio.Schema` in a flow | one entry per line, left to `ruff format` |
 | a field shown only while another field has a value | `data_entry_flow.Required(CONF_VERIFY_SSL, default=True, visible={"field": CONF_SSL, "value": True})`, after `from homeassistant import data_entry_flow`; a list of conditions must all match; while hidden, the field is not required and its key, default included, is absent from `user_input` — from 2026.11.0, `Required`, `Optional` and `_strip_hidden_fields` in `homeassistant/data_entry_flow.py`, at the `.0` tag of the release row in `reference/freshness.md`; the floor, the same file at the `2026.10.0` tag |
 | the `# fmt: off` fence | not earned here — a flow schema is a list of entries, not a table; *Alignment a human chose meets `ruff format` — Step 1* in `reference/lint.md` |
+| a failure a step knows — the credentials refused, the host unreachable | the standard error that names it, `invalid_auth` or `cannot_connect`, with nothing logged; an unexpected exception, where the step catches one, logged with `_LOGGER.exception()` and shown as `unknown`; an error the user sees never mixes translated text with untranslated text — `.claude/skills/ha-integration-knowledge/SKILL.md` in core, at the `.0` tag of the release row in `reference/freshness.md` |
 
 ```python
 DATA_SCHEMA = probatio.Schema(

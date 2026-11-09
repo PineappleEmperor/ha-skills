@@ -61,6 +61,10 @@ calls to the device or service apart from the HA lifecycle, so it is unit-testab
 > **Note:** notify is an entity platform because a notifier is addressable; a one-shot "send
 > this" with no addressable target is a service.
 
+| anti-pattern | use instead | why (one clause) | reference |
+|---|---|---|---|
+| an entity for data Home Assistant exposes only through an action — a sensor per day of a weather forecast, say | the action alone, `weather.get_forecasts` for a forecast | Home Assistant keeps that data out of entity state on purpose | `.claude/skills/ha-integration-knowledge/SKILL.md` in core, at the `.0` tag of the release row in `reference/freshness.md` |
+
 ### Step 3: Wire the entry setup and unload
 
 1. `PLATFORMS` lists the platforms this integration provides, and each name has a module
