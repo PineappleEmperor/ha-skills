@@ -388,7 +388,7 @@ which it puts back when a check fails. The checks below are the ones no other st
 | Check | What's needed | Where to fix |
 |---|---|---|
 | owner of the domain | no other installed repository has the same `domain` | Step 4 |
-| replaces a built-in integration | a `domain` no core integration uses; one that does needs the user to confirm the install, and the catalog refuses it outright | Step 4 |
+| replaces a built-in integration | a `domain` no core integration uses; one that does needs the user to confirm the install | Step 4 |
 | loadable manifest | after writing, the installed `manifest.json` names the repository's own `domain` | Step 4 |
 | download size | the download, or the ZIP unpacked, at most 100 MiB and 50,000 files | the integration folder, Step 3, or the release zip |
 | archived or removed | the repository is not archived, and not taken out of the catalog | GitHub repo settings, or *The integration goes into the default catalog — Step 10* |
