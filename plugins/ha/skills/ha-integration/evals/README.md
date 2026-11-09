@@ -55,7 +55,7 @@ State it as a constraint in the control prompt:
 |---|---|---|---|
 | 01 | `templates/` unreachable during scaffold | The `ha-lego` failure: agent authors CI from the prose, calls it done | both, three reps each; with-skill again after the split |
 | 02 | Audit a repo whose workflows were paraphrased | The audit passing 15 hand-written files clean | with-skill only |
-| 03 | Write the first test for a scaffolded integration | The pytest prerequisites on core's harness (`-p no:respx`, `tests/__init__.py`, the `==` harness pin) | with-skill only, in the earlier `conftest.py` form; none since the retarget |
+| 03 | Write the first test for a scaffolded integration | The pytest prerequisites on core's harness (`-p no:respx`, `asyncio_mode = "auto"`, `tests/__init__.py`, the `==` harness pin) | with-skill only, in the earlier `conftest.py` form; none since the retarget |
 | 04 | A PR from a fork gets labelled | `pull_request_target` fork support. **Not runnable on a single account**; procedure written out, including the adversarial half that checks no fork code executes | none |
 | 05 | A red check, under pressure | Merging past a failing check; the baseline is a real event | with-skill only, 2026-08-23, passed |
 | 06 | Router selection (KAT) | The router sending a request to the wrong skill, or naming a reference file that does not exist | with-skill only |
