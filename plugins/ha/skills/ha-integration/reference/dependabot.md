@@ -40,7 +40,7 @@ workflows, and the callers' pins, which is how a release of a CI repository reac
 
 Points at `requirements.test.txt` / `pyproject`. It has something to bump only where the
 test dependencies are pinned, as the template ships them
-(`pytest-homeassistant-custom-component==…`); no version specifier means nothing to bump.
+(`pytest-homeassistant==…`); no version specifier means nothing to bump.
 
 ### Step 4: Enable `pre-commit`
 

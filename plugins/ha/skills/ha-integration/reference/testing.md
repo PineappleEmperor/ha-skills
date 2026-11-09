@@ -18,36 +18,45 @@ Read this when writing or fixing an integration's tests.
 10. Step 4: Minimum coverage before claiming a tier
 11. Cases
 12. The domain already exists in HA core — prerequisites Step 1
-13. The integration allows multiple devices — mocking Step 2
-14. A question a mock cannot answer — mocking Step 1
-15. A fixture payload whose dates must be upcoming — mocking Step 2
-16. Entities still read defaults after `async_block_till_done` — mocking Step 2
-17. Ruff flags a file under `tests/` or `scripts/` — mocking Step 4
+13. Moving from `pytest-homeassistant-custom-component` — prerequisites Step 4
+14. The integration allows multiple devices — mocking Step 2
+15. A question a mock cannot answer — mocking Step 1
+16. A fixture payload whose dates must be upcoming — mocking Step 2
+17. Entities still read defaults after `async_block_till_done` — mocking Step 2
+18. Ruff flags a file under `tests/` or `scripts/` — mocking Step 4
 
 ## Testing — prerequisites before any of the rules below apply
 
-`pytest-homeassistant-custom-component` does not work out of the box.
+The harness is core's `pytest-homeassistant`, and it does not work out of the box.
 
-> **Note:** re-derive against the pinned harness version in `reference/freshness.md` if
-> these stop matching what you see.
+> **Note:** re-derive against the harness row of `reference/freshness.md` if these stop
+> matching what you see.
 
 ### Step 1: Copy `templates/tests/`
 
-**Symptom:** without `tests/__init__.py`, `pytest` stops before any test runs with
-`ModuleNotFoundError: No module named 'custom_components'`; without the conftest, every
-setup test fails with `Setup failed for '<domain>': Integration not found`, which reads as
-a broken test rather than missing wiring.
-
-- The conftest pulls in `enable_custom_integrations` autouse. Fixtures that must initialise
-  *before* it — `recorder_mock` is the known one — have to be requested ahead of it in the
-  same signature.
+| Rule | Value |
+|---|---|
+| `tests/__init__.py` | required: `validate / Python validation` fails a `tests/` without one, and a directory on the path to a test file without one — the `python-validate.yml` row of *The three workflows* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
+| `tests/conftest.py` | `import custom_components`, and no fixture that requests `enable_custom_integrations`: the `hass` fixture enables custom integrations itself — `custom_integrations_enabled` and `hass` in core's `packages/pytest-homeassistant/pytest_homeassistant/plugins.py`, at the `.0` tag of the release row in `reference/freshness.md` |
+| `recorder_mock` | requested ahead of `hass` in the same signature: `recorder_db_url`, which it depends on, asserts that `hass` is not set up yet — `recorder_db_url` in the same file |
 
 ### Step 2: Set `asyncio_mode = "auto"` in `pyproject.toml`
 
-The shipped `templates/pyproject.toml` carries that table alongside the ruff rules; copy
-the file rather than the block.
+The shipped `templates/pyproject.toml` carries the pytest table alongside the ruff rules;
+copy the file rather than the block.
 
-**Symptom:** pytest-asyncio never runs the async tests — they error at collection.
+| Rule | Value |
+|---|---|
+| where each row was read | *Writing tests* in core's `packages/pytest-homeassistant/README.md`, `pytest_homeassistant/__init__.py` and `bootstrap.py` beside it, and `httpx2.alias_httpx()` in core's `homeassistant/__init__.py`, at the `.0` tag of the release row in `reference/freshness.md`; `respx_mock` in respx's `respx/plugin.py`, and its `pytest11` entry point, at the version core's harness pins; that CI requires `-p no:respx`, *What the audit checks now* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
+| `asyncio_mode = "auto"` | without it pytest-asyncio never runs the async tests — they error at collection |
+| `addopts = "-p no:respx"` | required from HA 2026.11.0: importing `homeassistant` aliases `httpx` to `httpx2`, which must come before any `import httpx`; core's plugin imports `homeassistant` through its package `__init__.py` as pytest loads the `pytest_homeassistant.bootstrap` entry point, and respx's pytest plugin imports `httpx`; which of the two loads first follows entry-point discovery and site-packages order, so it differs between machines |
+| respx in a test | `import respx` and `respx.mock` still work; only respx's pytest plugin is off, and its `respx_mock` fixture with it |
+| a second pytest option | in the same string, `addopts = "-p no:respx -m 'not live'"`, never a second `addopts` key |
+| `pythonpath = ["."]` | kept as core's README lists it; with `tests/__init__.py` present, pytest already puts the repository root on `sys.path` |
+
+**Symptom:** without `-p no:respx` the whole run stops at startup with a `RuntimeError`
+beginning `httpx was already imported` on one machine and runs on another, which reads as
+a broken environment rather than a missing option.
 
 ### Step 3: Ship a `config_flow.py` that imports
 
@@ -59,9 +68,17 @@ integration <domain>` — which reads as a test problem and is a wiring problem.
 
 ### Step 4: Keep the harness pin and the Python floor in lockstep
 
-The pinned `pytest-homeassistant-custom-component` in `requirements.test.txt` hard-pins
-`homeassistant==<matching release>`, so **that pin decides which HA the suite runs
-against**. Keep it in lockstep with the Python floor the CI declares.
+`requirements.test.txt` pins core's `pytest-homeassistant`, and its version is the
+Home Assistant release it hard-pins — `pytest-homeassistant==<version>` brings
+`homeassistant==<version>` — so **that pin decides which HA the suite runs against**. Keep
+it in lockstep with the Python floor the CI declares.
+
+| Rule | Value |
+|---|---|
+| where each row was read | *Installation and compatibility* in core's `packages/pytest-homeassistant/README.md`, at the `.0` tag of the release row in `reference/freshness.md`; what CI accepts, *What the audit checks now* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
+| the pin | `==` one release, never a range or a bare name: PyPI also carries an unrelated `pytest-homeassistant` 0.1.x from 2020 by another author, which those can resolve to, and CI fails them |
+| `pytest-homeassistant-custom-component` | never in the same environment as core's harness: each pins a different exact `homeassistant`, and core's README says not to install the two together |
+| a repository that must still test HA 2026.10 or older | keeps `pytest-homeassistant-custom-component` for that run, in an environment of its own; core publishes its harness from 2026.11.0 |
 
 **Timing:** by hand, since nothing compares the pair — the gate cell of the harness row in
 `reference/freshness.md` says so.
@@ -131,6 +148,17 @@ which looks nothing like a naming clash.
 
 **Timing:** the domain cannot change later.
 
+### Moving from `pytest-homeassistant-custom-component` — prerequisites Step 4
+
+| Rule | Value |
+|---|---|
+| where each row was read | *Migrating from pytest-homeassistant-custom-component* in core's `packages/pytest-homeassistant/README.md`, and `_serializable_device_id` and `_serializable_subentry_id` in `pytest_homeassistant/syrupy.py` beside it, at the `.0` tag of the release row in `reference/freshness.md` |
+| `requirements.test.txt` | `pytest-homeassistant-custom-component==…` → `pytest-homeassistant==<the HA release under test>`, as Step 4 pins it |
+| imports | `pytest_homeassistant_custom_component.common` → `pytest_homeassistant.common`, and so for every module of the package; `hass`, `enable_custom_integrations` and the registry, HTTP, recorder and snapshot fixtures keep their names |
+| `tests/conftest.py` | the template's, Step 1: the fixture that requests `enable_custom_integrations` goes, with the `import pytest` only it used |
+| `pyproject.toml` | the template's pytest table, Step 2 |
+| an `.ambr` snapshot holding a device id — an entity's `device_id`, a device's `via_device_id` or `parent_device_id` — or a `config_subentry_id` | regenerate it with `pytest --snapshot-update`, and read the diff before committing it: core's harness writes each as a reference to the device, by its identifiers, or to the subentry, by its type and title, where the community package wrote `ANY` |
+
 ### The integration allows multiple devices — mocking Step 2
 
 Add a test that `add_to_hass`es two `MockConfigEntry`s, calls
@@ -160,7 +188,8 @@ all four are needed:
 - **Credentials behind an environment with required reviewers.** Repository secrets bound
   to a GitHub environment, so a human approves each run.
 - **A marker excluded from the default run**, e.g. `@pytest.mark.live`. Prefer
-  `addopts = "-m 'not live'"` in `pyproject.toml` over `-m 'not live'` on the command line;
+  `-m 'not live'` in the `addopts` of `pyproject.toml`, beside `-p no:respx` as
+  prerequisites Step 2 gives, over the same option on the command line;
   pytest options are a sanctioned adaptation of that file, per *Step 4: Apply only the
   sanctioned adaptations* in `reference/github-actions.md`.
 - **A dedicated account, and no account identifier in the test.** The data the test reads
