@@ -164,8 +164,9 @@ git push -u origin <branch>
 |---|---|
 | re-running or cancelling a run on the default or a protected branch, gate path | the user's, in the web UI from the run's page: `git-gate:workflow_run` refuses it, since a re-run there can redeploy old code and a cancel can stop a deploy half way |
 | `gh pr merge`, an approval, `gh release create\|edit\|upload`, a tag | the user's on either path — Step 2 |
-| `gh repo create`, or the description, topics, Issues or ruleset, gate path | `git-gate:repo_setup(repo, description, topics, ruleset_file, secrets=[…])`, which applies nothing: hand the user the `gitgatesetup <id>` it returns, to run in their own terminal; `secrets` names the secrets to remind them of, never a value |
-| `gh secret set`, the dependency graph or another setting through `gh api -X`, `scripts/bootstrap_repo.sh`, gate path | the user's, in their own terminal: none has a typed tool |
+| `gh repo create`, the description, topics, Issues, dependency graph or ruleset, `scripts/bootstrap_repo.sh`, gate path | `git-gate:repo_setup`, then the user's `gitgatesetup <id>` run — *Step 2: Apply the ruleset once, or run `scripts/bootstrap_repo.sh`* in `reference/github-setup.md` |
+| `gh secret set`, gate path | the user's, in the web UI: no gate tool sets a secret — for `RELEASE_TOKEN`, *Step 2: Store it as the `RELEASE_TOKEN` repository secret* in `reference/github-setup.md` |
+| any other settings change through `gh api -X`, gate path | the user's, in their own terminal: none has a typed tool |
 
 ### Step 7: Hand a refused push to the user
 
