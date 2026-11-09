@@ -1,15 +1,10 @@
 # Test-only dependencies. Installed by ha-integration-ci's python-validate.yml
 # before the pytest step; also `pip install -r requirements.test.txt` locally.
 #
-# The pin below is pytest-homeassistant, the test harness Home Assistant
-# publishes with each release from 2026.11.0. Its version is the Home Assistant
-# release the suite runs against; why that matters, and how it must track the
-# Python floor the CI declares, is the ha-integration skill's
-# reference/testing.md.
-#
-# The pin is exact, never a range: PyPI also carries unrelated
-# pytest-homeassistant 0.1.x releases from 2020 by another author, which a range
-# or a bare name can resolve to.
+# The pin below decides which Home Assistant release the suite runs against; why,
+# how it must be written and how it tracks the Python floor the CI declares, is
+# "Step 4: Keep the harness pin and the Python floor in lockstep" in the
+# ha-integration skill's reference/testing.md.
 pytest-homeassistant==2026.11.1
 
 
