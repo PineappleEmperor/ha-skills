@@ -120,7 +120,7 @@ the rows a custom integration gets wrong against it.
 |---|---|
 | the schema | a device field beside `message`, an optional `title` and an optional `data` dict, named as *Step 1: Register the custom services* in `reference/services.md` says |
 | the handler | resolves the device from the device field, as that step does, then reads the optional `data`, or `{}`, beside the message |
-| registering | once, as that step says, never per device in `async_setup_entry`, which ha-integration-ci v5 fails (W7452) |
+| registering | once, as that step says, never per device in `async_setup_entry` |
 | removing | nothing: the action stays registered while the integration is loaded |
 | what it creates | one action of the integration's domain, `my_device.send_message` say, whose device field picks the device, with full `data` support |
 
