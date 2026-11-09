@@ -221,7 +221,7 @@ among them:
 | `pyproject.toml` | HA core's ruff rule set adapted for a custom integration — `google` docstrings, HA's Python floor, no `from __future__ import annotations` — and the `asyncio_mode = "auto"` without which no async test runs |
 | `mypy.ini` | the general section of HA core's mypy config — keep `python_version` in `[mypy]`, since it is what the audit's version comparison reads from this file — *What the audit checks now* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
 | `requirements.test.txt` | the pinned test harness — why the pin matters is *Step 4: Keep the harness pin and the Python floor in lockstep* in `reference/testing.md` |
-| `tests/conftest.py`, `tests/__init__.py`, `tests/ruff.toml` | the harness setup and core's ruff rules for tests — *Testing — prerequisites before any of the rules below apply* in `reference/testing.md` |
+| `tests/__init__.py`, `tests/ruff.toml` | the `tests/` package CI requires, and core's ruff rules for tests — *Testing — prerequisites before any of the rules below apply* in `reference/testing.md` |
 | `.gitignore` | the paths git must never track |
 | `ruleset.json` | the branch ruleset — what it requires is `reference/github-setup.md` |
 | `.githooks/commit-msg` | the Conventional Commit check — *Step 1: Install the `commit-msg` hook* in `reference/commits.md`; `chmod +x` |

@@ -37,7 +37,7 @@ The harness is core's `pytest-homeassistant`, and it does not work out of the bo
 | Rule | Value |
 |---|---|
 | `tests/__init__.py` | required: `validate / Python validation` fails a `tests/` without one, and a directory on the path to a test file without one — the `python-validate.yml` row of *The three workflows* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
-| `tests/conftest.py` | `import custom_components`, and no fixture that requests `enable_custom_integrations`: the `hass` fixture enables custom integrations itself — `custom_integrations_enabled` and `hass` in core's `packages/pytest-homeassistant/pytest_homeassistant/plugins.py`, at the `.0` tag of the release row in `reference/freshness.md` |
+| `tests/conftest.py` | none in the template: with `tests/__init__.py` and `pythonpath = ["."]` the suite imports `custom_components` without one, as all nine checks of PineappleEmperor/ha-ci-testing PR #52 showed, https://github.com/PineappleEmperor/ha-ci-testing/pull/52; a repository's own holds the fixtures its tests share, and none of them requests `enable_custom_integrations`, since the `hass` fixture enables custom integrations itself — `custom_integrations_enabled` and `hass` in core's `packages/pytest-homeassistant/pytest_homeassistant/plugins.py`, at the `.0` tag of the release row in `reference/freshness.md` |
 | `recorder_mock` | requested ahead of `hass` in the same signature: `recorder_db_url`, which it depends on, asserts that `hass` is not set up yet — `recorder_db_url` in the same file |
 
 ### Step 2: Set `asyncio_mode = "auto"` in `pyproject.toml`
@@ -214,7 +214,7 @@ which looks nothing like a naming clash.
 | where each row was read | *Migrating from pytest-homeassistant-custom-component* in core's `packages/pytest-homeassistant/README.md`, and `_serializable_device_id` and `_serializable_subentry_id` in `pytest_homeassistant/syrupy.py` beside it, at the `.0` tag of the release row in `reference/freshness.md` |
 | `requirements.test.txt` | `pytest-homeassistant-custom-component==…` → `pytest-homeassistant==<the HA release under test>`, as Step 4 pins it |
 | imports | `pytest_homeassistant_custom_component.common` → `pytest_homeassistant.common`, and so for every module of the package; `hass`, `enable_custom_integrations` and the registry, HTTP, recorder and snapshot fixtures keep their names |
-| `tests/conftest.py` | the template's, Step 1: the fixture that requests `enable_custom_integrations` goes, with the `import pytest` only it used |
+| `tests/conftest.py` | nothing from the template, Step 1: the fixture that requests `enable_custom_integrations` goes, and `import custom_components` with it; the file goes too unless it still holds the repository's own fixtures |
 | `pyproject.toml` | the template's pytest table, Step 2 |
 | an `.ambr` snapshot holding a device id — an entity's `device_id`, a device's `via_device_id` or `parent_device_id` — or a `config_subentry_id` | regenerate it with `pytest --snapshot-update`, and read the diff before committing it: core's harness writes each as a reference to the device, by its identifiers, or to the subentry, by its type and title, where the community package wrote `ANY` |
 
