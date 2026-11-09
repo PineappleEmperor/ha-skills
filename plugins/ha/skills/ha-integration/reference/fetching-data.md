@@ -30,7 +30,7 @@ dropped connection, an unexpected reply, a blocking call — or what it logs.
 ## Cases
 
 ### Entity push subscriptions — Step 1
-- Subscribe in `async_added_to_hass`, and hand the unsubscribe to `self.async_on_remove`, which runs on every removal and on an add that fails after the hook — `async_will_remove_from_hass` runs only for an entity that was fully added, per `EntityPlatform._async_add_entity` in `homeassistant/helpers/entity_platform.py`, at the `.0` tag of the release row in `reference/freshness.md`
+- Subscribe in `async_added_to_hass`, and hand the unsubscribe to `self.async_on_remove` — why is the `async_prepare_to_add_to_hass` row of *Step 1: Write the entity platform files* in `reference/entities.md`
 - A subscription keyed on the entity's own `entity_id`: the `async_entity_id_changed` rows of *Step 1: Write the entity platform files* in `reference/entities.md`
 - Never subscribe in `__init__`
 
