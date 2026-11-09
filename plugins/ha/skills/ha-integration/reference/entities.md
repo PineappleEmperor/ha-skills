@@ -33,7 +33,7 @@ notify or update entity, an image it serves, units — or the diagnostics platfo
 | the main feature entity's name | `_attr_name = None`, so only the device name shows |
 | `_attr_translation_key = "my_key"` | translated entity names and states; pairs with the `entity` section of `translations/en.json` |
 | `_attr_entity_category` | on a non-primary entity: `EntityCategory.DIAGNOSTIC` for read-only info such as RSSI, `EntityCategory.CONFIG` for a setting that changes device behaviour |
-| a value set at init or on update | an `_attr_*` class or instance attribute, assigned in `__init__` or in `_handle_coordinator_update`, never a property method |
+| a value set at init or on update | an `_attr_*` attribute, never a property method: a class attribute only when every instance shares the value, otherwise assigned in `__init__` or in `_handle_coordinator_update` — `.claude/skills/ha-integration-knowledge/SKILL.md` in core, at the `.0` tag of the release row in `reference/freshness.md` |
 | a value derived on read, from `self.coordinator.data` say | a property — https://contributors.home-assistant.io/core/entities/entity-class/ |
 | availability on a push `Entity` | `_attr_available`, reflecting device reachability — set `False` when the device disconnects and `True` when it is back |
 | availability on a `CoordinatorEntity` | override `available` and call `super()`, as the device-missing row of *A reply the code does not expect — Step 1* in `reference/fetching-data.md` does — `CoordinatorEntity.available` already returns `last_update_success`, so an `_attr_available` beside it is never read |

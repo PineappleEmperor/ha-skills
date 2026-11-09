@@ -57,7 +57,7 @@ Points at `.pre-commit-config.yaml`.
 | Rule | Value |
 |---|---|
 | what Dependabot does with them | nothing: it cannot parse the manifest, and an open `>=` range resolves to the latest matching at install anyway |
-| raising a `>=` floor | by hand, in a PR of its own |
+| raising a `>=` floor | by hand, in a PR of its own that carries only the changes the new version requires; a feature that needs the new version goes in a PR after it — `.claude/skills/ha-integration-knowledge/SKILL.md` in core, at the `.0` tag of the release row in `reference/freshness.md` |
 | automating it | nothing in the stack does; anything that ever does is a reusable workflow in ha-integration-ci, never a script and a PR opener written into one repo |
 
 ### Step 6: Leave each PR to the user once its checks are green

@@ -100,6 +100,10 @@ Mock the third-party client, socket, or library (`imaplib.IMAP4_SSL`, `aiohttp` 
   attributes, building requests, parsing responses, populating the coordinator.
 - Pass config as explicit constructor args, so mypy catches a missing field instead of a
   helper reaching into `self.<attr>` set elsewhere.
+- Patch an object where the integration looks it up, not where it is defined —
+  `custom_components.my_device.coordinator.MyClient` for the client `coordinator.py`
+  imports, never `my_lib.MyClient` — `.claude/skills/ha-integration-knowledge/SKILL.md` in
+  core, at the `.0` tag of the release row in `reference/freshness.md`.
 
 ### Step 2: Make `test-before-setup` a real config-entry setup
 
@@ -113,6 +117,50 @@ mocked.
   returns `True`.
 - **If you scaffold an `init_integration` fixture, actually use it** — an unused setup
   fixture is a tell that the highest-value test was skipped.
+
+**The fixtures the tests share, and what a test asserts:**
+
+| Rule | Value |
+|---|---|
+| where each row was read | `.claude/skills/ha-integration-knowledge/SKILL.md` in core, and `get_fixture_path` and `load_json_object_fixture` in core's `packages/pytest-homeassistant/pytest_homeassistant/common.py`, at the `.0` tag of the release row in `reference/freshness.md` |
+| shared mocks | fixtures in `tests/conftest.py`, so every platform test reuses them — a `mock_config_entry` among them, with a `unique_id` when the integration's config entries have one |
+| mock API data that is substantial or reused | a JSON file in `tests/fixtures/`, loaded with `load_json_object_fixture` or `load_json_array_fixture` from `pytest_homeassistant.common`, or their `async_` variants, never built inline with `json.dumps()` |
+| different mock data for one test | `pytest.mark.parametrize` on the fixture that provides it, with `indirect=True` when the fixture reads `request.param`, never a second patch inside the test |
+| a value a snapshot test already covers | no assertion of its own beside the snapshot |
+| a value that has a `Platform` member or an `ATTR_*` constant | the constant, `Platform.SENSOR` or `ATTR_TEMPERATURE`, never the string |
+
+The first two fixtures go in `tests/conftest.py`:
+
+```python
+@pytest.fixture
+def mock_config_entry() -> MockConfigEntry:
+    """Return the config entry the tests set up."""
+    return MockConfigEntry(
+        domain=DOMAIN, unique_id="aa:bb:cc:dd:ee:ff", data={CONF_HOST: "192.0.2.10"}
+    )
+
+
+@pytest.fixture
+def mock_client(request: pytest.FixtureRequest) -> Generator[AsyncMock]:
+    """Patch the client where the coordinator uses it, replying from a fixture file."""
+    reply = load_json_object_fixture(getattr(request, "param", "device.json"))
+    with patch(
+        "custom_components.my_device.coordinator.MyClient", autospec=True
+    ) as client_class:
+        client_class.return_value.async_get_data.return_value = reply
+        yield client_class.return_value
+
+
+@pytest.mark.parametrize("mock_client", ["device_low_battery.json"], indirect=True)
+@pytest.mark.usefixtures("mock_client")
+async def test_low_battery(
+    hass: HomeAssistant, mock_config_entry: MockConfigEntry
+) -> None:
+    """Turn the battery sensor on when the reply reports a low battery."""
+    mock_config_entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    assert hass.states.get("binary_sensor.my_device_battery").state == STATE_ON
+```
 
 ### Step 3: Unit-test the pure logic directly
 
