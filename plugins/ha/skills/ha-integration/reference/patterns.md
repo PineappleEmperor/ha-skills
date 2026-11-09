@@ -180,7 +180,7 @@ Through `from homeassistant.helpers import issue_registry as ir`.
 
 ### Deprecated platform APIs — Step 1
 
-The deprecations a custom integration can meet that have no section of their own here, in
+The deprecations, and the calls core's docstrings steer a caller away from, that a custom integration can meet with no section of their own here, in
 `reference/config-flows.md` or in `reference/entities.md`.
 
 | anti-pattern | use instead | why (one clause) | reference |
@@ -196,6 +196,7 @@ The deprecations a custom integration can meet that have no section of their own
 | an `llm.Tool` whose `async_call` returns a JSON object | `llm.ToolResult(data=…)`, with `error=True` when the call failed, from 2026.10.0 | logged now; stops working in **2027.11.0** | `APIInstance.async_call_tool` in `homeassistant/helpers/llm.py`, at the `.0` tag of the release row in `reference/freshness.md`; the floor, the same file at the `2026.9.0` tag |
 | `ToolResultContent.tool_result` | `ToolResultContent.result`, the `llm.ToolResult` itself, from 2026.10.0 | logged now; stops working in **2027.11.0** | `ToolResultContent.tool_result` in `homeassistant/components/conversation/chat_log.py`, at the `.0` tag of the release row in `reference/freshness.md`; the floor, the same file at the `2026.9.0` tag |
 | an `llm.Tool` with no `integration` | `integration = DOMAIN` on the tool class | logged now, and the domain filled in from the tool's module; stops working in **2027.10** | `report_untagged_tool` in `homeassistant/helpers/llm.py`, at the `.0` tag of the release row in `reference/freshness.md` |
+| `api.async_get_api_instance(llm_context)`, called on an `llm.API` | `await llm.async_get_api(hass, api_id, llm_context)`, or from 2026.11.0 `await llm.async_get_authorized_api_instance(api, llm_context)` for an `API` already held; and from 2026.11.0, `requires_admin = True` on an `llm.API` of your own whose tools only an admin may use | the direct call skips the admin check, so a non-admin reaches an API that requires an admin, where both helpers raise `Unauthorized` | `async_get_authorized_api_instance`, `API.requires_admin` and the docstring of `API.async_get_api_instance` in `homeassistant/helpers/llm.py`, at the `.0` tag of the release row in `reference/freshness.md`; the floor, the same file at the `2026.10.0` tag |
 
 > **Note:** a condition platform may implement `_async_setup()` and `_async_unload()` for async
 > set-up and teardown, and from 2026.10.0 `_async_track_changes(action)`, calling `action` when
