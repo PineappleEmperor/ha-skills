@@ -21,7 +21,7 @@ integration repository has none.
 > so it should be v2.0.0. What decides the number, and how do I fix it?"
 > B. "I'm adding a sidebar panel to my integration. Which Home Assistant developer docs page
 > explains how a custom panel is registered? Give its URL."
-> C. "Dependabot opened a PR bumping `pytest-homeassistant-custom-component`. Can I let it
+> C. "Dependabot opened a PR bumping `pytest-homeassistant`. Can I let it
 > auto-merge, and what should I check first?"
 > D. "Is this skill still current for the latest Home Assistant release, and how would I
 > check?"

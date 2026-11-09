@@ -41,6 +41,10 @@ narrow — merge Step 2* in `reference/discipline.md`.
 |---|---|
 | who publishes | the user, from the GitHub release page, whatever the session's credential allows; a session says which draft is ready and stops there |
 | the tag | created at publish |
+| when users see it | hours later: the catalog's data is generated every 4 hours and the Marketplace reads it every 6; a repository added from a link is polled through the GitHub API every 48 hours, and only with a GitHub connection — https://contributors.home-assistant.io/marketplace/guides/releases/index.md |
+| what users read | the release's body, which the update entity shows under **Settings** > **Updates**; anything the user must do first goes at the top — https://contributors.home-assistant.io/marketplace/guides/releases/index.md |
+| an older version | users install it from the repository's menu in the Marketplace, picking from its releases, so keep the old ones — the same page |
+| deleting a release or its tag | users who installed it keep their files, and the Marketplace falls back to the version it would install by default — the same page |
 | how the two drafts are kept and numbered | `release-drafter.yml` under *The five workflows* in release-flow's README, https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/README.md |
 | what the body is built from | *The PR body — for reviewers, and nothing users read* in `reference/commits.md` |
 
@@ -51,7 +55,7 @@ narrow — merge Step 2* in `reference/discipline.md`.
 **Symptom:** the draft's version is lower than the change needs: a break merged under `fix:`
 or `feat:`, so the draft resolves a patch or a minor.
 
-**Fix:** open a follow-up PR whose commit carries `!`, the breaking marker *Step 2: Write the subject in the Conventional Commits form* in `reference/commits.md` names, and says what the user has to change — never a label set by hand, as Step 2 says. Its merge is the user's, as *Step 3: Tell the user it is ready to merge* in `reference/discipline.md` says.
+**Fix:** push a branch for a follow-up PR whose commit carries `!`, the breaking marker *Step 2: Write the subject in the Conventional Commits form* in `reference/commits.md` names, and says what the user has to change — never a label set by hand, as Step 2 says. Its merge is the user's, as *Step 3: Tell the user it is ready to merge* in `reference/discipline.md` says.
 
 ```bash
 git checkout -b declare-break origin/main
@@ -73,12 +77,14 @@ next release.
 ### Release candidate — Step 3
 
 An rc tag is `vX.Y.ZrcN`, marked as a prerelease. The manifest inside the zip then carries
-the matching PEP 440 prerelease (`2.0.0rc1`), which AwesomeVersion, hassfest and HACS all
-order below the final.
+the matching PEP 440 prerelease (`2.0.0rc1`), which AwesomeVersion, hassfest and the
+Marketplace's update entity all order below the final.
 
-| what | lands in | do now | do then |
-|---|---|---|---|
-| Marketplace, replacing HACS, gives users the tag of the latest release that is not a prerelease, and an rc only to a user who turns on the repository's Pre-release switch, while it is newer than that release; while every release is an rc, it gives the default branch's newest commit | 2026.11 — https://contributors.home-assistant.io/marketplace/guides/releases/; the every-rc case, `_async_update_releases` and `version_to_install` in core's `homeassistant/components/marketplace/repositories/base.py` on `dev` | publish a final before telling users to install | nothing |
+| Rule | Value |
+|---|---|
+| what the Marketplace gives users | the tag of the latest published release that is not a pre-release — https://contributors.home-assistant.io/marketplace/guides/releases/index.md |
+| an rc | offered only to a user who turned on the repository's **Pre-release** switch, and only while it is newer than the latest regular release, so publish a final before telling users to install |
+| every release an rc | a user without the switch gets the default branch's newest commit, as with no release at all — `_async_update_releases` and `version_to_install` in core's `homeassistant/components/marketplace/repositories/base.py`, at the `.0` tag of the release row in `reference/freshness.md` |
 
 ### The branch's PR has already merged — Step 3
 

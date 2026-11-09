@@ -29,7 +29,7 @@ The templates and the caller are *The frontend templates* and *Calling the workf
 file is display-only and never hand-edited.
 
 > **Note:** a Lovelace *card* repo attaches the built `.js` as a release asset instead. An
-> integration cannot: the asset is not in the zip HACS installs.
+> integration cannot: the asset is not in the zip the Marketplace installs.
 
 **Symptom:** a stale committed bundle reads as "the fix I made isn't there" to whoever opens
 it; what the panel check does about one, and how to make that fail, is *Calling the workflow*
@@ -53,8 +53,8 @@ as `'MockConfigEntry' object has no attribute 'runtime_data'`.
 
 ### Step 3: Register the static path and the panel in `async_setup`
 
-Once per process, for the reason `reference/patterns.md` gives under *Register
-integration-global resources in `async_setup`, not `async_setup_entry` — Step 3*.
+Once per process, for the reason `reference/services.md` gives under *Register
+integration-global resources in `async_setup`, not `async_setup_entry` — Step 1*.
 
 | Rule | Value |
 |---|---|
@@ -169,7 +169,7 @@ export function displayName(item: Pick<Set, "name">): string { ... }   // "{?}" 
 ### A panel that reads devices reads them by config entry — Step 3
 
 A panel is a client of the device registry WebSocket API, which changed under the same
-rewrite `reference/patterns.md` describes in *Devices belong to one config entry — Step 3*.
+rewrite `reference/entities.md` describes in *Devices belong to one config entry — Step 1*.
 
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|

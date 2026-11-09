@@ -63,14 +63,14 @@ On the gate path, each `gh` read is the gate read beside it.
 | a cut diff, a PR from a fork | ask the user for the diff: Step 4 bundles this repository's branches only, so a fork's branch never arrives |
 | `gh pr checks N`, with or without `--watch` | `git-gate:checks(repo, N, wait=true\|false)`, `N` also `"#N"`, a branch or a commit; on a private repository the answer comes from the commit's Actions runs and says so, since no fine-grained token can hold a Checks permission — never ask the user to grant one |
 | `gh run list [--branch B] [--workflow W] [--status S] [-L N]` | `git-gate:runs(repo, branch=B, workflow=W, status=S, limit=N)`; `limit` at most 50 |
-| `gh run view ID`, with or without `--log-failed`, or `gh run watch ID` | `git-gate:run(repo, ID, wait=true\|false)`: the jobs, the failed steps, and the last 80 lines of each failed step, from its start to its error |
+| `gh run view ID`, with or without `--log-failed`, or `gh run watch ID` | `git-gate:run(repo, ID, wait=true\|false)`: the jobs, each failed job's failed steps, and the last 80 lines of each failed job's log |
 | `gh issue view N [--comments]` | `git-gate:issue(repo, "view", number=N)`, with the last 20 comments |
 | `gh issue list [--state S] [--label L] [--search "TEXT"] [-L N]` | `git-gate:issue(repo, "list", state=S, labels=[L], search="TEXT", limit=N)`; without `state` a search covers every state |
 | `gh release list` | `git-gate:release(repo, "list", limit=N)`; `limit` at most 30 |
 | `gh release view [TAG]` | `git-gate:release(repo, "view", tag=TAG)`; no tag means the latest release |
 | `gh repo view`, `gh workflow list`, `gh workflow view W`, `gh label list` | `git-gate:api_get(repo, "")`, `"actions/workflows"`, `"actions/workflows/W"` or `"labels"` |
 | `gh api repos/{owner}/{repo}/P [-f k=v]` | `git-gate:api_get(repo, "P", query={"k": "v"})`: GET only, `P` relative to the repository, no `--jq` |
-| a file on GitHub — `gh api …/contents/F`, a CI repository's README or workflow, a freshness source | `git-gate:file(repo, "F", ref=R)`: text up to 1 MiB; a directory lists its entries |
+| a file on GitHub — `gh api …/contents/F`, a CI repository's README or workflow, a freshness source | `git-gate:file(repo, "F", ref=R)`: text up to 1 MiB, cut at the gate's output limit, so a long file is read whole from a clone; a directory lists its entries |
 | `gh run download`, `gh release download` | none: ask the user for the file |
 | `gh search issues\|prs`, across repositories | none on the gate path |
 
@@ -127,7 +127,8 @@ git push -u origin <branch>
    ```
 
 4. `git-gate:push(repo, "<branch>", bundle="<abs>/.tmp/push.bundle")`. The reply is
-   `Pushed …`, with the PR's link or a link to open one, or a refusal — Step 7.
+   `Pushed …`, with the PR's link, or a link to open one that a session never follows, as
+   Step 6 says; or a refusal — Step 7.
 
 | Scenario | Choice |
 |---|---|
@@ -141,10 +142,10 @@ git push -u origin <branch>
 | plain path | `gh`, as each step gives it |
 | a write, gate path | the typed tool below, its arguments as the session's tool list gives them |
 | a body, gate path | a file under `<abs>/.tmp/`, passed as `body_file`, never `--body` |
+| a pull request | never created by a session, on either path: the session pushes the branch, Step 5, and stops, and the PR is the draft the `auto-draft-pr.yml` caller opens — `auto-draft-pr.yml` under *The five workflows* in release-flow's README, https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/README.md; find it with `git-gate:pr(repo, "list", head=<branch>)`, on the plain path `gh pr list --head <branch>`; editing its title or body, and commenting, stay, as below |
 
 **`gh` write → gate tool:**
 
-- `gh pr create --title T --body-file F` → `git-gate:pr(repo, "create", title=T, body_file=F, head=<branch>)`
 - `gh pr edit N --title T --body-file F` → `git-gate:pr(repo, "edit", number=N, title=T, body_file=F)`
 - `gh pr comment N --body-file F` → `git-gate:pr(repo, "comment", number=N, body_file=F)`
 - `gh pr review N --comment --body-file F` → `git-gate:pr(repo, "review_comment", number=N, body_file=F)`
@@ -152,13 +153,21 @@ git push -u origin <branch>
 - `gh pr close|reopen|ready N` → `git-gate:pr(repo, "close"|"reopen"|"ready", number=N)`
 - `--add-label`, `--add-assignee`, `--add-reviewer` and their `--remove-` forms → `git-gate:triage(repo, N, …)`
 - `gh label create|edit` → `git-gate:label(repo, …)`
+- `gh issue create --title T --body-file F` → `git-gate:issue(repo, "create", title=T, body_file=F)`
+- `gh issue edit N --title T --body-file F` → `git-gate:issue(repo, "edit", number=N, title=T, body_file=F)`
+- `gh issue comment N --body-file F` → `git-gate:issue(repo, "comment", number=N, body_file=F)`
+- `gh issue close|reopen N` → `git-gate:issue(repo, "close"|"reopen", number=N)`
+- `gh run rerun ID` → `git-gate:workflow_run(repo, "rerun", ID)`
+- `gh run rerun ID --failed` → `git-gate:workflow_run(repo, "rerun_failed", ID)`
+- `gh run cancel ID` → `git-gate:workflow_run(repo, "cancel", ID)`
 
 | Scenario | Choice |
 |---|---|
-| re-running or cancelling a workflow run, gate path | the user's, in the web UI from the run's page: the gate's token reads Actions only, so no gate tool does it |
-| creating, editing, commenting on, closing or reopening an issue, gate path | none: the gate's token has no Issues write, so issues are read-only there; open work goes to the session's memory, and the user is told |
+| re-running or cancelling a run on the default or a protected branch, gate path | the user's, in the web UI from the run's page: `git-gate:workflow_run` refuses it, since a re-run there can redeploy old code and a cancel can stop a deploy half way |
 | `gh pr merge`, an approval, `gh release create\|edit\|upload`, a tag | the user's on either path — Step 2 |
-| `gh repo create`, a settings or ruleset change through `gh api -X`, `gh secret set`, `scripts/bootstrap_repo.sh`, gate path | the user's, in their own terminal: none has a typed tool |
+| `gh repo create`, the description, topics, Issues, dependency graph or ruleset, `scripts/bootstrap_repo.sh`, gate path | `git-gate:repo_setup`, then the user's `gitgatesetup <id>` run — *Step 2: Apply the ruleset once, or run `scripts/bootstrap_repo.sh`* in `reference/github-setup.md` |
+| `gh secret set`, gate path | the user's, in the web UI: no gate tool sets a secret — for `RELEASE_TOKEN`, *Step 2: Store it as the `RELEASE_TOKEN` repository secret* in `reference/github-setup.md` |
+| any other settings change through `gh api -X`, gate path | the user's, in their own terminal: none has a typed tool |
 
 ### Step 7: Hand a refused push to the user
 

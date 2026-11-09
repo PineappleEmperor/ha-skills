@@ -28,7 +28,7 @@ So the panel follows the user's theme and its dark mode:
 color: var(--primary-text-color, #141414);
 color: var(--secondary-text-color, #5e5e5e);      /* captions, hints, inactive */
 background: var(--card-background-color, #fff);
-background: var(--primary-background-color);
+background: var(--primary-background-color);      /* a surface inside the panel, never :host */
 border-color: var(--divider-color);
 background: var(--primary-color);                 /* HA primary */
 color: var(--accent-color);                       /* HA accent */
@@ -46,6 +46,7 @@ color: var(--accent-color);                       /* HA accent */
 |---|---|---|---|
 | a palette token, `--ha-color-primary-40` say | the semantic token for the purpose | a palette token names a shade, not a purpose, so dark mode cannot retarget it | https://contributors.home-assistant.io/design/foundations/color/index.md |
 | a colour with no variable | the theme variable | a bare value ignores the user's theme and dark mode | https://contributors.home-assistant.io/frontend/architecture/theming/index.md |
+| `background-color: var(--primary-background-color)` on the panel's host, from HA 2026.11.0 | no background on the host | the frontend paints the theme's `--ha-panel-background` once behind every panel, and a host fill covers it | https://contributors.home-assistant.io/blog/2026/10/28/frontend-component-updates-2026.11/, and `src/layouts/hass-subpage.ts` in `home-assistant/frontend`, which stopped painting it, at the version core's `homeassistant/components/frontend/manifest.json` pins at the `.0` tag of the release row in `reference/freshness.md` |
 
 Define a small `:host` block mapping panel-local names (`--<domain>-primary`,
 `--<domain>-outline`) to these once, then reference those — one place to retune.
@@ -67,6 +68,7 @@ Define a small `:host` block mapping panel-local names (`--<domain>-primary`,
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
 | a pixel size, or a Material 3 size, typed into the CSS | the `--ha-` token, with its listed value as the fallback | the scale is adjusted as a whole, and a typed size falls out of step with it | https://contributors.home-assistant.io/design/foundations/typography/index.md |
+| a `--mdc-typography-*` property, in a theme or on a component | the `--ha-font-*` token, `--ha-font-size-m` or `--ha-font-family-body` say | removed in HA 2026.11: the frontend no longer reads them, so setting one changes nothing | https://contributors.home-assistant.io/blog/2026/10/28/frontend-component-updates-2026.11/ |
 
 ### Step 3: Size targets, icons and thumbnails
 
@@ -78,6 +80,13 @@ Define a small `:host` block mapping panel-local names (`--<domain>-primary`,
 | any pointer target | 24×24 at the least — the floor, not the goal |
 | a control of your own | a native element or an `ha-*` component; a `<div>` with a `click` listener cannot be reached by keyboard |
 | a focus ring | on `:focus-visible`, and never removed without a visible one in its place |
+
+| anti-pattern | use instead | why (one clause) | reference |
+|---|---|---|---|
+| `ha-formfield` round an `ha-switch` or `ha-checkbox` | the label in the control's default slot, `<ha-switch .checked=${checked}>${label}</ha-switch>` | removed in HA 2026.11, so a leftover `ha-formfield` renders no label | https://contributors.home-assistant.io/blog/2026/10/28/frontend-component-updates-2026.11/, and `src/components/ha-formfield.ts`, gone from `home-assistant/frontend` at the version core's `homeassistant/components/frontend/manifest.json` pins at the `.0` tag of the release row in `reference/freshness.md` |
+| `ha-md-list` and `ha-md-list-item` | `ha-list-base`, with `ha-list-item-base` for a static row or `ha-list-item-button` for a clickable one, styled by `--ha-row-item-*` and `--ha-list-*` | removed in HA 2026.11, and the `--md-list-item-*` properties no longer do anything | https://contributors.home-assistant.io/blog/2026/10/28/frontend-component-updates-2026.11/, and `src/components/ha-md-list.ts`, gone from `home-assistant/frontend` at the version core's `homeassistant/components/frontend/manifest.json` pins at the `.0` tag of the release row in `reference/freshness.md` |
+| a `--md-assist-chip-*`, `--md-input-chip-*` or `--md-filter-chip-*` property, or `--md-sys-color-on-surface` for an assist chip's label | the same property named `--ha-assist-chip-*`, `--ha-input-chip-*` or `--ha-filter-chip-*`, and `--ha-assist-chip-label-text-color` for the label, with the `--md-` one beside it while the panel supports an HA older than 2026.11.0 | the chips stopped reading the Material Web names in HA 2026.11 | https://contributors.home-assistant.io/blog/2026/10/28/frontend-component-updates-2026.11/, and `src/components/chips/ha-assist-chip.ts` in `home-assistant/frontend`, at the version core's `homeassistant/components/frontend/manifest.json` pins at the `.0` tag of the release row in `reference/freshness.md` and at `2026.10.0` |
+| a `--md-outlined-icon-button-*` property, or `--md-sys-color-outline`, on `ha-outlined-icon-button` | `--ha-icon-button-size`, 40px by default, and `--ha-outlined-icon-button-outline-color`, and the `--md-` ones beside them while the panel supports an HA older than 2026.11.0 | it builds on `ha-icon-button` from HA 2026.11, so the Material Web properties no longer do anything | https://contributors.home-assistant.io/blog/2026/10/28/frontend-component-updates-2026.11/, and `src/components/ha-outlined-icon-button.ts` in `home-assistant/frontend`, at the version core's `homeassistant/components/frontend/manifest.json` pins at the `.0` tag of the release row in `reference/freshness.md` and at `2026.10.0` |
 
 ### Step 4: Time motion with the duration tokens
 

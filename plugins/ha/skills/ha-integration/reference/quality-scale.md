@@ -86,10 +86,17 @@ proved by reading is never `exempt` for want of a test.
 
 ### Step 4: Claim the tier in the manifest only once it is fully met
 
+- The Marketplace's integrations guide,
+  https://contributors.home-assistant.io/marketplace/guides/integrations/index.md, says the
+  quality scale has no tiers for custom integrations, and that its rules are still a good
+  guide. A tier in a custom integration's manifest is the integration's own claim, which
+  hassfest checks no further than the next two bullets say.
 - For a custom integration hassfest reads the manifest only: it checks `quality_scale` is
   one of the known values, and that a Silver-or-above claim names a `codeowners` entry.
-- hassfest never opens `quality_scale.yaml` — `validate_iqs_file` in
-  `script/hassfest/quality_scale.py` returns for anything outside `homeassistant/components`.
+- hassfest never opens `quality_scale.yaml`, and never compares a claimed tier with the rules
+  that tier requires — `validate_iqs_file` in `script/hassfest/quality_scale.py`, at the `.0`
+  tag of the release row in `reference/freshness.md`, returns at once for anything outside
+  `homeassistant/components`.
 - The rules that core's gate applies there are applied here by the skill's audit — which
   ones, and what each fails on, is *What the audit checks now* in ha-integration-ci's README,
   https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md.

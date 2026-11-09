@@ -1,0 +1,113 @@
+# Repair issues can belong to a config entry, and be refreshed
+
+Fetched from https://contributors.home-assistant.io/blog/2026/10/28/issue-registry-refresh/
+Copyright (c) Home Assistant contributors. home-assistant/contributors.home-assistant.io publishes no licence; this copy is kept for reference and attribution only.
+Modified: converted from HTML to plain text by `scripts/fetch_ha_sources.py`. It keeps the article body and loses everything the markup carried — navigation and chrome, link targets, image alt text, table and list structure, and code formatting. No wording has been changed, added or reordered.
+
+Blog
+
+Repair issues can belong to a config entry, and be refreshed
+
+Erik MontnémeryOctober 28, 2026·4 min read
+
+Core and integrations
+
+Additions to the issue registry make it easier to keep repair issues correct, without annoying users. Linking issues to a config entry and the issue refresh helper land in Home Assistant Core 2026.11. Linking issues to a config subentry lands in 2026.12. All the additions are documented in repairs.
+
+Issues that belong to a config entry
+
+You can now link a repair issue to the config entry it belongs to, by passing the new config_entry_id argument to async_create_issue or create_issue. Home Assistant deletes the issue when the config entry is removed, just like it does with the devices and entities of the entry.
+
+Python
+
+from homeassistant.helpers import issue_registry as ir
+
+ir.async_create_issue(
+hass,
+DOMAIN,
+f"outdated_firmware_{entry.entry_id}",
+config_entry_id=entry.entry_id,
+is_fixable=False,
+severity=ir.IssueSeverity.WARNING,
+translation_key="outdated_firmware",
+)
+
+Set config_entry_id on issues that are about a single config entry. If your integration has code that deletes those issues when the entry is removed, you can drop it once the issues are created with config_entry_id. An issue created before that belongs to no entry until it is created again. Most issues are created again on the next start, but a persistent issue that is never created again may still need to be deleted in async_remove_entry for a while.
+
+A few things to keep in mind:
+
+Issues are still identified by their domain and issue_id, so the issue_id must stay unique within your domain. When several config entries can raise the same kind of issue, put the entry ID in the issue_id.
+
+The config entry must exist. Passing an unknown ID raises HomeAssistantError.
+
+Creating an issue that already exists replaces its config_entry_id, also when you leave config_entry_id out.
+
+Issues that belong to a config entry that no longer exists are deleted when Home Assistant starts.
+
+While the config entry is disabled, its issues are hidden from Repairs and from the issues() template function.
+
+This is implemented in core PR #186197 and PR #186369. For the details, see issues that belong to a config entry.
+
+An issue about one subentry, like a station or an AI agent, can also pass config_subentry_id, so it is deleted when the subentry is removed. It requires config_entry_id, and the subentry must belong to that entry. This is implemented in core PR #190351. For the details, see issues that belong to a config subentry.
+
+Python
+
+ir.async_create_issue(
+hass,
+DOMAIN,
+f"station_offline_{subentry.subentry_id}",
+config_entry_id=entry.entry_id,
+config_subentry_id=subentry.subentry_id,
+is_fixable=False,
+severity=ir.IssueSeverity.WARNING,
+translation_key="station_offline",
+)
+
+Refresh a set of issues
+
+A common pattern is to delete all issues of a kind, and then create the ones that are still valid. It is simple, but every issue that is still valid is deleted and created again: users see it disappear and come back, and an issue they ignored shows up again. The same happens to issues that an integration deletes when its config entry unloads, because a reload unloads the entry too. Set their config_entry_id instead.
+
+The new ir.async_refresh_issues deletes only the stale issues:
+
+Python
+
+with ir.async_refresh_issues(
+hass,
+DOMAIN,
+issue_id_pattern="firmware_too_old_",
+config_entry_id=entry.entry_id,
+):
+for device in coordinator.data.devices.values():
+if device.firmware_version < MINIMUM_FIRMWARE:
+ir.async_create_issue(
+hass,
+DOMAIN,
+f"firmware_too_old_{device.id}",
+config_entry_id=entry.entry_id,
+is_fixable=False,
+severity=ir.IssueSeverity.WARNING,
+translation_key="firmware_too_old",
+translation_placeholders={"version": device.firmware_version},
+)
+
+When the issue refresh finishes, it deletes the issues of its set that were not created or kept since it began. Issues that were created again are left alone, so they stay ignored. Any call to ir.async_create_issue counts, so helpers and callbacks can create the issues while the refresh runs. Put the refresh around the code that checks the issues, and don't wrap async_forward_entry_setups: it does not raise when a platform fails or is retried later, so the refresh would delete issues that were never checked. The set also includes issues from before a restart, so a refresh cleans up after devices that are gone.
+
+The set is selected with one of:
+
+issue_id_pattern, a regular expression matched from the start of the issue ID, like firmware_too_old_ or (firmware_too_old|battery_low)_. A plain prefix is a valid pattern.
+
+issue_ids, a list of issue IDs.
+
+Neither, to select every issue of the domain.
+
+config_entry_id narrows the set down to the issues that belong to that config entry.
+
+Also new:
+
+ir.async_keep_issue(hass, domain, issue_id) and IssuesRefresh.async_keep keep issues that you could not check, like those of a device that did not answer.
+
+ir.async_delete_issue takes a defer_to_refresh argument. An issue in the set of an active refresh is then left for that refresh to delete, so it survives if it is created or kept again while the refresh runs. This is meant for entities that are removed during a reload, which may create the issue again.
+
+ir.async_refresh_issues returns an IssuesRefresh. Used in a with block, it finishes the refresh when the block completes, and cancels it when an exception is raised. A cancelled refresh only applies deferred deletes. You can also call IssuesRefresh.async_finish() and IssuesRefresh.async_cancel() yourself.
+
+The refresh API only works in the event loop. It is implemented in core PR #187990. For the details, including overlapping refreshes and checking for issues in a worker thread, see refresh a set of issues.

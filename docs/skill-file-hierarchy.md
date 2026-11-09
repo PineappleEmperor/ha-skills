@@ -43,14 +43,18 @@ Three tiers:
 | PR openers | `github-actions.md` | It is a workflow contract. `github-setup.md` owns only the *token* the opener needs. |
 | who merges, merge under a red check, and tracing before naming a root cause | `discipline.md` | Two behavioural rules with no artefact of their own. Everything about *format* left for `commits.md`; ruleset config is `github-setup.md`. |
 | test harness prerequisites, mocking | `testing.md` | The reader is writing a test. `scaffold.md` lists the files and links here for why. |
-| code patterns, typing, file structure | `patterns.md` | The canonical lookup for code inside `custom_components/`: pattern → rule → copyable snippet. Other files cite it; none restate it. |
-| building a panel-serving integration — registration, the committed bundle, staleness, the frontend pin, websocket backing | `panels.md` | The reader is building or fixing a panel integration. `patterns.md` states the general async-setup race rule and points here for the panel code. |
+| what every module of the package shares — file structure, entry setup and unload, typing — and the deprecated APIs no topic file below owns | `patterns.md` | The reader is writing code in `custom_components/` that no topic file below covers, or code any of them covers, since every module is laid out, set up and typed this way: pattern → rule → copyable snippet. Other files cite it; none restate it. |
+| config, options, reauth and reconfigure flows, config entry migration | `config-flows.md` | The reader is writing a flow or migrating a stored entry. Other files cite it; none restate it. |
+| entity platforms, entities and their devices, the images an integration serves, units, diagnostics, and the deprecations of entity-platform APIs | `entities.md` | The reader is writing an entity platform. Other files cite it; none restate it. |
+| fetching data — the coordinator, push, a dropped connection, an unexpected reply, a blocking call — and logging | `fetching-data.md` | The reader is writing how the integration gets its data. Other files cite it; none restate it. |
+| custom services, `services.yaml` and their translations, integration-global registration | `services.md` | The reader is registering an action. Other files cite it; none restate it. |
+| building a panel-serving integration — registration, the committed bundle, staleness, the frontend pin, websocket backing | `panels.md` | The reader is building or fixing a panel integration. `services.md` states the general async-setup race rule and points here for the panel code. |
 | quality scale rules and evidence | `quality-scale.md` | The reader is claiming a tier. |
 | Dependabot: ecosystems, grouping, floors, exemption | `dependabot.md` | The reader is configuring or debugging Dependabot. `versioning.md` and `github-setup.md` link. |
 | scaffolding: what to ask, what to generate | `scaffold.md` | The reader is starting a repo. |
 | `manifest.json` — its keys and what each requires | `scaffold.md` | The manifest is written at scaffold time and its rules do not change after; a later key change reads the same step. `patterns.md` and `SKILL.md`'s Manifest row point here. |
 | `manifest.json` key order | `scaffold.md`, the key-order row of *Step 4: Write `manifest.json`* | It is one more rule about the manifest, which `scaffold.md` owns. `lint.md` checks it and points there. |
-| the lint and quality check — running ruff, mypy and the rest of what CI runs, and checking that `quality_scale.yaml` exists and the key order holds | `lint.md` | The reader is checking existing code before a commit or a review. It owns the run and the check; the rules it checks stay with their owners. `scaffold.md`, `patterns.md` and `audit.md` point here. |
+| the lint and quality check — running ruff, mypy and the rest of what CI runs, and checking that `quality_scale.yaml` exists and the key order holds | `lint.md` | The reader is checking existing code before a commit or a review. It owns the run and the check, and the two ways a finding is kept on purpose — a `# noqa` and the fence round an aligned table; the rules it checks stay with their owners. `scaffold.md`, `patterns.md`, `config-flows.md`, `github-actions.md` and `audit.md` point here. |
 | audit procedure — the judgement items | `audit.md` | The reader is auditing. Owns no facts of its own; it cites the owners. |
 | the skill's freshness — the values it copies from outside itself, each with its capture date, re-derivation command, the files holding a copy, and the check that keeps them in step | `freshness.md` | The reader is asking whether the skill is still current. A task file cites the row; a file that must hold the value is listed as its consumer. |
 | how a panel looks — type scale, theme tokens, spacing, touch targets, disclosure | `panel-design.md` | The reader is changing a panel's CSS or markup. `panels.md` and `SKILL.md`'s Panel design row point here; it points at `panels.md` for the bundle. |
@@ -59,7 +63,7 @@ Three tiers:
 
 | Topic | Split | Resolution |
 |---|---|---|
-| panel | `panels.md` 28 · `patterns.md` 23 | panels.md owns delivery; patterns.md keeps the parallel-setup race only |
+| panel | `panels.md` 28 · `patterns.md` 23, counted before `patterns.md` was split | panels.md owns delivery; the parallel-setup race, `patterns.md`'s share then, is `services.md`'s now, and only that |
 | Dependabot | 4 files, 8/8/7/3 | dependabot.md owns; the other three link |
 | merge rule | `discipline.md` 6 · `github-setup.md` 6 | discipline.md owns the rule; github-setup.md owns the ruleset config |
 | commit subjects | `commits.md` 10 · `discipline.md` 7 | commits.md owns format; discipline.md owns behaviour |

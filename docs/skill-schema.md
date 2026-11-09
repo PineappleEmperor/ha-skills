@@ -224,7 +224,7 @@ Writing `none` in that column is what turns an unavoidable duplication into a kn
 | Rule | Value |
 |---|---|
 | form | `*<heading>* in \`<file>\`` — the form `check_named_sections` in `scripts/skill_meta_audit.py` reads, and the one every shipped file uses |
-| a pointer inside the same file | the step or case it names — `Step 5`, `*Entity platform files — Step 1*` — with no file |
+| a pointer inside the same file | the step or case it names — `Step 5`, `*Notify platform — Step 1*` — with no file |
 | the heading | must exist verbatim in the target |
 | what a pointer never does | restate the fact it points at |
 | a pointer to another reference file | names that file and heading — to reach a fact the other file owns, which has one home, per *The rule* in `docs/skill-file-hierarchy.md`; or to hand the step's work to another task, whose heading the reader then reads in full, as that task's own row would send them |

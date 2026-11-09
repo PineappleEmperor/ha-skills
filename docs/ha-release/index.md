@@ -1,6 +1,6 @@
-# The sources for Home Assistant 2026.6, 2026.7, 2026.8, 2026.9, 2026.10
+# The sources for Home Assistant 2026.6, 2026.7, 2026.8, 2026.9, 2026.10, 2026.11
 
-Fetched by `scripts/fetch_ha_sources.py`, last on 2026-10-17. Every file below
+Fetched by `scripts/fetch_ha_sources.py`, last on 2026-11-08. Every file below
 is a **secondary** source: it says what changed and why, and never how an API is
 spelled — core at the release tag says that, and the core rule of
 `docs/release-refresh.md` says why.
@@ -63,3 +63,25 @@ that says what it is.
 | `docs/ha-release/2026.10/blog-2026-09-28-central-config-flow-abort-reasons.md` | `4e604c191b2f` | [Shared config flow abort reasons are translated centrally](https://contributors.home-assistant.io/blog/2026/09/28/central-config-flow-abort-reasons/) |
 | `docs/ha-release/2026.10/blog-2026-09-30-probatio-validation-engine.md` | `68f915302de5` | [Probatio is our validation engine](https://contributors.home-assistant.io/blog/2026/09/30/probatio-validation-engine/) |
 | `docs/ha-release/2026.10/blog-2026-10-06-restore-state-last-states-removal.md` | `a009beaa4ef2` | [Removal of RestoreStateData.last_states](https://contributors.home-assistant.io/blog/2026/10/06/restore-state-last-states-removal/) |
+| `docs/ha-release/2026.11/release-notes.md` | `b4fd621905f7` | [2026.11: A lot in store! — backward-incompatible changes](https://raw.githubusercontent.com/home-assistant/home-assistant.io/master/source/_posts/2026-11-04-release-202611.markdown) |
+| `docs/ha-release/2026.11/blog-2026-10-08-climate-native-temperature.md` | `266885269f3a` | [Climate entities now expose their temperature unit](https://contributors.home-assistant.io/blog/2026/10/08/climate-native-temperature/) |
+| `docs/ha-release/2026.11/blog-2026-10-08-water-heater-native-temperature.md` | `62eadbcbb8ce` | [Water heater entities now expose their temperature unit](https://contributors.home-assistant.io/blog/2026/10/08/water-heater-native-temperature/) |
+| `docs/ha-release/2026.11/blog-2026-10-09-uom-selector.md` | `9c7920fcfde4` | [New unit of measurement selector](https://contributors.home-assistant.io/blog/2026/10/09/uom-selector/) |
+| `docs/ha-release/2026.11/blog-2026-10-10-update-entity-update-availability.md` | `331105bf2b03` | [Update entities can customize update availability](https://contributors.home-assistant.io/blog/2026/10/10/update-entity-update-availability/) |
+| `docs/ha-release/2026.11/blog-2026-10-12-new-entity-lifecycle-hooks.md` | `f13d49253b04` | [New entity lifecycle hooks](https://contributors.home-assistant.io/blog/2026/10/12/new-entity-lifecycle-hooks/) |
+| `docs/ha-release/2026.11/blog-2026-10-13-device-info-class.md` | `788cdaf0f3f9` | [DeviceInfo is now a dataclass](https://contributors.home-assistant.io/blog/2026/10/13/device-info-class/) |
+| `docs/ha-release/2026.11/blog-2026-10-16-a-new-home-for-every-contributor.md` | `ba311217d6fb` | [A new home for every contributor](https://contributors.home-assistant.io/blog/2026/10/16/a-new-home-for-every-contributor/) |
+| `docs/ha-release/2026.11/blog-2026-10-17-debug-console.md` | `77901e0191ef` | [A Python console inside Home Assistant](https://contributors.home-assistant.io/blog/2026/10/17/debug-console/) |
+| `docs/ha-release/2026.11/blog-2026-10-19-auth-providers-opt-in-mfa.md` | `55788bf9ce86` | [Auth providers now opt in to multi-factor authentication](https://contributors.home-assistant.io/blog/2026/10/19/auth-providers-opt-in-mfa/) |
+| `docs/ha-release/2026.11/blog-2026-10-20-integration-categories.md` | `7805a267424a` | [Integrations have categories now](https://contributors.home-assistant.io/blog/2026/10/20/integration-categories/) |
+| `docs/ha-release/2026.11/blog-2026-10-21-form-fields-visible.md` | `369d991c0eed` | [Show form fields based on other fields](https://contributors.home-assistant.io/blog/2026/10/21/form-fields-visible/) |
+| `docs/ha-release/2026.11/blog-2026-10-22-child-devices.md` | `c60d4baa7e67` | [Introducing child devices](https://contributors.home-assistant.io/blog/2026/10/22/child-devices/) |
+| `docs/ha-release/2026.11/blog-2026-10-23-config-entry-methods-return-none.md` | `267d116ba6e3` | [Config entry functions now return None](https://contributors.home-assistant.io/blog/2026/10/23/config-entry-methods-return-none/) |
+| `docs/ha-release/2026.11/blog-2026-10-23-flow-results-require-step-id.md` | `e809b7a48e38` | [Always pass a step_id to flow results](https://contributors.home-assistant.io/blog/2026/10/23/flow-results-require-step-id/) |
+| `docs/ha-release/2026.11/blog-2026-10-24-camera-two-way-audio.md` | `4b5b9311e11a` | [Two-way audio for camera entities](https://contributors.home-assistant.io/blog/2026/10/24/camera-two-way-audio/) |
+| `docs/ha-release/2026.11/blog-2026-10-26-rename-backup-agents.md` | `2bf69798c4a9` | [Backup agents can now be renamed](https://contributors.home-assistant.io/blog/2026/10/25/rename-backup-agents/) |
+| `docs/ha-release/2026.11/blog-2026-10-28-custom-section-strategies-in-the-dashboard-editor.md` | `66a151224ab9` | [Custom section strategies in the dashboard editor](https://contributors.home-assistant.io/blog/2026/10/28/custom-section-strategies-in-the-dashboard-editor/) |
+| `docs/ha-release/2026.11/blog-2026-10-28-frontend-component-updates-2026-11.md` | `87767c47f25d` | [Frontend component updates in 2026.11](https://contributors.home-assistant.io/blog/2026/10/28/frontend-component-updates-2026.11/) |
+| `docs/ha-release/2026.11/blog-2026-10-28-issue-registry-refresh.md` | `b66c57c8e653` | [Repair issues can belong to a config entry, and be refreshed](https://contributors.home-assistant.io/blog/2026/10/28/issue-registry-refresh/) |
+| `docs/ha-release/2026.11/blog-2026-10-28-scanner-entity-devices.md` | `a994527905e4` | [ScannerEntity now handles devices like other entities](https://contributors.home-assistant.io/blog/2026/10/28/scanner-entity-devices/) |
+| `docs/ha-release/2026.11/blog-2026-11-01-undefined-helper.md` | `17b9fab92d42` | [Undefined sentinel changes](https://contributors.home-assistant.io/blog/2026/11/01/undefined-helper/) |

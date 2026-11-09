@@ -217,8 +217,6 @@ split-on-trailing-comma = false
 "custom_components/**" = ["PTH"]
 "tests/**" = ["PTH", "SLF001", "INP001"]
 "scripts/*" = ["T20", "INP001"]
-# The skill-root conftest keeps pytest out of templates/; it is a guard, not a package.
-"plugins/*/skills/*/conftest.py" = ["INP001"]
 
 [tool.ruff.lint.mccabe]
 max-complexity = 25

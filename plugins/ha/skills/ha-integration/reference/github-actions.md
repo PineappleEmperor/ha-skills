@@ -16,6 +16,7 @@ Read this when writing or reviewing an integration's CI files: where each comes 
 8. `templates/` cannot be located — Step 1
 9. A README block cannot be read — Step 2
 10. A repo needs a second PR opener — Step 2
+11. A repository adopting the stack has code `ruff format` would change — Step 2
 
 ## Assembling the scaffold's CI files
 
@@ -57,13 +58,16 @@ How to verify a copy is *Step 1: Callers, not bodies; copies, not paraphrases* i
 | `.github/release-drafter.yml`, `.githooks/commit-msg` | release-flow's own files, https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/.github/release-drafter.yml and https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/.githooks/commit-msg, per *Called versus copied* in its README |
 | `.github/workflows/dependency-review.yml`, `hacs-validate.yml`, `hassfest-validate.yml`, `issue_stale.yml` | this skill's `templates/.github/workflows/`; each is settings over a third-party action |
 | `.github/dependabot.yml` | this skill's `templates/`; what it must contain is *Step 1: Write `.github/dependabot.yml`* in `reference/dependabot.md` |
-| `ruleset.json`, `pyproject.toml`, `mypy.ini`, `tests/conftest.py`, `tests/__init__.py`, `tests/ruff.toml`, `requirements.test.txt`, `.gitignore`, `.pre-commit-config.yaml`, `.yamllint`, `.prettierrc.js`, `.prettierignore`, and the `CLAUDE.md` and `.githooks/pre-commit` snippets | this skill's `templates/`; the two snippets are under *Step 7: Write the files no template carries* and *Step 6: Copy the config and CI files* in `reference/scaffold.md` |
+| `ruleset.json`, `pyproject.toml`, `mypy.ini`, `tests/__init__.py`, `tests/ruff.toml`, `requirements.test.txt`, `.gitignore`, `.pre-commit-config.yaml`, `.yamllint`, `.prettierrc.js`, `.prettierignore`, and the `CLAUDE.md` and `.githooks/pre-commit` snippets | this skill's `templates/`; the two snippets are under *Step 7: Write the files no template carries* and *Step 6: Copy the config and CI files* in `reference/scaffold.md` |
 | `frontend/package.json`, `frontend/tsconfig.json` (panel repos only) | ha-panel-ci's `frontend/`, https://raw.githubusercontent.com/PineappleEmperor/ha-panel-ci/main/frontend/package.json and https://raw.githubusercontent.com/PineappleEmperor/ha-panel-ci/main/frontend/tsconfig.json |
 | `scripts/bootstrap_repo.sh` | this skill's `templates/scripts/`; when to run it is *Step 10: Apply the GitHub settings* in `reference/scaffold.md` |
 
 The audit does not compare a caller with its README block — what it does check is *What the
 audit checks now* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md — so a caller written from memory can pass
 it.
+
+A repository adopting the stack, rather than starting from it, works through *A repository
+adopting the stack has code `ruff format` would change — Step 2* before its callers land.
 
 The four workflows the scaffold copies whole are settings over a third-party action, so they
 carry nothing of ours to version:
@@ -94,7 +98,6 @@ only list of them.
 | `pyproject.toml` | a `[project]` table carrying no version, and pytest options; never the `[tool.ruff]` tables, which are Home Assistant core's rule set |
 | `frontend/package.json` | the `<domain>` and `<name>` placeholders → this integration's values, as ha-panel-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-panel-ci/main/README.md, says |
 | `requirements.test.txt` | uncomment the `home-assistant-frontend` pin and give it its version, panel repos only — how is *Step 2: Pin `home-assistant-frontend` in `requirements.test.txt`* in `reference/panels.md` |
-| `tests/conftest.py` | the repo's own imports and fixtures added to the template's |
 | `ruleset.json` | drop a context the repo does not produce |
 | `.pre-commit-config.yaml` | a hook `rev` or an `additional_dependencies` pin newer than the template's, where Dependabot has already bumped yours, and words added to codespell's `--ignore-words-list` |
 | `.prettierignore` | a path added for another file the repo copies or builds |
@@ -133,3 +136,16 @@ gate refuses the repository, both in `reference/github-access.md`.
 
 **Fix:** declare it, with the marker line *What the audit checks now* in ha-integration-ci's
 README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md, names.
+
+### A repository adopting the stack has code `ruff format` would change — Step 2
+
+The stack lints and formats the whole tree, for the reason the `python-validate.yml` bullet
+under *Implementation notes* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md, gives, and
+`templates/pyproject.toml` excludes nothing. Code the repository never formatted, and anything
+its own ruff exclusions kept out of sight, is linted and format-checked once it adopts that file.
+
+**Fix:** fence each aligned table first, as *Alignment a human chose meets `ruff format` —
+Step 1* in `reference/lint.md` says; then drop any ruff exclusions, fix what `ruff check`
+finds, and format the rest as its own `style:` commit.
+
+**Timing:** before the migration, so its diff carries no reformatting.

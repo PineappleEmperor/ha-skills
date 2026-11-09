@@ -702,3 +702,19 @@ def test_without_ruff_the_examples_are_not_checked_rather_than_passed(
     fails, warns = audit.check_doc_examples(audit.Repo(tmp_path))
     assert fails == []
     assert any("NOT CHECKED" in w for w in warns)
+
+
+def test_a_ruff_that_fails_to_run_leaves_the_examples_not_checked(
+    tmp_path, monkeypatch
+) -> None:
+    """A snap ruff that snap-confine refuses exits non-zero and prints nothing to parse."""
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    fake = bin_dir / "ruff"
+    fake.write_text("#!/bin/sh\nexit 1\n")
+    fake.chmod(0o755)
+    monkeypatch.setenv("PATH", str(bin_dir))
+    _doc_with_example(tmp_path, "def f(a, ...):\n    return a\n")
+    fails, warns = audit.check_doc_examples(audit.Repo(tmp_path))
+    assert fails == []
+    assert any("NOT CHECKED" in w for w in warns)

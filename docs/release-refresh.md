@@ -72,8 +72,8 @@ usable that the release does not carry.
 
 | Rule | Value |
 |---|---|
-| a change a custom integration can meet | a row in the `reference/patterns.md` section that owns the topic |
-| a change announced for a release that has not landed | a scheduled-change row beside the step it affects, in the file that owns the topic — for `reference/patterns.md`, *Announced for a release after 2026.10 — Step 1* |
+| a change a custom integration can meet | a row in the section that owns the topic, in `reference/patterns.md`, `reference/config-flows.md`, `reference/entities.md`, `reference/fetching-data.md` or `reference/services.md` |
+| a change announced for a release that has not landed | a scheduled-change row beside the step it affects, in the file that owns the topic, in a scheduled-change table started there if the step has none |
 | a scheduled-change row, in any file | cleared as *What a release changes* in `docs/skill-schema.md` says |
 | every other row in the cached-facts table | re-derived with its own *Re-derive with* command |
 | the release cell and its captured date | moved, last |

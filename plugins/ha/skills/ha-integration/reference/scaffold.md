@@ -8,7 +8,7 @@ from memory.
 ## Contents
 
 1. The scaffold
-2. Step 1: Ask the user the ten questions below
+2. Step 1: Ask the user the eleven questions below
 3. Step 2: Put the folder under git and on GitHub
 4. Step 3: Write the integration package
 5. Step 4: Write `manifest.json`
@@ -19,14 +19,13 @@ from memory.
 10. Step 9: Commit and push `main`
 11. Step 10: Apply the GitHub settings
 12. Cases
-13. Alignment a human chose meets `ruff format` — Step 3
-14. A repository adopting the stack carries ruff exclusions — Step 6
-15. `HACS validation` is red — Step 9
-16. The integration goes into the default catalog — Step 10
+13. The Marketplace refuses the install — Step 7
+14. `HACS validation` is red — Step 9
+15. The integration goes into the default catalog — Step 10
 
 ## The scaffold
 
-### Step 1: Ask the user the ten questions below
+### Step 1: Ask the user the eleven questions below
 
 All at once, before anything is written.
 
@@ -42,6 +41,7 @@ All at once, before anything is written.
 | 8 | licence | the full text goes in `LICENSE` | MIT |
 | 9 | version | — | `0.1.0` |
 | 10 | repository | its name on GitHub; an existing folder is renamed to match | the existing folder's name |
+| 11 | categories | what the integration is for, in the form the `categories` row of Step 4 gives, e.g. `energy.ev_charging` | — |
 
 **Timing:** settle the domain before Step 2. It names the `custom_components/<domain>/`
 folder and the manifest's `domain` key, and every config entry is stored under it.
@@ -52,12 +52,14 @@ folder and the manifest's `domain` key, and every config entry is stored under i
 |---|---|
 | the user already has a folder | work in it, renamed to the Step 1 repository name if the two differ; `git init -b main` if it is not a repository yet |
 | no folder yet | `mkdir <repository>`, then `git init -b main` inside it |
-| no GitHub repository yet | `gh repo create <repository> --public --description "<the Step 1 description>" --source . --remote origin`, from inside the folder; on the gate path the user creates it, as *Step 6: Write to GitHub* in `reference/github-access.md` says, and grants the session write on it, as *The gate refuses a repository as outside the session — Step 3* in `reference/github-access.md` says |
+| no GitHub repository yet | `gh repo create <repository> --public --description "<the Step 1 description>" --source . --remote origin`, from inside the folder; on the gate path nothing, since Step 10 creates it |
 | an empty GitHub repository already exists, with no ruleset on `main` | `git remote add origin <its URL>` |
 
 ### Step 3: Write the integration package
 
-Under `custom_components/<domain>/`. What goes inside each file is `reference/patterns.md`.
+Under `custom_components/<domain>/`. What goes inside each file is `reference/patterns.md`,
+with the config flow in `reference/config-flows.md`, the platforms in `reference/entities.md`,
+the coordinator in `reference/fetching-data.md` and the actions in `reference/services.md`.
 
 | File | Holds | When |
 |---|---|---|
@@ -65,13 +67,13 @@ Under `custom_components/<domain>/`. What goes inside each file is `reference/pa
 | `config_flow.py` | the config flow | always |
 | `const.py` | the domain and the constants | always |
 | `manifest.json` | the manifest — Step 4 | always |
-| `translations/en.json` | every string the integration shows — flows, entities, actions, exceptions — *`services.yaml` + `translations/en.json` — Step 1* in `reference/patterns.md` | always |
+| `translations/en.json` | every string the integration shows — flows, entities, actions, exceptions — *`services.yaml` + `translations/en.json` — Step 1* in `reference/services.md` | always |
 | `quality_scale.yaml` | the tier ledger — `reference/quality-scale.md` | always |
-| `diagnostics.py` | the diagnostics download — *Diagnostics platform — Step 1* in `reference/patterns.md` | always |
+| `diagnostics.py` | the diagnostics download — *Diagnostics platform — Step 1* in `reference/entities.md` | always |
 | `<platform>.py` | one per platform chosen in Step 1 | always |
 | `brand/` | the brand images — Step 5 | always |
 | `icons.json` | action icons, `{"services": {"my_action": {"service": "mdi:icon"}}}` | the integration registers an action |
-| `services.yaml` | each action's fields — *`services.yaml` + `translations/en.json` — Step 1* in `reference/patterns.md` | the integration registers its own action, where no standard one fits |
+| `services.yaml` | each action's fields — *`services.yaml` + `translations/en.json` — Step 1* in `reference/services.md` | the integration registers its own action, where no standard one fits |
 | `api.py`, `coordinator.py`, `models.py`, `entity.py`, `helpers.py` | what *Step 1: Lay out the files by responsibility* in `reference/patterns.md` gives each | as that step says |
 
 **Docstrings and comments in every generated module:**
@@ -88,6 +90,7 @@ Under `custom_components/<domain>/`. What goes inside each file is `reference/pa
 {
   "domain": "my_device",
   "name": "My Device",
+  "categories": ["energy.ev_charging"],
   "codeowners": ["@username"],
   "config_flow": true,
   "dependencies": [],
@@ -105,12 +108,14 @@ Under `custom_components/<domain>/`. What goes inside each file is `reference/pa
 | where each rule below was read | https://contributors.home-assistant.io/core/integrations/manifest/; beyond the page, `script/hassfest/manifest.py` in core at the `.0` tag of the release row's value and `custom_components/hacs/utils/validate.py` in hacs/integration at the HACS validation row's revision, both rows in `reference/freshness.md` |
 | key order | `domain`, `name`, then every other key alphabetically, as above; hassfest fails any other order — `sort_manifest` in `script/hassfest/manifest.py` |
 | `domain`, `name` | required; the domain is the directory name and never changes |
-| `version` | required for a custom integration — hassfest and HACS both fail its absence; a version AwesomeVersion reads as CalVer, SemVer, SimpleVer, BuildVer or PEP 440, the five forms hassfest's `verify_version` accepts; what sets it at release is `reference/versioning.md` |
+| `version` | required for a custom integration — hassfest and HACS both fail its absence, and the Marketplace refuses to install an integration without one the loader accepts, https://contributors.home-assistant.io/marketplace/guides/integrations/index.md; a version AwesomeVersion reads as CalVer, SemVer, SimpleVer, BuildVer or PEP 440, the five forms hassfest's `verify_version` accepts; what sets it at release is `reference/versioning.md` |
 | `documentation` | required; `https`, and not under `www.home-assistant.io/integrations/`, which hassfest reserves for core |
 | `codeowners` | required by hassfest and HACS — at least your own GitHub username |
 | `issue_tracker` | required by HACS's `integration_manifest` check |
 | `iot_class` | required — `assumed_state` · `calculated` · `cloud_polling` · `cloud_push` · `local_polling` · `local_push` |
 | `integration_type` | `device` · `hub` · `service` · `entity` · `hardware` · `helper` · `system`; absent means `hub`, so set it; `virtual` is core-only |
+| `categories` | optional for a custom integration, and set from the Step 1 answer; one to three values, each `<category>` or `<category>.<subcategory>` from https://contributors.home-assistant.io/core/integrations/categories/index.md, the primary one first; hassfest fails an empty list, a fourth value, a duplicate, a category listed beside one of its own subcategories, or the key on an `entity` or `system` integration, and only warns on an unknown category, so a category core renames never fails the build — the `categories` key of `INTEGRATION_MANIFEST_SCHEMA`, and `validate_categories`, in `script/hassfest/manifest.py`; what the HACS action checks is the `integration_categories` row of *`HACS validation` is red — Step 9* |
+| `connectivity` | optional; the protocols the integration reaches its devices or service by, each a key of `integration_connectivity` in core's `homeassistant/components/homeassistant/strings.json`, `zigbee` or `cloud` say; hassfest fails an empty list, a duplicate, or the key on an `entity` or `system` integration, and only warns on an unknown value for a custom integration — the `connectivity` key of `INTEGRATION_MANIFEST_SCHEMA`, and `validate_connectivity`, in `script/hassfest/manifest.py`; the HACS action does not check it |
 | `config_flow` | `true`, and `config_flow.py` must exist |
 | `single_config_entry` | `true` when the integration supports one config entry only; otherwise omit it and meet the `unique-config-entry` rule, `reference/quality-scale.md` |
 | `requirements` | pip requirement strings, `aiohue==1.9.1`; only libraries core's own `requirements.txt` does not already carry |
@@ -119,6 +124,7 @@ Under `custom_components/<domain>/`. What goes inside each file is `reference/pa
 | `after_dependencies` | integrations set up first only when they are configured; their requirements are installed either way |
 | `quality_scale` | *Step 4: Claim the tier in the manifest only once it is fully met* in `reference/quality-scale.md` |
 | `zeroconf`, `ssdp`, `bluetooth`, `dhcp`, `usb` | a list of discovery matchers, whose shapes are on the manifest page under each key; the config flow gains the step of that name |
+| `lorawan` | from 2026.11.0, a list of discovery matchers, each a pair of a stack and the brand ID the network server uses for the vendor, `[["chirpstack", 744], ["tts", "sensecap"]]`; it needs `config_flow` `true` and `lorawan` in `dependencies`, and a match starts the flow's `integration_discovery` step — `LORAWAN_SCHEMA`, `LORAWAN_MANIFEST_SCHEMA` and `async_get_lorawan` in core's `homeassistant/loader.py`, and `_discover` in `homeassistant/components/lorawan/connection.py`, at the `.0` tag of the release row in `reference/freshness.md`; the floor, core at the `2026.10.0` tag, which has neither the matcher nor the `lorawan` integration |
 | `homekit` | `{"models": [...]}`, the model-name prefixes to match; the flow gains a `homekit` step |
 | `mqtt` | the discovery topics to subscribe to; the flow gains an `mqtt` step |
 
@@ -136,10 +142,7 @@ rest.
 | `home-assistant/brands` `custom_integrations/` | legacy; a PR adding one is auto-closed |
 | a local `brand/` file | takes precedence over the same file in the brands repository |
 | contributing the integration to core | delete `brand/` and open a brands-repository PR instead |
-
-| what | lands in | do now | do then |
-|---|---|---|---|
-| Marketplace, replacing HACS, shows an integration's `brand/` images before install, picked up from the latest release of every integration in the catalog; an entry for the domain in `home-assistant/brands` wins over them | 2026.11 — https://contributors.home-assistant.io/marketplace/guides/integrations/; the brands entry winning, `BrandsMarketplaceView.get` in core's `homeassistant/components/brands/__init__.py` on `dev` | ship `brand/icon.png` in every release | nothing |
+| before install | the Marketplace shows the `brand/` images of the latest release of every integration in the catalog, so ship `brand/icon.png` in every release; an entry for the domain in `home-assistant/brands` wins over them — https://contributors.home-assistant.io/marketplace/guides/integrations/index.md, and `BrandsMarketplaceView.get` in core's `homeassistant/components/brands/__init__.py`, at the `.0` tag of the release row in `reference/freshness.md` |
 
 **Which files to ship:**
 
@@ -185,11 +188,6 @@ rest.
 | omitting `icon@2x.png` because the 1× is served | ship it | a HiDPI client renders 256px where it asked for 512 | `IMAGE_FALLBACKS` in core's `homeassistant/components/brands/const.py`, at the `.0` tag of the release row in `reference/freshness.md`, and *Icon image requirements* in the brands README |
 | dressing an integration up as an official one | your own mark | it is what the no-HA-branding rule protects against | *Image specification* in the brands README |
 | deriving a new mark from a brand's artwork | reproduce theirs, and meet any published usage terms | identification is the only permitted use | *Trademark Legal Notices* in the brands README |
-| PR-ing `home-assistant/brands` to fix a blank HACS tile | nothing — it is a HACS-side gap | `custom_integrations/*` PRs are auto-closed | the HACS dashboard row of `reference/freshness.md` |
-
-> **Note:** the HACS store dashboard reads the legacy CDN, not the inline `brand/` folder, so
-> an integration with no legacy brands entry renders blank there while Home Assistant's own UI
-> shows the icon. Nothing to fix in the repository.
 
 **Where the images come from.** Every size is scaled *down* from one master, so the set is
 consistent and nothing is upscaled.
@@ -208,7 +206,7 @@ consistent and nothing is upscaled.
 
 | Scenario | Choice |
 |---|---|
-| the `logo`, which renders large — the integration page, HACS | a busy or detailed screen, which reads well at that size |
+| the `logo`, which renders large — the integration page, the Marketplace | a busy or detailed screen, which reads well at that size |
 | the `icon`, which renders small — ~48px in the integrations list | a simple, low-detail screen; fine detail turns to mush |
 
 ### Step 6: Copy the config and CI files
@@ -223,7 +221,7 @@ among them:
 | `pyproject.toml` | HA core's ruff rule set adapted for a custom integration — `google` docstrings, HA's Python floor, no `from __future__ import annotations` — and the `asyncio_mode = "auto"` without which no async test runs |
 | `mypy.ini` | the general section of HA core's mypy config — keep `python_version` in `[mypy]`, since it is what the audit's version comparison reads from this file — *What the audit checks now* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
 | `requirements.test.txt` | the pinned test harness — why the pin matters is *Step 4: Keep the harness pin and the Python floor in lockstep* in `reference/testing.md` |
-| `tests/conftest.py`, `tests/__init__.py`, `tests/ruff.toml` | the harness setup and core's ruff rules for tests — *Testing — prerequisites before any of the rules below apply* in `reference/testing.md` |
+| `tests/__init__.py`, `tests/ruff.toml` | the `tests/` package CI requires, and core's ruff rules for tests — *Testing — prerequisites before any of the rules below apply* in `reference/testing.md` |
 | `.gitignore` | the paths git must never track |
 | `ruleset.json` | the branch ruleset — what it requires is `reference/github-setup.md` |
 | `.githooks/commit-msg` | the Conventional Commit check — *Step 1: Install the `commit-msg` hook* in `reference/commits.md`; `chmod +x` |
@@ -236,7 +234,7 @@ among them:
 | changing a copy | only as *Step 4: Apply only the sanctioned adaptations* in `reference/github-actions.md` allows; a new repository applies only its two panel rows, and only when it serves a panel |
 | `.github/dependabot.yml` | copied; what it carries and what turns it on is *Step 1: Write `.github/dependabot.yml`* in `reference/dependabot.md` |
 | a copy that relaxes `pyproject.toml`'s ruff or pytest tables | drift |
-| enabling the commit hook | the `core.hooksPath` setting the `CLAUDE.md` snippet in Step 7 gives; in this clone `bootstrap_repo.sh` sets it at Step 10, after the first commit, which the guard on `main` would otherwise refuse |
+| enabling the commit hook | the `core.hooksPath` setting the `CLAUDE.md` snippet in Step 7 gives; in this clone it is set at Step 10, after the first commit, which the guard on `main` would otherwise refuse |
 | enabling the local hooks | `pip install prek==<version>`, at the version the mypy and ruff row of `reference/freshness.md` names — prek is the tool core runs its own hooks with; the same `core.hooksPath` setting runs the wrapper |
 | what prettier leaves alone | Markdown, as core leaves it; and `.github/`, `ruleset.json` and a built panel bundle, so a copied or built file stays identical to its source |
 | omitting `.gitignore` | a local `pytest` plus a `git add -A` tracks `.pyc` files, which *What the audit checks now* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md, fails a repository for |
@@ -280,6 +278,7 @@ exec prek run
 | Rule | Value |
 |---|---|
 | where the skill-invocation rule lives | the repository's own `CLAUDE.md`, never a user's global config |
+| install text and My link badges in `README.md` | between `<!-- ha-marketplace:exclude-start -->` and `<!-- ha-marketplace:exclude-end -->`, which the Marketplace leaves out of the repository's page, where its own install button stands in — https://contributors.home-assistant.io/marketplace/reference/repository-structure/index.md |
 
 **Symptom:** a missing or paraphrased licence fails HACS validation with `The repository
 license could not be identified (SPDX: NOASSERTION)`; HACS asks for one GitHub can identify
@@ -308,20 +307,19 @@ linked to its public repository:
 **`README.md` — the two My links**, each opening the reader's own Home Assistant:
 
 ```markdown
+<!-- ha-marketplace:exclude-start -->
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=<owner>&repository=<repository>&category=integration)
 
 [![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=<domain>)
+<!-- ha-marketplace:exclude-end -->
 ```
 
 | Rule | Value |
 |---|---|
-| where each row was read | `redirect.json` in `home-assistant/my.home-assistant.io`, https://raw.githubusercontent.com/home-assistant/my.home-assistant.io/main/redirect.json, and https://contributors.home-assistant.io/marketplace/guides/catalog/ |
-| `hacs_repository` | opens the repository in HACS; from 2026.11 it opens the Marketplace instead, so it reaches users on either side of that release |
+| where each row was read | `redirect.json` in `home-assistant/my.home-assistant.io`, https://raw.githubusercontent.com/home-assistant/my.home-assistant.io/main/redirect.json, and https://contributors.home-assistant.io/marketplace/guides/catalog/index.md |
+| `hacs_repository` | the link the snippet uses: it opens the repository in HACS before 2026.11 and in the Marketplace from 2026.11, so it reaches users on either side of that release |
+| `marketplace_repository` | from 2026.11: opens the repository in the Marketplace, and offers to add it as a custom repository when the Marketplace does not know it and the link names its `category`; switch the link and its badge to it once the `homeassistant` key of `hacs.json` is 2026.11.0 or later |
 | `config_flow_start` | starts the integration's config flow, once the integration is installed |
-
-| what | lands in | do now | do then |
-|---|---|---|---|
-| the `marketplace_repository` My link, opening the repository in the Marketplace and offering to add it when the Marketplace does not know it yet | 2026.11 — https://contributors.home-assistant.io/marketplace/guides/catalog/ | link with `hacs_repository` | switch the link and its badge to `marketplace_repository` once the `homeassistant` key of `hacs.json` is 2026.11.0 or later |
 
 **`hacs.json`**
 
@@ -333,17 +331,18 @@ linked to its public repository:
 |---|---|
 | `name` | required in every `hacs.json` |
 | every key | one of the ten keys HACS's `hacsjson` check accepts — `content_in_root`, `country`, `filename`, `hacs`, `hide_default_branch`, `homeassistant`, `name`, `persistent_directory`, `render_readme`, `zip_release`; anything else fails it |
-| `homeassistant` | the oldest HA you actually test, never a floor copied from an example |
-| `zip_release` | makes HACS download a release **asset** rather than the tag's source archive, so it requires the `release.yml` caller |
+| `homeassistant` | the oldest HA you actually test, never a floor copied from an example, and on ha-integration-ci v5 never below the compatibility floor of the return row of *Step 3: Wire the entry setup and unload* in `reference/patterns.md`: the pylint rules hold the code to that floor, while `version_sync.py` passes either harness whatever Home Assistant it brings — `version_sync.py` under *What the audit checks now* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md; in a release's `hacs.json`, it keeps that release from users on an older Home Assistant, whom the Marketplace offers earlier releases instead, and a `b0` suffix, `2026.11.0b0`, admits that release's betas; checked only for a repository with releases — https://contributors.home-assistant.io/marketplace/guides/releases/index.md, https://contributors.home-assistant.io/marketplace/reference/hacs-json/index.md |
+| `zip_release` | makes the Marketplace, and HACS before 2026.11, download the release **asset** `filename` names and extract it into the integration folder, rather than the tag's source archive, so it requires the `release.yml` caller — https://contributors.home-assistant.io/marketplace/guides/releases/index.md |
 | `filename` | the name `release.yml` attaches — *The three workflows* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
-| dropping `zip_release` and `filename` | only to have HACS pull the whole tagged repository archive instead |
+| dropping `zip_release` and `filename` | only to have the Marketplace install the tag's source archive instead |
+| where it is read | the repository root, by the Marketplace, for every version it installs; it cannot install or update a repository without it, so keep `hacs.json` at the root of every release — https://contributors.home-assistant.io/marketplace/reference/hacs-json/index.md |
+| `hacs` | read by the Marketplace, never compared — the same page |
+| a key of the wrong type | the Marketplace leaves it out and logs a warning, and ignores `country`, `render_readme` and any other key it does not read; the `hacsjson` check still holds every repository to the ten keys — the same page |
 
-| what | lands in | do now | do then |
-|---|---|---|---|
-| Marketplace, replacing HACS, reads `hacs.json` from the repository root for every version it installs, and cannot install or update a repository without it | 2026.11 — https://contributors.home-assistant.io/marketplace/reference/hacs-json/ | keep `hacs.json` at the root of every release | nothing |
-
-**Symptom:** a `zip_release` repository whose release carries no attached zip fails HACS
-install with `Could not download`.
+**Symptom:** a `zip_release` release with no attached zip fails the Marketplace install with
+`Could not install <repository>. Check the Home Assistant logs for details.`, and the log reads
+`<the asset> was not downloaded.` — `install_checks_failed` and `file_not_downloaded` in core's
+`homeassistant/components/marketplace/strings.json`, at the `.0` tag of the release row in `reference/freshness.md`.
 
 > **Note:** the tag is the version, not the committed manifest — `reference/versioning.md`.
 > What patches the manifest is `release.yml` under *Implementation notes* in
@@ -355,75 +354,50 @@ Run every step of `reference/lint.md`, before the first commit.
 
 | Rule | Value |
 |---|---|
-| a finding | fixed in the code, to the rule `reference/patterns.md` gives for it, or `reference/testing.md` for a test |
+| a finding | fixed in the code, to the rule `reference/patterns.md`, `reference/config-flows.md`, `reference/entities.md`, `reference/fetching-data.md` or `reference/services.md` gives for it, or `reference/testing.md` for a test |
 | relaxing a copied config to get past a finding | drift — Step 6 |
 
 ### Step 9: Commit and push `main`
 
 Commit everything, with a subject in the form *Step 2: Write the subject in the Conventional
-Commits form* in `reference/commits.md` gives, then `git push -u origin main` — on the gate
-path *Step 5: Push* in `reference/github-access.md`, whose refusal of `main` goes to the user
-as *Step 7: Hand a refused push to the user* in `reference/github-access.md` says.
+Commits form* in `reference/commits.md` gives, then:
+
+| Scenario | Choice |
+|---|---|
+| plain path | `git push -u origin main` |
+| gate path | no push: `main` goes up in Step 10's `gitgatesetup` run, as the `bundle` |
 
 ### Step 10: Apply the GitHub settings
 
 1. Create the release token, as *Step 1: Generate a fine-grained PAT* in `reference/github-setup.md` says.
-2. From the repo root, run `bash scripts/bootstrap_repo.sh "<the Step 1 description>"`, and paste the token when it asks; on the gate path the user runs it in their own terminal, as *Step 6: Write to GitHub* in `reference/github-access.md` says.
-3. Fix anything it reports as missing or not done, then run it again.
-4. Re-run the `HACS Validation` workflow from the Actions tab: the Step 9 push ran it before these settings existed.
+2. Apply the settings by the row for the session's path:
+
+| Scenario | Choice |
+|---|---|
+| gate path | `git-gate:repo_setup` with the Step 1 description, then the user's `gitgatesetup <id>` run, as *Step 2: Apply the ruleset once, or run `scripts/bootstrap_repo.sh`* in `reference/github-setup.md` says; the user adds the token as *Step 2: Store it as the `RELEASE_TOKEN` repository secret* in `reference/github-setup.md` says |
+| plain path | from the repo root, `bash scripts/bootstrap_repo.sh "<the Step 1 description>"`, pasting the token when it asks; fix anything it reports as missing or not done and run it again, then re-run the `HACS Validation` workflow from the Actions tab, since the Step 9 push ran it before these settings existed |
 
 **Timing:** after Step 9 — the ruleset's required checks apply even to the push that creates
-`main`, so applied first it refuses that push.
+`main`, so a ruleset applied before that push refuses it.
 
 ## Cases
 
-### Alignment a human chose meets `ruff format` — Step 3
+### The Marketplace refuses the install — Step 7
 
-`ruff format` reduces every run of spaces to one, which destroys a table someone aligned so
-it could be read as a table. Fence it rather than surrendering it or turning the formatter
-off:
-
-```python
-# fmt: off
-CONF_EMAIL         = "email"
-CONF_API_KEY       = "api_key"
-CONF_REFRESH_TOKEN = "refresh_token"
-# fmt: on
-```
+The Marketplace checks a repository before an install and again after writing the files,
+which it puts back when a check fails. The checks below are the ones no other step covers.
 
 | Rule | Value |
 |---|---|
-| what the fence stops | the formatter only — `ruff check` still runs inside it, so line length, import order and unused names are all still caught |
-| what you give up | whitespace normalisation, which is what you are overriding |
-| scope | statement-level: one inside a dict or call literal does nothing, so it wraps the whole enclosing statement at that statement's indent |
-| `# fmt: on` | never at a different indent from its `# fmt: off` |
-| which statement | the smallest one containing the table, never a class body and never a file |
-| the column | one per block, set one space past the longest key, spaces only and never tabs; a new block restarts it |
-| an entry too long for the column | re-pad the whole block, in the same commit |
-| a generator that emits a fenced table | emits the fence too, or the next regeneration drops it |
+| where each row was read | https://contributors.home-assistant.io/marketplace/reference/validation/index.md and https://contributors.home-assistant.io/marketplace/guides/integrations/index.md; the checks themselves, core's `homeassistant/components/marketplace/repositories/`, at the `.0` tag of the release row in `reference/freshness.md` |
 
-**What earns a fence:**
-
-- Padding before `=` or `:`.
-- Padding after them, where the values form the column.
-- Padding after `,`.
-- One row or record per source line, even where nothing is padded — glyph rasters, icon bitmaps, colour palettes, layout tables, field-descriptor lists.
-- Not a flat wrapped list of strings, which is not a table; leave that to the formatter.
-
-**Symptom:** an unfenced raster or bitmap table comes back one element per line, and the
-shape a reader could see in the source is gone.
-
-### A repository adopting the stack carries ruff exclusions — Step 6
-
-The stack lints and formats the whole tree, for the reason the `python-validate.yml` bullet
-under *Implementation notes* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md, gives, and
-`templates/pyproject.toml` excludes nothing. Anything kept out of ruff's sight is linted once
-the repository adopts that file.
-
-**Fix:** drop the exclusions and format what they were hiding as its own `style:` commit,
-before the migration.
-
-**Timing:** before the migration, so its diff carries no reformatting.
+| Check | What's needed | Where to fix |
+|---|---|---|
+| owner of the domain | no other installed repository has the same `domain` | Step 4 |
+| replaces a built-in integration | a `domain` no core integration uses; one that does needs the user to confirm the install | Step 4 |
+| loadable manifest | after writing, the installed `manifest.json` names the repository's own `domain` | Step 4 |
+| download size | the download, or the ZIP unpacked, at most 100 MiB and 50,000 files | the integration folder, Step 3, or the release zip |
+| archived or removed | the repository is not archived; most repositories the catalog removed cannot be installed either | GitHub repo settings, or *The integration goes into the default catalog — Step 10* |
 
 ### `HACS validation` is red — Step 9
 
@@ -440,14 +414,15 @@ errors **and no ignores**, so every check that runs on an integration must pass.
 | `hacsjson` | `hacs.json` exists, carries `name`, holds no key beyond the ten Step 7 lists, and names a `filename` whenever `zip_release` is set | Step 7 |
 | `images` | nothing on an integration — it runs on plugins and themes only | — |
 | `information` | `README.md` exists | Step 7 |
+| `integration_categories` | `categories` in `manifest.json`, when present, is one to three known categories with no duplicates; a missing key only warns | Step 4 |
 | `integration_manifest` | `manifest.json` carrying `domain`, `name`, `version`, `documentation`, `issue_tracker` and `codeowners` | Step 4 |
 | `issues` | the Issues tab is enabled | Step 10, or GitHub repo settings → Features |
 | `topics` | the repository has at least one topic | Step 10, or GitHub repo settings → About |
 | `license` | a `LICENSE` GitHub identifies by SPDX as an OSI-approved licence, per Step 1 | Step 7 |
 
 > **Note:** on a pull request from a fork, `archived`, `description`, `issues`, `topics` and
-> `license` do not run, so only the other four checks do; the push to `main` and the nightly
-> run carry all nine.
+> `license` do not run, so only the other five checks do; the push to `main` and the nightly
+> run carry all ten.
 
 ### The integration goes into the default catalog — Step 10
 
@@ -456,9 +431,9 @@ pass, and a full GitHub release is published — a tag alone does not count.
 
 | Rule | Value |
 |---|---|
-| where each row was read | https://contributors.home-assistant.io/marketplace/guides/catalog/ |
+| where each row was read | https://contributors.home-assistant.io/marketplace/guides/catalog/index.md, and https://contributors.home-assistant.io/marketplace/how-it-works/index.md |
 | the catalog | the `hacs/default` repository, which HACS and the Marketplace both read |
-| an integration outside it | still added by anyone from its `hacs_repository` My link, Step 7 |
+| an integration outside it | still added by anyone from its My link, Step 7, as a custom repository, which needs a GitHub connection in the Marketplace |
 | refused outright | an integration that replaces a core one, or exists only to test a core integration's alpha or beta |
 | the pull request | from a fork of `hacs/default`, on a branch off `master`, opened from a personal account rather than an organisation so the HACS team can edit it |
 | the change | `owner/repository` in the `integration` file, a JSON list, in alphabetical order |
@@ -466,6 +441,9 @@ pass, and a full GitHub release is published — a tag alone does not count.
 | closed without notice | an incomplete template, a statement that is not true, or a review requested from people |
 | small problems | the pull request goes to draft; fix them, then mark it ready for review |
 | the wait | months; the backlog is the open pull requests of `hacs/default`, oldest first |
+| archiving the repository | the HACS team takes it out of the catalog; users who installed it keep it, get no more updates, and a repair tells them why |
+| the catalog's Removed list | repositories no longer offered — abandoned, archived, breaking Home Assistant, stealing credentials or deleted; users who installed one get what the archiving row says |
+| the catalog's Critical list | a harmful repository; the Marketplace uninstalls it from every Home Assistant that has it, at once, and restarts Home Assistant |
 | deleting the repository later | first ask for its removal with the *Request for repository removal* issue template in `hacs/integration`; deleting one still in the catalog bars every future submission |
 
 | Check | What's needed | Where to fix |

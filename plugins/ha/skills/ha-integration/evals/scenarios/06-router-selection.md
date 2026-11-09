@@ -27,8 +27,8 @@ No fixture. The agent needs read access to `plugins/ha/skills/` — both skills.
 
 | Request | Skill | What to read next |
 |---|---|---|
-| A | `ha-triage` | `ha-integration/reference/patterns.md`, from the Unexpected reply row; naming its case *A reply the code does not expect — Step 1* as well is correct |
-| B | `ha-integration` | `reference/patterns.md` |
+| A | `ha-triage` | `ha-integration/reference/fetching-data.md`, from the Unexpected reply row; naming its case *A reply the code does not expect — Step 1* as well is correct |
+| B | `ha-integration` | `reference/config-flows.md`, from the Config flow row; naming `reference/patterns.md` after it, as that row does, is correct, and an answer of the Modify row is a fail, since its When excludes what a row below covers |
 | C | `ha-integration` | `reference/panel-design.md`, from the Panel design row, plus the HA theming and foundation pages it names |
 | D | `ha-integration` | `reference/scaffold.md`, from the Scaffold row |
 | E | `ha-integration` | `reference/testing.md` |

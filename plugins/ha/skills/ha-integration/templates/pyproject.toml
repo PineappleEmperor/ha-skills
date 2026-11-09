@@ -13,8 +13,9 @@
 #   - the rules for tests are tests/ruff.toml, core's own, which extends this file
 #   - core's ban on `from __future__ import annotations` kept: Python 3.14 defers annotation
 #     evaluation natively, so the import only switches that off
-# The [tool.pytest.ini_options] table keeps core's asyncio settings and its two `error`
-# warning filters; core's `ignore` filters silence its own dependencies and are left out.
+# The [tool.pytest.ini_options] table keeps core's asyncio settings, its `-p no:respx` and
+# its two `error` warning filters; core's `ignore` filters silence its own dependencies and
+# are left out, and `pythonpath` is the one the README of core's pytest-homeassistant gives.
 # Do not relax these tables in a copy; that is drift. A [project] table is not needed,
 # and if one is added it carries no version: the release tag is the version.
 
@@ -220,6 +221,8 @@ mark-parentheses = false
 "pytz".msg = "use zoneinfo instead"
 "tests".msg = "You should not import tests"
 "voluptuous".msg = "use probatio instead"
+"httpx".msg = "use httpx2 instead"
+"httpcore".msg = "use httpcore2 instead"
 "homeassistant.helpers.config_validation.ensure_list".msg = "use probatio.EnsureList() instead"
 "homeassistant.helpers.config_validation.port".msg = "use probatio.Port() instead"
 "homeassistant.helpers.config_validation.has_at_least_one_key".msg = "use probatio.AtLeastOne instead"
@@ -247,6 +250,7 @@ convention = "google"
 property-decorators = ["propcache.api.cached_property"]
 
 [tool.pytest.ini_options]
+addopts = "-p no:respx"
 asyncio_debug = true
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
@@ -254,4 +258,5 @@ filterwarnings = [
   "error::sqlalchemy.exc.SAWarning",
   "error:usefixtures\\(\\) in .* without arguments has no effect:UserWarning",
 ]
+pythonpath = ["."]
 testpaths = ["tests"]
