@@ -43,7 +43,7 @@ calls to the device or service apart from the HA lifecycle, so it is unit-testab
 | `api.py` | all I/O to the device or service, through the library that speaks its protocol — no HA imports | this skill |
 | `models.py` | dataclasses and type aliases for device data | this skill |
 | `const.py` | constants only — no imports from other local modules | this skill |
-| `services.py` | `async_setup_services(hass)` called from `async_setup` | this skill |
+| `services.py` | `@callback def async_setup_services(hass)`, called from `async_setup`, which registers every action the integration has | W7452 and W7453, as the row of *Step 1: Register the custom services* in `reference/services.md` that says where the registration code lives |
 | `migration.py` | `async_migrate_entry` logic when it is complex; import into `__init__.py` | this skill |
 | `helpers.py` / `util.py` | pure functions shared across platforms | this skill |
 

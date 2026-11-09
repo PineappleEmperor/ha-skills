@@ -107,17 +107,17 @@ the rows a custom integration gets wrong against it.
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
 | `discovery.async_load_platform` with a `BaseNotificationService` | `NotifyEntity` | the legacy pair registers a `notify.<name>` service, not an entity, and core is moving its own integrations off it | https://contributors.home-assistant.io/blog/2024/04/10/new-notify-entity-platform/ |
-| a custom payload passed through `NotifyEntity` | a service registered directly, below | `data` is not in its service schema, which carries `message` and `title` only | https://contributors.home-assistant.io/core/entities/notify/ |
+| a custom payload passed through `NotifyEntity` | an action of the integration's own, below | `data` is not in its service schema, which carries `message` and `title` only | https://contributors.home-assistant.io/core/entities/notify/ |
 
-**A custom payload — animations, sounds, colours — registered as its own service:**
+**A custom payload — animations, sounds, colours — sent through an action of the integration's own:**
 
 | Rule | Value |
 |---|---|
-| the schema | `probatio.Required(ATTR_MESSAGE): cv.string`, `probatio.Optional(ATTR_TITLE): cv.string`, `probatio.Optional(ATTR_DATA): dict` — the constants and `DOMAIN as NOTIFY_DOMAIN` from `homeassistant.components.notify.const` |
-| the handler | a closure bound to one device, reading `call.data.get(ATTR_DATA) or {}` beside `call.data[ATTR_MESSAGE]` |
-| registering | in `async_setup_entry`, since the service is per device: `hass.services.async_register(NOTIFY_DOMAIN, device_id, handler, schema=SERVICE_SCHEMA)`, under `if not hass.services.has_service(NOTIFY_DOMAIN, device_id)` |
-| removing | in `async_unload_entry`, `hass.services.async_remove(NOTIFY_DOMAIN, device_id)`, under the inverse guard, `if hass.services.has_service(NOTIFY_DOMAIN, device_id)` |
-| what it creates | `notify.{device_id}` — `notify.living_room_display`, say — with full `data` support |
+| the schema | a device field beside `message`, an optional `title` and an optional `data` dict, named as *Step 1: Register the custom services* in `reference/services.md` says |
+| the handler | resolves the device from the device field, as that step does, then reads the optional `data`, or `{}`, beside the message |
+| registering | once, as that step says, never per device in `async_setup_entry`, which ha-integration-ci v5 fails (W7452) |
+| removing | nothing: the action stays registered while the integration is loaded |
+| what it creates | one action of the integration's domain, `my_device.send_message` say, whose device field picks the device, with full `data` support |
 
 ### An entity that is never added — Step 1
 

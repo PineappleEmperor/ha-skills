@@ -21,6 +21,7 @@ when an action does nothing.
 | Rule | Value |
 |---|---|
 | where to register | `async_setup`, not `async_setup_entry` — *Register integration-global resources in `async_setup`, not `async_setup_entry` — Step 1* below says why |
+| where the registration code lives | `services.py`, in `@callback def async_setup_services(hass: HomeAssistant) -> None`, which `async_setup` calls; it is no coroutine and takes `hass` alone, and a module-level function of `services.py` that it calls, and that is no coroutine either, may register too; ha-integration-ci v5 fails a registration anywhere else (W7452) and any other signature (W7453) — `checkers/actions/services_module.py` in core's `packages/pylint-home-assistant/pylint_home_assistant/`, at the `.0` tag of the release row in `reference/freshness.md`, and *v5.0.0's edits* under *The version model* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
 | an entity-targeted action | `async_register_platform_entity_service()` |
 | where a service is documented | `services.yaml`, with its icons in `icons.json` |
 | a device dropdown | `selector: device` with `integration: {domain}`, never `selector: config_entry`, which the HA frontend labels "Integration" |
