@@ -177,6 +177,16 @@ Regex parsers, date/format extraction and data transforms (`order_parse`, `vouch
 | unload | a test of its own |
 | each parser | a unit test of its own |
 
+**A config-flow test, as ha-integration-ci v5 lints it:**
+
+| Rule | Value |
+|---|---|
+| where each row was read | `checkers/tests/config_flow_unique_id.py`, `checkers/tests/config_flow_error_recovery.py`, `checkers/tests/user_flow_no_data.py` and `checkers/flow_start_helpers.py` in core's `packages/pylint-home-assistant/pylint_home_assistant/`, at the `.0` tag of the release row in `reference/freshness.md`; that CI runs them on `tests/`, *v5.0.0's edits* under *The version model* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
+| a test in `tests/test_config_flow.py` that asserts `CREATE_ENTRY`, where `config_flow.py` calls `async_set_unique_id` | also asserts the entry's unique ID, `assert result["result"].unique_id == "aa:bb:cc:dd:ee:ff"`, or matches a `snapshot` (W7440); a test that injects an error, or starts an options or subentry flow, is exempt |
+| a test in `tests/test_config_flow.py` that asserts an error, `assert result["errors"] == {"base": "cannot_connect"}` say | then clears the cause, submits the same flow again and asserts `CREATE_ENTRY`, or an abort whose reason ends `_successful` for reauth and reconfigure (W7441); each error needs its own finish after it, and a finish after a new `async_init` does not count |
+| starting the user step | `hass.config_entries.flow.async_init(DOMAIN, context={"source": SOURCE_USER})` with no `data=`, then `async_configure` with the input (R7405): only a discovery flow starts with data |
+| starting a reauth or reconfigure flow | `await mock_config_entry.start_reauth_flow(hass)` or `await mock_config_entry.start_reconfigure_flow(hass)`, never `flow.async_init` with that source (W7445): the helpers build the context Home Assistant builds |
+
 **Timing:** wire the regression test *first* on any bug fix — confirm it fails on the
 unpatched code, then fix.
 
