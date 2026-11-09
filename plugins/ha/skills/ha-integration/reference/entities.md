@@ -1,7 +1,7 @@
 # Entities, devices and diagnostics
 
 Read this when writing or changing an entity platform — its entities and their devices, a
-notify or update entity, units — or the diagnostics platform.
+notify or update entity, an image it serves, units — or the diagnostics platform.
 
 **Set a `unique_id` on every entity.**
 
@@ -17,6 +17,7 @@ notify or update entity, units — or the diagnostics platform.
 8. Diagnostics platform — Step 1
 9. Devices belong to one config entry — Step 1
 10. Units: prefer the enumerators — Step 1
+11. Serving an image — Step 1
 
 ## Writing the entity platforms
 
@@ -313,3 +314,25 @@ A device has exactly one config entry and at most one subentry: read `config_ent
 | `CONCENTRATION_PARTS_PER_MILLION`, `CONCENTRATION_PARTS_PER_BILLION` | the matching `UnitOfRatio` member | removed in **2027.8** | the `DeprecatedConstantEnum` beside each in `homeassistant/const.py` |
 | `CONCENTRATION_PARTS_PER_CUBIC_METER` | nothing — core names no replacement unit | removed in **2027.8** | the `DeprecatedConstant` beside it in `homeassistant/const.py` |
 | `PERCENTAGE` as a unit of measurement, on a humidity or battery sensor | `UnitOfRatio.PERCENTAGE` | the constant itself is not deprecated and is now defined from the enum (`PERCENTAGE: Final = UnitOfRatio.PERCENTAGE.value`), but using it as a unit is | https://contributors.home-assistant.io/blog/2026/06/30/new-unit-enumerators/ |
+
+### Serving an image — Step 1
+
+| Scenario | Choice |
+|---|---|
+| where each row was read | `ImageEntity` in `homeassistant/components/image/entity.py`, `ImageView` and `TOKEN_CHANGE_INTERVAL` in `homeassistant/components/image/__init__.py`, `_async_get_image` and `TOKEN_CHANGE_INTERVAL` in `homeassistant/components/camera/__init__.py`, `Entity.entity_picture` in `homeassistant/helpers/entity.py`, `Config.cache_path` in `homeassistant/core_config.py` and `process_uploaded_file` in `homeassistant/components/file_upload/__init__.py`, at the `.0` tag of the release row in `reference/freshness.md`; *Fetching and caching* at https://contributors.home-assistant.io/core/entities/image/index.md |
+| a still that changes now and then — a map, a chart, the last snapshot of a doorbell, a QR code | an `image` entity: return the bytes the coordinator holds from `async_image`, and move `image_last_updated` when a new image arrives, never inside `async_image`, which runs on every fetch; or set `image_url`, which the base class downloads once and keeps in `_cached_image` |
+| a frame grabbed now from a live or near-live camera | a `camera` entity: core calls `async_camera_image` on every request and keeps no copy, so hold the last frame in memory and fetch again only after a minimum interval |
+| what the browser loads for an `image` or `camera` entity | the URL the base class puts in `entity_picture`, `/api/image_proxy/<entity_id>` or `/api/camera_proxy/<entity_id>` with a token core rotates every five minutes, so the integration holds no URL and no token |
+| a picture for any other entity that needs credentials, or is reachable only on the LAN | an `image` entity beside it: `_attr_entity_picture` reaches the browser as it stands, with no proxy and no token |
+| a file the integration ships and serves unchanged — a sound, a placeholder, a panel bundle | a static path registered once — *Register integration-global resources in `async_setup`, not `async_setup_entry` — Step 1* in `reference/services.md`, and for a panel *Step 3: Register the static path and the panel in `async_setup`* in `reference/panels.md` |
+| the integration's icon and logo | *Step 5: Add the brand images to `brand/`* in `reference/scaffold.md` |
+| a media player's artwork, or the thumbnails of its media browser | *Artwork in the browser* at https://contributors.home-assistant.io/core/entities/media-player/index.md |
+| a media source item whose resolved media is a stream of images, MJPEG say | `MediaSource.async_get_media_image`, from 2026.11.0, so a consumer can fetch one image — its docstring in `homeassistant/components/media_source/models.py`, at the `.0` tag of the release row in `reference/freshness.md`; the floor, the same file at the `2026.10.0` tag |
+| a copy on disk of an image that can be fetched again — event snapshots, downloads | `hass.config.cache_path(DOMAIN, …)`, which is `<config>/.cache/<domain>/`, kept across a restart and left out of backups |
+| a picture the user uploads in a config flow | the `file` selector, then `process_uploaded_file` in the executor, copying the file to a folder of the integration's own under `hass.config.path()` before the context closes, which deletes it |
+
+| anti-pattern | use instead | why (one clause) | reference |
+|---|---|---|---|
+| `ImageEntity.__init__(self, hass)`, left at its default `verify_ssl=False` | `ImageEntity.__init__(self, hass, verify_ssl=entry.data[CONF_VERIFY_SSL])`, from a config-flow field that defaults to `True` | the base class turns certificate checks off unless told otherwise | *Keep certificate checks on* at https://contributors.home-assistant.io/security/guides/integrations/; `ImageEntity.__init__` in `homeassistant/components/image/entity.py`, at the `.0` tag of the release row in `reference/freshness.md` |
+| a new `image_url` set while `_cached_image` still holds the old download | `self._cached_image = None` wherever the URL or the picture behind it changes, then a new `image_last_updated` | the base class never clears the copy, so the old picture keeps being served | *Fetching and caching* at https://contributors.home-assistant.io/core/entities/image/; `ImageEntity.async_image` in `homeassistant/components/image/entity.py`, at the `.0` tag of the release row in `reference/freshness.md` |
+| a cache the integration writes under `custom_components/<domain>/` | `hass.config.cache_path(DOMAIN, …)` | every Marketplace update replaces the whole integration folder | *Keep user files across updates* at https://contributors.home-assistant.io/marketplace/guides/integrations/ |
