@@ -657,6 +657,13 @@ def check_doc_examples(repo: Repo) -> Result:
             _col, _, verdict = rest.partition(":")
             at = start + int(row) - 1 if row.isdigit() else start
             fails.append(f"{doc}:{at} example fails ruff: {verdict.strip()}")
+    # ruff exits 1 when it finds something, so only a non-zero exit with nothing
+    # parsed is a ruff that did not run, as a snap ruff refused by snap-confine is.
+    if out.returncode != 0 and not fails:
+        return [], [
+            f"{ruff} exited {out.returncode} with no findings — "
+            "doc examples NOT CHECKED, not passed"
+        ]
     return fails, []
 
 
