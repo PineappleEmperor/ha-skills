@@ -55,7 +55,7 @@ narrow — merge Step 2* in `reference/discipline.md`.
 **Symptom:** the draft's version is lower than the change needs: a break merged under `fix:`
 or `feat:`, so the draft resolves a patch or a minor.
 
-**Fix:** open a follow-up PR whose commit carries `!`, the breaking marker *Step 2: Write the subject in the Conventional Commits form* in `reference/commits.md` names, and says what the user has to change — never a label set by hand, as Step 2 says. Its merge is the user's, as *Step 3: Tell the user it is ready to merge* in `reference/discipline.md` says.
+**Fix:** push a branch for a follow-up PR whose commit carries `!`, the breaking marker *Step 2: Write the subject in the Conventional Commits form* in `reference/commits.md` names, and says what the user has to change — never a label set by hand, as Step 2 says. Its merge is the user's, as *Step 3: Tell the user it is ready to merge* in `reference/discipline.md` says.
 
 ```bash
 git checkout -b declare-break origin/main

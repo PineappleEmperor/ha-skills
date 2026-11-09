@@ -127,7 +127,8 @@ git push -u origin <branch>
    ```
 
 4. `git-gate:push(repo, "<branch>", bundle="<abs>/.tmp/push.bundle")`. The reply is
-   `Pushed …`, with the PR's link or a link to open one, or a refusal — Step 7.
+   `Pushed …`, with the PR's link, or a link to open one that a session never follows, as
+   Step 6 says; or a refusal — Step 7.
 
 | Scenario | Choice |
 |---|---|
@@ -141,10 +142,10 @@ git push -u origin <branch>
 | plain path | `gh`, as each step gives it |
 | a write, gate path | the typed tool below, its arguments as the session's tool list gives them |
 | a body, gate path | a file under `<abs>/.tmp/`, passed as `body_file`, never `--body` |
+| a pull request | never created by a session, on either path: the session pushes the branch, Step 5, and stops, and the PR is the draft the `auto-draft-pr.yml` caller opens — `auto-draft-pr.yml` under *The five workflows* in release-flow's README, https://raw.githubusercontent.com/PineappleEmperor/release-flow/main/README.md; find it with `git-gate:pr(repo, "list", head=<branch>)`, on the plain path `gh pr list --head <branch>`; editing its title or body, and commenting, stay, as below |
 
 **`gh` write → gate tool:**
 
-- `gh pr create --title T --body-file F` → `git-gate:pr(repo, "create", title=T, body_file=F, head=<branch>)`
 - `gh pr edit N --title T --body-file F` → `git-gate:pr(repo, "edit", number=N, title=T, body_file=F)`
 - `gh pr comment N --body-file F` → `git-gate:pr(repo, "comment", number=N, body_file=F)`
 - `gh pr review N --comment --body-file F` → `git-gate:pr(repo, "review_comment", number=N, body_file=F)`

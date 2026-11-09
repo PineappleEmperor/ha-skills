@@ -83,7 +83,7 @@ No job writes it, and the draft PR arrives empty.
 
 | scenario | choice |
 |---|---|
-| typing prose into a PR body — `gh pr create --body`, or a `git-gate:pr` call's `body_file` | fix the commit subjects, or put it in a file in the repo |
+| typing prose into a PR body — `gh pr edit --body`, or a `git-gate:pr` call's `body_file` | fix the commit subjects, or put it in a file in the repo |
 | reaching for `<details>` in a PR description | fix the commit subjects, or put it in a file in the repo |
 | a description longer than its diff is interesting | fix the commit subjects, or put it in a file in the repo |
 | explaining *why* anywhere the commit subjects should have said it | fix the commit subjects, or put it in a file in the repo |
