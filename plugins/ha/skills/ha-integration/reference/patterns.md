@@ -34,7 +34,7 @@ calls to the device or service apart from the HA lifecycle, so it is unit-testab
 
 | File | Holds | Taken from |
 |---|---|---|
-| `__init__.py` | `async_setup_entry`, `async_unload_entry`, `async_migrate_entry` only — no business logic | the file-structure page names it; the no-business-logic constraint is this skill's |
+| `__init__.py` | `async_setup`, `async_setup_entry`, `async_unload_entry`, `async_migrate_entry` only — no business logic | the file-structure page names it; the no-business-logic constraint is this skill's |
 | `<platform>.py` | one per HA platform — `sensor.py`, `switch.py`, `light.py`, `button.py`, … | the file-structure page |
 | `coordinator.py` | `DataUpdateCoordinator` subclass | the `common-modules` rule, https://contributors.home-assistant.io/core/quality-scale/common-modules/ |
 | `entity.py` | shared base entity class when several platforms extend the same base | the `common-modules` rule |
