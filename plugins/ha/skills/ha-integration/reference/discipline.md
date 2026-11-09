@@ -38,7 +38,7 @@ before merging.
 | merging on "I merged past a red check earlier for a good reason" | carry this merge's own proof | the earlier exception was proved on its own diff, which says nothing about this one | — |
 | merging on "the version/label/content is right anyway" | say in writing why the gate is wrong, before merging | the gate is reporting what it can see | — |
 | merging on "it's only advisory, GitHub let me" | read the log | advisory means GitHub will not stop you, not that the check is wrong | — |
-| merging on "re-running it would waste minutes" | re-run it, or on the gate path ask the user to, as *Step 6: Write to GitHub* in `reference/github-access.md` says | a flake and a real failure look identical until the second run | — |
+| merging on "re-running it would waste minutes" | re-run it, on the gate path as *Step 6: Write to GitHub* in `reference/github-access.md` says | a flake and a real failure look identical until the second run | — |
 
 | scenario | choice |
 |---|---|
