@@ -26,6 +26,7 @@ dropped connection, an unexpected reply, a blocking call — or what it logs.
 - Raise `UpdateFailed` on other errors; use `UpdateFailed(retry_after=60)` for rate-limited APIs — on a later poll it sets the wait before the next poll once
 - From 2026.11.0, the `retry_after` of an `UpdateFailed` raised in the first refresh becomes the `retry_after` of the `ConfigEntryNotReady` that `async_config_entry_first_refresh` raises — `_async_config_entry_first_refresh` in `homeassistant/helpers/update_coordinator.py`, at the `.0` tag of the release row in `reference/freshness.md`; the setup retry wait it gives is *A connection that drops — Step 1*
 - For push APIs: use `coordinator.async_set_updated_data(data)` instead of adapting to polling
+- Type the coordinator's config entry as the integration's typed entry, *Typed `ConfigEntry` — Step 4* in `reference/patterns.md`, pass it to `super().__init__` as `config_entry=`, and assign no `self.config_entry`, which `DataUpdateCoordinator.__init__` stores; ha-integration-ci v5 fails a plain `ConfigEntry` there (W7447) and the second assignment (W7448) — `checkers/coordinator_config_entry.py` in core's `packages/pylint-home-assistant/pylint_home_assistant/`, at the `.0` tag of the release row in `reference/freshness.md`
 
 ## Cases
 
@@ -170,7 +171,7 @@ Covers the rule `log-when-unavailable` (`reference/quality-scale.md`) and HA's l
 | anti-pattern | use instead | why (one clause) | reference |
 |---|---|---|---|
 | wrapping the fetch in your own `try`/log | raise `UpdateFailed` and let the coordinator log | the manual log double-logs and fails `log-when-unavailable` | https://contributors.home-assistant.io/core/quality-scale/log-when-unavailable/ |
-| `_LOGGER.exception(...)` beside a raise in `async_setup_entry` | raise alone | HA logs the reason already | `ConfigEntry.async_setup`, through `__async_handle_config_entry_setup_error`, in `homeassistant/config_entries.py`, at the `.0` tag of the release row in `reference/freshness.md` |
+| `_LOGGER.exception(...)`, `.error(...)`, `.warning(...)` or `.critical(...)` earlier in the block that raises `ConfigEntryNotReady`, `ConfigEntryAuthFailed`, `ConfigEntryError`, `UpdateFailed`, `HomeAssistantError` or `ServiceValidationError` — in `async_setup_entry` or anywhere else | raise alone; ha-integration-ci v5 fails the log (W7450) | HA reports each of those itself, so the error shows twice | `ConfigEntry.async_setup`, through `__async_handle_config_entry_setup_error`, in `homeassistant/config_entries.py`, and `checkers/log_and_raise.py` in core's `packages/pylint-home-assistant/pylint_home_assistant/`, at the `.0` tag of the release row in `reference/freshness.md` |
 | an f-string in a log call | a lazy `%` arg | the f-string evaluates even when the level is disabled | https://contributors.home-assistant.io/core/development/style/ |
 | logging a credential, API key, token or raw auth response | log the fact, never the secret | a log is read by whoever is handed it | https://contributors.home-assistant.io/core/development/style/ |
 | a module-level `_LOGGER` left behind after the calls go | delete it | ruff does not flag an unused module global | — |

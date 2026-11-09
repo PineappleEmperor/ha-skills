@@ -28,6 +28,7 @@ the version the mypy and ruff row of `reference/freshness.md` names.
 |---|---|
 | a finding to act on | fixed in the code |
 | a finding left on purpose | `# noqa: <code>` on the line, with the reason beside it |
+| an `F401` on a re-export, in a module of the integration that defines `__all__` | the name listed in `__all__`, with no `# noqa: F401`; a `from . import` of submodules alone is exempt; ha-integration-ci v5 fails the `noqa` (C7416) — `checkers/imports.py` in core's `packages/pylint-home-assistant/pylint_home_assistant/`, at the `.0` tag of the release row in `reference/freshness.md`, and *v5.0.0's edits* under *The version model* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
 | a table someone aligned, which `ruff format` would flatten | fenced — *Alignment a human chose meets `ruff format` — Step 1* |
 
 ### Step 2: Run mypy

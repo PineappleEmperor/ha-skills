@@ -174,6 +174,7 @@ Regex parsers, date/format extraction and data transforms (`order_parse`, `vouch
 | the config flow | the happy path, each error, and reauth or reconfigure where either exists |
 | entry setup | a real `LOADED` test, plus a two-entry parallel one where several devices are allowed |
 | the coordinator | success, auth failure, and the credential-read path, against a mocked transport |
+| the coordinator's next poll, in a test | `freezer.tick(SCAN_INTERVAL)`, `async_fire_time_changed(hass)`, then `await hass.async_block_till_done(wait_background_tasks=True)`, never a call to `async_refresh()`, `async_request_refresh()` or `_async_refresh()`, so the coordinator's own schedule runs; ha-integration-ci v5 fails the call (W7439) — `checkers/tests/coordinator_async_refresh.py` in core's `packages/pylint-home-assistant/pylint_home_assistant/`, at the `.0` tag of the release row in `reference/freshness.md`, and *v5.0.0's edits* under *The version model* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
 | unload | a test of its own |
 | each parser | a unit test of its own |
 

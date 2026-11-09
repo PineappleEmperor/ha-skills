@@ -51,6 +51,7 @@ calls to the device or service apart from the HA lifecycle, so it is unit-testab
 |---|---|---|---|
 | protocol parsing, a device state machine or other domain logic inside the integration | a library of its own on PyPI, which `api.py` calls and `requirements` in `manifest.json` pins | an integration is a thin wrapper | `.claude/skills/ha-integration-knowledge/SKILL.md` in core, at the `.0` tag of the release row in `reference/freshness.md` |
 | a workaround in the integration for a limit of its library | a fix in the library, then the new pin in `requirements` | the fix belongs where every user of the library gets it | `.claude/skills/ha-integration-knowledge/SKILL.md` in core, at the `.0` tag of the release row in `reference/freshness.md` |
+| an instance method or property defined above `__init__`, in a class of the integration | `__init__` first, after the class attributes; a static or class method may come before it; ha-integration-ci v5 fails the order (C7417) | the class reads top-down | `checkers/init_first.py` in core's `packages/pylint-home-assistant/pylint_home_assistant/`, at the `.0` tag of the release row in `reference/freshness.md` |
 
 ### Step 2: Pick the shape HA models
 
