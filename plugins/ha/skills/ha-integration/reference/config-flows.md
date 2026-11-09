@@ -91,15 +91,17 @@ class MyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
 
 # In __init__.py:
-async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Bring a stored entry up to the current version."""
     if entry.version == 1:
         new_data = {**entry.data, "new_field": "default"}
         hass.config_entries.async_update_entry(
             entry, data=new_data, version=2, minor_version=1
         )
-    return True
 ```
+
+What it returns, and the release that return needs, is the return row of *Step 3: Wire the
+entry setup and unload* in `reference/patterns.md`.
 
 | Rule | Value |
 |---|---|

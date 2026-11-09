@@ -78,7 +78,7 @@ it in lockstep with the Python floor the CI declares.
 | where each row was read | *Installation and compatibility* in core's `packages/pytest-homeassistant/README.md`, at the `.0` tag of the release row in `reference/freshness.md`; what CI accepts, *What the audit checks now* in ha-integration-ci's README, https://raw.githubusercontent.com/PineappleEmperor/ha-integration-ci/main/README.md |
 | the pin | `==` one release, never a range or a bare name: PyPI also carries an unrelated `pytest-homeassistant` 0.1.x from 2020 by another author, which those can resolve to, and CI fails them |
 | `pytest-homeassistant-custom-component` | never in the same environment as core's harness: each pins a different exact `homeassistant`, and core's README says not to install the two together |
-| a repository that must still test HA 2026.10 or older | keeps `pytest-homeassistant-custom-component` for that run, in an environment of its own; core publishes its harness from 2026.11.0 |
+| a repository still on ha-integration-ci v4 that must test HA 2026.10 or older | keeps `pytest-homeassistant-custom-component` for that run, in an environment of its own; core publishes its harness from 2026.11.0; on v5 the repository claims nothing below the compatibility floor of the return row of *Step 3: Wire the entry setup and unload* in `reference/patterns.md` |
 
 **Timing:** by hand, since nothing compares the pair — the gate cell of the harness row in
 `reference/freshness.md` says so.
